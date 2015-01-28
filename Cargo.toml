@@ -5,7 +5,7 @@ authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://github.com/sfackler/doc/log4rs"
+documentation = "https://sfackler.github.io/doc/log4rs"
 
 [dependencies]
 toml = "0.1"
