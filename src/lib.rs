@@ -51,7 +51,8 @@
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/doc")]
 #![warn(missing_docs)]
-#![allow(unstable, missing_copy_implementations)]
+#![feature(std_misc, core, io, path)]
+#![allow(missing_copy_implementations)]
 
 extern crate log;
 extern crate toml;

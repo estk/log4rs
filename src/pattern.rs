@@ -21,14 +21,14 @@ use log::LogRecord;
 use toml::{self, Value};
 use time;
 
-#[derive(Show)]
+#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 enum TimeFmt {
     Rfc3339,
     Str(String),
 }
 
-#[derive(Show)]
+#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 enum Chunk {
     Text(String),
@@ -42,7 +42,7 @@ enum Chunk {
 }
 
 /// A formatter object for `LogRecord`s.
-#[derive(Show)]
+#[derive(Debug)]
 pub struct PatternLogger {
     pattern: Vec<Chunk>,
 }

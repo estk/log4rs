@@ -37,7 +37,7 @@ impl<W> Log for BasicLogger<W> where W: Writer+Send {
 /// kind = "console"
 /// pattern = "%d [%l] %M - %m"
 /// ```
-#[derive(Show)]
+#[derive(Debug)]
 pub struct ConsoleLoggerMaker;
 
 impl MakeLogger for ConsoleLoggerMaker {
@@ -67,7 +67,7 @@ impl MakeLogger for ConsoleLoggerMaker {
 /// file = "log/errors.log"
 /// pattern = "%d [%l] %M - %m"
 /// ```
-#[derive(Show)]
+#[derive(Debug)]
 pub struct FileLoggerMaker;
 
 impl MakeLogger for FileLoggerMaker {

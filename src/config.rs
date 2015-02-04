@@ -5,20 +5,20 @@ use std::time::Duration;
 use toml::{self, Value};
 use log::LogLevelFilter;
 
-#[cfg_attr(test, derive(PartialEq, Show))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct RawConfig {
     pub refresh_rate: Option<Duration>,
     pub loggers: HashMap<String, LoggerSpec>,
     pub directives: Vec<LogDirective>,
 }
 
-#[cfg_attr(test, derive(PartialEq, Show))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct LoggerSpec {
     pub kind: String,
     pub config: toml::Table,
 }
 
-#[cfg_attr(test, derive(PartialEq, Show))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct LogDirective {
     pub path: String,
     pub level: LogLevelFilter,
@@ -104,7 +104,7 @@ fn finish_parse_config(mut table: toml::Table) -> Result<RawConfig, Vec<String>>
 
                     let level = match table.remove("level") {
                         Some(Value::String(level)) => {
-                            if let Some(level) = level.parse() {
+                            if let Ok(level) = level.parse() {
                                 level
                             } else {
                                 errors.push("Invalid `level`".to_owned());
