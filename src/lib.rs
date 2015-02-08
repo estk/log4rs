@@ -49,7 +49,7 @@
 //!     // ...
 //! }
 //! ```
-#![doc(html_root_url="https://sfackler.github.io/doc")]
+#![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
 #![warn(missing_docs)]
 #![feature(std_misc, core, io, path)]
 #![allow(missing_copy_implementations)]
