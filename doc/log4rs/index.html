@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `log4rs` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, log4rs">
+
+    <title>log4rs - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'></p>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>log4rs</a><wbr></span><span class='out-of-band'><a href='stability.html'>[stability]</a> <span id='render-detail'>
+            <a id="collapse-all" href="#">[-]
+            </a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-0' href='../src/log4rs/lib.rs.html#1-410'>[src]</a></span></h1>
+<div class='docblock'><p>log4rs is a highly configurable logging framework for Rust integrating with
+the <code>log</code> logging facade.</p>
+
+<p>The log4rs framework consists of a number of loggers as well as directies
+which configure which log messages are directed to whic loggers.
+Configuration is handled via a TOML file:</p>
+
+<pre><code class="language-toml"># log4rs will automatically check the configuration file for updates at the
+# specified frequency in seconds if this is set
+refresh_rate = 30
+
+# A minimal configuration of a logger called &quot;stderr&quot; of the &quot;console&quot; kind
+[logger.stderr]
+kind = &quot;console&quot;
+
+# A logger called &quot;errors&quot; with a more advanced configuration.
+[logger.errors]
+kind = &quot;file&quot;
+path = &quot;logs/errors.log&quot;
+pattern = &quot;%d [%l] %T - %m&quot;
+
+# A directive that routes all error level log messages to the errors logger
+[[directive]]
+level = &quot;error&quot;
+logger = &quot;errors&quot;
+
+# A directive that routes all error, warning, and info level messages from
+# the foo::bar::baz module to the stderr logger.
+[[directive]]
+level = &quot;info&quot;
+logger = &quot;stderr&quot;
+path = &quot;foo::bar::baz&quot;
+</code></pre>
+
+<p>The <code>init</code> method should be called early in the runtime of a program to
+initialize the logging system. It takes a path to the config file as well
+as a map of available loggers. The <code>default_loggers</code> function returns a map
+of loggers that are provided with log4rs, including the <code>console</code> and <code>file</code>
+kinds mentioned above:</p>
+<pre id='rust-example-rendered' class='rust '>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log4rs</span>;
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='ident'>log4rs</span>::<span class='ident'>init</span>(<span class='ident'>Path</span>::<span class='ident'>new</span>(<span class='string'>&quot;log.toml&quot;</span>), <span class='ident'>log4rs</span>::<span class='ident'>default_loggers</span>()).<span class='ident'>unwrap</span>();
+
+    <span class='comment'>// ...</span>
+}
+</pre>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='mod' href='loggers/index.html'
+                               title='log4rs::loggers'>loggers</a></td>
+                        <td class='docblock short'><p>A set of basic log4rs loggers.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='mod' href='pattern/index.html'
+                               title='log4rs::pattern'>pattern</a></td>
+                        <td class='docblock short'><p>Simple pattern syntax for logger output formats.</p>
+</td>
+                    </tr>
+                </table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.Log.html'
+                               title='log4rs::Log'>Log</a></td>
+                        <td class='docblock short'><p>A trait specifying the interface for log4rs loggers.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.MakeLogger.html'
+                               title='log4rs::MakeLogger'>MakeLogger</a></td>
+                        <td class='docblock short'><p>A trait specifying the interface for creation of log4rs loggers.</p>
+</td>
+                    </tr>
+                </table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='fn' href='fn.default_loggers.html'
+                               title='log4rs::default_loggers'>default_loggers</a></td>
+                        <td class='docblock short'><p>Returns a set of built-in log4rs loggers.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='fn' href='fn.init.html'
+                               title='log4rs::init'>init</a></td>
+                        <td class='docblock short'><p>Initializes the global logger with a log4rs logger.</p>
+</td>
+                    </tr>
+                </table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "log4rs";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script async src="../search-index.js"></script>
+</body>
+</html>
