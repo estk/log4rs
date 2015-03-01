@@ -15,7 +15,7 @@
 
 use std::borrow::ToOwned;
 use std::default::Default;
-use std::thread::Thread;
+use std::thread;
 
 use log::LogRecord;
 use toml::{self, Value};
@@ -153,7 +153,7 @@ impl PatternLogger {
                 Chunk::File => write!(w, "{}", record.location().file),
                 Chunk::Line => write!(w, "{}", record.location().line),
                 Chunk::Thread => {
-                    write!(w, "{}", Thread::current().name().unwrap_or("<unnamed thread>"))
+                    write!(w, "{}", thread::current().name().unwrap_or("<unnamed thread>"))
                 }
             };
         }
@@ -164,7 +164,7 @@ impl PatternLogger {
 #[cfg(test)]
 mod tests {
     use std::default::Default;
-    use std::thread::{self, Thread};
+    use std::thread;
 
     use log::{LogRecord, LogLocation, LogLevel};
 
@@ -201,16 +201,14 @@ mod tests {
             line: 132,
         };
         let mut buf = vec![];
-        let args = format_args!("the message");
-        let record = LogRecord::new(LogLevel::Debug, &LOCATION, args);
-        pw.log(&mut buf, &record);
+        pw.log(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("the message")));
 
         assert_eq!(b"DEBUG the message at mod path in the file:132\n", buf);
     }
 
     #[test]
     fn test_unnamed_thread() {
-        Thread::scoped(|| {
+        thread::scoped(|| {
             let pw = PatternLogger::from_pattern("%t").unwrap();
             static LOCATION: LogLocation = LogLocation {
                 module_path: "path",
@@ -218,11 +216,9 @@ mod tests {
                 line: 132,
             };
             let mut buf = vec![];
-            let args = format_args!("message");
-            let record = LogRecord::new(LogLevel::Debug, &LOCATION, args);
-            pw.log(&mut buf, &record);
+            pw.log(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("message")));
             assert_eq!(b"<unnamed thread>\n", buf);
-        }).join().ok().unwrap();
+        }).join();
     }
 
     #[test]
@@ -235,11 +231,9 @@ mod tests {
                 line: 132,
             };
             let mut buf = vec![];
-            let args = format_args!("message");
-            let record = LogRecord::new(LogLevel::Debug, &LOCATION, args);
-            pw.log(&mut buf, &record);
+            pw.log(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("message")));
             assert_eq!(b"foobar\n", buf);
-        }).join().ok().unwrap();
+        }).unwrap().join();
     }
 
     #[test]

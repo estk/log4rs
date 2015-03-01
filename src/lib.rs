@@ -51,7 +51,7 @@
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
 #![warn(missing_docs)]
-#![feature(std_misc, core, io, path)]
+#![feature(std_misc, core, old_io, io, fs, old_path)]
 #![allow(missing_copy_implementations)]
 
 extern crate log;
@@ -62,7 +62,8 @@ use std::borrow::ToOwned;
 use std::collections::{HashMap, BTreeMap};
 use std::default::Default;
 use std::i64;
-use std::old_io::fs::{self, File};
+use std::fs::{self, File};
+use std::io::prelude::*;
 use std::old_io::timer;
 use std::sync::{Mutex, Arc};
 use std::thread;
@@ -249,7 +250,10 @@ impl log::Log for Arc<Logger> {
 impl Logger {
     fn reload_config(&self) {
         let config = File::open(&self.config_file)
-            .and_then(|mut f| f.read_to_string())
+            .and_then(|mut f| {
+                let mut s = String::new();
+                f.read_to_string(&mut s).map(|_| s)
+            })
             .map_err(|e| vec![e.to_string()])
             .and_then(|c| config::parse_config(&*c))
             .and_then(|c| Config::from_raw(c, &self.loggers));
@@ -294,8 +298,8 @@ fn load_config(logger: &Arc<Logger>) {
     thread::Builder::new().name("log4rs config refresh thread".to_owned()).spawn(move || {
         let mut last_check = time::precise_time_ns();
 
-        let mut last_mtime = match fs::stat(&logger.config_file) {
-            Ok(stat) => Some(stat.modified),
+        let mut last_mtime = match fs::metadata(&logger.config_file) {
+            Ok(stat) => Some(stat.modified()),
             Err(err) => {
                 logger.log_errors(&[err.to_string()]);
                 None
@@ -319,8 +323,8 @@ fn load_config(logger: &Arc<Logger>) {
             }
 
             last_check = time::precise_time_ns();
-            let mtime = match fs::stat(&logger.config_file) {
-                Ok(stat) => stat.modified,
+            let mtime = match fs::metadata(&logger.config_file) {
+                Ok(stat) => stat.modified(),
                 Err(err) => {
                     logger.log_errors(&[err.to_string()]);
                     continue;
@@ -335,7 +339,7 @@ fn load_config(logger: &Arc<Logger>) {
 
             last_mtime = Some(mtime);
         }
-    });
+    }).unwrap();
 }
 
 /// Returns a set of built-in log4rs loggers.
