@@ -64,7 +64,7 @@
 
 body {
     color: #333;
-    font: 16px/1.4 "Source Serif Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font: 16px/1.4 "Source Serif Pro", Georgia, Times, "Times New Roman", serif;
     margin: 0;
     position: relative;
     padding: 10px 15px 20px 15px;
@@ -292,6 +292,27 @@ nav.sub {
 .content td p:first-child { margin-top: 0; }
 .content td h1, .content td h2 { margin-left: 0; font-size: 1.1em; }
 
+.docblock table {
+    border: 1px solid #ddd;
+    margin: .5em 0;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.docblock table td {
+    padding: .5em;
+    border-top: 1px dashed #ddd;
+    border-bottom: 1px dashed #ddd;
+
+}
+
+.docblock table th {
+    padding: .5em;
+    text-align: left;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+}
+
 .content .item-list {
     list-style-type: none;
     padding: 0;
@@ -353,8 +374,14 @@ a {
     color: #000;
     background: transparent;
 }
-p a { color: #4e8bca; }
-p a:hover { text-decoration: underline; }
+
+.docblock a {
+    color: #4e8bca;
+}
+
+.docblock a:hover {
+    text-decoration: underline;
+}
 
 .content span.trait, .content a.trait, .block a.current.trait { color: #ed9603; }
 .content span.mod, .content a.mod, block a.current.mod { color: #4d76ae; }
@@ -508,8 +535,17 @@ pre.rust { position: relative; }
     margin: 0 0 -5px;
     padding: 0;
 }
+
 .section-header:hover a:after {
     content: '\2002\00a7\2002';
+}
+
+.section-header:hover a {
+    text-decoration: none;
+}
+
+.section-header a {
+    color: inherit;
 }
 
 .collapse-toggle {

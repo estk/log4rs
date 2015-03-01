@@ -1,1 +1,1 @@
-{"name":"log4rs","counts":{"unstable":0,"stable":4,"unmarked":18},"submodules":[{"name":"loggers","counts":{"unstable":0,"stable":2,"unmarked":5},"submodules":[]},{"name":"pattern","counts":{"unstable":0,"stable":2,"unmarked":6},"submodules":[]}]}
+{"name":"log4rs","counts":{"deprecated":0,"unstable":0,"stable":4,"unmarked":18},"submodules":[{"name":"loggers","counts":{"deprecated":0,"unstable":0,"stable":2,"unmarked":5},"submodules":[]},{"name":"pattern","counts":{"deprecated":0,"unstable":0,"stable":2,"unmarked":6},"submodules":[]}]}
