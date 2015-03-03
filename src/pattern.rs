@@ -1,4 +1,4 @@
-//! Simple pattern syntax for logger output formats.
+//! Simple pattern syntax for appender output formats.
 //!
 //! # Basic Specifiers
 //!

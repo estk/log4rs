@@ -1,3 +1,5 @@
+//! A set of common appenders
+
 use std::default::Default;
 use std::io;
 use std::error::Error;
@@ -10,6 +12,7 @@ use log::LogRecord;
 use Append;
 use pattern::PatternLayout;
 
+/// An appender which logs to a file.
 pub struct FileAppender {
     file: BufWriter<File>,
     pattern: PatternLayout,
@@ -24,6 +27,8 @@ impl Append for FileAppender {
 }
 
 impl FileAppender {
+    /// Creates a new `FileAppender` builder for an appender which will log to
+    /// a file at the provided path.
     pub fn builder<P: AsPath + ?Sized>(path: &P) -> FileAppenderBuilder {
         FileAppenderBuilder {
             path: path.as_path().to_path_buf(),
@@ -32,17 +37,20 @@ impl FileAppender {
     }
 }
 
+/// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
     path: PathBuf,
     pattern: PatternLayout,
 }
 
 impl FileAppenderBuilder {
+    /// Sets the output pattern for the `FileAppender`.
     pub fn pattern(mut self, pattern: PatternLayout) -> FileAppenderBuilder {
         self.pattern = pattern;
         self
     }
 
+    /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build(self) -> io::Result<FileAppender> {
         let file = try!(OpenOptions::new()
             .write(true)
@@ -56,6 +64,7 @@ impl FileAppenderBuilder {
     }
 }
 
+/// An appender which logs to stdout.
 pub struct ConsoleAppender {
     stdout: Stdout,
     pattern: PatternLayout,
@@ -71,6 +80,7 @@ impl Append for ConsoleAppender {
 }
 
 impl ConsoleAppender {
+    /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
         ConsoleAppenderBuilder {
             pattern: Default::default(),
@@ -78,16 +88,19 @@ impl ConsoleAppender {
     }
 }
 
+/// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
     pattern: PatternLayout,
 }
 
 impl ConsoleAppenderBuilder {
+    /// Sets the output pattern for the `ConsoleAppender`.
     pub fn pattern(mut self, pattern: PatternLayout) -> ConsoleAppenderBuilder {
         self.pattern = pattern;
         self
     }
 
+    /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
         ConsoleAppender {
             stdout: io::stdout(),

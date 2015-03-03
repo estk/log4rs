@@ -1,4 +1,5 @@
-#![feature(std_misc, fs, io, path, core)]
+#![feature(std_misc, fs, io, path, core, old_io)]
+#![warn(missing_doc)]
 
 extern crate log;
 extern crate time;
@@ -8,15 +9,27 @@ use std::borrow::ToOwned;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
+use std::fs;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf, AsPath};
 use std::sync::{Mutex, Arc};
+use std::old_io::timer::sleep;
+use std::thread;
+use std::time::Duration;
 use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError};
+
+use toml::Creator;
 
 pub mod toml;
 pub mod config;
 pub mod appender;
 pub mod pattern;
 
+/// A trait implemented by log4rs appenders.
 pub trait Append: Send + 'static{
+    /// Processes the provided `LogRecord`.
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>>;
 }
 
@@ -95,7 +108,9 @@ impl ConfiguredLogger {
     fn log(&self, record: &log::LogRecord, appenders: &mut [Box<Append>]) {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
-                let _ = appenders[idx].append(record);
+                if let Err(err) = appenders[idx].append(record) {
+                    handle_error(&*err);
+                }
             }
         }
     }
@@ -176,12 +191,123 @@ impl log::Log for Logger {
     }
 }
 
+fn handle_error<E: error::Error+?Sized>(e: &E) {
+    let stderr = io::stderr();
+    let mut stderr = stderr.lock();
+    let _ = writeln!(&mut stderr, "{}", e);
+}
+
+/// Initializes the global logger with a log4rs logger configured by `config`.
 pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
         Box::new(logger)
     })
+}
+
+/// Initializes the global logger with a log4rs logger.
+///
+/// Configuration is read from a TOML file located at the provided path on the
+/// filesystem and appenders are created from the provided `Creator`.
+///
+/// Any errors encountered when processing the configuration are reported to
+/// stderr.
+pub fn init_file<P: AsPath+?Sized>(path: &P, creator: Creator) -> Result<(), SetLoggerError> {
+    log::set_logger(|max_log_level| {
+        let path = path.as_path().to_path_buf();
+        let mtime = match fs::metadata(&path) {
+            Ok(metadata) => metadata.modified(),
+            Err(err) => {
+                handle_error(&err);
+                0
+            }
+        };
+        let (refresh_rate, config) = match load_config(&path, &creator) {
+            Ok(toml::Config { refresh_rate, config, .. }) => (refresh_rate, config),
+            Err(err) => {
+                handle_error(&*err);
+                (None, config::Config::new(vec![],
+                                           config::Root::new(LogLevelFilter::Off),
+                                           vec![]).unwrap())
+            }
+        };
+        let logger = Logger::new(config);
+        max_log_level.set(logger.max_log_level());
+        if let Some(refresh_rate) = refresh_rate {
+            ConfigReloader::start(path, refresh_rate, mtime, creator, &logger);
+        }
+        Box::new(logger)
+    })
+}
+
+fn load_config(path: &Path, creator: &Creator) -> Result<toml::Config, Box<error::Error>> {
+    let mut file = try!(File::open(path));
+    let mut s = String::new();
+    try!(file.read_to_string(&mut s));
+    Ok(try!(toml::parse(&s, creator)))
+}
+
+struct ConfigReloader {
+    path: PathBuf,
+    rate: Duration,
+    mtime: u64,
+    creator: Creator,
+    shared: Arc<Mutex<SharedLogger>>,
+}
+
+impl ConfigReloader {
+    fn start(path: PathBuf, rate: Duration, mtime: u64, creator: Creator, logger: &Logger) {
+        let mut reloader = ConfigReloader {
+            path: path,
+            rate: rate,
+            mtime: mtime,
+            creator: creator,
+            shared: logger.inner.clone(),
+        };
+
+        thread::Builder::new()
+            .name("log4rs config refresh thread".to_string())
+            .spawn(move || reloader.run())
+            .unwrap();
+    }
+
+    fn run(&mut self) {
+        loop {
+            sleep(self.rate);
+
+            let mtime = match fs::metadata(&self.path) {
+                Ok(metadata) => metadata.modified(),
+                Err(err) => {
+                    handle_error(&err);
+                    continue;
+                }
+            };
+
+            if mtime == self.mtime {
+                continue;
+            }
+
+            self.mtime = mtime;
+
+            let config = match load_config(&self.path, &self.creator) {
+                Ok(config) => config,
+                Err(err) => {
+                    handle_error(&*err);
+                    continue;
+                }
+            };
+            let toml::Config { refresh_rate, config, ..  } = config;
+
+            let shared = SharedLogger::new(config);
+            *self.shared.lock().unwrap() = shared;
+
+            match refresh_rate {
+                Some(rate) => self.rate = rate,
+                None => return,
+            }
+        }
+    }
 }
 
 #[cfg(test)]
