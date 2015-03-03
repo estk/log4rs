@@ -10,7 +10,7 @@ use toml_parser::{self, Value};
 use appender::{FileAppender, ConsoleAppender};
 use config;
 use pattern::PatternLayout;
-use Append;
+use {Append, PrivateTomlConfigExt};
 
 mod raw;
 
@@ -104,61 +104,84 @@ impl error::Error for Error {
 
 /// A deserialized TOML log4rs configuration.
 pub struct Config {
-    pub refresh_rate: Option<Duration>,
-    pub config: config::Config,
-    _p: ()
+    refresh_rate: Option<Duration>,
+    config: config::Config,
 }
 
-/// Creates a log4rs `Config` from the specified TOML config string and `Creator`.
-pub fn parse(config: &str, creator: &Creator) -> Result<Config, Error> {
-    let config = match raw::parse(config) {
-        Ok(config) => config,
-        Err(err) => return Err(Error::Parse(err)),
-    };
-
-    let raw::Config {
-        refresh_rate,
-        root: raw_root,
-        appenders: raw_appenders,
-        loggers: raw_loggers,
-    } = config;
-
-    let mut appenders = vec![];
-    for (name, appender) in raw_appenders {
-        let appender = match creator.create_appender(&appender.kind, &appender.config) {
-            Ok(appender) => appender,
-            Err(err) => return Err(Error::Creation(err)),
+impl Config {
+    /// Creates a log4rs `Config` from the specified TOML config string and `Creator`.
+    pub fn parse(config: &str, creator: &Creator) -> Result<Config, Error> {
+        let config = match raw::parse(config) {
+            Ok(config) => config,
+            Err(err) => return Err(Error::Parse(err)),
         };
-        appenders.push(config::Appender::new(name, appender))
-    }
 
-    let root = match raw_root {
-        Some(raw_root) => {
-            let mut root = config::Root::new(raw_root.level);
-            if let Some(appenders) = raw_root.appenders {
-                root.appenders.extend(appenders.into_iter());
+        let raw::Config {
+            refresh_rate,
+            root: raw_root,
+            appenders: raw_appenders,
+            loggers: raw_loggers,
+        } = config;
+
+        let root = match raw_root {
+            Some(raw_root) => {
+                let mut root = config::Root::builder(raw_root.level);
+                if let Some(appenders) = raw_root.appenders {
+                    root = root.appenders(appenders);
+                }
+                root.build()
             }
-            root
-        }
-        None => config::Root::new(LogLevelFilter::Debug),
-    };
+            None => config::Root::builder(LogLevelFilter::Debug).build(),
+        };
 
-    let mut loggers = vec![];
-    for logger in raw_loggers {
-        let raw::Logger { name, level, appenders, additive } = logger;
-        let mut logger = config::Logger::new(name, level);
-        logger.appenders = appenders.unwrap_or(vec![]);
-        logger.additive = additive.unwrap_or(true);
-        loggers.push(logger);
+        let mut config = config::Config::builder(root);
+
+        for (name, appender) in raw_appenders {
+            let appender = match creator.create_appender(&appender.kind, &appender.config) {
+                Ok(appender) => appender,
+                Err(err) => return Err(Error::Creation(err)),
+            };
+            config = config.appender(config::Appender::builder(name, appender).build());
+        }
+
+        for logger in raw_loggers {
+            let raw::Logger { name, level, appenders, additive } = logger;
+            let mut logger = config::Logger::builder(name, level);
+            if let Some(appenders) = appenders {
+                logger = logger.appenders(appenders);
+            }
+            if let Some(additive) = additive {
+                logger = logger.additive(additive);
+            }
+            config = config.logger(logger.build());
+        }
+
+        match config.build() {
+            Ok(config) => {
+                Ok(Config {
+                    refresh_rate: refresh_rate,
+                    config: config,
+                })
+            }
+            Err(err) => Err(Error::Config(err))
+        }
     }
 
-    match config::Config::new(appenders, root, loggers) {
-        Ok(config) => Ok(Config {
-            refresh_rate: refresh_rate,
-            config: config,
-            _p: (),
-        }),
-        Err(err) => Err(Error::Config(err))
+    /// Returns the requested refresh rate.
+    pub fn refresh_rate(&self) -> Option<Duration> {
+        self.refresh_rate
+    }
+
+    /// Returns the log4rs `Config`.
+    pub fn config(&self) -> &config::Config {
+        &self.config
+    }
+}
+
+impl PrivateTomlConfigExt for Config {
+    fn unpack(self) -> (Option<Duration>, config::Config) {
+        let Config { refresh_rate, config } = self;
+        (refresh_rate, config)
     }
 }
 

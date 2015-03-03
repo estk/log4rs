@@ -123,39 +123,38 @@ struct SharedLogger {
 
 impl SharedLogger {
     fn new(config: config::Config) -> SharedLogger {
-        let config::Config { appenders, root, loggers, .. } = config;
+        let (appenders, root, loggers) = config.unpack();
 
         let root = {
             let appender_map = appenders
                 .iter()
                 .enumerate()
                 .map(|(i, appender)| {
-                    (&appender.name, i)
+                    (appender.name(), i)
                 })
                 .collect::<HashMap<_, _>>();
 
-            let config::Root { level, appenders, .. } = root;
             let mut root = ConfiguredLogger {
-                level: level,
-                appenders: appenders
-                    .into_iter()
-                    .map(|appender| appender_map[appender].clone())
+                level: root.level(),
+                appenders: root.appenders()
+                    .iter()
+                    .map(|appender| appender_map[&**appender].clone())
                     .collect(),
                 children: vec![],
             };
 
             for logger in loggers {
-                let appenders = logger.appenders
-                    .into_iter()
-                    .map(|appender| appender_map[appender])
+                let appenders = logger.appenders()
+                    .iter()
+                    .map(|appender| appender_map[&**appender])
                     .collect();
-                root.add(&logger.name, appenders, logger.additive, logger.level);
+                root.add(logger.name(), appenders, logger.additive(), logger.level());
             }
 
             root
         };
 
-        let appenders = appenders.into_iter().map(|appender| appender.appender).collect();
+        let appenders = appenders.into_iter().map(|appender| appender.appender()).collect();
 
         SharedLogger {
             root: root,
@@ -224,12 +223,11 @@ pub fn init_file<P: AsPath+?Sized>(path: &P, creator: Creator) -> Result<(), Set
             }
         };
         let (refresh_rate, config) = match load_config(&path, &creator) {
-            Ok(toml::Config { refresh_rate, config, .. }) => (refresh_rate, config),
+            Ok(config) => config.unpack(),
             Err(err) => {
                 handle_error(&*err);
-                (None, config::Config::new(vec![],
-                                           config::Root::new(LogLevelFilter::Off),
-                                           vec![]).unwrap())
+                (None, config::Config::builder(
+                        config::Root::builder(LogLevelFilter::Off).build()).build().unwrap())
             }
         };
         let logger = Logger::new(config);
@@ -245,7 +243,7 @@ fn load_config(path: &Path, creator: &Creator) -> Result<toml::Config, Box<error
     let mut file = try!(File::open(path));
     let mut s = String::new();
     try!(file.read_to_string(&mut s));
-    Ok(try!(toml::parse(&s, creator)))
+    Ok(try!(toml::Config::parse(&s, creator)))
 }
 
 struct ConfigReloader {
@@ -297,7 +295,7 @@ impl ConfigReloader {
                     continue;
                 }
             };
-            let toml::Config { refresh_rate, config, ..  } = config;
+            let (refresh_rate, config) = config.unpack();
 
             let shared = SharedLogger::new(config);
             *self.shared.lock().unwrap() = shared;
@@ -310,6 +308,14 @@ impl ConfigReloader {
     }
 }
 
+trait ConfigPrivateExt {
+    fn unpack(self) -> (Vec<config::Appender>, config::Root, Vec<config::Logger>);
+}
+
+trait PrivateTomlConfigExt {
+    fn unpack(self) -> (Option<Duration>, config::Config);
+}
+
 #[cfg(test)]
 mod test {
     use log::{LogLevel, LogLevelFilter, Log};
@@ -318,14 +324,15 @@ mod test {
 
     #[test]
     fn enabled() {
-        let appenders = vec![];
-        let root = config::Root::new(LogLevelFilter::Debug);
-        let loggers = vec![
-            config::Logger::new("foo::bar".to_string(), LogLevelFilter::Trace),
-            config::Logger::new("foo::bar::baz".to_string(), LogLevelFilter::Off),
-            config::Logger::new("foo::baz::buz".to_string(), LogLevelFilter::Error),
-        ];
-        let config = config::Config::new(appenders, root, loggers).unwrap();
+        let root = config::Root::builder(LogLevelFilter::Debug).build();
+        let mut config = config::Config::builder(root);
+        let logger = config::Logger::builder("foo::bar".to_string(), LogLevelFilter::Trace).build();
+        config = config.logger(logger);
+        let logger = config::Logger::builder("foo::bar::baz".to_string(), LogLevelFilter::Off).build();
+        config = config.logger(logger);
+        let logger = config::Logger::builder("foo::baz::buz".to_string(), LogLevelFilter::Error).build();
+        config = config.logger(logger);
+        let config = config.build().unwrap();
 
         let logger = super::Logger::new(config);
 
