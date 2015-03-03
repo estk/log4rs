@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.ConsoleAppenderCreator.html' title=''>ConsoleAppenderCreator</a><a class='struct ' href='struct.Creator.html' title=''>Creator</a><a class='struct ' href='struct.FileAppenderCreator.html' title=''>FileAppenderCreator</a><a class='struct ' href='struct.TomlConfig.html' title=''>TomlConfig</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.Error.html' title=''>Error</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.CreateAppender.html' title=''>CreateAppender</a></div><div class='block fn'><h2>Functions</h2><a class='fn current' href='fn.parse.html' title=''>parse</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.Config.html' title='A deserialized TOML log4rs configuration.'>Config</a><a class='struct ' href='struct.ConsoleAppenderCreator.html' title='An appender creator for the `ConsoleAppender`.'>ConsoleAppenderCreator</a><a class='struct ' href='struct.Creator.html' title='A type that can create appenders.'>Creator</a><a class='struct ' href='struct.FileAppenderCreator.html' title='An appender creator for the `FileAppender`.'>FileAppenderCreator</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.Error.html' title='An error returned when deserializing a TOML configuration into a log4rs `Config`.'>Error</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.CreateAppender.html' title='A trait implemented by types that can create appenders.'>CreateAppender</a></div><div class='block fn'><h2>Functions</h2><a class='fn current' href='fn.parse.html' title='Creates a log4rs `Config` from the specified TOML config string and `Creator`.'>parse</a></div>
     </section>
 
     <nav class="sub">
@@ -43,8 +43,9 @@
     <section id='main' class="content fn">
 <h1 class='fqn'><span class='in-band'>Function <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a>::<wbr><a class='fn' href=''>parse</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-1280' href='../../src/log4rs/toml/mod.rs.html#66-116'>[src]</a></span></h1>
-<pre class='rust fn'>pub fn parse(config: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: &amp;<a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../../log4rs/toml/struct.TomlConfig.html' title='log4rs::toml::TomlConfig'>TomlConfig</a>, <a class='enum' href='../../log4rs/toml/enum.Error.html' title='log4rs::toml::Error'>Error</a>&gt;</pre></section>
+        </span><a id='src-1540' href='../../src/log4rs/toml/mod.rs.html#113-163'>[src]</a></span></h1>
+<pre class='rust fn'>pub fn parse(config: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: &amp;<a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../../log4rs/toml/struct.Config.html' title='log4rs::toml::Config'>Config</a>, <a class='enum' href='../../log4rs/toml/enum.Error.html' title='log4rs::toml::Error'>Error</a>&gt;</pre><div class='docblock'><p>Creates a log4rs <code>Config</code> from the specified TOML config string and <code>Creator</code>.</p>
+</div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>

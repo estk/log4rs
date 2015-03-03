@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.ConsoleAppender.html' title=''>ConsoleAppender</a><a class='struct current' href='struct.ConsoleAppenderBuilder.html' title=''>ConsoleAppenderBuilder</a><a class='struct ' href='struct.FileAppender.html' title=''>FileAppender</a><a class='struct ' href='struct.FileAppenderBuilder.html' title=''>FileAppenderBuilder</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.ConsoleAppender.html' title='An appender which logs to stdout.'>ConsoleAppender</a><a class='struct current' href='struct.ConsoleAppenderBuilder.html' title='A builder for `ConsoleAppender`s.'>ConsoleAppenderBuilder</a><a class='struct ' href='struct.FileAppender.html' title='An appender which logs to a file.'>FileAppender</a><a class='struct ' href='struct.FileAppenderBuilder.html' title='A builder for `FileAppender`s.'>FileAppenderBuilder</a></div>
     </section>
 
     <nav class="sub">
@@ -43,12 +43,15 @@
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a>::<wbr><a class='struct' href=''>ConsoleAppenderBuilder</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-2775' href='../../src/log4rs/appender.rs.html#81-83'>[src]</a></span></h1>
+        </span><a id='src-3652' href='../../src/log4rs/appender.rs.html#92-94'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct ConsoleAppenderBuilder {
     // some fields omitted
-}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h3><div class='impl-items'><h4 id='method.pattern' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.pattern' class='fnname'>pattern</a>(self, pattern: <a class='struct' href='../../log4rs/pattern/struct.PatternLayout.html' title='log4rs::pattern::PatternLayout'>PatternLayout</a>) -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h4>
-<h4 id='method.build' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.build' class='fnname'>build</a>(self) -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppender.html' title='log4rs::appender::ConsoleAppender'>ConsoleAppender</a></code></h4>
-</div></section>
+}</pre><div class='docblock'><p>A builder for <code>ConsoleAppender</code>s.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h3><div class='impl-items'><h4 id='method.pattern' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.pattern' class='fnname'>pattern</a>(self, pattern: <a class='struct' href='../../log4rs/pattern/struct.PatternLayout.html' title='log4rs::pattern::PatternLayout'>PatternLayout</a>) -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h4>
+<div class='docblock'><p>Sets the output pattern for the <code>ConsoleAppender</code>.</p>
+</div><h4 id='method.build' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.build' class='fnname'>build</a>(self) -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppender.html' title='log4rs::appender::ConsoleAppender'>ConsoleAppender</a></code></h4>
+<div class='docblock'><p>Consumes the <code>ConsoleAppenderBuilder</code>, producing a <code>ConsoleAppender</code>.</p>
+</div></div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>

@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='appender/index.html' title=''>appender</a><a class='mod ' href='config/index.html' title=''>config</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a><a class='mod ' href='toml/index.html' title=''>toml</a></div><div class='block trait'><h2>Traits</h2><a class='trait current' href='trait.Append.html' title=''>Append</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.init_config.html' title=''>init_config</a></div>
+        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='appender/index.html' title='A set of common appenders'>appender</a><a class='mod ' href='config/index.html' title='log4rs configuration'>config</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for appender output formats.'>pattern</a><a class='mod ' href='toml/index.html' title='Support for log4rs configuration from TOML files.'>toml</a></div><div class='block trait'><h2>Traits</h2><a class='trait current' href='trait.Append.html' title='A trait implemented by log4rs appenders.'>Append</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.init_config.html' title='Initializes the global logger with a log4rs logger configured by `config`.'>init_config</a><a class='fn ' href='fn.init_file.html' title='Initializes the global logger with a log4rs logger.'>init_file</a></div>
     </section>
 
     <nav class="sub">
@@ -43,13 +43,15 @@
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>log4rs</a>::<wbr><a class='trait' href=''>Append</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-4053' href='../src/log4rs/lib.rs.html#19-21'>[src]</a></span></h1>
+        </span><a id='src-4930' href='../src/log4rs/lib.rs.html#31-34'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Append: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
     fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/core/error/trait.Error.html' title='core::error::Error'>Error</a>&gt;&gt;;
-}</pre>
+}</pre><div class='docblock'><p>A trait implemented by log4rs appenders.</p>
+</div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/core/error/trait.Error.html' title='core::error::Error'>Error</a>&gt;&gt;</code></h3></div>
+        <h3 id='tymethod.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/core/error/trait.Error.html' title='core::error::Error'>Error</a>&gt;&gt;</code></h3><div class='docblock'><p>Processes the provided <code>LogRecord</code>.</p>
+</div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
     <li><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../log4rs/trait.Append.html' title='log4rs::Append'>Append</a> for <a class='struct' href='../log4rs/appender/struct.FileAppender.html' title='log4rs::appender::FileAppender'>FileAppender</a></code></li>
