@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `default_loggers` fn in crate `log4rs`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, default_loggers">
+    <meta name="description" content="API documentation for the Rust `init_config` fn in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, init_config">
 
-    <title>log4rs::default_loggers - Rust</title>
+    <title>log4rs::init_config - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../main.css">
 
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='loggers/index.html' title='A set of basic log4rs loggers.'>loggers</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Log.html' title='A trait specifying the interface for log4rs loggers.'>Log</a><a class='trait ' href='trait.MakeLogger.html' title='A trait specifying the interface for creation of log4rs loggers.'>MakeLogger</a></div><div class='block fn'><h2>Functions</h2><a class='fn current' href='fn.default_loggers.html' title='Returns a set of built-in log4rs loggers.'>default_loggers</a><a class='fn ' href='fn.init.html' title='Initializes the global logger with a log4rs logger.'>init</a></div>
+        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='appender/index.html' title=''>appender</a><a class='mod ' href='config/index.html' title=''>config</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a><a class='mod ' href='toml/index.html' title=''>toml</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Append.html' title=''>Append</a></div><div class='block fn'><h2>Functions</h2><a class='fn current' href='fn.init_config.html' title=''>init_config</a></div>
     </section>
 
     <nav class="sub">
@@ -41,13 +41,10 @@
     </nav>
 
     <section id='main' class="content fn">
-<h1 class='fqn'><span class='in-band'>Function <a href='index.html'>log4rs</a>::<wbr><a class='fn' href=''>default_loggers</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Function <a href='index.html'>log4rs</a>::<wbr><a class='fn' href=''>init_config</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-3260' href='../src/log4rs/lib.rs.html#348-353'>[src]</a></span></h1>
-<pre class='rust fn'>pub fn default_loggers() -&gt; <a class='struct' href='http://doc.rust-lang.org/nightly/std/collections/hash/map/struct.HashMap.html' title='std::collections::hash::map::HashMap'>HashMap</a>&lt;<a class='struct' href='http://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../log4rs/trait.MakeLogger.html' title='log4rs::MakeLogger'>MakeLogger</a>&gt;&gt;</pre><div class='docblock'><p>Returns a set of built-in log4rs loggers.</p>
-
-<p>This includes <code>console</code> and <code>file</code> loggers.</p>
-</div></section>
+        </span><a id='src-4413' href='../src/log4rs/lib.rs.html#178-184'>[src]</a></span></h1>
+<pre class='rust fn'>pub fn init_config(config: <a class='struct' href='../log4rs/config/struct.Config.html' title='log4rs::config::Config'>Config</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/log/log/struct.SetLoggerError.html' title='log::SetLoggerError'>SetLoggerError</a>&gt;</pre></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>

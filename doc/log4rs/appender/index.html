@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `loggers` mod in crate `log4rs`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, loggers">
+    <meta name="description" content="API documentation for the Rust `appender` mod in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, appender">
 
-    <title>log4rs::loggers - Rust</title>
+    <title>log4rs::appender - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod current' href='../loggers/index.html' title='A set of basic log4rs loggers.'>loggers</a><a class='mod ' href='../pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Log.html' title='A trait specifying the interface for log4rs loggers.'>Log</a><a class='trait ' href='../trait.MakeLogger.html' title='A trait specifying the interface for creation of log4rs loggers.'>MakeLogger</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='../fn.default_loggers.html' title='Returns a set of built-in log4rs loggers.'>default_loggers</a><a class='fn ' href='../fn.init.html' title='Initializes the global logger with a log4rs logger.'>init</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod current' href='../appender/index.html' title=''>appender</a><a class='mod ' href='../config/index.html' title=''>config</a><a class='mod ' href='../pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a><a class='mod ' href='../toml/index.html' title=''>toml</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Append.html' title=''>Append</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='../fn.init_config.html' title=''>init_config</a></div>
     </section>
 
     <nav class="sub">
@@ -41,24 +41,21 @@
     </nav>
 
     <section id='main' class="content mod">
-<h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>log4rs</a>::<wbr><a class='mod' href=''>loggers</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>log4rs</a>::<wbr><a class='mod' href=''>appender</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-722' href='../../src/log4rs/loggers.rs.html#1-91'>[src]</a></span></h1>
-<div class='docblock'><p>A set of basic log4rs loggers.</p>
-</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+        </span><a id='src-2482' href='../../src/log4rs/appender.rs.html#1-55'>[src]</a></span></h1>
+<h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table>
                     <tr>
-                        <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.ConsoleLoggerMaker.html'
-                               title='log4rs::loggers::ConsoleLoggerMaker'>ConsoleLoggerMaker</a></td>
-                        <td class='docblock short'><p>A logger maker returning a log4rs logger which logs to <code>stderr</code>.</p>
-</td>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.FileAppender.html'
+                               title='log4rs::appender::FileAppender'>FileAppender</a></td>
+                        <td class='docblock short'></td>
                     </tr>
                 
                     <tr>
-                        <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.FileLoggerMaker.html'
-                               title='log4rs::loggers::FileLoggerMaker'>FileLoggerMaker</a></td>
-                        <td class='docblock short'><p>A logger maker returning a log4rs logger which logs to a specified file.</p>
-</td>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.FileAppenderBuilder.html'
+                               title='log4rs::appender::FileAppenderBuilder'>FileAppenderBuilder</a></td>
+                        <td class='docblock short'></td>
                     </tr>
                 </table></section>
     <section id='search' class="content hidden"></section>

@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `Log` trait in crate `log4rs`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, Log">
+    <meta name="description" content="API documentation for the Rust `Append` trait in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Append">
 
-    <title>log4rs::Log - Rust</title>
+    <title>log4rs::Append - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../main.css">
 
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='loggers/index.html' title='A set of basic log4rs loggers.'>loggers</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a></div><div class='block trait'><h2>Traits</h2><a class='trait current' href='trait.Log.html' title='A trait specifying the interface for log4rs loggers.'>Log</a><a class='trait ' href='trait.MakeLogger.html' title='A trait specifying the interface for creation of log4rs loggers.'>MakeLogger</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.default_loggers.html' title='Returns a set of built-in log4rs loggers.'>default_loggers</a><a class='fn ' href='fn.init.html' title='Initializes the global logger with a log4rs logger.'>init</a></div>
+        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='appender/index.html' title=''>appender</a><a class='mod ' href='config/index.html' title=''>config</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for logger output formats.'>pattern</a><a class='mod ' href='toml/index.html' title=''>toml</a></div><div class='block trait'><h2>Traits</h2><a class='trait current' href='trait.Append.html' title=''>Append</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.init_config.html' title=''>init_config</a></div>
     </section>
 
     <nav class="sub">
@@ -41,21 +41,20 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>log4rs</a>::<wbr><a class='trait' href=''>Log</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>log4rs</a>::<wbr><a class='trait' href=''>Append</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-2178' href='../src/log4rs/lib.rs.html#82-85'>[src]</a></span></h1>
-<pre class='rust trait'>pub trait Log: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> {
-    fn <a href='#tymethod.log' class='fnname'>log</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>);
-}</pre><div class='docblock'><p>A trait specifying the interface for log4rs loggers.</p>
-</div>
+        </span><a id='src-3765' href='../src/log4rs/lib.rs.html#18-20'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait Append: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
+    fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>);
+}</pre>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.log' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.log' class='fnname'>log</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>)</code></h3><div class='docblock'><p>Logs the provided log record.</p>
-</div></div>
+        <h3 id='tymethod.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>)</code></h3></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    </ul><script type="text/javascript" async
-                              src="../implementors/log4rs/trait.Log.js">
+    <li><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../log4rs/trait.Append.html' title='log4rs::Append'>Append</a> for <a class='struct' href='../log4rs/appender/struct.FileAppender.html' title='log4rs::appender::FileAppender'>FileAppender</a></code></li>
+</ul><script type="text/javascript" async
+                              src="../implementors/log4rs/trait.Append.js">
                       </script></section>
     <section id='search' class="content hidden"></section>
 

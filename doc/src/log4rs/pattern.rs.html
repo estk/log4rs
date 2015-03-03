@@ -273,16 +273,6 @@
 <span id="231">231</span>
 <span id="232">232</span>
 <span id="233">233</span>
-<span id="234">234</span>
-<span id="235">235</span>
-<span id="236">236</span>
-<span id="237">237</span>
-<span id="238">238</span>
-<span id="239">239</span>
-<span id="240">240</span>
-<span id="241">241</span>
-<span id="242">242</span>
-<span id="243">243</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Simple pattern syntax for logger output formats.</span>
 <span class='doccomment'>//!</span>
@@ -302,9 +292,10 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>borrow</span>::<span class='ident'>ToOwned</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>default</span>::<span class='ident'>Default</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
 
 <span class='kw'>use</span> <span class='ident'>log</span>::<span class='ident'>LogRecord</span>;
-<span class='kw'>use</span> <span class='ident'>toml</span>::{<span class='self'>self</span>, <span class='ident'>Value</span>};
 <span class='kw'>use</span> <span class='ident'>time</span>;
 
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
@@ -329,34 +320,22 @@
 
 <span class='doccomment'>/// A formatter object for `LogRecord`s.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>PatternLogger</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>PatternLayout</span> {
     <span class='ident'>pattern</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Chunk</span><span class='op'>&gt;</span>,
 }
 
-<span class='kw'>impl</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>PatternLogger</span> {
-    <span class='doccomment'>/// Returns a `PatternLogger` using the default pattern of `%d %l %M - %m`.</span>
-    <span class='kw'>fn</span> <span class='ident'>default</span>() <span class='op'>-&gt;</span> <span class='ident'>PatternLogger</span> {
-        <span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='string'>&quot;%d %l %M - %m&quot;</span>).<span class='ident'>unwrap</span>()
+<span class='kw'>impl</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>PatternLayout</span> {
+    <span class='doccomment'>/// Returns a `PatternLayout` using the default pattern of `%d %l %M - %m`.</span>
+    <span class='kw'>fn</span> <span class='ident'>default</span>() <span class='op'>-&gt;</span> <span class='ident'>PatternLayout</span> {
+        <span class='ident'>PatternLayout</span>::<span class='ident'>new</span>(<span class='string'>&quot;%d %l %M - %m&quot;</span>).<span class='ident'>unwrap</span>()
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>PatternLogger</span> {
-    <span class='doccomment'>/// Creates a `PatternLogger` from the provided configuration table.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If a `pattern` key is present, the pattern is parsed from it. If no</span>
-    <span class='doccomment'>/// such key is present, the default pattern is used.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_config</span>(<span class='ident'>config</span>: <span class='kw-2'>&amp;</span><span class='ident'>toml</span>::<span class='ident'>Table</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>PatternLogger</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
-        <span class='kw'>match</span> <span class='ident'>config</span>.<span class='ident'>get</span>(<span class='string'>&quot;pattern&quot;</span>) {
-            <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Value</span>::<span class='ident'>String</span>(<span class='kw-2'>ref</span> <span class='ident'>p</span>)) <span class='op'>=&gt;</span> <span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='ident'>p</span>),
-            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>Err</span>(<span class='string'>&quot;`pattern` must be a string&quot;</span>.<span class='ident'>to_owned</span>()),
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Ok</span>(<span class='ident'>Default</span>::<span class='ident'>default</span>()),
-        }
-    }
-
-    <span class='doccomment'>/// Creates a `PatternLogger` from a pattern string.</span>
+<span class='kw'>impl</span> <span class='ident'>PatternLayout</span> {
+    <span class='doccomment'>/// Creates a `PatternLayout` from a pattern string.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// The pattern string syntax is documented in the `pattern` module.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_pattern</span>(<span class='ident'>pattern</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>PatternLogger</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>pattern</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>PatternLayout</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>parsed</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>next_text</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>new</span>();
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>it</span> <span class='op'>=</span> <span class='ident'>pattern</span>.<span class='ident'>chars</span>().<span class='ident'>peekable</span>();
@@ -417,16 +396,16 @@
             <span class='ident'>parsed</span>.<span class='ident'>push</span>(<span class='ident'>Chunk</span>::<span class='ident'>Text</span>(<span class='ident'>next_text</span>));
         }
 
-        <span class='prelude-val'>Ok</span>(<span class='ident'>PatternLogger</span> {
+        <span class='prelude-val'>Ok</span>(<span class='ident'>PatternLayout</span> {
             <span class='ident'>pattern</span>: <span class='ident'>parsed</span>,
         })
     }
 
-    <span class='doccomment'>/// Writes the specified `LogRecord` to the specified `Writer` according</span>
+    <span class='doccomment'>/// Writes the specified `LogRecord` to the specified `Write`r according</span>
     <span class='doccomment'>/// to its pattern.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>log</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>) <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Writer</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>append</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Write</span> {
         <span class='kw'>for</span> <span class='ident'>chunk</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>pattern</span>.<span class='ident'>iter</span>() {
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='kw'>match</span> <span class='op'>*</span><span class='ident'>chunk</span> {
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='kw'>match</span> <span class='op'>*</span><span class='ident'>chunk</span> {
                 <span class='ident'>Chunk</span>::<span class='ident'>Text</span>(<span class='kw-2'>ref</span> <span class='ident'>text</span>) <span class='op'>=&gt;</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>text</span>),
                 <span class='ident'>Chunk</span>::<span class='ident'>Time</span>(<span class='ident'>TimeFmt</span>::<span class='ident'>Str</span>(<span class='kw-2'>ref</span> <span class='ident'>fmt</span>)) <span class='op'>=&gt;</span> {
                     <span class='ident'>time</span>::<span class='ident'>now</span>().<span class='ident'>strftime</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='ident'>fmt</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>time</span><span class='op'>|</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>time</span>))
@@ -439,11 +418,11 @@
                 <span class='ident'>Chunk</span>::<span class='ident'>File</span> <span class='op'>=&gt;</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>record</span>.<span class='ident'>location</span>().<span class='ident'>file</span>),
                 <span class='ident'>Chunk</span>::<span class='ident'>Line</span> <span class='op'>=&gt;</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>record</span>.<span class='ident'>location</span>().<span class='ident'>line</span>),
                 <span class='ident'>Chunk</span>::<span class='ident'>Thread</span> <span class='op'>=&gt;</span> {
-                    <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>thread</span>::<span class='ident'>current</span>().<span class='ident'>name</span>().<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&lt;unnamed thread&gt;&quot;</span>))
+                    <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>thread</span>::<span class='ident'>current</span>().<span class='ident'>name</span>().<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&lt;unnamed&gt;&quot;</span>))
                 }
-            };
+            });
         }
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>writeln</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;&quot;</span>);
+        <span class='macro'>writeln</span><span class='macro'>!</span>(<span class='ident'>w</span>, <span class='string'>&quot;&quot;</span>)
     }
 }
 
@@ -454,7 +433,7 @@
 
     <span class='kw'>use</span> <span class='ident'>log</span>::{<span class='ident'>LogRecord</span>, <span class='ident'>LogLocation</span>, <span class='ident'>LogLevel</span>};
 
-    <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Chunk</span>, <span class='ident'>TimeFmt</span>, <span class='ident'>PatternLogger</span>};
+    <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Chunk</span>, <span class='ident'>TimeFmt</span>, <span class='ident'>PatternLayout</span>};
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>test_parse</span>() {
@@ -468,18 +447,18 @@
                         <span class='ident'>Chunk</span>::<span class='ident'>Line</span>,
                         <span class='ident'>Chunk</span>::<span class='ident'>Thread</span>,
                         <span class='ident'>Chunk</span>::<span class='ident'>Text</span>(<span class='string'>&quot;%&quot;</span>.<span class='ident'>to_string</span>())];
-        <span class='kw'>let</span> <span class='ident'>actual</span> <span class='op'>=</span> <span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='string'>&quot;hi%d{%Y-%m-%d}%d%l%m%M%f%L%t%%&quot;</span>).<span class='ident'>unwrap</span>().<span class='ident'>pattern</span>;
+        <span class='kw'>let</span> <span class='ident'>actual</span> <span class='op'>=</span> <span class='ident'>PatternLayout</span>::<span class='ident'>new</span>(<span class='string'>&quot;hi%d{%Y-%m-%d}%d%l%m%M%f%L%t%%&quot;</span>).<span class='ident'>unwrap</span>().<span class='ident'>pattern</span>;
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>expected</span>, <span class='ident'>actual</span>)
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>test_invalid_date_format</span>() {
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='string'>&quot;%d{%q}&quot;</span>).<span class='ident'>is_err</span>());
+        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>PatternLayout</span>::<span class='ident'>new</span>(<span class='string'>&quot;%d{%q}&quot;</span>).<span class='ident'>is_err</span>());
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>test_log</span>() {
-        <span class='kw'>let</span> <span class='ident'>pw</span> <span class='op'>=</span> <span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='string'>&quot;%l %m at %M in %f:%L&quot;</span>).<span class='ident'>unwrap</span>();
+        <span class='kw'>let</span> <span class='ident'>pw</span> <span class='op'>=</span> <span class='ident'>PatternLayout</span>::<span class='ident'>new</span>(<span class='string'>&quot;%l %m at %M in %f:%L&quot;</span>).<span class='ident'>unwrap</span>();
 
         <span class='kw'>static</span> <span class='ident'>LOCATION</span>: <span class='ident'>LogLocation</span> <span class='op'>=</span> <span class='ident'>LogLocation</span> {
             <span class='ident'>module_path</span>: <span class='string'>&quot;mod path&quot;</span>,
@@ -487,7 +466,7 @@
             <span class='ident'>line</span>: <span class='number'>132</span>,
         };
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
-        <span class='ident'>pw</span>.<span class='ident'>log</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>::<span class='ident'>new</span>(<span class='ident'>LogLevel</span>::<span class='ident'>Debug</span>, <span class='kw-2'>&amp;</span><span class='ident'>LOCATION</span>, <span class='macro'>format_args</span><span class='macro'>!</span>(<span class='string'>&quot;the message&quot;</span>)));
+        <span class='ident'>pw</span>.<span class='ident'>append</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>::<span class='ident'>new</span>(<span class='ident'>LogLevel</span>::<span class='ident'>Debug</span>, <span class='kw-2'>&amp;</span><span class='ident'>LOCATION</span>, <span class='macro'>format_args</span><span class='macro'>!</span>(<span class='string'>&quot;the message&quot;</span>))).<span class='ident'>unwrap</span>();
 
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='string'>b&quot;DEBUG the message at mod path in the file:132\n&quot;</span>, <span class='ident'>buf</span>);
     }
@@ -495,38 +474,39 @@
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>test_unnamed_thread</span>() {
         <span class='ident'>thread</span>::<span class='ident'>scoped</span>(<span class='op'>||</span> {
-            <span class='kw'>let</span> <span class='ident'>pw</span> <span class='op'>=</span> <span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='string'>&quot;%t&quot;</span>).<span class='ident'>unwrap</span>();
+            <span class='kw'>let</span> <span class='ident'>pw</span> <span class='op'>=</span> <span class='ident'>PatternLayout</span>::<span class='ident'>new</span>(<span class='string'>&quot;%t&quot;</span>).<span class='ident'>unwrap</span>();
             <span class='kw'>static</span> <span class='ident'>LOCATION</span>: <span class='ident'>LogLocation</span> <span class='op'>=</span> <span class='ident'>LogLocation</span> {
                 <span class='ident'>module_path</span>: <span class='string'>&quot;path&quot;</span>,
                 <span class='ident'>file</span>: <span class='string'>&quot;file&quot;</span>,
                 <span class='ident'>line</span>: <span class='number'>132</span>,
             };
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
-            <span class='ident'>pw</span>.<span class='ident'>log</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>::<span class='ident'>new</span>(<span class='ident'>LogLevel</span>::<span class='ident'>Debug</span>, <span class='kw-2'>&amp;</span><span class='ident'>LOCATION</span>, <span class='macro'>format_args</span><span class='macro'>!</span>(<span class='string'>&quot;message&quot;</span>)));
-            <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='string'>b&quot;&lt;unnamed thread&gt;\n&quot;</span>, <span class='ident'>buf</span>);
+            <span class='ident'>pw</span>.<span class='ident'>append</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>::<span class='ident'>new</span>(<span class='ident'>LogLevel</span>::<span class='ident'>Debug</span>, <span class='kw-2'>&amp;</span><span class='ident'>LOCATION</span>, <span class='macro'>format_args</span><span class='macro'>!</span>(<span class='string'>&quot;message&quot;</span>))).<span class='ident'>unwrap</span>();
+            <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='string'>b&quot;&lt;unnamed&gt;\n&quot;</span>, <span class='ident'>buf</span>);
         }).<span class='ident'>join</span>();
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>test_named_thread</span>() {
         <span class='ident'>thread</span>::<span class='ident'>Builder</span>::<span class='ident'>new</span>().<span class='ident'>name</span>(<span class='string'>&quot;foobar&quot;</span>.<span class='ident'>to_string</span>()).<span class='ident'>scoped</span>(<span class='op'>||</span> {
-            <span class='kw'>let</span> <span class='ident'>pw</span> <span class='op'>=</span> <span class='ident'>PatternLogger</span>::<span class='ident'>from_pattern</span>(<span class='string'>&quot;%t&quot;</span>).<span class='ident'>unwrap</span>();
+            <span class='kw'>let</span> <span class='ident'>pw</span> <span class='op'>=</span> <span class='ident'>PatternLayout</span>::<span class='ident'>new</span>(<span class='string'>&quot;%t&quot;</span>).<span class='ident'>unwrap</span>();
             <span class='kw'>static</span> <span class='ident'>LOCATION</span>: <span class='ident'>LogLocation</span> <span class='op'>=</span> <span class='ident'>LogLocation</span> {
                 <span class='ident'>module_path</span>: <span class='string'>&quot;path&quot;</span>,
                 <span class='ident'>file</span>: <span class='string'>&quot;file&quot;</span>,
                 <span class='ident'>line</span>: <span class='number'>132</span>,
             };
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
-            <span class='ident'>pw</span>.<span class='ident'>log</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>::<span class='ident'>new</span>(<span class='ident'>LogLevel</span>::<span class='ident'>Debug</span>, <span class='kw-2'>&amp;</span><span class='ident'>LOCATION</span>, <span class='macro'>format_args</span><span class='macro'>!</span>(<span class='string'>&quot;message&quot;</span>)));
+            <span class='ident'>pw</span>.<span class='ident'>append</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>::<span class='ident'>new</span>(<span class='ident'>LogLevel</span>::<span class='ident'>Debug</span>, <span class='kw-2'>&amp;</span><span class='ident'>LOCATION</span>, <span class='macro'>format_args</span><span class='macro'>!</span>(<span class='string'>&quot;message&quot;</span>))).<span class='ident'>unwrap</span>();
             <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='string'>b&quot;foobar\n&quot;</span>, <span class='ident'>buf</span>);
         }).<span class='ident'>unwrap</span>().<span class='ident'>join</span>();
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>test_default_okay</span>() {
-        <span class='kw'>let</span> _: <span class='ident'>PatternLogger</span> <span class='op'>=</span> <span class='ident'>Default</span>::<span class='ident'>default</span>();
+        <span class='kw'>let</span> _: <span class='ident'>PatternLayout</span> <span class='op'>=</span> <span class='ident'>Default</span>::<span class='ident'>default</span>();
     }
 }
+
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
