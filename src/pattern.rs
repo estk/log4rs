@@ -16,9 +16,10 @@
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::thread;
+use std::io;
+use std::io::Write;
 
 use log::LogRecord;
-use toml::{self, Value};
 use time;
 
 #[derive(Debug)]
@@ -43,34 +44,22 @@ enum Chunk {
 
 /// A formatter object for `LogRecord`s.
 #[derive(Debug)]
-pub struct PatternLogger {
+pub struct PatternLayout {
     pattern: Vec<Chunk>,
 }
 
-impl Default for PatternLogger {
-    /// Returns a `PatternLogger` using the default pattern of `%d %l %M - %m`.
-    fn default() -> PatternLogger {
-        PatternLogger::from_pattern("%d %l %M - %m").unwrap()
+impl Default for PatternLayout {
+    /// Returns a `PatternLayout` using the default pattern of `%d %l %M - %m`.
+    fn default() -> PatternLayout {
+        PatternLayout::new("%d %l %M - %m").unwrap()
     }
 }
 
-impl PatternLogger {
-    /// Creates a `PatternLogger` from the provided configuration table.
-    ///
-    /// If a `pattern` key is present, the pattern is parsed from it. If no
-    /// such key is present, the default pattern is used.
-    pub fn from_config(config: &toml::Table) -> Result<PatternLogger, String> {
-        match config.get("pattern") {
-            Some(&Value::String(ref p)) => PatternLogger::from_pattern(&**p),
-            Some(_) => Err("`pattern` must be a string".to_owned()),
-            None => Ok(Default::default()),
-        }
-    }
-
-    /// Creates a `PatternLogger` from a pattern string.
+impl PatternLayout {
+    /// Creates a `PatternLayout` from a pattern string.
     ///
     /// The pattern string syntax is documented in the `pattern` module.
-    pub fn from_pattern(pattern: &str) -> Result<PatternLogger, String> {
+    pub fn new(pattern: &str) -> Result<PatternLayout, String> {
         let mut parsed = vec![];
         let mut next_text = String::new();
         let mut it = pattern.chars().peekable();
@@ -131,16 +120,16 @@ impl PatternLogger {
             parsed.push(Chunk::Text(next_text));
         }
 
-        Ok(PatternLogger {
+        Ok(PatternLayout {
             pattern: parsed,
         })
     }
 
-    /// Writes the specified `LogRecord` to the specified `Writer` according
+    /// Writes the specified `LogRecord` to the specified `Write`r according
     /// to its pattern.
-    pub fn log<W>(&self, w: &mut W, record: &LogRecord) where W: Writer {
+    pub fn append<W>(&self, w: &mut W, record: &LogRecord) -> io::Result<()> where W: Write {
         for chunk in self.pattern.iter() {
-            let _ = match *chunk {
+            try!(match *chunk {
                 Chunk::Text(ref text) => write!(w, "{}", text),
                 Chunk::Time(TimeFmt::Str(ref fmt)) => {
                     time::now().strftime(&**fmt).map(|time| write!(w, "{}", time))
@@ -153,11 +142,11 @@ impl PatternLogger {
                 Chunk::File => write!(w, "{}", record.location().file),
                 Chunk::Line => write!(w, "{}", record.location().line),
                 Chunk::Thread => {
-                    write!(w, "{}", thread::current().name().unwrap_or("<unnamed thread>"))
+                    write!(w, "{}", thread::current().name().unwrap_or("<unnamed>"))
                 }
-            };
+            });
         }
-        let _ = writeln!(w, "");
+        writeln!(w, "")
     }
 }
 
@@ -168,7 +157,7 @@ mod tests {
 
     use log::{LogRecord, LogLocation, LogLevel};
 
-    use super::{Chunk, TimeFmt, PatternLogger};
+    use super::{Chunk, TimeFmt, PatternLayout};
 
     #[test]
     fn test_parse() {
@@ -182,18 +171,18 @@ mod tests {
                         Chunk::Line,
                         Chunk::Thread,
                         Chunk::Text("%".to_string())];
-        let actual = PatternLogger::from_pattern("hi%d{%Y-%m-%d}%d%l%m%M%f%L%t%%").unwrap().pattern;
+        let actual = PatternLayout::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%t%%").unwrap().pattern;
         assert_eq!(expected, actual)
     }
 
     #[test]
     fn test_invalid_date_format() {
-        assert!(PatternLogger::from_pattern("%d{%q}").is_err());
+        assert!(PatternLayout::new("%d{%q}").is_err());
     }
 
     #[test]
     fn test_log() {
-        let pw = PatternLogger::from_pattern("%l %m at %M in %f:%L").unwrap();
+        let pw = PatternLayout::new("%l %m at %M in %f:%L").unwrap();
 
         static LOCATION: LogLocation = LogLocation {
             module_path: "mod path",
@@ -201,7 +190,7 @@ mod tests {
             line: 132,
         };
         let mut buf = vec![];
-        pw.log(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("the message")));
+        pw.append(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("the message"))).unwrap();
 
         assert_eq!(b"DEBUG the message at mod path in the file:132\n", buf);
     }
@@ -209,35 +198,36 @@ mod tests {
     #[test]
     fn test_unnamed_thread() {
         thread::scoped(|| {
-            let pw = PatternLogger::from_pattern("%t").unwrap();
+            let pw = PatternLayout::new("%t").unwrap();
             static LOCATION: LogLocation = LogLocation {
                 module_path: "path",
                 file: "file",
                 line: 132,
             };
             let mut buf = vec![];
-            pw.log(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("message")));
-            assert_eq!(b"<unnamed thread>\n", buf);
+            pw.append(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("message"))).unwrap();
+            assert_eq!(b"<unnamed>\n", buf);
         }).join();
     }
 
     #[test]
     fn test_named_thread() {
         thread::Builder::new().name("foobar".to_string()).scoped(|| {
-            let pw = PatternLogger::from_pattern("%t").unwrap();
+            let pw = PatternLayout::new("%t").unwrap();
             static LOCATION: LogLocation = LogLocation {
                 module_path: "path",
                 file: "file",
                 line: 132,
             };
             let mut buf = vec![];
-            pw.log(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("message")));
+            pw.append(&mut buf, &LogRecord::new(LogLevel::Debug, &LOCATION, format_args!("message"))).unwrap();
             assert_eq!(b"foobar\n", buf);
         }).unwrap().join();
     }
 
     #[test]
     fn test_default_okay() {
-        let _: PatternLogger = Default::default();
+        let _: PatternLayout = Default::default();
     }
 }
+

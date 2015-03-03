@@ -1,414 +1,214 @@
-//! log4rs is a highly configurable logging framework for Rust integrating with
-//! the `log` logging facade.
-//!
-//! The log4rs framework consists of a number of loggers as well as directies
-//! which configure which log messages are directed to whic loggers.
-//! Configuration is handled via a TOML file:
-//!
-//! ```toml
-//! # log4rs will automatically check the configuration file for updates at the
-//! # specified frequency in seconds if this is set
-//! refresh_rate = 30
-//!
-//! # A minimal configuration of a logger called "stderr" of the "console" kind
-//! [logger.stderr]
-//! kind = "console"
-//!
-//! # A logger called "errors" with a more advanced configuration.
-//! [logger.errors]
-//! kind = "file"
-//! path = "logs/errors.log"
-//! pattern = "%d [%l] %T - %m"
-//!
-//! # A directive that routes all error level log messages to the errors logger
-//! [[directive]]
-//! level = "error"
-//! logger = "errors"
-//!
-//! # A directive that routes all error, warning, and info level messages from
-//! # the foo::bar::baz module to the stderr logger.
-//! [[directive]]
-//! level = "info"
-//! logger = "stderr"
-//! path = "foo::bar::baz"
-//! ```
-//!
-//! The `init` method should be called early in the runtime of a program to
-//! initialize the logging system. It takes a path to the config file as well
-//! as a map of available loggers. The `default_loggers` function returns a map
-//! of loggers that are provided with log4rs, including the `console` and `file`
-//! kinds mentioned above:
-//!
-//! ```rust
-//! # #![allow(unstable)]
-//! extern crate log4rs;
-//!
-//! fn main() {
-//!     log4rs::init(Path::new("log.toml"), log4rs::default_loggers()).unwrap();
-//!
-//!     // ...
-//! }
-//! ```
-#![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
-#![warn(missing_docs)]
-#![feature(std_misc, core, old_io, io, fs, old_path)]
-#![allow(missing_copy_implementations)]
+#![feature(std_misc, fs, io, path, core)]
 
 extern crate log;
-extern crate toml;
 extern crate time;
+extern crate "toml" as toml_parser;
 
 use std::borrow::ToOwned;
-use std::collections::{HashMap, BTreeMap};
-use std::default::Default;
-use std::i64;
-use std::fs::{self, File};
-use std::io::prelude::*;
-use std::old_io::timer;
+use std::cmp;
+use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
-use std::thread;
-use std::time::Duration;
+use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError};
 
-use log::{MaxLogLevelFilter, LogLevel, LogLevelFilter, LogRecord, LogLocation, SetLoggerError};
-use log::Log as log_Log;
-
-use config::RawConfig;
-
-mod config;
-pub mod loggers;
+pub mod toml;
+pub mod config;
+pub mod appender;
 pub mod pattern;
 
-/// A trait specifying the interface for log4rs loggers.
-pub trait Log: Send {
-    /// Logs the provided log record.
-    fn log(&mut self, record: &LogRecord);
-}
-
-/// A trait specifying the interface for creation of log4rs loggers.
-pub trait MakeLogger: Send+Sync {
-    /// Creates a new log4rs logger, given the TOML table from the configuration
-    /// file.
-    fn make_logger(&self, config: &toml::Table) -> Result<Box<Log>, String>;
-}
-
-struct LogDirective {
-    path: String,
-    level: LogLevelFilter,
+pub trait Append: Send + 'static{
+    fn append(&mut self, record: &LogRecord);
 }
 
 struct ConfiguredLogger {
-    logger: Box<Log>,
-    directives: Vec<LogDirective>,
-    max_log_level: LogLevelFilter,
+    level: LogLevelFilter,
+    appenders: Vec<usize>,
+    children: Vec<(String, Box<ConfiguredLogger>)>,
 }
 
 impl ConfiguredLogger {
-    fn enabled(&self, level: LogLevel, module: &str) -> bool {
-        if level > self.max_log_level {
-            return false;
-        }
+    fn add(&mut self, path: &str, mut appenders: Vec<usize>, additive: bool, level: LogLevelFilter) {
+        let (part, rest) = match path.find("::") {
+            Some(idx) => (&path[..idx], &path[idx+2..]),
+            None => (path, ""),
+        };
 
-        for directive in self.directives.iter().rev() {
-            if module.starts_with(&*directive.path) {
-                return level <= directive.level;
+        for &mut (ref child_part, ref mut child) in &mut self.children {
+            if &child_part[..] == part {
+                child.add(rest, appenders, additive, level);
+                return;
             }
         }
 
-        false
+        let child = if rest.is_empty() {
+            if additive {
+                appenders.extend(self.appenders.iter().cloned());
+            }
+
+            ConfiguredLogger {
+                level: level,
+                appenders: appenders,
+                children: vec![],
+            }
+        } else {
+            let mut child = ConfiguredLogger {
+                level: self.level,
+                appenders: self.appenders.clone(),
+                children: vec![],
+            };
+            child.add(rest, appenders, additive, level);
+            child
+        };
+
+        self.children.push((part.to_owned(), Box::new(child)));
     }
-}
 
-struct Config {
-    refresh_rate: Option<Duration>,
-    loggers: Vec<ConfiguredLogger>,
-}
-
-impl Default for Config {
-    fn default() -> Config {
-        let directive = LogDirective {
-            path: "".to_owned(),
-            level: LogLevelFilter::Warn,
-        };
-
-        let logger = ConfiguredLogger {
-            logger: loggers::ConsoleLoggerMaker.make_logger(&BTreeMap::new()).unwrap(),
-            directives: vec![directive],
-            max_log_level: LogLevelFilter::Warn,
-        };
-
-        Config {
-            refresh_rate: Some(Duration::minutes(1)),
-            loggers: vec![logger],
+    fn max_log_level(&self) -> LogLevelFilter {
+        let mut max = self.level;
+        for &(_, ref child) in &self.children {
+            max = cmp::max(max, child.max_log_level());
         }
+        max
     }
-}
 
-impl Config {
-    fn from_raw(raw: RawConfig, make_loggers: &HashMap<String, Box<MakeLogger>>)
-                -> Result<Config, Vec<String>> {
-        let mut errors = vec![];
+    fn find(&self, path: &str) -> &ConfiguredLogger {
+        let mut node = self;
 
-        let RawConfig {
-            refresh_rate,
-            loggers: raw_loggers,
-            directives: raw_directives,
-        } = raw;
-
-        let mut loggers = raw_loggers.into_iter().filter_map(|(name, spec)| {
-            let logger = make_loggers.get(&spec.kind)
-                .ok_or(format!("Unknown logger kind `{}`", name))
-                .and_then(|maker| maker.make_logger(&spec.config))
-                .map(|logger| {
-                    ConfiguredLogger {
-                        logger: logger,
-                        directives: vec![],
-                        max_log_level: LogLevelFilter::Off,
-                    }
-                });
-            match logger {
-                Ok(logger) => Some((name, logger)),
-                Err(err) => {
-                    errors.push(err);
-                    None
+        'parts: for part in path.split("::") {
+            for &(ref child_part, ref child) in &node.children {
+                if &child_part[..] == part {
+                    node = child;
+                    continue 'parts;
                 }
             }
-        }).collect::<HashMap<String, ConfiguredLogger>>();
 
-        for directive in raw_directives.iter() {
-            for logger in directive.loggers.iter() {
-                let logger = if let Some(logger) = loggers.get_mut(&*logger) {
-                    logger
-                } else {
-                    errors.push(format!("Unknown logger `{}`", logger));
-                    continue;
-                };
+            break;
+        }
 
-                logger.directives.push(LogDirective {
-                    path: directive.path.clone(),
-                    level: directive.level,
-                });
+        node
+    }
+
+    fn enabled(&self, level: LogLevel) -> bool {
+        self.level >= level
+    }
+
+    fn log(&self, record: &log::LogRecord, appenders: &mut [Box<Append>]) {
+        if self.enabled(record.level()) {
+            for &idx in &self.appenders {
+                appenders[idx].append(record)
             }
         }
+    }
+}
 
-        let mut loggers = loggers.into_iter().map(|e| e.1).collect::<Vec<_>>();
-        for logger in loggers.iter_mut() {
-            logger.directives.sort_by(|a, b| a.path.len().cmp(&b.path.len()));
-            logger.max_log_level = logger.directives.iter()
-                .map(|d| d.level)
-                .max()
-                .unwrap_or(LogLevelFilter::Off);
+struct SharedLogger {
+    root: ConfiguredLogger,
+    appenders: Vec<Box<Append>>,
+}
+
+impl SharedLogger {
+    fn new(config: config::Config) -> SharedLogger {
+        let config::Config { appenders, root, loggers, .. } = config;
+
+        let root = {
+            let appender_map = appenders
+                .iter()
+                .enumerate()
+                .map(|(i, appender)| {
+                    (&appender.name, i)
+                })
+                .collect::<HashMap<_, _>>();
+
+            let config::Root { level, appenders, .. } = root;
+            let mut root = ConfiguredLogger {
+                level: level,
+                appenders: appenders
+                    .into_iter()
+                    .map(|appender| appender_map[appender].clone())
+                    .collect(),
+                children: vec![],
+            };
+
+            for logger in loggers {
+                let appenders = logger.appenders
+                    .into_iter()
+                    .map(|appender| appender_map[appender])
+                    .collect();
+                root.add(&logger.name, appenders, logger.additive, logger.level);
+            }
+
+            root
+        };
+
+        let appenders = appenders.into_iter().map(|appender| appender.appender).collect();
+
+        SharedLogger {
+            root: root,
+            appenders: appenders,
         }
+    }
+}
 
-        if errors.is_empty() {
-            Ok(Config {
-                refresh_rate: refresh_rate,
-                loggers: loggers,
-            })
-        } else {
-            Err(errors)
+struct Logger {
+    inner: Arc<Mutex<SharedLogger>>,
+}
+
+impl Logger {
+    fn new(config: config::Config) -> Logger {
+        Logger {
+            inner: Arc::new(Mutex::new(SharedLogger::new(config)))
         }
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
-        self.loggers.iter().map(|logger| logger.max_log_level).max().unwrap_or(LogLevelFilter::Off)
+        self.inner.lock().unwrap().root.max_log_level()
     }
+}
 
+impl log::Log for Logger {
     fn enabled(&self, level: LogLevel, module: &str) -> bool {
-        self.loggers.iter().any(|logger| logger.enabled(level, module))
-    }
-
-    fn log(&mut self, record: &LogRecord) {
-        for logger in self.loggers.iter_mut() {
-            if logger.enabled(record.level(), record.location().module_path) {
-                logger.logger.log(record)
-            }
-        }
-    }
-}
-
-struct InnerLogger {
-    config: Config,
-}
-
-struct Logger {
-    max_log_level: MaxLogLevelFilter,
-    config_file: Path,
-    loggers: HashMap<String, Box<MakeLogger>>,
-    inner: Mutex<InnerLogger>,
-}
-
-impl log::Log for Arc<Logger> {
-    fn enabled(&self, level: LogLevel, module: &str) -> bool {
-        self.inner.lock().unwrap().config.enabled(level, module)
+        self.inner.lock().unwrap().root.find(module).enabled(level)
     }
 
     fn log(&self, record: &log::LogRecord) {
-        self.inner.lock().unwrap().config.log(record)
+        let shared = &mut *self.inner.lock().unwrap();
+        shared.root.find(record.location().module_path).log(record, &mut shared.appenders);
     }
 }
 
-impl Logger {
-    fn reload_config(&self) {
-        let config = File::open(&self.config_file)
-            .and_then(|mut f| {
-                let mut s = String::new();
-                f.read_to_string(&mut s).map(|_| s)
-            })
-            .map_err(|e| vec![e.to_string()])
-            .and_then(|c| config::parse_config(&*c))
-            .and_then(|c| Config::from_raw(c, &self.loggers));
-
-        match config {
-            Ok(config) => {
-                let max_log_level = config.max_log_level();
-                self.inner.lock().unwrap().config = config;
-                self.max_log_level.set(max_log_level);
-            }
-            Err(errs) => self.log_errors(&*errs)
-        }
-    }
-
-    fn log_errors(&self, errors: &[String]) {
-        let mut inner = self.inner.lock().unwrap();
-
-        for err in errors.iter() {
-            // we can't use log! since this may happen before the logger's registered
-            static LOC: LogLocation = LogLocation {
-                line: line!(),
-                file: file!(),
-                module_path: module_path!(),
-            };
-            inner.config.log(&LogRecord::new(
-                    LogLevel::Error,
-                    &LOC,
-                    format_args!("Error loading config \"{}\": {}",
-                                   self.config_file.display(), err)))
-        }
-    }
-}
-
-fn load_config(logger: &Arc<Logger>) {
-    logger.reload_config();
-
-    if logger.inner.lock().unwrap().config.refresh_rate.is_none() {
-        return;
-    }
-
-    let logger: Arc<_> = logger.clone();
-    thread::Builder::new().name("log4rs config refresh thread".to_owned()).spawn(move || {
-        let mut last_check = time::precise_time_ns();
-
-        let mut last_mtime = match fs::metadata(&logger.config_file) {
-            Ok(stat) => Some(stat.modified()),
-            Err(err) => {
-                logger.log_errors(&[err.to_string()]);
-                None
-            }
-        };
-
-        loop {
-            let refresh_rate = match logger.inner.lock().unwrap().config.refresh_rate {
-                Some(rate) => rate,
-                None => break,
-            };
-
-            let stop = last_check + refresh_rate.num_nanoseconds().unwrap_or(i64::MAX) as u64;
-            loop {
-                let now = time::precise_time_ns();
-                let delta = Duration::nanoseconds((stop - now) as i64);
-                if delta <= Duration::zero() {
-                    break;
-                }
-                timer::sleep(delta);
-            }
-
-            last_check = time::precise_time_ns();
-            let mtime = match fs::metadata(&logger.config_file) {
-                Ok(stat) => stat.modified(),
-                Err(err) => {
-                    logger.log_errors(&[err.to_string()]);
-                    continue;
-                }
-            };
-
-            match (last_mtime, mtime) {
-                (None, _) => logger.reload_config(),
-                (Some(old), new) if new != old => logger.reload_config(),
-                _ => {}
-            }
-
-            last_mtime = Some(mtime);
-        }
-    }).unwrap();
-}
-
-/// Returns a set of built-in log4rs loggers.
-///
-/// This includes `console` and `file` loggers.
-pub fn default_loggers() -> HashMap<String, Box<MakeLogger>> {
-    let mut loggers = HashMap::new();
-    loggers.insert("console".to_owned(), Box::new(loggers::ConsoleLoggerMaker) as Box<MakeLogger>);
-    loggers.insert("file".to_owned(), Box::new(loggers::FileLoggerMaker) as Box<MakeLogger>);
-    loggers
-}
-
-/// Initializes the global logger with a log4rs logger.
-///
-/// Configuration is read from a TOML file located at the provided path on the
-/// filesystem, and log4rs loggers are created from the provided set of logger
-/// makers.
-///
-/// Any errors encountered when processing the configuration are reported to
-/// stderr.
-pub fn init(config_file: Path, loggers: HashMap<String, Box<MakeLogger>>)
-        -> Result<(), SetLoggerError> {
-    log::set_logger(move |max_log_level| {
-        let inner = InnerLogger {
-            config: Default::default(),
-        };
-        max_log_level.set(inner.config.max_log_level());
-
-        let logger = Arc::new(Logger {
-            max_log_level: max_log_level,
-            config_file: config_file,
-            loggers: loggers,
-            inner: Mutex::new(inner),
-        });
-
-        load_config(&logger);
-
+pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
+    log::set_logger(|max_log_level| {
+        let logger = Logger::new(config);
+        max_log_level.set(logger.max_log_level());
         Box::new(logger)
     })
 }
 
 #[cfg(test)]
 mod test {
-    use super::{config, Config, default_loggers};
-    use log::LogLevel;
+    use log::{LogLevel, LogLevelFilter, Log};
+
+    use super::*;
 
     #[test]
-    fn test_level_overrides() {
-        let cfg = r#"
-[logger.console]
-kind = "console"
+    fn enabled() {
+        let appenders = vec![];
+        let root = config::Root::new(LogLevelFilter::Debug);
+        let loggers = vec![
+            config::Logger::new("foo::bar".to_string(), LogLevelFilter::Trace),
+            config::Logger::new("foo::bar::baz".to_string(), LogLevelFilter::Off),
+            config::Logger::new("foo::baz::buz".to_string(), LogLevelFilter::Error),
+        ];
+        let config = config::Config::new(appenders, root, loggers).unwrap();
 
-[[directive]]
-path = "foo::bar::baz"
-level = "warn"
-logger = "console"
+        let logger = super::Logger::new(config);
 
-[[directive]]
-path = "foo::bar"
-level = "debug"
-logger = "console"
-"#;
-        let cfg = Config::from_raw(config::parse_config(cfg).ok().unwrap(),
-                                   &default_loggers()).ok().unwrap();
-
-        assert!(!cfg.enabled(LogLevel::Debug, "foo"));
-        assert!(cfg.enabled(LogLevel::Debug, "foo::bar"));
-        assert!(cfg.enabled(LogLevel::Debug, "foo::bar::thing"));
-        assert!(!cfg.enabled(LogLevel::Debug, "foo::bar::baz"));
-        assert!(!cfg.enabled(LogLevel::Debug, "foo::bar::baz::buz"));
+        assert!(logger.enabled(LogLevel::Warn, "bar"));
+        assert!(!logger.enabled(LogLevel::Trace, "bar"));
+        assert!(logger.enabled(LogLevel::Debug, "foo"));
+        assert!(logger.enabled(LogLevel::Trace, "foo::bar"));
+        assert!(!logger.enabled(LogLevel::Error, "foo::bar::baz"));
+        assert!(!logger.enabled(LogLevel::Error, "foo::bar::baz::buz"));
+        assert!(!logger.enabled(LogLevel::Warn, "foo::baz::buz"));
+        assert!(!logger.enabled(LogLevel::Warn, "foo::baz::buz::bar"));
     }
 }
