@@ -207,8 +207,10 @@ mod test {
         assert!(logger.enabled(LogLevel::Debug, "foo"));
         assert!(logger.enabled(LogLevel::Trace, "foo::bar"));
         assert!(!logger.enabled(LogLevel::Error, "foo::bar::baz"));
+        assert!(logger.enabled(LogLevel::Debug, "foo::bar::bazbuz"));
         assert!(!logger.enabled(LogLevel::Error, "foo::bar::baz::buz"));
         assert!(!logger.enabled(LogLevel::Warn, "foo::baz::buz"));
         assert!(!logger.enabled(LogLevel::Warn, "foo::baz::buz::bar"));
+        assert!(logger.enabled(LogLevel::Error, "foo::baz::buz::bar"));
     }
 }
