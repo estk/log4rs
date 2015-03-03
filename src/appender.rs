@@ -1,7 +1,8 @@
 use std::default::Default;
 use std::io;
+use std::error::Error;
 use std::io::prelude::*;
-use std::io::BufWriter;
+use std::io::{BufWriter, Stdout};
 use std::fs::{File, OpenOptions};
 use std::path::{AsPath, PathBuf};
 use log::LogRecord;
@@ -15,9 +16,10 @@ pub struct FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&mut self, record: &LogRecord) {
-        let _ = self.pattern.append(&mut self.file, record);
-        let _ = self.file.flush();
+    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
+        try!(self.pattern.append(&mut self.file, record));
+        try!(self.file.flush());
+        Ok(())
     }
 }
 
@@ -51,5 +53,45 @@ impl FileAppenderBuilder {
             file: BufWriter::with_capacity(1024, file),
             pattern: self.pattern
         })
+    }
+}
+
+pub struct ConsoleAppender {
+    stdout: Stdout,
+    pattern: PatternLayout,
+}
+
+impl Append for ConsoleAppender {
+    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
+        let mut stdout = self.stdout.lock();
+        try!(self.pattern.append(&mut stdout, record));
+        try!(stdout.flush());
+        Ok(())
+    }
+}
+
+impl ConsoleAppender {
+    pub fn builder() -> ConsoleAppenderBuilder {
+        ConsoleAppenderBuilder {
+            pattern: Default::default(),
+        }
+    }
+}
+
+pub struct ConsoleAppenderBuilder {
+    pattern: PatternLayout,
+}
+
+impl ConsoleAppenderBuilder {
+    pub fn pattern(mut self, pattern: PatternLayout) -> ConsoleAppenderBuilder {
+        self.pattern = pattern;
+        self
+    }
+
+    pub fn build(self) -> ConsoleAppender {
+        ConsoleAppender {
+            stdout: io::stdout(),
+            pattern: self.pattern,
+        }
     }
 }

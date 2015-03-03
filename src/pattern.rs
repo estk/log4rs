@@ -15,6 +15,8 @@
 
 use std::borrow::ToOwned;
 use std::default::Default;
+use std::error;
+use std::fmt;
 use std::thread;
 use std::io;
 use std::io::Write;
@@ -42,6 +44,21 @@ enum Chunk {
     Thread,
 }
 
+#[derive(Debug)]
+pub struct Error(String);
+
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str(&self.0)
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        "Error parsing a pattern"
+    }
+}
+
 /// A formatter object for `LogRecord`s.
 #[derive(Debug)]
 pub struct PatternLayout {
@@ -59,7 +76,7 @@ impl PatternLayout {
     /// Creates a `PatternLayout` from a pattern string.
     ///
     /// The pattern string syntax is documented in the `pattern` module.
-    pub fn new(pattern: &str) -> Result<PatternLayout, String> {
+    pub fn new(pattern: &str) -> Result<PatternLayout, Error> {
         let mut parsed = vec![];
         let mut next_text = String::new();
         let mut it = pattern.chars().peekable();
@@ -81,12 +98,12 @@ impl PatternLayout {
                                         Some('}') => break,
                                         Some(c) => fmt.push(c),
                                         None => {
-                                            return Err("Unterminated time format".to_owned());
+                                            return Err(Error("Unterminated time format".to_owned()));
                                         }
                                     }
                                 }
                                 if let Err(err) = time::now().strftime(&*fmt) {
-                                    return Err(err.to_string());
+                                    return Err(Error(err.to_string()));
                                 }
                                 TimeFmt::Str(fmt)
                             }
@@ -100,8 +117,8 @@ impl PatternLayout {
                     Some('f') => Some(Chunk::File),
                     Some('L') => Some(Chunk::Line),
                     Some('t') => Some(Chunk::Thread),
-                    Some(ch) => return Err(format!("Invalid formatter `%{}`", ch)),
-                    None => return Err("Unexpected end of pattern".to_owned()),
+                    Some(ch) => return Err(Error(format!("Invalid formatter `%{}`", ch))),
+                    None => return Err(Error("Unexpected end of pattern".to_owned())),
                 };
 
                 if let Some(chunk) = chunk {

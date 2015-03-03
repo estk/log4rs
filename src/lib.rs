@@ -7,6 +7,7 @@ extern crate "toml" as toml_parser;
 use std::borrow::ToOwned;
 use std::cmp;
 use std::collections::HashMap;
+use std::error;
 use std::sync::{Mutex, Arc};
 use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError};
 
@@ -16,7 +17,7 @@ pub mod appender;
 pub mod pattern;
 
 pub trait Append: Send + 'static{
-    fn append(&mut self, record: &LogRecord);
+    fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>>;
 }
 
 struct ConfiguredLogger {
@@ -94,7 +95,7 @@ impl ConfiguredLogger {
     fn log(&self, record: &log::LogRecord, appenders: &mut [Box<Append>]) {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
-                appenders[idx].append(record)
+                let _ = appenders[idx].append(record);
             }
         }
     }

@@ -1,10 +1,12 @@
-use std::default::Default;
-use std::collections::HashMap;
-use toml_parser::{self, Value};
 use log::LogLevelFilter;
+use std::collections::HashMap;
+use std::default::Default;
+use std::error;
+use std::fmt;
 use std::time::Duration;
+use toml_parser::{self, Value};
 
-use appender::FileAppender;
+use appender::{FileAppender, ConsoleAppender};
 use config::{self, Config};
 use pattern::PatternLayout;
 use Append;
@@ -12,7 +14,8 @@ use Append;
 mod raw;
 
 pub trait CreateAppender: Send+'static {
-    fn create_appender(&self, config: &toml_parser::Table) -> Result<Box<Append>, String>;
+    fn create_appender(&self, config: &toml_parser::Table)
+                       -> Result<Box<Append>, Box<error::Error>>;
 }
 
 pub struct Creator {
@@ -23,6 +26,7 @@ impl Default for Creator {
     fn default() -> Creator {
         let mut creator = Creator::new();
         creator.add_appender("file", Box::new(FileAppenderCreator));
+        creator.add_appender("console", Box::new(ConsoleAppenderCreator));
         creator
     }
 }
@@ -39,18 +43,17 @@ impl Creator {
     }
 
     pub fn create_appender(&self, kind: &str, config: &toml_parser::Table)
-                           -> Result<Box<Append>, String> {
+                           -> Result<Box<Append>, Box<error::Error>> {
         match self.appenders.get(kind) {
             Some(creator) => creator.create_appender(config),
-            None => Err(format!("No creator registered for appender kind \"{}\"", kind))
+            None => Err(Box::new(StringError(format!("No creator registered for appender kind \"{}\"", kind))))
         }
     }
 }
 
-#[derive(Debug)]
 pub enum Error {
     Parse(Vec<String>),
-    Creation(String),
+    Creation(Box<error::Error>),
     Config(config::Error),
 }
 
@@ -112,27 +115,66 @@ pub fn parse(config: &str, creator: &Creator) -> Result<TomlConfig, Error> {
     }
 }
 
+struct StringError(String);
+
+impl fmt::Display for StringError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str(&self.0)
+    }
+}
+
+impl error::Error for StringError {
+    fn description(&self) -> &str {
+        &self.0
+    }
+}
+
+impl error::FromError<String> for StringError {
+    fn from_error(s: String) -> StringError {
+        StringError(s)
+    }
+}
+
 pub struct FileAppenderCreator;
 
 impl CreateAppender for FileAppenderCreator {
-    fn create_appender(&self, config: &toml_parser::Table) -> Result<Box<Append>, String> {
+    fn create_appender(&self, config: &toml_parser::Table)
+                       -> Result<Box<Append>, Box<error::Error>> {
         let path = match config.get("path") {
             Some(&Value::String(ref path)) => path,
-            Some(_) => return Err("`path` must be a string".to_string()),
-            None => return Err("`path` is required".to_string()),
+            Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
+            None => return Err(Box::new(StringError("`path` is required".to_string()))),
         };
         let mut appender = FileAppender::builder(path);
         match config.get("pattern") {
             Some(&Value::String(ref pattern)) => {
                 appender = appender.pattern(try!(PatternLayout::new(pattern)));
             }
-            Some(_) => return Err("`pattern` must be a string".to_string()),
+            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
         }
 
         match appender.build() {
             Ok(appender) => Ok(Box::new(appender)),
-            Err(err) => Err(err.to_string())
+            Err(err) => Err(Box::new(err))
         }
+    }
+}
+
+pub struct ConsoleAppenderCreator;
+
+impl CreateAppender for ConsoleAppenderCreator {
+    fn create_appender(&self, config: &toml_parser::Table)
+                       -> Result<Box<Append>, Box<error::Error>> {
+        let mut appender = ConsoleAppender::builder();
+        match config.get("pattern") {
+            Some(&Value::String(ref pattern)) => {
+                appender = appender.pattern(try!(PatternLayout::new(pattern)));
+            }
+            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
+            None => {}
+        }
+
+        Ok(Box::new(appender.build()))
     }
 }
