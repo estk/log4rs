@@ -43,16 +43,17 @@
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>log4rs</a>::<wbr><a class='trait' href=''>Append</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-3765' href='../src/log4rs/lib.rs.html#18-20'>[src]</a></span></h1>
+        </span><a id='src-4053' href='../src/log4rs/lib.rs.html#19-21'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Append: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
-    fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>);
+    fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/core/error/trait.Error.html' title='core::error::Error'>Error</a>&gt;&gt;;
 }</pre>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>)</code></h3></div>
+        <h3 id='tymethod.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/core/error/trait.Error.html' title='core::error::Error'>Error</a>&gt;&gt;</code></h3></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
     <li><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../log4rs/trait.Append.html' title='log4rs::Append'>Append</a> for <a class='struct' href='../log4rs/appender/struct.FileAppender.html' title='log4rs::appender::FileAppender'>FileAppender</a></code></li>
+<li><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../log4rs/trait.Append.html' title='log4rs::Append'>Append</a> for <a class='struct' href='../log4rs/appender/struct.ConsoleAppender.html' title='log4rs::appender::ConsoleAppender'>ConsoleAppender</a></code></li>
 </ul><script type="text/javascript" async
                               src="../implementors/log4rs/trait.Append.js">
                       </script></section>

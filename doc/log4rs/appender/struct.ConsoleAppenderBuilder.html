@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `TomlConfig` struct in crate `log4rs`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, TomlConfig">
+    <meta name="description" content="API documentation for the Rust `ConsoleAppenderBuilder` struct in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ConsoleAppenderBuilder">
 
-    <title>log4rs::toml::TomlConfig - Rust</title>
+    <title>log4rs::appender::ConsoleAppenderBuilder - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.ConsoleAppenderCreator.html' title=''>ConsoleAppenderCreator</a><a class='struct ' href='struct.Creator.html' title=''>Creator</a><a class='struct ' href='struct.FileAppenderCreator.html' title=''>FileAppenderCreator</a><a class='struct current' href='struct.TomlConfig.html' title=''>TomlConfig</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.Error.html' title=''>Error</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.CreateAppender.html' title=''>CreateAppender</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.parse.html' title=''>parse</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.ConsoleAppender.html' title=''>ConsoleAppender</a><a class='struct current' href='struct.ConsoleAppenderBuilder.html' title=''>ConsoleAppenderBuilder</a><a class='struct ' href='struct.FileAppender.html' title=''>FileAppender</a><a class='struct ' href='struct.FileAppenderBuilder.html' title=''>FileAppenderBuilder</a></div>
     </section>
 
     <nav class="sub">
@@ -41,15 +41,14 @@
     </nav>
 
     <section id='main' class="content struct">
-<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a>::<wbr><a class='struct' href=''>TomlConfig</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a>::<wbr><a class='struct' href=''>ConsoleAppenderBuilder</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-1271' href='../../src/log4rs/toml/mod.rs.html#60-64'>[src]</a></span></h1>
-<pre class='rust struct'>pub struct TomlConfig {
-    pub refresh_rate: <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='struct' href='http://doc.rust-lang.org/nightly/std/time/duration/struct.Duration.html' title='std::time::duration::Duration'>Duration</a>&gt;,
-    pub config: <a class='struct' href='../../log4rs/config/struct.Config.html' title='log4rs::config::Config'>Config</a>,
+        </span><a id='src-2775' href='../../src/log4rs/appender.rs.html#81-83'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct ConsoleAppenderBuilder {
     // some fields omitted
-}</pre><h2 class='fields'>Fields</h2>
-<table><tr><td id='structfield.refresh_rate'><a class='stability Unmarked' title='No stability level'></a><code>refresh_rate</code></td><td></td></tr><tr><td id='structfield.config'><a class='stability Unmarked' title='No stability level'></a><code>config</code></td><td></td></tr></table></section>
+}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h3><div class='impl-items'><h4 id='method.pattern' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.pattern' class='fnname'>pattern</a>(self, pattern: <a class='struct' href='../../log4rs/pattern/struct.PatternLayout.html' title='log4rs::pattern::PatternLayout'>PatternLayout</a>) -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h4>
+<h4 id='method.build' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.build' class='fnname'>build</a>(self) -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppender.html' title='log4rs::appender::ConsoleAppender'>ConsoleAppender</a></code></h4>
+</div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
