@@ -299,8 +299,108 @@
 <span id="257">257</span>
 <span id="258">258</span>
 <span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Support for log4rs configuration from TOML files.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Syntax</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! ```toml</span>
+<span class='doccomment'>//! # If set, log4rs will scan the file at the specified rate in seconds for</span>
+<span class='doccomment'>//! # changes and automatically reconfigure the logger.</span>
+<span class='doccomment'>//! refresh_rate = 30</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Appenders are configured as tables inside the &quot;appender&quot; table. This</span>
+<span class='doccomment'>//! # appender is named &quot;foo&quot;.</span>
+<span class='doccomment'>//! [appender.foo]</span>
+<span class='doccomment'>//! # All appenders must specify a &quot;kind&quot;, which must match the kind of an</span>
+<span class='doccomment'>//! # appender mapping provided to the `Creator` used to deserialize the</span>
+<span class='doccomment'>//! # config file.</span>
+<span class='doccomment'>//! kind = &quot;console&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Arbitrary fields may be added to appender configurations. Remaining</span>
+<span class='doccomment'>//! # entries will be passed to the `CreateAppender` object associated with</span>
+<span class='doccomment'>//! # the specified kind.</span>
+<span class='doccomment'>//! pattern = &quot;%d [%t] %m&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # The root logger is configured by the &quot;root&quot; table. It is optional.</span>
+<span class='doccomment'>//! # If the &quot;root&quot; table is not specified, the root will default to a level of</span>
+<span class='doccomment'>//! # &quot;debug&quot; and no appenders.</span>
+<span class='doccomment'>//! [root]</span>
+<span class='doccomment'>//! # The maximum log level for the root logger. Must be specified if the</span>
+<span class='doccomment'>//! # &quot;root&quot; table is defined.</span>
+<span class='doccomment'>//! level = &quot;warn&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # The list of names of appenders attached to the root logger. If not</span>
+<span class='doccomment'>//! # specified, defaults to an empty list.</span>
+<span class='doccomment'>//! appenders = [&quot;foo&quot;]</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Loggers are configured as tables inside of the &quot;logger&quot; array.</span>
+<span class='doccomment'>//! [[logger]]</span>
+<span class='doccomment'>//! # The name of the logger. Must be specified.</span>
+<span class='doccomment'>//! name = &quot;foo::bar::baz&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # The maximum . If it is not present, the level of the logger&#39;s parent is used.</span>
+<span class='doccomment'>//! level = &quot;trace&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # A list of names of appenders attached to the logger. If not specified,</span>
+<span class='doccomment'>//! # defaults to an empty list.</span>
+<span class='doccomment'>//! appenders = [&quot;foo&quot;]</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # The additivity of the logger. If true, the appenders attached to this</span>
+<span class='doccomment'>//! # logger&#39;s parent will also be attached to this logger. If not specified,</span>
+<span class='doccomment'>//! # defaults to true.</span>
+<span class='doccomment'>//! additive = false</span>
+<span class='doccomment'>//! ```</span>
 <span class='kw'>use</span> <span class='ident'>log</span>::<span class='ident'>LogLevelFilter</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>default</span>::<span class='ident'>Default</span>;

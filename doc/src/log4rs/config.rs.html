@@ -399,6 +399,11 @@
 <span id="357">357</span>
 <span id="358">358</span>
 <span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! log4rs configuration</span>
 
@@ -712,11 +717,16 @@
     }
 }
 
+<span class='doccomment'>/// An error validating a log4rs `Config`.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Error</span> {
+    <span class='doccomment'>/// Multiple appenders were registered with the same name.</span>
     <span class='ident'>DuplicateAppenderName</span>(<span class='ident'>String</span>),
+    <span class='doccomment'>/// A reference to a nonexistant appender.</span>
     <span class='ident'>NonexistentAppender</span>(<span class='ident'>String</span>),
+    <span class='doccomment'>/// Multiple loggers were registered with the same name.</span>
     <span class='ident'>DuplicateLoggerName</span>(<span class='ident'>String</span>),
+    <span class='doccomment'>/// A logger name was invalid.</span>
     <span class='ident'>InvalidLoggerName</span>(<span class='ident'>String</span>),
 }
 

@@ -43,8 +43,92 @@
     <section id='main' class="content mod">
 <h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>log4rs</a><wbr></span><span class='out-of-band'><a href='stability.html'>[stability]</a> <span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-0' href='../src/log4rs/lib.rs.html#1-350'>[src]</a></span></h1>
-<h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+        </span><a id='src-0' href='../src/log4rs/lib.rs.html#1-441'>[src]</a></span></h1>
+<div class='docblock'><p>log4rs is a highly configurable logging framework modeled after Java&#39;s
+Logback and log4j.</p>
+
+<h1 id="architecture" class='section-header'><a
+                           href="#architecture">Architecture</a></h1>
+<p>The basic units of configuration are <em>appenders</em> and <em>loggers</em>.</p>
+
+<h2 id="appenders" class='section-header'><a
+                           href="#appenders">Appenders</a></h2>
+<p>An appender takes a log record and logs it somewhere, for example, to a
+file, the console, or the syslog.</p>
+
+<h2 id="loggers" class='section-header'><a
+                           href="#loggers">Loggers</a></h2>
+<p>A log event is targeted at a specific logger, which are identified by
+string names. The logging macros built in to the <code>log</code> crate set the logger
+of a log event to the one identified by the module containing the
+invocation location.</p>
+
+<p>Loggers form a heirarchy: logger names are divided into components by &quot;::&quot;.
+One logger is the ancestor of another if the first logger&#39;s component list
+is a prefix of the second logger&#39;s component list.</p>
+
+<p>Loggers are associated with a maximum log level. Log events for that logger
+with a level above the maximum will be ignored. The maximum log level for
+any logger can be configured manually; if it is not, the level will be
+inherited from the logger&#39;s parent.</p>
+
+<p>Loggers are also associated with a set of appenders. Appenders can be
+associated directly with a logger. In addition, the appenders of the
+logger&#39;s parent will be associated with the logger unless the logger has
+its <em>additivity</em> set to <code>false</code>. Log events sent to the logger that are not
+filtered out by the logger&#39;s maximum log level will be sent to all
+associated appenders.</p>
+
+<p>The &quot;root&quot; logger is the ancestor of all other logger. Since it has no
+ancestors, its additivity cannot be configured.</p>
+
+<h1 id="configuration" class='section-header'><a
+                           href="#configuration">Configuration</a></h1>
+<p>The log4rs can be configured either programmatically by using the builders
+in the <code>config</code> module to construct a log4rs <code>Config</code> object, which can be
+passed to the <code>init_config</code> function.</p>
+
+<p>The more common configuration method, however, is via a separate TOML
+config file. The <code>init_file</code> function takes the path to a config file as
+well as a <code>Creator</code> object which is responsible for instantiating the
+various objects specified by the config file. The <code>toml</code> module
+documentation covers the exact configuration syntax, but an example is
+provided below.</p>
+
+<h1 id="examples" class='section-header'><a
+                           href="#examples">Examples</a></h1>
+<pre><code class="language-toml"># Scan this file for changes every 30 seconds
+refresh_rate = 30
+
+# An appender named &quot;stdout&quot; that writes to stdout
+[appender.stdout]
+kind = &quot;console&quot;
+
+# An appender named &quot;requests&quot; that writes to a file with a custom pattern
+[appender.requests]
+kind = &quot;file&quot;
+path = &quot;log/requests.log&quot;
+pattern = &quot;%d - %m&quot;
+
+# Set the default logging level to &quot;warn&quot; and attach the &quot;stdout&quot; appender to the root
+[root]
+level = &quot;warn&quot;
+appenders = [&quot;stdout&quot;]
+
+# Raise the maximum log level for events sent to the &quot;app::backend::db&quot; logger to &quot;info&quot;
+[[logger]]
+name = &quot;app::backend::db&quot;
+level = &quot;info&quot;
+
+# Route log events sent to the &quot;app::requests&quot; logger to the &quot;requests&quot; appender,
+# and *not* the normal appenders installed at the root
+[[logger]]
+name = &quot;app::requests&quot;
+level = &quot;info&quot;
+appenders = [&quot;requests&quot;]
+additive = false
+</code></pre>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
 <table>
                     <tr>
                         <td><a class='stability Unmarked' title='No stability level'></a><a class='mod' href='appender/index.html'
