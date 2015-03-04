@@ -83,6 +83,7 @@
 //! appenders = ["requests"]
 //! additive = false
 //! ```
+#![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
 #![feature(std_misc, fs, io, path, core, old_io)]
 #![warn(missing_docs)]
 
