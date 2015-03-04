@@ -150,6 +150,7 @@
 <span id="108">108</span>
 <span id="109">109</span>
 <span id="110">110</span>
+<span id="111">111</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A set of common appenders</span>
 
@@ -208,6 +209,7 @@
         <span class='kw'>let</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>OpenOptions</span>::<span class='ident'>new</span>()
             .<span class='ident'>write</span>(<span class='boolval'>true</span>)
             .<span class='ident'>append</span>(<span class='boolval'>true</span>)
+            .<span class='ident'>create</span>(<span class='boolval'>true</span>)
             .<span class='ident'>open</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>path</span>));
 
         <span class='prelude-val'>Ok</span>(<span class='ident'>FileAppender</span> {
