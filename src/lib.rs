@@ -1,5 +1,90 @@
+//! log4rs is a highly configurable logging framework modeled after Java's
+//! Logback and log4j.
+//!
+//! # Architecture
+//!
+//! The basic units of configuration are *appenders* and *loggers*.
+//!
+//! ## Appenders
+//!
+//! An appender takes a log record and logs it somewhere, for example, to a
+//! file, the console, or the syslog.
+//!
+//! ## Loggers
+//!
+//! A log event is targeted at a specific logger, which are identified by
+//! string names. The logging macros built in to the `log` crate set the logger
+//! of a log event to the one identified by the module containing the
+//! invocation location.
+//!
+//! Loggers form a heirarchy: logger names are divided into components by "::".
+//! One logger is the ancestor of another if the first logger's component list
+//! is a prefix of the second logger's component list.
+//!
+//! Loggers are associated with a maximum log level. Log events for that logger
+//! with a level above the maximum will be ignored. The maximum log level for
+//! any logger can be configured manually; if it is not, the level will be
+//! inherited from the logger's parent.
+//!
+//! Loggers are also associated with a set of appenders. Appenders can be
+//! associated directly with a logger. In addition, the appenders of the
+//! logger's parent will be associated with the logger unless the logger has
+//! its *additivity* set to `false`. Log events sent to the logger that are not
+//! filtered out by the logger's maximum log level will be sent to all
+//! associated appenders.
+//!
+//! The "root" logger is the ancestor of all other logger. Since it has no
+//! ancestors, its additivity cannot be configured.
+//!
+//! # Configuration
+//!
+//! The log4rs can be configured either programmatically by using the builders
+//! in the `config` module to construct a log4rs `Config` object, which can be
+//! passed to the `init_config` function.
+//!
+//! The more common configuration method, however, is via a separate TOML
+//! config file. The `init_file` function takes the path to a config file as
+//! well as a `Creator` object which is responsible for instantiating the
+//! various objects specified by the config file. The `toml` module
+//! documentation covers the exact configuration syntax, but an example is
+//! provided below.
+//!
+//! # Examples
+//!
+//! ```toml
+//! # Scan this file for changes every 30 seconds
+//! refresh_rate = 30
+//!
+//! # An appender named "stdout" that writes to stdout
+//! [appender.stdout]
+//! kind = "console"
+//!
+//! # An appender named "requests" that writes to a file with a custom pattern
+//! [appender.requests]
+//! kind = "file"
+//! path = "log/requests.log"
+//! pattern = "%d - %m"
+//!
+//! # Set the default logging level to "warn" and attach the "stdout" appender to the root
+//! [root]
+//! level = "warn"
+//! appenders = ["stdout"]
+//!
+//! # Raise the maximum log level for events sent to the "app::backend::db" logger to "info"
+//! [[logger]]
+//! name = "app::backend::db"
+//! level = "info"
+//!
+//! # Route log events sent to the "app::requests" logger to the "requests" appender,
+//! # and *not* the normal appenders installed at the root
+//! [[logger]]
+//! name = "app::requests"
+//! level = "info"
+//! appenders = ["requests"]
+//! additive = false
+//! ```
 #![feature(std_misc, fs, io, path, core, old_io)]
-#![warn(missing_doc)]
+#![warn(missing_docs)]
 
 extern crate log;
 extern crate time;
@@ -18,7 +103,7 @@ use std::sync::{Mutex, Arc};
 use std::old_io::timer::sleep;
 use std::thread;
 use std::time::Duration;
-use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError};
+use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use toml::Creator;
 
@@ -28,7 +113,7 @@ pub mod appender;
 pub mod pattern;
 
 /// A trait implemented by log4rs appenders.
-pub trait Append: Send + 'static{
+pub trait Append: Send + 'static {
     /// Processes the provided `LogRecord`.
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>>;
 }
@@ -233,7 +318,7 @@ pub fn init_file<P: AsPath+?Sized>(path: &P, creator: Creator) -> Result<(), Set
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
         if let Some(refresh_rate) = refresh_rate {
-            ConfigReloader::start(path, refresh_rate, mtime, creator, &logger);
+            ConfigReloader::start(path, refresh_rate, mtime, creator, &logger, max_log_level);
         }
         Box::new(logger)
     })
@@ -252,16 +337,19 @@ struct ConfigReloader {
     mtime: u64,
     creator: Creator,
     shared: Arc<Mutex<SharedLogger>>,
+    max_log_level: MaxLogLevelFilter,
 }
 
 impl ConfigReloader {
-    fn start(path: PathBuf, rate: Duration, mtime: u64, creator: Creator, logger: &Logger) {
+    fn start(path: PathBuf, rate: Duration, mtime: u64, creator: Creator, logger: &Logger,
+             max_log_level: MaxLogLevelFilter) {
         let mut reloader = ConfigReloader {
             path: path,
             rate: rate,
             mtime: mtime,
             creator: creator,
             shared: logger.inner.clone(),
+            max_log_level: max_log_level,
         };
 
         thread::Builder::new()
@@ -298,6 +386,7 @@ impl ConfigReloader {
             let (refresh_rate, config) = config.unpack();
 
             let shared = SharedLogger::new(config);
+            self.max_log_level.set(shared.root.max_log_level());
             *self.shared.lock().unwrap() = shared;
 
             match refresh_rate {
@@ -308,10 +397,12 @@ impl ConfigReloader {
     }
 }
 
+#[doc(hidden)]
 trait ConfigPrivateExt {
     fn unpack(self) -> (Vec<config::Appender>, config::Root, Vec<config::Logger>);
 }
 
+#[doc(hidden)]
 trait PrivateTomlConfigExt {
     fn unpack(self) -> (Option<Duration>, config::Config);
 }

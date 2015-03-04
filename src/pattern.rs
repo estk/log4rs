@@ -44,6 +44,7 @@ enum Chunk {
     Thread,
 }
 
+/// An error parsing a `PatternLayout` pattern.
 #[derive(Debug)]
 pub struct Error(String);
 

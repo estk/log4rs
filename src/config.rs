@@ -310,11 +310,16 @@ impl ConfigPrivateExt for Config {
     }
 }
 
+/// An error validating a log4rs `Config`.
 #[derive(PartialEq, Debug)]
 pub enum Error {
+    /// Multiple appenders were registered with the same name.
     DuplicateAppenderName(String),
+    /// A reference to a nonexistant appender.
     NonexistentAppender(String),
+    /// Multiple loggers were registered with the same name.
     DuplicateLoggerName(String),
+    /// A logger name was invalid.
     InvalidLoggerName(String),
 }
 

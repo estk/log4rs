@@ -1,4 +1,54 @@
 //! Support for log4rs configuration from TOML files.
+//!
+//! # Syntax
+//!
+//! ```toml
+//! # If set, log4rs will scan the file at the specified rate in seconds for
+//! # changes and automatically reconfigure the logger.
+//! refresh_rate = 30
+//!
+//! # Appenders are configured as tables inside the "appender" table. This
+//! # appender is named "foo".
+//! [appender.foo]
+//! # All appenders must specify a "kind", which must match the kind of an
+//! # appender mapping provided to the `Creator` used to deserialize the
+//! # config file.
+//! kind = "console"
+//!
+//! # Arbitrary fields may be added to appender configurations. Remaining
+//! # entries will be passed to the `CreateAppender` object associated with
+//! # the specified kind.
+//! pattern = "%d [%t] %m"
+//!
+//! # The root logger is configured by the "root" table. It is optional.
+//! # If the "root" table is not specified, the root will default to a level of
+//! # "debug" and no appenders.
+//! [root]
+//! # The maximum log level for the root logger. Must be specified if the
+//! # "root" table is defined.
+//! level = "warn"
+//!
+//! # The list of names of appenders attached to the root logger. If not
+//! # specified, defaults to an empty list.
+//! appenders = ["foo"]
+//!
+//! # Loggers are configured as tables inside of the "logger" array.
+//! [[logger]]
+//! # The name of the logger. Must be specified.
+//! name = "foo::bar::baz"
+//!
+//! # The maximum . If it is not present, the level of the logger's parent is used.
+//! level = "trace"
+//!
+//! # A list of names of appenders attached to the logger. If not specified,
+//! # defaults to an empty list.
+//! appenders = ["foo"]
+//!
+//! # The additivity of the logger. If true, the appenders attached to this
+//! # logger's parent will also be attached to this logger. If not specified,
+//! # defaults to true.
+//! additive = false
+//! ```
 use log::LogLevelFilter;
 use std::collections::HashMap;
 use std::default::Default;
