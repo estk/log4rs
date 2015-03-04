@@ -1,0 +1,10 @@
+[package]
+name = "test"
+version = "0.0.1"
+authors = ["Steven Fackler <sfackler@gmail.com>"]
+
+[dependencies]
+log = "0.2"
+
+[dependencies.log4rs]
+path = ".."

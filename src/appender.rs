@@ -55,6 +55,7 @@ impl FileAppenderBuilder {
         let file = try!(OpenOptions::new()
             .write(true)
             .append(true)
+            .create(true)
             .open(&self.path));
 
         Ok(FileAppender {

@@ -1,0 +1,19 @@
+refresh_rate = 5
+
+[appender.console]
+kind = "console"
+
+[appender.file]
+kind = "file"
+path = "out.log"
+pattern = "%d [%t] %l %M:%m"
+
+[root]
+level = "warn"
+appenders = ["console"]
+
+[[logger]]
+name = "test::a"
+level = "info"
+appenders = ["file"]
+additive = false
