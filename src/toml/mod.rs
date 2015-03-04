@@ -60,7 +60,7 @@ use toml_parser::{self, Value};
 use appender::{FileAppender, ConsoleAppender};
 use config;
 use pattern::PatternLayout;
-use {Append, PrivateTomlConfigExt};
+use {Append, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
 
@@ -112,12 +112,31 @@ impl Creator {
     }
 }
 
+/// Errors encountered when parsing a log4rs TOML config.
+#[derive(Debug)]
+pub struct ParseErrors {
+    errors: Vec<String>,
+}
+
+impl fmt::Display for ParseErrors {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        for error in &self.errors {
+            try!(writeln!(fmt, "{}", error));
+        }
+        Ok(())
+    }
+}
+
+impl error::Error for ParseErrors {
+    fn description(&self) -> &str {
+        "Errors encountered when parsing a log4rs TOML config"
+    }
+}
+
 /// An error returned when deserializing a TOML configuration into a log4rs `Config`.
 pub enum Error {
-    /// An error during TOML parsing.
-    Parse(Vec<String>),
     /// An error instantiating appenders.
-    Creation(Box<error::Error>),
+    AppenderCreation(String, Box<error::Error>),
     /// An error when creating the log4rs `Config`.
     Config(config::Error),
 }
@@ -125,14 +144,9 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::Parse(ref errs) => {
-                try!(writeln!(fmt, "Parse errors:"));
-                for err in errs {
-                    try!(writeln!(fmt, "{}", err));
-                }
-                Ok(())
+            Error::AppenderCreation(ref appender, ref err) => {
+                write!(fmt, "Error creating appender `{}`: {}", appender, err)
             }
-            Error::Creation(ref err) => write!(fmt, "Error creating appender: {}", err),
             Error::Config(ref err) => write!(fmt, "Error creating config: {}", err),
         }
     }
@@ -140,15 +154,41 @@ impl fmt::Display for Error {
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        "An error creating a log4rs `Config` from a TOML file"
+        "An error encountered when deserializing a TOML configuration into a log4rs `Config`"
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            Error::Creation(ref err) => Some(&**err),
+            Error::AppenderCreation(_, ref err) => Some(&**err),
             Error::Config(ref err) => Some(err),
-            _ => None
         }
+    }
+}
+
+/// Errors encountered when deserializing a TOML configuration into a log4rs `Config`.
+pub struct Errors {
+    errors: Vec<Error>,
+}
+
+impl Errors {
+    /// Returns the list of errors encountered.
+    pub fn errors(&self) -> &[Error] {
+        &self.errors
+    }
+}
+
+impl fmt::Display for Errors {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        for error in &self.errors {
+            try!(writeln!(fmt, "{}", error));
+        }
+        Ok(())
+    }
+}
+
+impl error::Error for Errors {
+    fn description(&self) -> &str {
+        "Errors encountered when deserializing a TOML configuration into a log4rs `Config`"
     }
 }
 
@@ -160,10 +200,13 @@ pub struct Config {
 
 impl Config {
     /// Creates a log4rs `Config` from the specified TOML config string and `Creator`.
-    pub fn parse(config: &str, creator: &Creator) -> Result<Config, Error> {
+    pub fn parse(config: &str, creator: &Creator)
+                 -> Result<(Config, Result<(), Errors>), ParseErrors> {
+        let mut errors = vec![];
+
         let config = match raw::parse(config) {
             Ok(config) => config,
-            Err(err) => return Err(Error::Parse(err)),
+            Err(errors) => return Err(ParseErrors { errors: errors }),
         };
 
         let raw::Config {
@@ -187,11 +230,12 @@ impl Config {
         let mut config = config::Config::builder(root);
 
         for (name, appender) in raw_appenders {
-            let appender = match creator.create_appender(&appender.kind, &appender.config) {
-                Ok(appender) => appender,
-                Err(err) => return Err(Error::Creation(err)),
-            };
-            config = config.appender(config::Appender::builder(name, appender).build());
+            match creator.create_appender(&appender.kind, &appender.config) {
+                Ok(appender) => {
+                    config = config.appender(config::Appender::builder(name, appender).build());
+                }
+                Err(err) => errors.push(Error::AppenderCreation(name, err)),
+            }
         }
 
         for logger in raw_loggers {
@@ -206,15 +250,27 @@ impl Config {
             config = config.logger(logger.build());
         }
 
-        match config.build() {
-            Ok(config) => {
-                Ok(Config {
-                    refresh_rate: refresh_rate,
-                    config: config,
-                })
+        let (config, config_errors) = config.build_lossy();
+        if let Err(config_errors) = config_errors {
+            for error in config_errors.unpack() {
+                errors.push(Error::Config(error));
             }
-            Err(err) => Err(Error::Config(err))
         }
+
+        let config = Config {
+            refresh_rate: refresh_rate,
+            config: config
+        };
+
+        let errors = if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(Errors {
+                errors: errors
+            })
+        };
+
+        Ok((config, errors))
     }
 
     /// Returns the requested refresh rate.

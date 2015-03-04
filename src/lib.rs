@@ -329,7 +329,13 @@ fn load_config(path: &Path, creator: &Creator) -> Result<toml::Config, Box<error
     let mut file = try!(File::open(path));
     let mut s = String::new();
     try!(file.read_to_string(&mut s));
-    Ok(try!(toml::Config::parse(&s, creator)))
+    let (config, errors) = try!(toml::Config::parse(&s, creator));
+    if let Err(errors) = errors {
+        for error in errors.errors() {
+            handle_error(error);
+        }
+    }
+    Ok(config)
 }
 
 struct ConfigReloader {
@@ -406,6 +412,11 @@ trait ConfigPrivateExt {
 #[doc(hidden)]
 trait PrivateTomlConfigExt {
     fn unpack(self) -> (Option<Duration>, config::Config);
+}
+
+#[doc(hidden)]
+trait PrivateConfigErrorsExt {
+    fn unpack(self) -> Vec<config::Error>;
 }
 
 #[cfg(test)]

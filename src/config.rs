@@ -6,7 +6,7 @@ use std::iter::IntoIterator;
 use std::error;
 use log::LogLevelFilter;
 
-use {Append, ConfigPrivateExt};
+use {Append, ConfigPrivateExt, PrivateConfigErrorsExt};
 
 /// Configuration for the root logger.
 #[derive(Debug)]
@@ -241,38 +241,79 @@ impl ConfigBuilder {
     }
 
     /// Consumes the `ConfigBuilder`, returning the `Config`.
-    pub fn build(self) -> Result<Config, Error> {
-        {
-            let mut appender_names = HashSet::new();
+    ///
+    /// Unlike `build`, this method will always return a `Config` by stripping
+    /// portions of the configuration that are incorrect.
+    pub fn build_lossy(self) -> (Config, Result<(), Errors>) {
+        let mut errors = vec![];
 
-            for appender in &self.0.appenders {
-                if !appender_names.insert(&appender.name) {
-                    return Err(Error::DuplicateAppenderName(appender.name.clone()));
-                }
-            }
+        let Config { appenders, mut root, loggers } = self.0;
 
-            for appender in &self.0.root.appenders {
-                if !appender_names.contains(&appender) {
-                    return Err(Error::NonexistentAppender(appender.clone()));
-                }
-            }
-
-            let mut logger_names = HashSet::new();
-            for logger in &self.0.loggers {
-                if !logger_names.insert(&logger.name) {
-                    return Err(Error::DuplicateLoggerName(logger.name.clone()));
-                }
-                try!(check_logger_name(&logger.name));
-
-                for appender in &logger.appenders {
-                    if !appender_names.contains(&appender) {
-                        return Err(Error::NonexistentAppender(appender.clone()));
-                    }
-                }
+        let mut ok_appenders = vec![];
+        let mut appender_names = HashSet::new();
+        for appender in appenders {
+            if appender_names.insert(appender.name.clone()) {
+                ok_appenders.push(appender);
+            } else {
+                errors.push(Error::DuplicateAppenderName(appender.name));
             }
         }
 
-        Ok(self.0)
+        let mut ok_root_appenders = vec![];
+        for appender in root.appenders {
+            if appender_names.contains(&appender) {
+                ok_root_appenders.push(appender);
+            } else {
+                errors.push(Error::NonexistentAppender(appender));
+            }
+        }
+        root.appenders = ok_root_appenders;
+
+        let mut ok_loggers = vec![];
+        let mut logger_names = HashSet::new();
+        for mut logger in loggers {
+            if !logger_names.insert(logger.name.clone()) {
+                errors.push(Error::DuplicateLoggerName(logger.name));
+                continue;
+            }
+
+            if let Err(err) = check_logger_name(&logger.name) {
+                errors.push(err);
+                continue;
+            }
+
+            let mut ok_logger_appenders = vec![];
+            for appender in logger.appenders {
+                if appender_names.contains(&appender) {
+                    ok_logger_appenders.push(appender);
+                } else {
+                    errors.push(Error::NonexistentAppender(appender));
+                }
+            }
+            logger.appenders = ok_logger_appenders;
+
+            ok_loggers.push(logger);
+        }
+
+        let config = Config {
+            appenders: ok_appenders,
+            root: root,
+            loggers: ok_loggers,
+        };
+
+        let errors = if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(Errors { errors: errors })
+        };
+
+        (config, errors)
+    }
+
+    /// Consumes the `ConfigBuilder`, returning the `Config`.
+    pub fn build(self) -> Result<Config, Errors> {
+        let (config, errors) = self.build_lossy();
+        errors.map(|_| config)
     }
 }
 
@@ -310,8 +351,42 @@ impl ConfigPrivateExt for Config {
     }
 }
 
+/// Errors encountered when validating a log4rs `Config`.
+#[derive(Debug)]
+pub struct Errors {
+    errors: Vec<Error>,
+}
+
+impl Errors {
+    /// Returns a slice of `Error`s.
+    pub fn errors(&self) -> &[Error] {
+        &self.errors
+    }
+}
+
+impl fmt::Display for Errors {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        for error in &self.errors {
+            try!(writeln!(fmt, "{}", error));
+        }
+        Ok(())
+    }
+}
+
+impl error::Error for Errors {
+    fn description(&self) -> &str {
+        "Errors encountered when validating a log4rs `Config`"
+    }
+}
+
+impl PrivateConfigErrorsExt for Errors {
+    fn unpack(self) -> Vec<Error> {
+        self.errors
+    }
+}
+
 /// An error validating a log4rs `Config`.
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
 pub enum Error {
     /// Multiple appenders were registered with the same name.
     DuplicateAppenderName(String),
@@ -338,7 +413,7 @@ impl fmt::Display for Error {
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        "An error constructing a Config"
+        "An error constructing a log4rs `Config`"
     }
 }
 
