@@ -493,18 +493,83 @@
 <span id="451">451</span>
 <span id="452">452</span>
 <span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! log4rs is a highly configurable logging framework modeled after Java&#39;s</span>
 <span class='doccomment'>//! Logback and log4j libraries.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! # Architecture</span>
 <span class='doccomment'>//!</span>
-<span class='doccomment'>//! The basic units of configuration are *appenders* and *loggers*.</span>
+<span class='doccomment'>//! The basic units of configuration are *appenders*, *filters*, and *loggers*.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ## Appenders</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! An appender takes a log record and logs it somewhere, for example, to a</span>
 <span class='doccomment'>//! file, the console, or the syslog.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! ## Filters</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Filters are associated with appenders and, like the name would suggest,</span>
+<span class='doccomment'>//! filter log events coming into that appender.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ## Loggers</span>
 <span class='doccomment'>//!</span>
@@ -604,15 +669,40 @@
 
 <span class='kw'>use</span> <span class='ident'>toml</span>::<span class='ident'>Creator</span>;
 
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>toml</span>;
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>config</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>appender</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>config</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>filter</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>pattern</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>toml</span>;
 
 <span class='doccomment'>/// A trait implemented by log4rs appenders.</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Append</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
     <span class='doccomment'>/// Processes the provided `LogRecord`.</span>
     <span class='kw'>fn</span> <span class='ident'>append</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span>;
+}
+
+<span class='doccomment'>/// The response returned by a filter.</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>FilterResponse</span> {
+    <span class='doccomment'>/// Accept the log event.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// It will be immediately passed to the appender, bypassing any remaining</span>
+    <span class='doccomment'>/// filters.</span>
+    <span class='ident'>Accept</span>,
+
+    <span class='doccomment'>/// Take no action on the log event.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// It will continue on to remaining filters or pass on to the appender if</span>
+    <span class='doccomment'>/// there are none remaining.</span>
+    <span class='ident'>Neutral</span>,
+
+    <span class='doccomment'>/// Reject the log event.</span>
+    <span class='ident'>Reject</span>,
+}
+
+<span class='doccomment'>/// The trait implemented by log4rs filters.</span>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Filter</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
+    <span class='doccomment'>/// Filters a log event.</span>
+    <span class='kw'>fn</span> <span class='ident'>filter</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>) <span class='op'>-&gt;</span> <span class='ident'>FilterResponse</span>;
 }
 
 <span class='kw'>struct</span> <span class='ident'>ConfiguredLogger</span> {
@@ -687,7 +777,7 @@
         <span class='self'>self</span>.<span class='ident'>level</span> <span class='op'>&gt;=</span> <span class='ident'>level</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>log</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>log</span>::<span class='ident'>LogRecord</span>, <span class='ident'>appenders</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Append</span><span class='op'>&gt;</span>]) {
+    <span class='kw'>fn</span> <span class='ident'>log</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>log</span>::<span class='ident'>LogRecord</span>, <span class='ident'>appenders</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>Appender</span>]) {
         <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>enabled</span>(<span class='ident'>record</span>.<span class='ident'>level</span>()) {
             <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='ident'>idx</span> <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>appenders</span> {
                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='ident'>appenders</span>[<span class='ident'>idx</span>].<span class='ident'>append</span>(<span class='ident'>record</span>) {
@@ -698,9 +788,28 @@
     }
 }
 
+<span class='kw'>struct</span> <span class='ident'>Appender</span> {
+    <span class='ident'>appender</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Append</span><span class='op'>&gt;</span>,
+    <span class='ident'>filters</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Filter</span><span class='op'>&gt;&gt;</span>,
+}
+
+<span class='kw'>impl</span> <span class='ident'>Appender</span> {
+    <span class='kw'>fn</span> <span class='ident'>append</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>record</span>: <span class='kw-2'>&amp;</span><span class='ident'>LogRecord</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span> {
+        <span class='kw'>for</span> <span class='ident'>filter</span> <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>filters</span> {
+            <span class='kw'>match</span> <span class='ident'>filter</span>.<span class='ident'>filter</span>(<span class='ident'>record</span>) {
+                <span class='ident'>FilterResponse</span>::<span class='ident'>Accept</span> <span class='op'>=&gt;</span> <span class='kw'>break</span>,
+                <span class='ident'>FilterResponse</span>::<span class='ident'>Neutral</span> <span class='op'>=&gt;</span> {}
+                <span class='ident'>FilterResponse</span>::<span class='ident'>Reject</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(()),
+            }
+        }
+
+        <span class='self'>self</span>.<span class='ident'>appender</span>.<span class='ident'>append</span>(<span class='ident'>record</span>)
+    }
+}
+
 <span class='kw'>struct</span> <span class='ident'>SharedLogger</span> {
     <span class='ident'>root</span>: <span class='ident'>ConfiguredLogger</span>,
-    <span class='ident'>appenders</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Append</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>appenders</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Appender</span><span class='op'>&gt;</span>,
 }
 
 <span class='kw'>impl</span> <span class='ident'>SharedLogger</span> {
@@ -736,7 +845,13 @@
             <span class='ident'>root</span>
         };
 
-        <span class='kw'>let</span> <span class='ident'>appenders</span> <span class='op'>=</span> <span class='ident'>appenders</span>.<span class='ident'>into_iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>appender</span><span class='op'>|</span> <span class='ident'>appender</span>.<span class='ident'>appender</span>()).<span class='ident'>collect</span>();
+        <span class='kw'>let</span> <span class='ident'>appenders</span> <span class='op'>=</span> <span class='ident'>appenders</span>.<span class='ident'>into_iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>appender</span><span class='op'>|</span> {
+            <span class='kw'>let</span> (_, <span class='ident'>appender</span>, <span class='ident'>filters</span>) <span class='op'>=</span> <span class='ident'>appender</span>.<span class='ident'>unpack</span>();
+            <span class='ident'>Appender</span> {
+                <span class='ident'>appender</span>: <span class='ident'>appender</span>,
+                <span class='ident'>filters</span>: <span class='ident'>filters</span>,
+            }
+        }).<span class='ident'>collect</span>();
 
         <span class='ident'>SharedLogger</span> {
             <span class='ident'>root</span>: <span class='ident'>root</span>,
@@ -913,6 +1028,11 @@
 <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
 <span class='kw'>trait</span> <span class='ident'>PrivateConfigErrorsExt</span> {
     <span class='kw'>fn</span> <span class='ident'>unpack</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>config</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>;
+}
+
+<span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
+<span class='kw'>trait</span> <span class='ident'>PrivateConfigAppenderExt</span> {
+    <span class='kw'>fn</span> <span class='ident'>unpack</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>String</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Append</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Filter</span><span class='op'>&gt;&gt;</span>);
 }
 
 <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>

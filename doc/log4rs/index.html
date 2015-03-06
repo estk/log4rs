@@ -43,18 +43,23 @@
     <section id='main' class="content mod">
 <h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>log4rs</a><wbr></span><span class='out-of-band'><a href='stability.html'>[stability]</a> <span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-0' href='../src/log4rs/lib.rs.html#1-453'>[src]</a></span></h1>
+        </span><a id='src-0' href='../src/log4rs/lib.rs.html#1-513'>[src]</a></span></h1>
 <div class='docblock'><p>log4rs is a highly configurable logging framework modeled after Java&#39;s
 Logback and log4j libraries.</p>
 
 <h1 id="architecture" class='section-header'><a
                            href="#architecture">Architecture</a></h1>
-<p>The basic units of configuration are <em>appenders</em> and <em>loggers</em>.</p>
+<p>The basic units of configuration are <em>appenders</em>, <em>filters</em>, and <em>loggers</em>.</p>
 
 <h2 id="appenders" class='section-header'><a
                            href="#appenders">Appenders</a></h2>
 <p>An appender takes a log record and logs it somewhere, for example, to a
 file, the console, or the syslog.</p>
+
+<h2 id="filters" class='section-header'><a
+                           href="#filters">Filters</a></h2>
+<p>Filters are associated with appenders and, like the name would suggest,
+filter log events coming into that appender.</p>
 
 <h2 id="loggers" class='section-header'><a
                            href="#loggers">Loggers</a></h2>
@@ -145,6 +150,13 @@ additive = false
                     </tr>
                 
                     <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='mod' href='filter/index.html'
+                               title='log4rs::filter'>filter</a></td>
+                        <td class='docblock short'><p>A set of common filters.</p>
+</td>
+                    </tr>
+                
+                    <tr>
                         <td><a class='stability Unmarked' title='No stability level'></a><a class='mod' href='pattern/index.html'
                                title='log4rs::pattern'>pattern</a></td>
                         <td class='docblock short'><p>Simple pattern syntax for appender output formats.</p>
@@ -157,12 +169,27 @@ additive = false
                         <td class='docblock short'><p>Support for log4rs configuration from TOML files.</p>
 </td>
                     </tr>
+                </table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='enum' href='enum.FilterResponse.html'
+                               title='log4rs::FilterResponse'>FilterResponse</a></td>
+                        <td class='docblock short'><p>The response returned by a filter.</p>
+</td>
+                    </tr>
                 </table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
 <table>
                     <tr>
                         <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.Append.html'
                                title='log4rs::Append'>Append</a></td>
                         <td class='docblock short'><p>A trait implemented by log4rs appenders.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.Filter.html'
+                               title='log4rs::Filter'>Filter</a></td>
+                        <td class='docblock short'><p>The trait implemented by log4rs filters.</p>
 </td>
                     </tr>
                 </table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>

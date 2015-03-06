@@ -405,6 +405,81 @@
 <span id="363">363</span>
 <span id="364">364</span>
 <span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Support for log4rs configuration from TOML files.</span>
 <span class='doccomment'>//!</span>
@@ -427,6 +502,15 @@
 <span class='doccomment'>//! # entries will be passed to the `CreateAppender` object associated with</span>
 <span class='doccomment'>//! # the specified kind.</span>
 <span class='doccomment'>//! pattern = &quot;%d [%t] %m&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Filters attached to an appender are configured inside the &quot;filter&quot; array.</span>
+<span class='doccomment'>//! [[appender.foo.filter]]</span>
+<span class='doccomment'>//! # Like appenders, filters must specify a &quot;kind&quot;.</span>
+<span class='doccomment'>//! kind = &quot;threshold&quot;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Also like appenders, arbitrary fields may be added to filter</span>
+<span class='doccomment'>//! # configurations.</span>
+<span class='doccomment'>//! level = &quot;error&quot;</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! # The root logger is configured by the &quot;root&quot; table. It is optional.</span>
 <span class='doccomment'>//! # If the &quot;root&quot; table is not specified, the root will default to a level of</span>
@@ -466,26 +550,40 @@
 <span class='kw'>use</span> <span class='ident'>toml_parser</span>::{<span class='self'>self</span>, <span class='ident'>Value</span>};
 
 <span class='kw'>use</span> <span class='ident'>appender</span>::{<span class='ident'>FileAppender</span>, <span class='ident'>ConsoleAppender</span>};
+<span class='kw'>use</span> <span class='ident'>filter</span>::{<span class='ident'>ThresholdFilter</span>};
 <span class='kw'>use</span> <span class='ident'>config</span>;
 <span class='kw'>use</span> <span class='ident'>pattern</span>::<span class='ident'>PatternLayout</span>;
-<span class='kw'>use</span> {<span class='ident'>Append</span>, <span class='ident'>PrivateTomlConfigExt</span>, <span class='ident'>PrivateConfigErrorsExt</span>};
+<span class='kw'>use</span> {<span class='ident'>Append</span>, <span class='ident'>Filter</span>, <span class='ident'>PrivateTomlConfigExt</span>, <span class='ident'>PrivateConfigErrorsExt</span>};
 
 <span class='kw'>mod</span> <span class='ident'>raw</span>;
 
 <span class='doccomment'>/// A trait implemented by types that can create appenders.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>CreateAppender</span>: <span class='ident'>Send</span><span class='op'>+</span><span class='lifetime'>&#39;static</span> {
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>CreateAppender</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
     <span class='doccomment'>/// Creates an appender with the specified config.</span>
     <span class='kw'>fn</span> <span class='ident'>create_appender</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>config</span>: <span class='kw-2'>&amp;</span><span class='ident'>toml_parser</span>::<span class='ident'>Table</span>)
                        <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Append</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span>;
 }
 
+<span class='doccomment'>/// A trait implemented by types that can create filters.</span>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>CreateFilter</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
+    <span class='doccomment'>/// Creates a filter with the specified config.</span>
+    <span class='kw'>fn</span> <span class='ident'>create_filter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>config</span>: <span class='kw-2'>&amp;</span><span class='ident'>toml_parser</span>::<span class='ident'>Table</span>)
+                     <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Filter</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span>;
+}
+
 <span class='doccomment'>/// A type that can create appenders.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// `Creator` implementes `Default`, which returns a `Creator` with mappings</span>
-<span class='doccomment'>/// from &quot;file&quot; to `FileAppenderCreator` and &quot;console&quot; to</span>
-<span class='doccomment'>/// `ConsoleAppenderCreator`.</span>
+<span class='doccomment'>/// `Creator` implements `Default`, which returns a `Creator` with the</span>
+<span class='doccomment'>/// following mappings:</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// * Appenders</span>
+<span class='doccomment'>///     * &quot;file&quot; -&gt; `FileAppenderCreator`</span>
+<span class='doccomment'>///     * &quot;console&quot; -&gt; `ConsoleAppenderCreator`</span>
+<span class='doccomment'>/// * Filters</span>
+<span class='doccomment'>///     * &quot;threshold&quot; -&gt; `ThresholdFilterCreator`</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Creator</span> {
     <span class='ident'>appenders</span>: <span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>CreateAppender</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>filters</span>: <span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>CreateFilter</span><span class='op'>&gt;&gt;</span>,
 }
 
 <span class='kw'>impl</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>Creator</span> {
@@ -493,6 +591,7 @@
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>creator</span> <span class='op'>=</span> <span class='ident'>Creator</span>::<span class='ident'>new</span>();
         <span class='ident'>creator</span>.<span class='ident'>add_appender</span>(<span class='string'>&quot;file&quot;</span>, <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>FileAppenderCreator</span>));
         <span class='ident'>creator</span>.<span class='ident'>add_appender</span>(<span class='string'>&quot;console&quot;</span>, <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>ConsoleAppenderCreator</span>));
+        <span class='ident'>creator</span>.<span class='ident'>add_filter</span>(<span class='string'>&quot;threshold&quot;</span>, <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>ThresholdFilterCreator</span>));
         <span class='ident'>creator</span>
     }
 }
@@ -502,6 +601,7 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>Creator</span> {
         <span class='ident'>Creator</span> {
             <span class='ident'>appenders</span>: <span class='ident'>HashMap</span>::<span class='ident'>new</span>(),
+            <span class='ident'>filters</span>: <span class='ident'>HashMap</span>::<span class='ident'>new</span>(),
         }
     }
 
@@ -511,11 +611,25 @@
         <span class='self'>self</span>.<span class='ident'>appenders</span>.<span class='ident'>insert</span>(<span class='ident'>kind</span>.<span class='ident'>to_string</span>(), <span class='ident'>creator</span>);
     }
 
+    <span class='doccomment'>/// Adds a mapping from the specified `kind` to the specified filter</span>
+    <span class='doccomment'>/// creator.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>add_filter</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>kind</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>creator</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>CreateFilter</span><span class='op'>&gt;</span>) {
+        <span class='self'>self</span>.<span class='ident'>filters</span>.<span class='ident'>insert</span>(<span class='ident'>kind</span>.<span class='ident'>to_string</span>(), <span class='ident'>creator</span>);
+    }
+
     <span class='kw'>fn</span> <span class='ident'>create_appender</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>kind</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>config</span>: <span class='kw-2'>&amp;</span><span class='ident'>toml_parser</span>::<span class='ident'>Table</span>)
                        <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Append</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>appenders</span>.<span class='ident'>get</span>(<span class='ident'>kind</span>) {
             <span class='prelude-val'>Some</span>(<span class='ident'>creator</span>) <span class='op'>=&gt;</span> <span class='ident'>creator</span>.<span class='ident'>create_appender</span>(<span class='ident'>config</span>),
             <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Err</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>StringError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;No creator registered for appender kind \&quot;{}\&quot;&quot;</span>, <span class='ident'>kind</span>))))
+        }
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>create_filter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>kind</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>config</span>: <span class='kw-2'>&amp;</span><span class='ident'>toml_parser</span>::<span class='ident'>Table</span>)
+                     <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Filter</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span> {
+        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>filters</span>.<span class='ident'>get</span>(<span class='ident'>kind</span>) {
+            <span class='prelude-val'>Some</span>(<span class='ident'>creator</span>) <span class='op'>=&gt;</span> <span class='ident'>creator</span>.<span class='ident'>create_filter</span>(<span class='ident'>config</span>),
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Err</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>StringError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;No creator registered for filter kind \&quot;{}\&quot;&quot;</span>, <span class='ident'>kind</span>))))
         }
     }
 }
@@ -543,8 +657,10 @@
 
 <span class='doccomment'>/// An error returned when deserializing a TOML configuration into a log4rs `Config`.</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Error</span> {
-    <span class='doccomment'>/// An error instantiating appenders.</span>
+    <span class='doccomment'>/// An error instantiating an appender.</span>
     <span class='ident'>AppenderCreation</span>(<span class='ident'>String</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>),
+    <span class='doccomment'>/// An error instantiating a filter.</span>
+    <span class='ident'>FilterCreation</span>(<span class='ident'>String</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>),
     <span class='doccomment'>/// An error when creating the log4rs `Config`.</span>
     <span class='ident'>Config</span>(<span class='ident'>config</span>::<span class='ident'>Error</span>),
 }
@@ -554,6 +670,9 @@
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
             <span class='ident'>Error</span>::<span class='ident'>AppenderCreation</span>(<span class='kw-2'>ref</span> <span class='ident'>appender</span>, <span class='kw-2'>ref</span> <span class='ident'>err</span>) <span class='op'>=&gt;</span> {
                 <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>fmt</span>, <span class='string'>&quot;Error creating appender `{}`: {}&quot;</span>, <span class='ident'>appender</span>, <span class='ident'>err</span>)
+            }
+            <span class='ident'>Error</span>::<span class='ident'>FilterCreation</span>(<span class='kw-2'>ref</span> <span class='ident'>appender</span>, <span class='kw-2'>ref</span> <span class='ident'>err</span>) <span class='op'>=&gt;</span> {
+                <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>fmt</span>, <span class='string'>&quot;Error creating filter for appender `{}`: {}&quot;</span>, <span class='ident'>appender</span>, <span class='ident'>err</span>)
             }
             <span class='ident'>Error</span>::<span class='ident'>Config</span>(<span class='kw-2'>ref</span> <span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>fmt</span>, <span class='string'>&quot;Error creating config: {}&quot;</span>, <span class='ident'>err</span>),
         }
@@ -568,6 +687,7 @@
     <span class='kw'>fn</span> <span class='ident'>cause</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
             <span class='ident'>Error</span>::<span class='ident'>AppenderCreation</span>(_, <span class='kw-2'>ref</span> <span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='ident'>err</span>),
+            <span class='ident'>Error</span>::<span class='ident'>FilterCreation</span>(_, <span class='kw-2'>ref</span> <span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='ident'>err</span>),
             <span class='ident'>Error</span>::<span class='ident'>Config</span>(<span class='kw-2'>ref</span> <span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>err</span>),
         }
     }
@@ -639,8 +759,15 @@
 
         <span class='kw'>for</span> (<span class='ident'>name</span>, <span class='ident'>appender</span>) <span class='kw'>in</span> <span class='ident'>raw_appenders</span> {
             <span class='kw'>match</span> <span class='ident'>creator</span>.<span class='ident'>create_appender</span>(<span class='kw-2'>&amp;</span><span class='ident'>appender</span>.<span class='ident'>kind</span>, <span class='kw-2'>&amp;</span><span class='ident'>appender</span>.<span class='ident'>config</span>) {
-                <span class='prelude-val'>Ok</span>(<span class='ident'>appender</span>) <span class='op'>=&gt;</span> {
-                    <span class='ident'>config</span> <span class='op'>=</span> <span class='ident'>config</span>.<span class='ident'>appender</span>(<span class='ident'>config</span>::<span class='ident'>Appender</span>::<span class='ident'>builder</span>(<span class='ident'>name</span>, <span class='ident'>appender</span>).<span class='ident'>build</span>());
+                <span class='prelude-val'>Ok</span>(<span class='ident'>appender_obj</span>) <span class='op'>=&gt;</span> {
+                    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>builder</span> <span class='op'>=</span> <span class='ident'>config</span>::<span class='ident'>Appender</span>::<span class='ident'>builder</span>(<span class='ident'>name</span>.<span class='ident'>clone</span>(), <span class='ident'>appender_obj</span>);
+                    <span class='kw'>for</span> <span class='ident'>filter</span> <span class='kw'>in</span> <span class='ident'>appender</span>.<span class='ident'>filters</span>.<span class='ident'>unwrap_or</span>(<span class='macro'>vec</span><span class='macro'>!</span>[]) {
+                        <span class='kw'>match</span> <span class='ident'>creator</span>.<span class='ident'>create_filter</span>(<span class='kw-2'>&amp;</span><span class='ident'>filter</span>.<span class='ident'>kind</span>, <span class='kw-2'>&amp;</span><span class='ident'>filter</span>.<span class='ident'>config</span>) {
+                            <span class='prelude-val'>Ok</span>(<span class='ident'>filter</span>) <span class='op'>=&gt;</span> <span class='ident'>builder</span><span class='op'>=</span> <span class='ident'>builder</span>.<span class='ident'>filter</span>(<span class='ident'>filter</span>),
+                            <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='ident'>errors</span>.<span class='ident'>push</span>(<span class='ident'>Error</span>::<span class='ident'>FilterCreation</span>(<span class='ident'>name</span>.<span class='ident'>clone</span>(), <span class='ident'>err</span>)),
+                        }
+                    }
+                    <span class='ident'>config</span> <span class='op'>=</span> <span class='ident'>config</span>.<span class='ident'>appender</span>(<span class='ident'>builder</span>.<span class='ident'>build</span>());
                 }
                 <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='ident'>errors</span>.<span class='ident'>push</span>(<span class='ident'>Error</span>::<span class='ident'>AppenderCreation</span>(<span class='ident'>name</span>, <span class='ident'>err</span>)),
             }
@@ -769,6 +896,29 @@
         }
 
         <span class='prelude-val'>Ok</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>appender</span>.<span class='ident'>build</span>()))
+    }
+}
+
+<span class='doccomment'>/// A filter creator for the `ThresholdFilter`.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// The `level` key is required and specifies the threshold for the filter.</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ThresholdFilterCreator</span>;
+
+<span class='kw'>impl</span> <span class='ident'>CreateFilter</span> <span class='kw'>for</span> <span class='ident'>ThresholdFilterCreator</span> {
+    <span class='kw'>fn</span> <span class='ident'>create_filter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>config</span>: <span class='kw-2'>&amp;</span><span class='ident'>toml_parser</span>::<span class='ident'>Table</span>)
+                     <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Filter</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>level</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>config</span>.<span class='ident'>get</span>(<span class='string'>&quot;level&quot;</span>) {
+            <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Value</span>::<span class='ident'>String</span>(<span class='kw-2'>ref</span> <span class='ident'>level</span>)) <span class='op'>=&gt;</span> <span class='ident'>level</span>,
+            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>StringError</span>(<span class='string'>&quot;`level` must be a string&quot;</span>.<span class='ident'>to_string</span>()))),
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>StringError</span>(<span class='string'>&quot;`level` must be provided&quot;</span>.<span class='ident'>to_string</span>()))),
+        };
+
+        <span class='kw'>let</span> <span class='ident'>level</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>level</span>.<span class='ident'>parse</span>() {
+            <span class='prelude-val'>Ok</span>(<span class='ident'>level</span>) <span class='op'>=&gt;</span> <span class='ident'>level</span>,
+            <span class='prelude-val'>Err</span>(_) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>StringError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Invalid `level` \&quot;{}\&quot;&quot;</span>, <span class='ident'>level</span>)))),
+        };
+
+        <span class='prelude-val'>Ok</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>ThresholdFilter</span>::<span class='ident'>new</span>(<span class='ident'>level</span>)))
     }
 }
 </pre>

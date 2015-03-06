@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.Config.html' title='A deserialized TOML log4rs configuration.'>Config</a><a class='struct ' href='struct.ConsoleAppenderCreator.html' title='An appender creator for the `ConsoleAppender`.'>ConsoleAppenderCreator</a><a class='struct current' href='struct.Creator.html' title='A type that can create appenders.'>Creator</a><a class='struct ' href='struct.Errors.html' title='Errors encountered when deserializing a TOML configuration into a log4rs `Config`.'>Errors</a><a class='struct ' href='struct.FileAppenderCreator.html' title='An appender creator for the `FileAppender`.'>FileAppenderCreator</a><a class='struct ' href='struct.ParseErrors.html' title='Errors encountered when parsing a log4rs TOML config.'>ParseErrors</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.Error.html' title='An error returned when deserializing a TOML configuration into a log4rs `Config`.'>Error</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.CreateAppender.html' title='A trait implemented by types that can create appenders.'>CreateAppender</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.Config.html' title='A deserialized TOML log4rs configuration.'>Config</a><a class='struct ' href='struct.ConsoleAppenderCreator.html' title='An appender creator for the `ConsoleAppender`.'>ConsoleAppenderCreator</a><a class='struct current' href='struct.Creator.html' title='A type that can create appenders.'>Creator</a><a class='struct ' href='struct.Errors.html' title='Errors encountered when deserializing a TOML configuration into a log4rs `Config`.'>Errors</a><a class='struct ' href='struct.FileAppenderCreator.html' title='An appender creator for the `FileAppender`.'>FileAppenderCreator</a><a class='struct ' href='struct.ParseErrors.html' title='Errors encountered when parsing a log4rs TOML config.'>ParseErrors</a><a class='struct ' href='struct.ThresholdFilterCreator.html' title='A filter creator for the `ThresholdFilter`.'>ThresholdFilterCreator</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.Error.html' title='An error returned when deserializing a TOML configuration into a log4rs `Config`.'>Error</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.CreateAppender.html' title='A trait implemented by types that can create appenders.'>CreateAppender</a><a class='trait ' href='trait.CreateFilter.html' title='A trait implemented by types that can create filters.'>CreateFilter</a></div>
     </section>
 
     <nav class="sub">
@@ -43,18 +43,34 @@
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a>::<wbr><a class='struct' href=''>Creator</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-1139' href='../../src/log4rs/toml/mod.rs.html#79-81'>[src]</a></span></h1>
+        </span><a id='src-5074' href='../../src/log4rs/toml/mod.rs.html#101-104'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct Creator {
     // some fields omitted
 }</pre><div class='docblock'><p>A type that can create appenders.</p>
 
-<p><code>Creator</code> implementes <code>Default</code>, which returns a <code>Creator</code> with mappings
-from &quot;file&quot; to <code>FileAppenderCreator</code> and &quot;console&quot; to
-<code>ConsoleAppenderCreator</code>.</p>
+<p><code>Creator</code> implements <code>Default</code>, which returns a <code>Creator</code> with the
+following mappings:</p>
+
+<ul>
+<li>Appenders
+
+<ul>
+<li>&quot;file&quot; -&gt; <code>FileAppenderCreator</code></li>
+<li>&quot;console&quot; -&gt; <code>ConsoleAppenderCreator</code></li>
+</ul></li>
+<li>Filters
+
+<ul>
+<li>&quot;threshold&quot; -&gt; <code>ThresholdFilterCreator</code></li>
+</ul></li>
+</ul>
 </div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h4>
 <div class='docblock'><p>Creates a new <code>Creator</code> with no appender mappings.</p>
 </div><h4 id='method.add_appender' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.add_appender' class='fnname'>add_appender</a>(&amp;mut self, kind: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/toml/trait.CreateAppender.html' title='log4rs::toml::CreateAppender'>CreateAppender</a>&gt;)</code></h4>
 <div class='docblock'><p>Adds a mapping from the specified <code>kind</code> to the specified appender
+creator.</p>
+</div><h4 id='method.add_filter' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.add_filter' class='fnname'>add_filter</a>(&amp;mut self, kind: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/toml/trait.CreateFilter.html' title='log4rs::toml::CreateFilter'>CreateFilter</a>&gt;)</code></h4>
+<div class='docblock'><p>Adds a mapping from the specified <code>kind</code> to the specified filter
 creator.</p>
 </div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='core::default::Default'>Default</a> for <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h3><div class='impl-items'><h4 id='method.default' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.default' class='fnname'>default</a>() -&gt; <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h4>
 </div></section>

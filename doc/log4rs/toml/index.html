@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='../appender/index.html' title='A set of common appenders'>appender</a><a class='mod ' href='../config/index.html' title='log4rs configuration'>config</a><a class='mod ' href='../pattern/index.html' title='Simple pattern syntax for appender output formats.'>pattern</a><a class='mod current' href='../toml/index.html' title='Support for log4rs configuration from TOML files.'>toml</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Append.html' title='A trait implemented by log4rs appenders.'>Append</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='../fn.init_config.html' title='Initializes the global logger with a log4rs logger configured by `config`.'>init_config</a><a class='fn ' href='../fn.init_file.html' title='Initializes the global logger with a log4rs logger.'>init_file</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='../appender/index.html' title='A set of common appenders'>appender</a><a class='mod ' href='../config/index.html' title='log4rs configuration'>config</a><a class='mod ' href='../filter/index.html' title='A set of common filters.'>filter</a><a class='mod ' href='../pattern/index.html' title='Simple pattern syntax for appender output formats.'>pattern</a><a class='mod current' href='../toml/index.html' title='Support for log4rs configuration from TOML files.'>toml</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='../enum.FilterResponse.html' title='The response returned by a filter.'>FilterResponse</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Append.html' title='A trait implemented by log4rs appenders.'>Append</a><a class='trait ' href='../trait.Filter.html' title='The trait implemented by log4rs filters.'>Filter</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='../fn.init_config.html' title='Initializes the global logger with a log4rs logger configured by `config`.'>init_config</a><a class='fn ' href='../fn.init_file.html' title='Initializes the global logger with a log4rs logger.'>init_file</a></div>
     </section>
 
     <nav class="sub">
@@ -43,7 +43,7 @@
     <section id='main' class="content mod">
 <h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>log4rs</a>::<wbr><a class='mod' href=''>toml</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-32' href='../../src/log4rs/toml/mod.rs.html#1-365'>[src]</a></span></h1>
+        </span><a id='src-3667' href='../../src/log4rs/toml/mod.rs.html#1-440'>[src]</a></span></h1>
 <div class='docblock'><p>Support for log4rs configuration from TOML files.</p>
 
 <h1 id="syntax" class='section-header'><a
@@ -64,6 +64,15 @@ kind = &quot;console&quot;
 # entries will be passed to the `CreateAppender` object associated with
 # the specified kind.
 pattern = &quot;%d [%t] %m&quot;
+
+# Filters attached to an appender are configured inside the &quot;filter&quot; array.
+[[appender.foo.filter]]
+# Like appenders, filters must specify a &quot;kind&quot;.
+kind = &quot;threshold&quot;
+
+# Also like appenders, arbitrary fields may be added to filter
+# configurations.
+level = &quot;error&quot;
 
 # The root logger is configured by the &quot;root&quot; table. It is optional.
 # If the &quot;root&quot; table is not specified, the root will default to a level of
@@ -137,6 +146,13 @@ additive = false
                         <td class='docblock short'><p>Errors encountered when parsing a log4rs TOML config.</p>
 </td>
                     </tr>
+                
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.ThresholdFilterCreator.html'
+                               title='log4rs::toml::ThresholdFilterCreator'>ThresholdFilterCreator</a></td>
+                        <td class='docblock short'><p>A filter creator for the <code>ThresholdFilter</code>.</p>
+</td>
+                    </tr>
                 </table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
 <table>
                     <tr>
@@ -151,6 +167,13 @@ additive = false
                         <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.CreateAppender.html'
                                title='log4rs::toml::CreateAppender'>CreateAppender</a></td>
                         <td class='docblock short'><p>A trait implemented by types that can create appenders.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.CreateFilter.html'
+                               title='log4rs::toml::CreateFilter'>CreateFilter</a></td>
+                        <td class='docblock short'><p>A trait implemented by types that can create filters.</p>
 </td>
                     </tr>
                 </table></section>
