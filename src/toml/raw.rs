@@ -23,6 +23,13 @@ pub struct Root {
 #[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct Appender {
     pub kind: String,
+    pub filters: Option<Vec<Filter>>,
+    pub config: toml::Table,
+}
+
+#[cfg_attr(test, derive(PartialEq, Debug))]
+pub struct Filter {
+    pub kind: String,
     pub config: toml::Table,
 }
 
@@ -126,6 +133,50 @@ fn parse_root(root: toml::Value) -> Result<Root, Vec<String>> {
     }
 }
 
+fn parse_filters(appender: &str, filters: toml::Value) -> Result<Vec<Filter>, Vec<String>> {
+    match filters {
+        Value::Array(filters) => {
+            let mut errors = vec![];
+
+            let filters = filters.into_iter().filter_map(|filter| {
+                match filter {
+                    Value::Table(mut filter) => {
+                        let kind = match filter.remove("kind") {
+                            Some(Value::String(kind)) => kind,
+                            Some(_) => {
+                                errors.push(format!("`kind` must be a string in filter for \
+                                                     appender {}", appender));
+                                return None;
+                            }
+                            None => {
+                                errors.push(format!("`kind` must be present in filter for \
+                                                     appender {}", appender));
+                                return None;
+                            }
+                        };
+
+                        Some(Filter {
+                            kind: kind,
+                            config: filter,
+                        })
+                    }
+                    _ => {
+                        errors.push(format!("filter must be a table in appender {}", appender));
+                        None
+                    }
+                }
+            }).collect();
+
+            if errors.is_empty() {
+                Ok(filters)
+            } else {
+                Err(errors)
+            }
+        }
+        _ => Err(vec![format!("`filter` must be an array in appender {}", appender)]),
+    }
+}
+
 fn finish_parse_config(mut table: toml::Table) -> Result<Config, Vec<String>> {
     let mut errors = vec![];
 
@@ -172,9 +223,23 @@ fn finish_parse_config(mut table: toml::Table) -> Result<Config, Vec<String>> {
                     }
                 };
 
+                let filters = match spec.remove("filter") {
+                    Some(filters) => {
+                        match parse_filters(&name, filters) {
+                            Ok(filters) => Some(filters),
+                            Err(errs) => {
+                                errors.extend(errs);
+                                None
+                            }
+                        }
+                    }
+                    None => None,
+                };
+
                 let spec = Appender {
                     kind: kind,
                     config: spec,
+                    filters: filters,
                 };
 
                 Some((name, spec))
@@ -295,6 +360,10 @@ refresh_rate = 60
 [appender.console]
 kind = "console"
 
+[[appender.console.filter]]
+kind = "threshold"
+level = "debug"
+
 [appender.baz]
 kind = "file"
 file = "log/baz.log"
@@ -320,6 +389,15 @@ additive = false
                          Appender {
                              kind: "console".to_owned(),
                              config: BTreeMap::new(),
+                             filters: Some(vec![Filter {
+                                kind: "threshold".to_string(),
+                                config: {
+                                    let mut m = BTreeMap::new();
+                                    m.insert("level".to_string(),
+                                             Value::String("debug".to_string()));
+                                    m
+                                }
+                             }])
                          });
                 m.insert("baz".to_owned(),
                          Appender {
@@ -329,7 +407,8 @@ additive = false
                                  m.insert("file".to_owned(),
                                           Value::String("log/baz.log".to_owned()));
                                  m
-                             }
+                             },
+                             filters: None,
                          });
                 m
             },

@@ -3,12 +3,17 @@
 //!
 //! # Architecture
 //!
-//! The basic units of configuration are *appenders* and *loggers*.
+//! The basic units of configuration are *appenders*, *filters*, and *loggers*.
 //!
 //! ## Appenders
 //!
 //! An appender takes a log record and logs it somewhere, for example, to a
 //! file, the console, or the syslog.
+//!
+//! ## Filters
+//!
+//! Filters are associated with appenders and, like the name would suggest,
+//! filter log events coming into that appender.
 //!
 //! ## Loggers
 //!
@@ -108,15 +113,40 @@ use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter
 
 use toml::Creator;
 
-pub mod toml;
-pub mod config;
 pub mod appender;
+pub mod config;
+pub mod filter;
 pub mod pattern;
+pub mod toml;
 
 /// A trait implemented by log4rs appenders.
 pub trait Append: Send + 'static {
     /// Processes the provided `LogRecord`.
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>>;
+}
+
+/// The response returned by a filter.
+pub enum FilterResponse {
+    /// Accept the log event.
+    ///
+    /// It will be immediately passed to the appender, bypassing any remaining
+    /// filters.
+    Accept,
+
+    /// Take no action on the log event.
+    ///
+    /// It will continue on to remaining filters or pass on to the appender if
+    /// there are none remaining.
+    Neutral,
+
+    /// Reject the log event.
+    Reject,
+}
+
+/// The trait implemented by log4rs filters.
+pub trait Filter: Send + 'static {
+    /// Filters a log event.
+    fn filter(&mut self, record: &LogRecord) -> FilterResponse;
 }
 
 struct ConfiguredLogger {
@@ -191,7 +221,7 @@ impl ConfiguredLogger {
         self.level >= level
     }
 
-    fn log(&self, record: &log::LogRecord, appenders: &mut [Box<Append>]) {
+    fn log(&self, record: &log::LogRecord, appenders: &mut [Appender]) {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
@@ -202,9 +232,28 @@ impl ConfiguredLogger {
     }
 }
 
+struct Appender {
+    appender: Box<Append>,
+    filters: Vec<Box<Filter>>,
+}
+
+impl Appender {
+    fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>> {
+        for filter in &mut self.filters {
+            match filter.filter(record) {
+                FilterResponse::Accept => break,
+                FilterResponse::Neutral => {}
+                FilterResponse::Reject => return Ok(()),
+            }
+        }
+
+        self.appender.append(record)
+    }
+}
+
 struct SharedLogger {
     root: ConfiguredLogger,
-    appenders: Vec<Box<Append>>,
+    appenders: Vec<Appender>,
 }
 
 impl SharedLogger {
@@ -240,7 +289,13 @@ impl SharedLogger {
             root
         };
 
-        let appenders = appenders.into_iter().map(|appender| appender.appender()).collect();
+        let appenders = appenders.into_iter().map(|appender| {
+            let (_, appender, filters) = appender.unpack();
+            Appender {
+                appender: appender,
+                filters: filters,
+            }
+        }).collect();
 
         SharedLogger {
             root: root,
@@ -417,6 +472,11 @@ trait PrivateTomlConfigExt {
 #[doc(hidden)]
 trait PrivateConfigErrorsExt {
     fn unpack(self) -> Vec<config::Error>;
+}
+
+#[doc(hidden)]
+trait PrivateConfigAppenderExt {
+    fn unpack(self) -> (String, Box<Append>, Vec<Box<Filter>>);
 }
 
 #[cfg(test)]

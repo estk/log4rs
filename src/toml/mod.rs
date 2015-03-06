@@ -20,6 +20,15 @@
 //! # the specified kind.
 //! pattern = "%d [%t] %m"
 //!
+//! # Filters attached to an appender are configured inside the "filter" array.
+//! [[appender.foo.filter]]
+//! # Like appenders, filters must specify a "kind".
+//! kind = "threshold"
+//!
+//! # Also like appenders, arbitrary fields may be added to filter
+//! # configurations.
+//! level = "error"
+//!
 //! # The root logger is configured by the "root" table. It is optional.
 //! # If the "root" table is not specified, the root will default to a level of
 //! # "debug" and no appenders.
@@ -58,26 +67,40 @@ use std::time::Duration;
 use toml_parser::{self, Value};
 
 use appender::{FileAppender, ConsoleAppender};
+use filter::{ThresholdFilter};
 use config;
 use pattern::PatternLayout;
-use {Append, PrivateTomlConfigExt, PrivateConfigErrorsExt};
+use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
 
 /// A trait implemented by types that can create appenders.
-pub trait CreateAppender: Send+'static {
+pub trait CreateAppender: Send + 'static {
     /// Creates an appender with the specified config.
     fn create_appender(&self, config: &toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>>;
 }
 
+/// A trait implemented by types that can create filters.
+pub trait CreateFilter: Send + 'static {
+    /// Creates a filter with the specified config.
+    fn create_filter(&self, config: &toml_parser::Table)
+                     -> Result<Box<Filter>, Box<error::Error>>;
+}
+
 /// A type that can create appenders.
 ///
-/// `Creator` implementes `Default`, which returns a `Creator` with mappings
-/// from "file" to `FileAppenderCreator` and "console" to
-/// `ConsoleAppenderCreator`.
+/// `Creator` implements `Default`, which returns a `Creator` with the
+/// following mappings:
+///
+/// * Appenders
+///     * "file" -> `FileAppenderCreator`
+///     * "console" -> `ConsoleAppenderCreator`
+/// * Filters
+///     * "threshold" -> `ThresholdFilterCreator`
 pub struct Creator {
     appenders: HashMap<String, Box<CreateAppender>>,
+    filters: HashMap<String, Box<CreateFilter>>,
 }
 
 impl Default for Creator {
@@ -85,6 +108,7 @@ impl Default for Creator {
         let mut creator = Creator::new();
         creator.add_appender("file", Box::new(FileAppenderCreator));
         creator.add_appender("console", Box::new(ConsoleAppenderCreator));
+        creator.add_filter("threshold", Box::new(ThresholdFilterCreator));
         creator
     }
 }
@@ -94,6 +118,7 @@ impl Creator {
     pub fn new() -> Creator {
         Creator {
             appenders: HashMap::new(),
+            filters: HashMap::new(),
         }
     }
 
@@ -103,11 +128,25 @@ impl Creator {
         self.appenders.insert(kind.to_string(), creator);
     }
 
+    /// Adds a mapping from the specified `kind` to the specified filter
+    /// creator.
+    pub fn add_filter(&mut self, kind: &str, creator: Box<CreateFilter>) {
+        self.filters.insert(kind.to_string(), creator);
+    }
+
     fn create_appender(&self, kind: &str, config: &toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         match self.appenders.get(kind) {
             Some(creator) => creator.create_appender(config),
             None => Err(Box::new(StringError(format!("No creator registered for appender kind \"{}\"", kind))))
+        }
+    }
+
+    fn create_filter(&self, kind: &str, config: &toml_parser::Table)
+                     -> Result<Box<Filter>, Box<error::Error>> {
+        match self.filters.get(kind) {
+            Some(creator) => creator.create_filter(config),
+            None => Err(Box::new(StringError(format!("No creator registered for filter kind \"{}\"", kind))))
         }
     }
 }
@@ -135,8 +174,10 @@ impl error::Error for ParseErrors {
 
 /// An error returned when deserializing a TOML configuration into a log4rs `Config`.
 pub enum Error {
-    /// An error instantiating appenders.
+    /// An error instantiating an appender.
     AppenderCreation(String, Box<error::Error>),
+    /// An error instantiating a filter.
+    FilterCreation(String, Box<error::Error>),
     /// An error when creating the log4rs `Config`.
     Config(config::Error),
 }
@@ -146,6 +187,9 @@ impl fmt::Display for Error {
         match *self {
             Error::AppenderCreation(ref appender, ref err) => {
                 write!(fmt, "Error creating appender `{}`: {}", appender, err)
+            }
+            Error::FilterCreation(ref appender, ref err) => {
+                write!(fmt, "Error creating filter for appender `{}`: {}", appender, err)
             }
             Error::Config(ref err) => write!(fmt, "Error creating config: {}", err),
         }
@@ -160,6 +204,7 @@ impl error::Error for Error {
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             Error::AppenderCreation(_, ref err) => Some(&**err),
+            Error::FilterCreation(_, ref err) => Some(&**err),
             Error::Config(ref err) => Some(err),
         }
     }
@@ -231,8 +276,15 @@ impl Config {
 
         for (name, appender) in raw_appenders {
             match creator.create_appender(&appender.kind, &appender.config) {
-                Ok(appender) => {
-                    config = config.appender(config::Appender::builder(name, appender).build());
+                Ok(appender_obj) => {
+                    let mut builder = config::Appender::builder(name.clone(), appender_obj);
+                    for filter in appender.filters.unwrap_or(vec![]) {
+                        match creator.create_filter(&filter.kind, &filter.config) {
+                            Ok(filter) => builder= builder.filter(filter),
+                            Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
+                        }
+                    }
+                    config = config.appender(builder.build());
                 }
                 Err(err) => errors.push(Error::AppenderCreation(name, err)),
             }
@@ -361,5 +413,28 @@ impl CreateAppender for ConsoleAppenderCreator {
         }
 
         Ok(Box::new(appender.build()))
+    }
+}
+
+/// A filter creator for the `ThresholdFilter`.
+///
+/// The `level` key is required and specifies the threshold for the filter.
+pub struct ThresholdFilterCreator;
+
+impl CreateFilter for ThresholdFilterCreator {
+    fn create_filter(&self, config: &toml_parser::Table)
+                     -> Result<Box<Filter>, Box<error::Error>> {
+        let level = match config.get("level") {
+            Some(&Value::String(ref level)) => level,
+            Some(_) => return Err(Box::new(StringError("`level` must be a string".to_string()))),
+            None => return Err(Box::new(StringError("`level` must be provided".to_string()))),
+        };
+
+        let level = match level.parse() {
+            Ok(level) => level,
+            Err(_) => return Err(Box::new(StringError(format!("Invalid `level` \"{}\"", level)))),
+        };
+
+        Ok(Box::new(ThresholdFilter::new(level)))
     }
 }

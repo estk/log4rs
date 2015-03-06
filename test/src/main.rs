@@ -14,6 +14,7 @@ fn main() {
     loop {
         sleep(Duration::seconds(1));
         warn!("main");
+        error!("error main");
         a::foo();
     }
 }

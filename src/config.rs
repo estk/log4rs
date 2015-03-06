@@ -6,7 +6,7 @@ use std::iter::IntoIterator;
 use std::error;
 use log::LogLevelFilter;
 
-use {Append, ConfigPrivateExt, PrivateConfigErrorsExt};
+use {Append, Filter, ConfigPrivateExt, PrivateConfigErrorsExt, PrivateConfigAppenderExt};
 
 /// Configuration for the root logger.
 #[derive(Debug)]
@@ -61,8 +61,8 @@ impl RootBuilder {
 /// Configuration for an appender.
 pub struct Appender {
     name: String,
-    /// The appender trait object.
     appender: Box<Append>,
+    filters: Vec<Box<Filter>>,
 }
 
 impl fmt::Debug for Appender {
@@ -77,6 +77,7 @@ impl Appender {
         AppenderBuilder(Appender {
             name: name,
             appender: appender,
+            filters: vec![],
         })
     }
 
@@ -85,9 +86,21 @@ impl Appender {
         &self.name
     }
 
-    /// Consumes the `Appender`, returning the `Append` trait object for the appender.
-    pub fn appender(self) -> Box<Append> {
-        self.appender
+    /// Returns the appender.
+    pub fn appender(&self) -> &Append {
+        &*self.appender
+    }
+
+    /// Returns the filters attached to the appender.
+    pub fn filters(&self) -> &[Box<Filter>] {
+        &self.filters
+    }
+}
+
+impl PrivateConfigAppenderExt for Appender {
+    fn unpack(self) -> (String, Box<Append>, Vec<Box<Filter>>) {
+        let Appender { name, appender, filters } = self;
+        (name, appender, filters)
     }
 }
 
@@ -96,6 +109,18 @@ impl Appender {
 pub struct AppenderBuilder(Appender);
 
 impl AppenderBuilder {
+    /// Adds a filter.
+    pub fn filter(mut self, filter: Box<Filter>) -> AppenderBuilder {
+        self.0.filters.push(filter);
+        self
+    }
+
+    /// Adds filters.
+    pub fn filters<I: IntoIterator<Item=Box<Filter>>>(mut self, filters: I) -> AppenderBuilder {
+        self.0.filters.extend(filters);
+        self
+    }
+
     /// Consumes the `AppenderBuilder`, returning the `Appender`.
     pub fn build(self) -> Appender {
         self.0
