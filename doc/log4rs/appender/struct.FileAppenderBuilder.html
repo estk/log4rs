@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.ConsoleAppender.html' title='An appender which logs to stdout.'>ConsoleAppender</a><a class='struct ' href='struct.ConsoleAppenderBuilder.html' title='A builder for `ConsoleAppender`s.'>ConsoleAppenderBuilder</a><a class='struct ' href='struct.FileAppender.html' title='An appender which logs to a file.'>FileAppender</a><a class='struct current' href='struct.FileAppenderBuilder.html' title='A builder for `FileAppender`s.'>FileAppenderBuilder</a></div>
+        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a></p><script>window.sidebarCurrent = {name: 'FileAppenderBuilder', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -43,12 +43,14 @@
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a>::<wbr><a class='struct' href=''>FileAppenderBuilder</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-138' href='../../src/log4rs/appender.rs.html#41-44'>[src]</a></span></h1>
+        </span><a id='src-139' href='../../src/log4rs/appender.rs.html#42-46'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct FileAppenderBuilder {
     // some fields omitted
 }</pre><div class='docblock'><p>A builder for <code>FileAppender</code>s.</p>
 </div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/appender/struct.FileAppenderBuilder.html' title='log4rs::appender::FileAppenderBuilder'>FileAppenderBuilder</a></code></h3><div class='impl-items'><h4 id='method.pattern' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.pattern' class='fnname'>pattern</a>(self, pattern: <a class='struct' href='../../log4rs/pattern/struct.PatternLayout.html' title='log4rs::pattern::PatternLayout'>PatternLayout</a>) -&gt; <a class='struct' href='../../log4rs/appender/struct.FileAppenderBuilder.html' title='log4rs::appender::FileAppenderBuilder'>FileAppenderBuilder</a></code></h4>
 <div class='docblock'><p>Sets the output pattern for the <code>FileAppender</code>.</p>
+</div><h4 id='method.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.append' class='fnname'>append</a>(self, append: <a href='http://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a>) -&gt; <a class='struct' href='../../log4rs/appender/struct.FileAppenderBuilder.html' title='log4rs::appender::FileAppenderBuilder'>FileAppenderBuilder</a></code></h4>
+<div class='docblock'><p>Determines if the appender will append to or truncate the output file.</p>
 </div><h4 id='method.build' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.build' class='fnname'>build</a>(self) -&gt; <a class='type' href='http://doc.rust-lang.org/nightly/std/io/error/type.Result.html' title='std::io::error::Result'>Result</a>&lt;<a class='struct' href='../../log4rs/appender/struct.FileAppender.html' title='log4rs::appender::FileAppender'>FileAppender</a>&gt;</code></h4>
 <div class='docblock'><p>Consumes the <code>FileAppenderBuilder</code>, producing a <code>FileAppender</code>.</p>
 </div></div></section>

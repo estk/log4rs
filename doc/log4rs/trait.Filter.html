@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='index.html'>log4rs</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='appender/index.html' title='A set of common appenders'>appender</a><a class='mod ' href='config/index.html' title='log4rs configuration'>config</a><a class='mod ' href='filter/index.html' title='A set of common filters.'>filter</a><a class='mod ' href='pattern/index.html' title='Simple pattern syntax for appender output formats.'>pattern</a><a class='mod ' href='toml/index.html' title='Support for log4rs configuration from TOML files.'>toml</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.FilterResponse.html' title='The response returned by a filter.'>FilterResponse</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Append.html' title='A trait implemented by log4rs appenders.'>Append</a><a class='trait current' href='trait.Filter.html' title='The trait implemented by log4rs filters.'>Filter</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.init_config.html' title='Initializes the global logger with a log4rs logger configured by `config`.'>init_config</a><a class='fn ' href='fn.init_file.html' title='Initializes the global logger with a log4rs logger.'>init_file</a></div>
+        <p class='location'><a href='index.html'>log4rs</a></p><script>window.sidebarCurrent = {name: 'Filter', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -43,7 +43,7 @@
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>log4rs</a>::<wbr><a class='trait' href=''>Filter</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-6629' href='../src/log4rs/lib.rs.html#147-150'>[src]</a></span></h1>
+        </span><a id='src-6118' href='../src/log4rs/lib.rs.html#147-150'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Filter: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
     fn <a href='#tymethod.filter' class='fnname'>filter</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='../log4rs/enum.FilterResponse.html' title='log4rs::FilterResponse'>FilterResponse</a>;
 }</pre><div class='docblock'><p>The trait implemented by log4rs filters.</p>

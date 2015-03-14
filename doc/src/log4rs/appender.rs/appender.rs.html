@@ -9,7 +9,7 @@
 
     <title>appender.rs.html -- source</title>
 
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
 
     
     
@@ -151,6 +151,14 @@
 <span id="109">109</span>
 <span id="110">110</span>
 <span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A set of common appenders</span>
 
@@ -187,6 +195,7 @@
         <span class='ident'>FileAppenderBuilder</span> {
             <span class='ident'>path</span>: <span class='ident'>path</span>.<span class='ident'>as_path</span>().<span class='ident'>to_path_buf</span>(),
             <span class='ident'>pattern</span>: <span class='ident'>Default</span>::<span class='ident'>default</span>(),
+            <span class='ident'>append</span>: <span class='boolval'>true</span>,
         }
     }
 }
@@ -195,6 +204,7 @@
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>FileAppenderBuilder</span> {
     <span class='ident'>path</span>: <span class='ident'>PathBuf</span>,
     <span class='ident'>pattern</span>: <span class='ident'>PatternLayout</span>,
+    <span class='ident'>append</span>: <span class='ident'>bool</span>,
 }
 
 <span class='kw'>impl</span> <span class='ident'>FileAppenderBuilder</span> {
@@ -204,11 +214,17 @@
         <span class='self'>self</span>
     }
 
+    <span class='doccomment'>/// Determines if the appender will append to or truncate the output file.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>append</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>append</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>FileAppenderBuilder</span> {
+        <span class='self'>self</span>.<span class='ident'>append</span> <span class='op'>=</span> <span class='ident'>append</span>;
+        <span class='self'>self</span>
+    }
+
     <span class='doccomment'>/// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>FileAppender</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>OpenOptions</span>::<span class='ident'>new</span>()
             .<span class='ident'>write</span>(<span class='boolval'>true</span>)
-            .<span class='ident'>append</span>(<span class='boolval'>true</span>)
+            .<span class='ident'>append</span>(<span class='self'>self</span>.<span class='ident'>append</span>)
             .<span class='ident'>create</span>(<span class='boolval'>true</span>)
             .<span class='ident'>open</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>path</span>));
 
@@ -303,13 +319,13 @@
     
 
     <script>
-        window.rootPath = "../../";
+        window.rootPath = "../../../";
         window.currentCrate = "log4rs";
         window.playgroundUrl = "";
     </script>
-    <script src="../../jquery.js"></script>
-    <script src="../../main.js"></script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
     
-    <script async src="../../search-index.js"></script>
+    <script async src="../../../search-index.js"></script>
 </body>
 </html>
