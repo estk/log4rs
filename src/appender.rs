@@ -33,6 +33,7 @@ impl FileAppender {
         FileAppenderBuilder {
             path: path.as_path().to_path_buf(),
             pattern: Default::default(),
+            append: true,
         }
     }
 }
@@ -41,6 +42,7 @@ impl FileAppender {
 pub struct FileAppenderBuilder {
     path: PathBuf,
     pattern: PatternLayout,
+    append: bool,
 }
 
 impl FileAppenderBuilder {
@@ -50,11 +52,17 @@ impl FileAppenderBuilder {
         self
     }
 
+    /// Determines if the appender will append to or truncate the output file.
+    pub fn append(mut self, append: bool) -> FileAppenderBuilder {
+        self.append = append;
+        self
+    }
+
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build(self) -> io::Result<FileAppender> {
         let file = try!(OpenOptions::new()
             .write(true)
-            .append(true)
+            .append(self.append)
             .create(true)
             .open(&self.path));
 

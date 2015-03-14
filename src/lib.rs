@@ -89,7 +89,7 @@
 //! additive = false
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
-#![feature(std_misc, fs, io, path, core, old_io)]
+#![feature(std_misc, io, core, old_io, fs_time)]
 #![warn(missing_docs)]
 
 extern crate log;

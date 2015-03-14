@@ -378,6 +378,7 @@ impl CreateAppender for FileAppenderCreator {
             Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
             None => return Err(Box::new(StringError("`path` is required".to_string()))),
         };
+
         let mut appender = FileAppender::builder(path);
         match config.get("pattern") {
             Some(&Value::String(ref pattern)) => {
@@ -385,6 +386,12 @@ impl CreateAppender for FileAppenderCreator {
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
+        }
+
+        match config.get("append") {
+            Some(&Value::Boolean(append)) => appender = appender.append(append),
+            None => {}
+            Some(_) => return Err(Box::new(StringError("`append` must be a bool".to_string()))),
         }
 
         match appender.build() {
