@@ -487,6 +487,7 @@
 <span id="445">445</span>
 <span id="446">446</span>
 <span id="447">447</span>
+<span id="448">448</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Support for log4rs configuration from TOML files.</span>
 <span class='doccomment'>//!</span>
@@ -857,7 +858,8 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// The `path` key is required, and specifies the path to the log file. The</span>
 <span class='doccomment'>/// `pattern` key is optional and specifies a `PatternLayout` pattern to be</span>
-<span class='doccomment'>/// used for output.</span>
+<span class='doccomment'>/// used for output. The `append` key is optional and specifies whether the</span>
+<span class='doccomment'>/// output file should be truncated or appended to.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>FileAppenderCreator</span>;
 
 <span class='kw'>impl</span> <span class='ident'>CreateAppender</span> <span class='kw'>for</span> <span class='ident'>FileAppenderCreator</span> {

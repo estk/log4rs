@@ -159,6 +159,8 @@
 <span id="117">117</span>
 <span id="118">118</span>
 <span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A set of common appenders</span>
 
@@ -215,6 +217,8 @@
     }
 
     <span class='doccomment'>/// Determines if the appender will append to or truncate the output file.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Defaults to `true`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>append</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>append</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>FileAppenderBuilder</span> {
         <span class='self'>self</span>.<span class='ident'>append</span> <span class='op'>=</span> <span class='ident'>append</span>;
         <span class='self'>self</span>
