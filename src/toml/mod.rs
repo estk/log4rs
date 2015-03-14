@@ -367,7 +367,8 @@ impl error::FromError<String> for StringError {
 ///
 /// The `path` key is required, and specifies the path to the log file. The
 /// `pattern` key is optional and specifies a `PatternLayout` pattern to be
-/// used for output.
+/// used for output. The `append` key is optional and specifies whether the
+/// output file should be truncated or appended to.
 pub struct FileAppenderCreator;
 
 impl CreateAppender for FileAppenderCreator {

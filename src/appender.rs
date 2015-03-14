@@ -53,6 +53,8 @@ impl FileAppenderBuilder {
     }
 
     /// Determines if the appender will append to or truncate the output file.
+    ///
+    /// Defaults to `true`.
     pub fn append(mut self, append: bool) -> FileAppenderBuilder {
         self.append = append;
         self
