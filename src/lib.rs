@@ -43,8 +43,8 @@
 //!
 //! # Configuration
 //!
-//! The log4rs can be configured either programmatically by using the builders
-//! in the `config` module to construct a log4rs `Config` object, which can be
+//! log4rs can be configured either programmatically by using the builders in
+//! the `config` module to construct a log4rs `Config` object, which can be
 //! passed to the `init_config` function.
 //!
 //! The more common configuration method, however, is via a separate TOML
