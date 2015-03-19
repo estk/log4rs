@@ -89,7 +89,7 @@
 //! additive = false
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
-#![feature(std_misc, io, core, old_io, fs_time)]
+#![feature(std_misc, core, fs_time, thread_sleep)]
 #![warn(missing_docs)]
 
 extern crate log;
@@ -106,7 +106,6 @@ use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf, AsPath};
 use std::sync::{Mutex, Arc};
-use std::old_io::timer::sleep;
 use std::thread;
 use std::time::Duration;
 use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
@@ -422,7 +421,7 @@ impl ConfigReloader {
 
     fn run(&mut self) {
         loop {
-            sleep(self.rate);
+            thread::sleep(self.rate);
 
             let mtime = match fs::metadata(&self.path) {
                 Ok(metadata) => metadata.modified(),
