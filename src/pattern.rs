@@ -69,9 +69,9 @@ pub struct PatternLayout {
 }
 
 impl Default for PatternLayout {
-    /// Returns a `PatternLayout` using the default pattern of `%d %l %M - %m`.
+    /// Returns a `PatternLayout` using the default pattern of `%d %l %t - %m`.
     fn default() -> PatternLayout {
-        PatternLayout::new("%d %l %M - %m").unwrap()
+        PatternLayout::new("%d %l %t - %m").unwrap()
     }
 }
 
