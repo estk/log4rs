@@ -10,7 +10,7 @@ documentation = "https://sfackler.github.io/log4rs/doc/log4rs"
 [dependencies]
 toml = "0.1"
 time = "0.1"
-log = "0.2.1"
+log = "0.3"
 
 [profile.test]
 debug = false

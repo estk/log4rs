@@ -108,7 +108,7 @@ use std::path::{Path, PathBuf, AsPath};
 use std::sync::{Mutex, Arc};
 use std::thread;
 use std::time::Duration;
-use log::{LogLevel, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
+use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use toml::Creator;
 
@@ -320,13 +320,19 @@ impl Logger {
 }
 
 impl log::Log for Logger {
-    fn enabled(&self, level: LogLevel, module: &str) -> bool {
-        self.inner.lock().unwrap().root.find(module).enabled(level)
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        self.enabled_inner(metadata.level(), metadata.target())
     }
 
     fn log(&self, record: &log::LogRecord) {
         let shared = &mut *self.inner.lock().unwrap();
-        shared.root.find(record.location().module_path).log(record, &mut shared.appenders);
+        shared.root.find(record.target()).log(record, &mut shared.appenders);
+    }
+}
+
+impl Logger {
+    fn enabled_inner(&self, level: LogLevel, target: &str) -> bool {
+        self.inner.lock().unwrap().root.find(target).enabled(level)
     }
 }
 
@@ -480,7 +486,7 @@ trait PrivateConfigAppenderExt {
 
 #[cfg(test)]
 mod test {
-    use log::{LogLevel, LogLevelFilter, Log};
+    use log::{LogLevel, LogLevelFilter};
 
     use super::*;
 
@@ -498,15 +504,15 @@ mod test {
 
         let logger = super::Logger::new(config);
 
-        assert!(logger.enabled(LogLevel::Warn, "bar"));
-        assert!(!logger.enabled(LogLevel::Trace, "bar"));
-        assert!(logger.enabled(LogLevel::Debug, "foo"));
-        assert!(logger.enabled(LogLevel::Trace, "foo::bar"));
-        assert!(!logger.enabled(LogLevel::Error, "foo::bar::baz"));
-        assert!(logger.enabled(LogLevel::Debug, "foo::bar::bazbuz"));
-        assert!(!logger.enabled(LogLevel::Error, "foo::bar::baz::buz"));
-        assert!(!logger.enabled(LogLevel::Warn, "foo::baz::buz"));
-        assert!(!logger.enabled(LogLevel::Warn, "foo::baz::buz::bar"));
-        assert!(logger.enabled(LogLevel::Error, "foo::baz::buz::bar"));
+        assert!(logger.enabled_inner(LogLevel::Warn, "bar"));
+        assert!(!logger.enabled_inner(LogLevel::Trace, "bar"));
+        assert!(logger.enabled_inner(LogLevel::Debug, "foo"));
+        assert!(logger.enabled_inner(LogLevel::Trace, "foo::bar"));
+        assert!(!logger.enabled_inner(LogLevel::Error, "foo::bar::baz"));
+        assert!(logger.enabled_inner(LogLevel::Debug, "foo::bar::bazbuz"));
+        assert!(!logger.enabled_inner(LogLevel::Error, "foo::bar::baz::buz"));
+        assert!(!logger.enabled_inner(LogLevel::Warn, "foo::baz::buz"));
+        assert!(!logger.enabled_inner(LogLevel::Warn, "foo::baz::buz::bar"));
+        assert!(logger.enabled_inner(LogLevel::Error, "foo::baz::buz::bar"));
     }
 }
