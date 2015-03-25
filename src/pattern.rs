@@ -10,7 +10,8 @@
 //! * `%L` - The line that the log message came from.
 //! * `%m` - The log message.
 //! * `%M` - The module that the log message came from.
-//! * `%t` - The name of the thread that the log message came from.
+//! * `%T` - The name of the thread that the log message came from.
+//! * `%t` - The target of the log message.
 //!
 
 use std::borrow::ToOwned;
@@ -42,6 +43,7 @@ enum Chunk {
     File,
     Line,
     Thread,
+    Target,
 }
 
 /// An error parsing a `PatternLayout` pattern.
@@ -117,7 +119,8 @@ impl PatternLayout {
                     Some('M') => Some(Chunk::Module),
                     Some('f') => Some(Chunk::File),
                     Some('L') => Some(Chunk::Line),
-                    Some('t') => Some(Chunk::Thread),
+                    Some('T') => Some(Chunk::Thread),
+                    Some('t') => Some(Chunk::Target),
                     Some(ch) => return Err(Error(format!("Invalid formatter `%{}`", ch))),
                     None => return Err(Error("Unexpected end of pattern".to_owned())),
                 };
@@ -151,12 +154,13 @@ impl PatternLayout {
             file: record.location().file(),
             line: record.location().line(),
         };
-        self.append_inner(w, record.level(), &location, record.args())
+        self.append_inner(w, record.level(), record.target(), &location, record.args())
     }
 
     fn append_inner<W>(&self,
                        w: &mut W,
                        level: LogLevel,
+                       target: &str,
                        location: &Location,
                        args: &fmt::Arguments)
                        -> io::Result<()> where W: Write {
@@ -176,6 +180,7 @@ impl PatternLayout {
                 Chunk::Thread => {
                     write!(w, "{}", thread::current().name().unwrap_or("<unnamed>"))
                 }
+                Chunk::Target => write!(w, "{}", target),
             });
         }
         writeln!(w, "")
@@ -208,8 +213,9 @@ mod tests {
                         Chunk::File,
                         Chunk::Line,
                         Chunk::Thread,
+                        Chunk::Target,
                         Chunk::Text("%".to_string())];
-        let actual = PatternLayout::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%t%%").unwrap().pattern;
+        let actual = PatternLayout::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%").unwrap().pattern;
         assert_eq!(expected, actual)
     }
 
@@ -228,7 +234,11 @@ mod tests {
             line: 132,
         };
         let mut buf = vec![];
-        pw.append_inner(&mut buf, LogLevel::Debug, &LOCATION, &format_args!("the message")).unwrap();
+        pw.append_inner(&mut buf,
+                        LogLevel::Debug,
+                        "target",
+                        &LOCATION,
+                        &format_args!("the message")).unwrap();
 
         assert_eq!(&b"DEBUG the message at mod path in the file:132\n"[..], buf);
     }
@@ -236,14 +246,18 @@ mod tests {
     #[test]
     fn test_unnamed_thread() {
         thread::scoped(|| {
-            let pw = PatternLayout::new("%t").unwrap();
+            let pw = PatternLayout::new("%T").unwrap();
             static LOCATION: Location<'static> = Location {
                 module_path: "path",
                 file: "file",
                 line: 132,
             };
             let mut buf = vec![];
-            pw.append_inner(&mut buf, LogLevel::Debug, &LOCATION, &format_args!("message")).unwrap();
+            pw.append_inner(&mut buf,
+                            LogLevel::Debug,
+                            "target",
+                            &LOCATION,
+                            &format_args!("message")).unwrap();
             assert_eq!(b"<unnamed>\n", buf);
         }).join();
     }
@@ -251,14 +265,18 @@ mod tests {
     #[test]
     fn test_named_thread() {
         thread::Builder::new().name("foobar".to_string()).scoped(|| {
-            let pw = PatternLayout::new("%t").unwrap();
+            let pw = PatternLayout::new("%T").unwrap();
             static LOCATION: Location<'static> = Location {
                 module_path: "path",
                 file: "file",
                 line: 132,
             };
             let mut buf = vec![];
-            pw.append_inner(&mut buf, LogLevel::Debug, &LOCATION, &format_args!("message")).unwrap();
+            pw.append_inner(&mut buf,
+                            LogLevel::Debug,
+                            "target",
+                            &LOCATION,
+                            &format_args!("message")).unwrap();
             assert_eq!(b"foobar\n", buf);
         }).unwrap().join();
     }
