@@ -77,14 +77,14 @@ mod raw;
 /// A trait implemented by types that can create appenders.
 pub trait CreateAppender: Send + 'static {
     /// Creates an appender with the specified config.
-    fn create_appender(&self, config: &toml_parser::Table)
+    fn create_appender(&self, config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>>;
 }
 
 /// A trait implemented by types that can create filters.
 pub trait CreateFilter: Send + 'static {
     /// Creates a filter with the specified config.
-    fn create_filter(&self, config: &toml_parser::Table)
+    fn create_filter(&self, config: toml_parser::Table)
                      -> Result<Box<Filter>, Box<error::Error>>;
 }
 
@@ -134,7 +134,7 @@ impl Creator {
         self.filters.insert(kind.to_string(), creator);
     }
 
-    fn create_appender(&self, kind: &str, config: &toml_parser::Table)
+    fn create_appender(&self, kind: &str, config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         match self.appenders.get(kind) {
             Some(creator) => creator.create_appender(config),
@@ -142,7 +142,7 @@ impl Creator {
         }
     }
 
-    fn create_filter(&self, kind: &str, config: &toml_parser::Table)
+    fn create_filter(&self, kind: &str, config: toml_parser::Table)
                      -> Result<Box<Filter>, Box<error::Error>> {
         match self.filters.get(kind) {
             Some(creator) => creator.create_filter(config),
@@ -276,13 +276,13 @@ impl Config {
 
         let mut config = config::Config::builder(root);
 
-        for (name, appender) in raw_appenders {
-            match creator.create_appender(&appender.kind, &appender.config) {
+        for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
+            match creator.create_appender(&kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder(name.clone(), appender_obj);
-                    for filter in appender.filters.unwrap_or(vec![]) {
-                        match creator.create_filter(&filter.kind, &filter.config) {
-                            Ok(filter) => builder= builder.filter(filter),
+                    for raw::Filter { kind, config } in filters.unwrap_or(vec![]) {
+                        match creator.create_filter(&kind, config) {
+                            Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
                         }
                     }
@@ -375,25 +375,25 @@ impl error::FromError<String> for StringError {
 pub struct FileAppenderCreator;
 
 impl CreateAppender for FileAppenderCreator {
-    fn create_appender(&self, config: &toml_parser::Table)
+    fn create_appender(&self, mut config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
-        let path = match config.get("path") {
-            Some(&Value::String(ref path)) => path,
+        let path = match config.remove("path") {
+            Some(Value::String(path)) => path,
             Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
             None => return Err(Box::new(StringError("`path` is required".to_string()))),
         };
 
-        let mut appender = FileAppender::builder(path);
-        match config.get("pattern") {
-            Some(&Value::String(ref pattern)) => {
-                appender = appender.pattern(try!(PatternLayout::new(pattern)));
+        let mut appender = FileAppender::builder(&path);
+        match config.remove("pattern") {
+            Some(Value::String(pattern)) => {
+                appender = appender.pattern(try!(PatternLayout::new(&pattern)));
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
         }
 
-        match config.get("append") {
-            Some(&Value::Boolean(append)) => appender = appender.append(append),
+        match config.remove("append") {
+            Some(Value::Boolean(append)) => appender = appender.append(append),
             None => {}
             Some(_) => return Err(Box::new(StringError("`append` must be a bool".to_string()))),
         }
@@ -412,12 +412,12 @@ impl CreateAppender for FileAppenderCreator {
 pub struct ConsoleAppenderCreator;
 
 impl CreateAppender for ConsoleAppenderCreator {
-    fn create_appender(&self, config: &toml_parser::Table)
+    fn create_appender(&self, mut config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         let mut appender = ConsoleAppender::builder();
-        match config.get("pattern") {
-            Some(&Value::String(ref pattern)) => {
-                appender = appender.pattern(try!(PatternLayout::new(pattern)));
+        match config.remove("pattern") {
+            Some(Value::String(pattern)) => {
+                appender = appender.pattern(try!(PatternLayout::new(&pattern)));
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
@@ -433,10 +433,10 @@ impl CreateAppender for ConsoleAppenderCreator {
 pub struct ThresholdFilterCreator;
 
 impl CreateFilter for ThresholdFilterCreator {
-    fn create_filter(&self, config: &toml_parser::Table)
+    fn create_filter(&self, mut config: toml_parser::Table)
                      -> Result<Box<Filter>, Box<error::Error>> {
-        let level = match config.get("level") {
-            Some(&Value::String(ref level)) => level,
+        let level = match config.remove("level") {
+            Some(Value::String(level)) => level,
             Some(_) => return Err(Box::new(StringError("`level` must be a string".to_string()))),
             None => return Err(Box::new(StringError("`level` must be provided".to_string()))),
         };
