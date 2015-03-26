@@ -366,6 +366,15 @@ impl error::FromError<String> for StringError {
     }
 }
 
+fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
+    let remaining_keys: Vec<_> = config.keys().collect();
+    if remaining_keys.is_empty() {
+        Ok(())
+    } else {
+        Err(Box::new(StringError(format!("Unknown keys: {}", remaining_keys.connect(", ")))))
+    }
+}
+
 /// An appender creator for the `FileAppender`.
 ///
 /// The `path` key is required, and specifies the path to the log file. The
@@ -398,6 +407,7 @@ impl CreateAppender for FileAppenderCreator {
             Some(_) => return Err(Box::new(StringError("`append` must be a bool".to_string()))),
         }
 
+        try!(ensure_empty(&config));
         match appender.build() {
             Ok(appender) => Ok(Box::new(appender)),
             Err(err) => Err(Box::new(err))
@@ -423,6 +433,7 @@ impl CreateAppender for ConsoleAppenderCreator {
             None => {}
         }
 
+        try!(ensure_empty(&config));
         Ok(Box::new(appender.build()))
     }
 }
@@ -446,6 +457,7 @@ impl CreateFilter for ThresholdFilterCreator {
             Err(_) => return Err(Box::new(StringError(format!("Invalid `level` \"{}\"", level)))),
         };
 
+        try!(ensure_empty(&config));
         Ok(Box::new(ThresholdFilter::new(level)))
     }
 }
