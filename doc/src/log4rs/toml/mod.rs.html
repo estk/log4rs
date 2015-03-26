@@ -488,6 +488,9 @@
 <span id="446">446</span>
 <span id="447">447</span>
 <span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Support for log4rs configuration from TOML files.</span>
 <span class='doccomment'>//!</span>
@@ -664,6 +667,7 @@
 }
 
 <span class='doccomment'>/// An error returned when deserializing a TOML configuration into a log4rs `Config`.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Error</span> {
     <span class='doccomment'>/// An error instantiating an appender.</span>
     <span class='ident'>AppenderCreation</span>(<span class='ident'>String</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>error</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>),
@@ -702,6 +706,7 @@
 }
 
 <span class='doccomment'>/// Errors encountered when deserializing a TOML configuration into a log4rs `Config`.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Errors</span> {
     <span class='ident'>errors</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>&gt;</span>,
 }
@@ -834,6 +839,7 @@
     }
 }
 
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>struct</span> <span class='ident'>StringError</span>(<span class='ident'>String</span>);
 
 <span class='kw'>impl</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span> <span class='kw'>for</span> <span class='ident'>StringError</span> {

@@ -161,16 +161,18 @@
 <span id="119">119</span>
 <span id="120">120</span>
 <span id="121">121</span>
+<span id="122">122</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A set of common appenders</span>
 
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>convert</span>::<span class='ident'>AsRef</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>default</span>::<span class='ident'>Default</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>error</span>::<span class='ident'>Error</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>prelude</span>::<span class='op'>*</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::{<span class='ident'>BufWriter</span>, <span class='ident'>Stdout</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::{<span class='ident'>File</span>, <span class='ident'>OpenOptions</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>path</span>::{<span class='ident'>AsPath</span>, <span class='ident'>PathBuf</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>path</span>::{<span class='ident'>Path</span>, <span class='ident'>PathBuf</span>};
 <span class='kw'>use</span> <span class='ident'>log</span>::<span class='ident'>LogRecord</span>;
 
 <span class='kw'>use</span> <span class='ident'>Append</span>;
@@ -193,9 +195,9 @@
 <span class='kw'>impl</span> <span class='ident'>FileAppender</span> {
     <span class='doccomment'>/// Creates a new `FileAppender` builder for an appender which will log to</span>
     <span class='doccomment'>/// a file at the provided path.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>builder</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>AsPath</span> <span class='op'>+</span> ?<span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='ident'>path</span>: <span class='kw-2'>&amp;</span><span class='ident'>P</span>) <span class='op'>-&gt;</span> <span class='ident'>FileAppenderBuilder</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>builder</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>AsRef</span><span class='op'>&lt;</span><span class='ident'>Path</span><span class='op'>&gt;&gt;</span>(<span class='ident'>path</span>: <span class='ident'>P</span>) <span class='op'>-&gt;</span> <span class='ident'>FileAppenderBuilder</span> {
         <span class='ident'>FileAppenderBuilder</span> {
-            <span class='ident'>path</span>: <span class='ident'>path</span>.<span class='ident'>as_path</span>().<span class='ident'>to_path_buf</span>(),
+            <span class='ident'>path</span>: <span class='ident'>path</span>.<span class='ident'>as_ref</span>().<span class='ident'>to_path_buf</span>(),
             <span class='ident'>pattern</span>: <span class='ident'>Default</span>::<span class='ident'>default</span>(),
             <span class='ident'>append</span>: <span class='boolval'>true</span>,
         }
