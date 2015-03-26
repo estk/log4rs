@@ -89,14 +89,15 @@
 //! additive = false
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
-#![feature(std_misc, core, fs_time, thread_sleep)]
+#![feature(std_misc, fs_time, thread_sleep, convert)]
 #![warn(missing_docs)]
 
 extern crate log;
 extern crate time;
-extern crate "toml" as toml_parser;
+extern crate toml as toml_parser;
 
 use std::borrow::ToOwned;
+use std::convert::AsRef;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
@@ -104,7 +105,7 @@ use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use std::path::{Path, PathBuf, AsPath};
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, Arc};
 use std::thread;
 use std::time::Duration;
@@ -358,9 +359,9 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
 ///
 /// Any errors encountered when processing the configuration are reported to
 /// stderr.
-pub fn init_file<P: AsPath+?Sized>(path: &P, creator: Creator) -> Result<(), SetLoggerError> {
+pub fn init_file<P: AsRef<Path>>(path: P, creator: Creator) -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
-        let path = path.as_path().to_path_buf();
+        let path = path.as_ref().to_path_buf();
         let mtime = match fs::metadata(&path) {
             Ok(metadata) => metadata.modified(),
             Err(err) => {

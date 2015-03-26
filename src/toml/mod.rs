@@ -173,6 +173,7 @@ impl error::Error for ParseErrors {
 }
 
 /// An error returned when deserializing a TOML configuration into a log4rs `Config`.
+#[derive(Debug)]
 pub enum Error {
     /// An error instantiating an appender.
     AppenderCreation(String, Box<error::Error>),
@@ -211,6 +212,7 @@ impl error::Error for Error {
 }
 
 /// Errors encountered when deserializing a TOML configuration into a log4rs `Config`.
+#[derive(Debug)]
 pub struct Errors {
     errors: Vec<Error>,
 }
@@ -343,6 +345,7 @@ impl PrivateTomlConfigExt for Config {
     }
 }
 
+#[derive(Debug)]
 struct StringError(String);
 
 impl fmt::Display for StringError {

@@ -1,12 +1,13 @@
 //! A set of common appenders
 
+use std::convert::AsRef;
 use std::default::Default;
 use std::io;
 use std::error::Error;
 use std::io::prelude::*;
 use std::io::{BufWriter, Stdout};
 use std::fs::{File, OpenOptions};
-use std::path::{AsPath, PathBuf};
+use std::path::{Path, PathBuf};
 use log::LogRecord;
 
 use Append;
@@ -29,9 +30,9 @@ impl Append for FileAppender {
 impl FileAppender {
     /// Creates a new `FileAppender` builder for an appender which will log to
     /// a file at the provided path.
-    pub fn builder<P: AsPath + ?Sized>(path: &P) -> FileAppenderBuilder {
+    pub fn builder<P: AsRef<Path>>(path: P) -> FileAppenderBuilder {
         FileAppenderBuilder {
-            path: path.as_path().to_path_buf(),
+            path: path.as_ref().to_path_buf(),
             pattern: Default::default(),
             append: true,
         }
