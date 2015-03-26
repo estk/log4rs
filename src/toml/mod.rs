@@ -114,7 +114,7 @@ impl Default for Creator {
 }
 
 impl Creator {
-    /// Creates a new `Creator` with no appender mappings.
+    /// Creates a new `Creator` with no appender or filter mappings.
     pub fn new() -> Creator {
         Creator {
             appenders: HashMap::new(),
