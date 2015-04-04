@@ -89,7 +89,6 @@
 //! additive = false
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
-#![feature(std_misc, fs_time, thread_sleep, convert)]
 #![warn(missing_docs)]
 
 extern crate log;
@@ -101,14 +100,13 @@ use std::convert::AsRef;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
-use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, Arc};
 use std::thread;
-use std::time::Duration;
+use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use toml::Creator;
@@ -362,35 +360,44 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
 pub fn init_file<P: AsRef<Path>>(path: P, creator: Creator) -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
         let path = path.as_ref().to_path_buf();
-        let mtime = match fs::metadata(&path) {
-            Ok(metadata) => metadata.modified(),
+        let (source, refresh_rate, config) = match read_config(&path) {
+            Ok(source) => {
+                match parse_config(&source, &creator) {
+                    Ok(config) => {
+                        let (refresh_rate, config) = config.unpack();
+                        (source, refresh_rate, config)
+                    }
+                    Err(err) => {
+                        handle_error(&*err);
+                        ("".to_string(), None, config::Config::builder(
+                                config::Root::builder(LogLevelFilter::Off).build()).build().unwrap())
+                    }
+                }
+            },
             Err(err) => {
                 handle_error(&err);
-                0
-            }
-        };
-        let (refresh_rate, config) = match load_config(&path, &creator) {
-            Ok(config) => config.unpack(),
-            Err(err) => {
-                handle_error(&*err);
-                (None, config::Config::builder(
+                ("".to_string(), None, config::Config::builder(
                         config::Root::builder(LogLevelFilter::Off).build()).build().unwrap())
             }
         };
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
         if let Some(refresh_rate) = refresh_rate {
-            ConfigReloader::start(path, refresh_rate, mtime, creator, &logger, max_log_level);
+            ConfigReloader::start(path, refresh_rate, source, creator, &logger, max_log_level);
         }
         Box::new(logger)
     })
 }
 
-fn load_config(path: &Path, creator: &Creator) -> Result<toml::Config, Box<error::Error>> {
+fn read_config(path: &Path) -> Result<String, io::Error> {
     let mut file = try!(File::open(path));
     let mut s = String::new();
     try!(file.read_to_string(&mut s));
-    let (config, errors) = try!(toml::Config::parse(&s, creator));
+    Ok(s)
+}
+
+fn parse_config(source: &str, creator: &Creator) -> Result<toml::Config, Box<error::Error>> {
+    let (config, errors) = try!(toml::Config::parse(&source, creator));
     if let Err(errors) = errors {
         for error in errors.errors() {
             handle_error(error);
@@ -402,19 +409,19 @@ fn load_config(path: &Path, creator: &Creator) -> Result<toml::Config, Box<error
 struct ConfigReloader {
     path: PathBuf,
     rate: Duration,
-    mtime: u64,
+    source: String,
     creator: Creator,
     shared: Arc<Mutex<SharedLogger>>,
     max_log_level: MaxLogLevelFilter,
 }
 
 impl ConfigReloader {
-    fn start(path: PathBuf, rate: Duration, mtime: u64, creator: Creator, logger: &Logger,
+    fn start(path: PathBuf, rate: Duration, source: String, creator: Creator, logger: &Logger,
              max_log_level: MaxLogLevelFilter) {
         let mut reloader = ConfigReloader {
             path: path,
             rate: rate,
-            mtime: mtime,
+            source: source,
             creator: creator,
             shared: logger.inner.clone(),
             max_log_level: max_log_level,
@@ -428,23 +435,23 @@ impl ConfigReloader {
 
     fn run(&mut self) {
         loop {
-            thread::sleep(self.rate);
+            thread::sleep_ms(self.rate.num_milliseconds() as u32);
 
-            let mtime = match fs::metadata(&self.path) {
-                Ok(metadata) => metadata.modified(),
+            let source = match read_config(&self.path) {
+                Ok(source) => source,
                 Err(err) => {
                     handle_error(&err);
                     continue;
                 }
             };
 
-            if mtime == self.mtime {
+            if source == self.source {
                 continue;
             }
 
-            self.mtime = mtime;
+            self.source = source;
 
-            let config = match load_config(&self.path, &self.creator) {
+            let config = match parse_config(&self.source, &self.creator) {
                 Ok(config) => config,
                 Err(err) => {
                     handle_error(&*err);

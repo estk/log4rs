@@ -1,6 +1,6 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::time::Duration;
+use time::Duration;
 
 use toml_parser::Value;
 use toml_parser as toml;
@@ -346,7 +346,7 @@ fn make_errors(parser: &toml::Parser) -> Vec<String> {
 mod test {
     use std::borrow::ToOwned;
     use std::collections::{HashMap, BTreeMap};
-    use std::time::Duration;
+    use time::Duration;
     use toml_parser::Value;
     use log::LogLevelFilter;
 

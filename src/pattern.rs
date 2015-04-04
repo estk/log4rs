@@ -216,7 +216,7 @@ mod tests {
                         Chunk::Target,
                         Chunk::Text("%".to_string())];
         let actual = PatternLayout::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%").unwrap().pattern;
-        assert_eq!(expected, actual)
+        assert_eq!(actual, expected)
     }
 
     #[test]
@@ -240,7 +240,7 @@ mod tests {
                         &LOCATION,
                         &format_args!("the message")).unwrap();
 
-        assert_eq!(&b"DEBUG the message at mod path in the file:132\n"[..], buf);
+        assert_eq!(buf, &b"DEBUG the message at mod path in the file:132\n"[..]);
     }
 
     #[test]
@@ -258,7 +258,7 @@ mod tests {
                             "target",
                             &LOCATION,
                             &format_args!("message")).unwrap();
-            assert_eq!(b"<unnamed>\n", buf);
+            assert_eq!(buf, b"<unnamed>\n");
         }).join();
     }
 
@@ -277,7 +277,7 @@ mod tests {
                             "target",
                             &LOCATION,
                             &format_args!("message")).unwrap();
-            assert_eq!(b"foobar\n", buf);
+            assert_eq!(buf, b"foobar\n");
         }).unwrap().join();
     }
 

@@ -63,7 +63,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::error;
 use std::fmt;
-use std::time::Duration;
+use time::Duration;
 use toml_parser::{self, Value};
 
 use appender::{FileAppender, ConsoleAppender};
@@ -360,8 +360,8 @@ impl error::Error for StringError {
     }
 }
 
-impl error::FromError<String> for StringError {
-    fn from_error(s: String) -> StringError {
+impl From<String> for StringError {
+    fn from(s: String) -> StringError {
         StringError(s)
     }
 }
