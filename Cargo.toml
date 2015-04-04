@@ -1,6 +1,6 @@
 [package]
 name = "log4rs"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT"
@@ -11,6 +11,3 @@ documentation = "https://sfackler.github.io/log4rs/doc/log4rs"
 toml = "0.1"
 time = "0.1"
 log = "0.3"
-
-[profile.test]
-debug = false
