@@ -840,7 +840,7 @@
                 <span class='ident'>level</span>: <span class='ident'>root</span>.<span class='ident'>level</span>(),
                 <span class='ident'>appenders</span>: <span class='ident'>root</span>.<span class='ident'>appenders</span>()
                     .<span class='ident'>iter</span>()
-                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>appender</span><span class='op'>|</span> <span class='ident'>appender_map</span>[<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='ident'>appender</span>].<span class='ident'>clone</span>())
+                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>appender</span><span class='op'>|</span> <span class='ident'>appender_map</span>[<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='ident'>appender</span>])
                     .<span class='ident'>collect</span>(),
                 <span class='ident'>children</span>: <span class='macro'>vec</span><span class='macro'>!</span>[],
             };
