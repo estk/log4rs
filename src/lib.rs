@@ -271,7 +271,7 @@ impl SharedLogger {
                 level: root.level(),
                 appenders: root.appenders()
                     .iter()
-                    .map(|appender| appender_map[&**appender].clone())
+                    .map(|appender| appender_map[&**appender])
                     .collect(),
                 children: vec![],
             };
