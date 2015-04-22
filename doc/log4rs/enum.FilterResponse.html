@@ -41,24 +41,24 @@
     </nav>
 
     <section id='main' class="content enum">
-<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>log4rs</a>::<wbr><a class='enum' href=''>FilterResponse</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>log4rs</a>::<wbr><a class='enum' href=''>FilterResponse</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-6400' href='../src/log4rs/lib.rs.html#127-142'>[src]</a></span></h1>
+        </span><a id='src-6400' class='srclink' href='../src/log4rs/lib.rs.html#127-142'>[src]</a></span></h1>
 <pre class='rust enum'>pub enum FilterResponse {
     Accept,
     Neutral,
     Reject,
 }</pre><div class='docblock'><p>The response returned by a filter.</p>
 </div><h2 class='variants'>Variants</h2>
-<table><tr><td id='variant.Accept'><a class='stability Unmarked' title='No stability level'></a><code>Accept</code></td><td><div class='docblock'><p>Accept the log event.</p>
+<table><tr><td id='variant.Accept'><code>Accept</code></td><td><div class='docblock'><p>Accept the log event.</p>
 
 <p>It will be immediately passed to the appender, bypassing any remaining
 filters.</p>
-</div></td></tr><tr><td id='variant.Neutral'><a class='stability Unmarked' title='No stability level'></a><code>Neutral</code></td><td><div class='docblock'><p>Take no action on the log event.</p>
+</div></td></tr><tr><td id='variant.Neutral'><code>Neutral</code></td><td><div class='docblock'><p>Take no action on the log event.</p>
 
 <p>It will continue on to remaining filters or pass on to the appender if
 there are none remaining.</p>
-</div></td></tr><tr><td id='variant.Reject'><a class='stability Unmarked' title='No stability level'></a><code>Reject</code></td><td><div class='docblock'><p>Reject the log event.</p>
+</div></td></tr><tr><td id='variant.Reject'><code>Reject</code></td><td><div class='docblock'><p>Reject the log event.</p>
 </div></td></tr></table></section>
     <section id='search' class="content hidden"></section>
 

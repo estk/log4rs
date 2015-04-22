@@ -78,9 +78,11 @@
             return;
         }
 
-        if (e.which === 191 && $('#help').hasClass('hidden')) { // question mark
-            e.preventDefault();
-            $('#help').removeClass('hidden');
+        if (e.which === 191) { // question mark
+            if (e.shiftKey && $('#help').hasClass('hidden')) {
+                e.preventDefault();
+                $('#help').removeClass('hidden');
+            }
         } else if (e.which === 27) { // esc
             if (!$('#help').hasClass('hidden')) {
                 e.preventDefault();
@@ -799,6 +801,9 @@
     var query = getQueryStringParams();
     if (query['gotosrc']) {
         window.location = $('#src-' + query['gotosrc']).attr('href');
+    }
+    if (query['gotomacrosrc']) {
+        window.location = $('.srclink').attr('href');
     }
 
     $("#expand-all").on("click", function() {

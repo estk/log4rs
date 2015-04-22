@@ -564,8 +564,6 @@
 <span id="522">522</span>
 <span id="523">523</span>
 <span id="524">524</span>
-<span id="525">525</span>
-<span id="526">526</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! log4rs is a highly configurable logging framework modeled after Java&#39;s</span>
 <span class='doccomment'>//! Logback and log4j libraries.</span>
@@ -831,9 +829,7 @@
             <span class='kw'>let</span> <span class='ident'>appender_map</span> <span class='op'>=</span> <span class='ident'>appenders</span>
                 .<span class='ident'>iter</span>()
                 .<span class='ident'>enumerate</span>()
-                .<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>i</span>, <span class='ident'>appender</span>)<span class='op'>|</span> {
-                    (<span class='ident'>appender</span>.<span class='ident'>name</span>(), <span class='ident'>i</span>)
-                })
+                .<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>i</span>, <span class='ident'>appender</span>)<span class='op'>|</span> (<span class='ident'>appender</span>.<span class='ident'>name</span>(), <span class='ident'>i</span>))
                 .<span class='ident'>collect</span>::<span class='op'>&lt;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span>_, _<span class='op'>&gt;&gt;</span>();
 
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>root</span> <span class='op'>=</span> <span class='ident'>ConfiguredLogger</span> {

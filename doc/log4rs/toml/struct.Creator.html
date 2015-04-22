@@ -41,9 +41,9 @@
     </nav>
 
     <section id='main' class="content struct">
-<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a>::<wbr><a class='struct' href=''>Creator</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a>::<wbr><a class='struct' href=''>Creator</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-4616' href='../../src/log4rs/toml/mod.rs.html#101-104'>[src]</a></span></h1>
+        </span><a id='src-4616' class='srclink' href='../../src/log4rs/toml/mod.rs.html#101-104'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct Creator {
     // some fields omitted
 }</pre><div class='docblock'><p>A type that can create appenders.</p>
@@ -64,15 +64,15 @@ following mappings:</p>
 <li>&quot;threshold&quot; -&gt; <code>ThresholdFilterCreator</code></li>
 </ul></li>
 </ul>
-</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h4>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h4>
 <div class='docblock'><p>Creates a new <code>Creator</code> with no appender or filter mappings.</p>
-</div><h4 id='method.add_appender' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.add_appender' class='fnname'>add_appender</a>(&amp;mut self, kind: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/toml/trait.CreateAppender.html' title='log4rs::toml::CreateAppender'>CreateAppender</a>&gt;)</code></h4>
+</div><h4 id='method.add_appender' class='method'><code>fn <a href='#method.add_appender' class='fnname'>add_appender</a>(&amp;mut self, kind: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/toml/trait.CreateAppender.html' title='log4rs::toml::CreateAppender'>CreateAppender</a>&gt;)</code></h4>
 <div class='docblock'><p>Adds a mapping from the specified <code>kind</code> to the specified appender
 creator.</p>
-</div><h4 id='method.add_filter' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.add_filter' class='fnname'>add_filter</a>(&amp;mut self, kind: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/toml/trait.CreateFilter.html' title='log4rs::toml::CreateFilter'>CreateFilter</a>&gt;)</code></h4>
+</div><h4 id='method.add_filter' class='method'><code>fn <a href='#method.add_filter' class='fnname'>add_filter</a>(&amp;mut self, kind: &amp;<a href='http://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>, creator: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/toml/trait.CreateFilter.html' title='log4rs::toml::CreateFilter'>CreateFilter</a>&gt;)</code></h4>
 <div class='docblock'><p>Adds a mapping from the specified <code>kind</code> to the specified filter
 creator.</p>
-</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='core::default::Default'>Default</a> for <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h3><div class='impl-items'><h4 id='method.default' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html#method.default' class='fnname'>default</a>() -&gt; <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h4>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='core::default::Default'>Default</a> for <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h3><div class='impl-items'><h4 id='method.default' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html#method.default' class='fnname'>default</a>() -&gt; <a class='struct' href='../../log4rs/toml/struct.Creator.html' title='log4rs::toml::Creator'>Creator</a></code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>
 
