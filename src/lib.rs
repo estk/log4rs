@@ -262,9 +262,7 @@ impl SharedLogger {
             let appender_map = appenders
                 .iter()
                 .enumerate()
-                .map(|(i, appender)| {
-                    (appender.name(), i)
-                })
+                .map(|(i, appender)| (appender.name(), i))
                 .collect::<HashMap<_, _>>();
 
             let mut root = ConfiguredLogger {

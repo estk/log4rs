@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_unnamed_thread() {
-        thread::scoped(|| {
+        thread::spawn(|| {
             let pw = PatternLayout::new("%T").unwrap();
             static LOCATION: Location<'static> = Location {
                 module_path: "path",
@@ -259,12 +259,12 @@ mod tests {
                             &LOCATION,
                             &format_args!("message")).unwrap();
             assert_eq!(buf, b"<unnamed>\n");
-        }).join();
+        }).join().unwrap();
     }
 
     #[test]
     fn test_named_thread() {
-        thread::Builder::new().name("foobar".to_string()).scoped(|| {
+        thread::Builder::new().name("foobar".to_string()).spawn(|| {
             let pw = PatternLayout::new("%T").unwrap();
             static LOCATION: Location<'static> = Location {
                 module_path: "path",
@@ -278,7 +278,7 @@ mod tests {
                             &LOCATION,
                             &format_args!("message")).unwrap();
             assert_eq!(buf, b"foobar\n");
-        }).unwrap().join();
+        }).unwrap().join().unwrap();
     }
 
     #[test]
