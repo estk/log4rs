@@ -1,9 +1,12 @@
 language: rust
+rust:
+- nightly
+- beta
 script:
 - cargo test
 - cargo doc --no-deps
 after_success:
-- test $TRAVIS_PULL_REQUEST == "false" && test $TRAVIS_BRANCH == "master" && ./.travis/update_docs.sh
+- test $TRAVIS_PULL_REQUEST == "false" && test $TRAVIS_BRANCH == "master" && test $TRAVIS_RUST_VERSION == "nightly" && ./.travis/update_docs.sh
 env:
   global:
     secure: NSG8W5HJAKj0jpYLtnnC4WyXSwbo3BT+ufX3U+/7+ria/vMy5xzOQMpsyfjXEAfETO767n8ih0AAeeCINvnNKw1nNMPRyIaAbDY9JOOzfesBa9qjWW46hgsVjxydEo0D2yXe7H/AtqOB7lFd5C/mfr1MyFMU3EOl4iYPmPx6EZo=
