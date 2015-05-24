@@ -371,7 +371,7 @@ fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
     if remaining_keys.is_empty() {
         Ok(())
     } else {
-        Err(Box::new(StringError(format!("Unknown keys: {}", remaining_keys.connect(", ")))))
+        Err(Box::new(StringError(format!("Unknown keys: {:?}", remaining_keys))))
     }
 }
 
