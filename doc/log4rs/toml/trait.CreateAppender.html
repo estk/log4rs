@@ -42,8 +42,10 @@
 
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>toml</a>::<wbr><a class='trait' href=''>CreateAppender</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="#" title="collapse all docs">[-]</a>
-        </span><a id='src-4582' class='srclink' href='../../src/log4rs/toml/mod.rs.html#78-82' title='goto source code'>[src]</a></span></h1>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-4604' class='srclink' href='../../src/log4rs/toml/mod.rs.html#78-82' title='goto source code'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait CreateAppender: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
     fn <a href='#tymethod.create_appender' class='fnname'>create_appender</a>(&amp;self, config: <a class='type' href='http://alexcrichton.com/toml-rs/toml/type.Table.html' title='toml::Table'>Table</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../../log4rs/trait.Append.html' title='log4rs::Append'>Append</a>&gt;, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/std/error/trait.Error.html' title='std::error::Error'>Error</a>&gt;&gt;;
 }</pre><div class='docblock'><p>A trait implemented by types that can create appenders.</p>
@@ -90,6 +92,10 @@
                 <code>struct</code>, <code>enum</code>,
                 <code>trait</code>, <code>typedef</code> (or
                 <code>tdef</code>).
+            </p>
+            <p>
+                Search functions by type signature (e.g.
+                <code>vec -> usize</code>)
             </p>
         </div>
     </div>
