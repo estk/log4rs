@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `ConsoleAppender` struct in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ConsoleAppender">
+
+    <title>log4rs::appender::ConsoleAppender - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'><a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a></p><script>window.sidebarCurrent = {name: 'ConsoleAppender', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>log4rs</a>::<wbr><a href='index.html'>appender</a>::<wbr><a class='struct' href=''>ConsoleAppender</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-228' href='../../src/log4rs/appender.rs.html#80-83'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct ConsoleAppender {
+    // some fields omitted
+}</pre><div class='docblock'><p>An appender which logs to stdout.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../log4rs/appender/struct.ConsoleAppender.html' title='log4rs::appender::ConsoleAppender'>ConsoleAppender</a></code></h3><div class='impl-items'><h4 id='method.builder' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.builder' class='fnname'>builder</a>() -&gt; <a class='struct' href='../../log4rs/appender/struct.ConsoleAppenderBuilder.html' title='log4rs::appender::ConsoleAppenderBuilder'>ConsoleAppenderBuilder</a></code></h4>
+<div class='docblock'><p>Creates a new <code>ConsoleAppender</code> builder.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../../log4rs/trait.Append.html' title='log4rs::Append'>Append</a> for <a class='struct' href='../../log4rs/appender/struct.ConsoleAppender.html' title='log4rs::appender::ConsoleAppender'>ConsoleAppender</a></code></h3><div class='impl-items'><h4 id='method.append' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../../log4rs/trait.Append.html#method.append' class='fnname'>append</a>(&amp;mut self, record: &amp;<a class='struct' href='http://doc.rust-lang.org/log/log/struct.LogRecord.html' title='log::LogRecord'>LogRecord</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='http://doc.rust-lang.org/nightly/std/error/trait.Error.html' title='std::error::Error'>Error</a>&gt;&gt;</code></h4>
+</div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "log4rs";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../jquery.js"></script>
+    <script src="../../main.js"></script>
+    
+    <script async src="../../search-index.js"></script>
+</body>
+</html>
