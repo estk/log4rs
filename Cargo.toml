@@ -1,11 +1,11 @@
 [package]
 name = "log4rs"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://sfackler.github.io/log4rs/doc/log4rs"
+documentation = "https://sfackler.github.io/log4rs/doc/v0.3.3/log4rs"
 
 [dependencies]
 toml = "0.1"

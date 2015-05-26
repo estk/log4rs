@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/sfackler/log4rs.svg?branch=master)](https://travis-ci.org/sfackler/log4rs)
 
-Documentation is available at https://sfackler.github.io/log4rs/doc/log4rs
+Documentation is available at https://sfackler.github.io/log4rs/doc/v0.3.3/log4rs
 
 log4rs is a highly configurable logging framework modeled after Java's
 Logback and log4j libraries.

@@ -88,7 +88,7 @@
 //! appenders = ["requests"]
 //! additive = false
 //! ```
-#![doc(html_root_url="https://sfackler.github.io/log4rs/doc")]
+#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.3.3")]
 #![warn(missing_docs)]
 
 extern crate log;
