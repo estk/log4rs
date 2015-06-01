@@ -46,7 +46,8 @@
 //! # The name of the logger. Must be specified.
 //! name = "foo::bar::baz"
 //!
-//! # The maximum . If it is not present, the level of the logger's parent is used.
+//! # The maximum log level. If it is not present, the level of the logger's
+//! # parent is used.
 //! level = "trace"
 //!
 //! # A list of names of appenders attached to the logger. If not specified,
