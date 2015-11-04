@@ -11,8 +11,11 @@ fn main() {
 
     loop {
         thread::sleep(Duration::from_secs(1));
-        warn!("main");
-        error!("error main");
+        trace!("trace");
+        debug!("debug");
+        info!("info");
+        warn!("warn");
+        error!("error");
         a::foo();
     }
 }
