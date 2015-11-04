@@ -85,7 +85,7 @@ pub struct ConsoleAppender {
 impl Append for ConsoleAppender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
         let mut stdout = self.stdout.lock();
-        try!(self.pattern.append(&mut stdout, record));
+        try!(self.pattern.append_console(&mut stdout, record));
         try!(stdout.flush());
         Ok(())
     }

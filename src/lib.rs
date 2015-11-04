@@ -94,6 +94,7 @@
 extern crate log;
 extern crate time;
 extern crate toml as toml_parser;
+extern crate term;
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
