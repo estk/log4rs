@@ -94,6 +94,8 @@
 extern crate log;
 extern crate time;
 extern crate toml as toml_parser;
+#[macro_use] extern crate nom;
+
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
@@ -116,6 +118,7 @@ pub mod config;
 pub mod filter;
 pub mod pattern;
 pub mod toml;
+mod parser;
 
 /// A trait implemented by log4rs appenders.
 pub trait Append: Send + 'static {

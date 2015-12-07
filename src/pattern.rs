@@ -14,41 +14,23 @@
 //! * `%t` - The target of the log message.
 //!
 
-use std::borrow::ToOwned;
+//mod parse_pattern;
+
 use std::default::Default;
 use std::error;
 use std::fmt;
 use std::thread;
 use std::io;
 use std::io::Write;
+use parser::{TimeFmt, Chunk, parse_pattern};
+use nom;
 
 use log::{LogRecord, LogLevel};
 use time;
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-enum TimeFmt {
-    Rfc3339,
-    Str(String),
-}
-
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-enum Chunk {
-    Text(String),
-    Time(TimeFmt),
-    Level,
-    Message,
-    Module,
-    File,
-    Line,
-    Thread,
-    Target,
-}
-
 /// An error parsing a `PatternLayout` pattern.
 #[derive(Debug)]
-pub struct Error(String);
+pub struct Error(pub String);
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -80,70 +62,10 @@ impl PatternLayout {
     ///
     /// The pattern string syntax is documented in the `pattern` module.
     pub fn new(pattern: &str) -> Result<PatternLayout, Error> {
-        let mut parsed = vec![];
-        let mut next_text = String::new();
-        let mut it = pattern.chars().peekable();
-
-        while let Some(ch) = it.next() {
-            if ch == '%' {
-                let chunk = match it.next() {
-                    Some('%') => {
-                        next_text.push('%');
-                        None
-                    }
-                    Some('d') => {
-                        let fmt = match it.peek() {
-                            Some(&'{') => {
-                                it.next();
-                                let mut fmt = String::new();
-                                loop {
-                                    match it.next() {
-                                        Some('}') => break,
-                                        Some(c) => fmt.push(c),
-                                        None => {
-                                            return Err(Error("Unterminated time format".to_owned()));
-                                        }
-                                    }
-                                }
-                                if let Err(err) = time::now().strftime(&*fmt) {
-                                    return Err(Error(err.to_string()));
-                                }
-                                TimeFmt::Str(fmt)
-                            }
-                            _ => TimeFmt::Rfc3339,
-                        };
-                        Some(Chunk::Time(fmt))
-                    }
-                    Some('l') => Some(Chunk::Level),
-                    Some('m') => Some(Chunk::Message),
-                    Some('M') => Some(Chunk::Module),
-                    Some('f') => Some(Chunk::File),
-                    Some('L') => Some(Chunk::Line),
-                    Some('T') => Some(Chunk::Thread),
-                    Some('t') => Some(Chunk::Target),
-                    Some(ch) => return Err(Error(format!("Invalid formatter `%{}`", ch))),
-                    None => return Err(Error("Unexpected end of pattern".to_owned())),
-                };
-
-                if let Some(chunk) = chunk {
-                    if !next_text.is_empty() {
-                        parsed.push(Chunk::Text(next_text));
-                        next_text = String::new();
-                    }
-                    parsed.push(chunk);
-                }
-            } else {
-                next_text.push(ch);
-            }
+        match parse_pattern(pattern.as_bytes()) {
+            nom::IResult::Done(_, o) => Ok( PatternLayout {pattern: o} ),
+            _ => Err(Error("There was an error parsing a pattern.".into()))
         }
-
-        if !next_text.is_empty() {
-            parsed.push(Chunk::Text(next_text));
-        }
-
-        Ok(PatternLayout {
-            pattern: parsed,
-        })
     }
 
     /// Writes the specified `LogRecord` to the specified `Write`r according
@@ -200,7 +122,8 @@ mod tests {
 
     use log::LogLevel;
 
-    use super::{Chunk, TimeFmt, PatternLayout, Location};
+    use super::{PatternLayout, Location};
+    use parser::{TimeFmt, Chunk};
 
     #[test]
     fn test_parse() {
@@ -286,4 +209,3 @@ mod tests {
         let _: PatternLayout = Default::default();
     }
 }
-
