@@ -110,6 +110,7 @@ use std::sync::{Mutex, Arc};
 use std::thread;
 use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
+use pattern::Error;
 
 use toml::Creator;
 
@@ -471,6 +472,10 @@ impl ConfigReloader {
             }
         }
     }
+}
+
+trait ErrorInternals {
+    fn new(message: String) -> Error;
 }
 
 #[doc(hidden)]

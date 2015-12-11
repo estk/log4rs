@@ -1,5 +1,6 @@
 use nom::eof;
 use pattern::Error;
+use ErrorInternals;
 use std::str;
 use time;
 
@@ -132,7 +133,7 @@ named!(timefmt_string<String>,
 
 fn check_timefmt_error(fmt: String) -> Result<String, Error> {
     if let Err(err) = time::now().strftime(&*fmt) {
-        Err(Error(err.to_string()))
+        Err(Error::new(err.to_string()))
     } else {
         Ok(fmt)
     }

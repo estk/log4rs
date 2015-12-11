@@ -14,23 +14,29 @@
 //! * `%t` - The target of the log message.
 //!
 
-//mod parse_pattern;
-
 use std::default::Default;
 use std::error;
 use std::fmt;
 use std::thread;
 use std::io;
 use std::io::Write;
+use std::str;
 use parser::{TimeFmt, Chunk, parse_pattern};
 use nom;
+use ErrorInternals;
 
 use log::{LogRecord, LogLevel};
 use time;
 
 /// An error parsing a `PatternLayout` pattern.
 #[derive(Debug)]
-pub struct Error(pub String);
+pub struct Error(String);
+
+impl ErrorInternals for Error {
+    fn new(message: String) -> Error {
+        Error(message)
+    }
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -41,6 +47,17 @@ impl fmt::Display for Error {
 impl error::Error for Error {
     fn description(&self) -> &str {
         "Error parsing a pattern"
+    }
+}
+
+impl<'a> From<nom::Err<&'a[u8]>> for Error {
+    fn from(nom_err: nom::Err<&'a[u8]>) -> Self {
+        match nom_err {
+            nom::Err::Position(_, token) => {
+                Error(format!("Error parsing pattern at token \"{}\"", str::from_utf8(token).unwrap()))
+            }
+            _ => Error("Could not parse pattern".into())
+        }
     }
 }
 
@@ -64,7 +81,13 @@ impl PatternLayout {
     pub fn new(pattern: &str) -> Result<PatternLayout, Error> {
         match parse_pattern(pattern.as_bytes()) {
             nom::IResult::Done(_, o) => Ok( PatternLayout {pattern: o} ),
-            _ => Err(Error("There was an error parsing a pattern.".into()))
+            nom::IResult::Error(nom_err) => {
+                Err(Error::from(nom_err))
+            }
+            nom::IResult::Incomplete(error) => {
+                // This is always a bug in the parser and should actually never happen.
+                panic!("Parser returned an incomplete error: {:?}. Please report this bug at https://github.com/sfackler/log4rs", error)
+            }
         }
     }
 
@@ -145,6 +168,16 @@ mod tests {
     #[test]
     fn test_invalid_date_format() {
         assert!(PatternLayout::new("%d{%q}").is_err());
+    }
+
+    #[test]
+    fn test_invalid_formatter() {
+        assert!(PatternLayout::new("%x").is_err());
+    }
+
+    #[test]
+    fn test_unclosed_delimiter() {
+        assert!(PatternLayout::new("%d{%Y-%m-%d").is_err());
     }
 
     #[test]
