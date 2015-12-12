@@ -14,41 +14,29 @@
 //! * `%t` - The target of the log message.
 //!
 
-use std::borrow::ToOwned;
 use std::default::Default;
 use std::error;
 use std::fmt;
 use std::thread;
 use std::io;
 use std::io::Write;
+use std::str;
+use parser::{TimeFmt, Chunk, parse_pattern};
+use nom;
+use ErrorInternals;
 
 use log::{LogRecord, LogLevel};
 use time;
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-enum TimeFmt {
-    Rfc3339,
-    Str(String),
-}
-
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-enum Chunk {
-    Text(String),
-    Time(TimeFmt),
-    Level,
-    Message,
-    Module,
-    File,
-    Line,
-    Thread,
-    Target,
-}
-
 /// An error parsing a `PatternLayout` pattern.
 #[derive(Debug)]
 pub struct Error(String);
+
+impl ErrorInternals for Error {
+    fn new(message: String) -> Error {
+        Error(message)
+    }
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -59,6 +47,17 @@ impl fmt::Display for Error {
 impl error::Error for Error {
     fn description(&self) -> &str {
         "Error parsing a pattern"
+    }
+}
+
+impl<'a> From<nom::Err<&'a[u8]>> for Error {
+    fn from(nom_err: nom::Err<&'a[u8]>) -> Self {
+        match nom_err {
+            nom::Err::Position(_, token) => {
+                Error(format!("Error parsing pattern at token \"{}\"", str::from_utf8(token).unwrap()))
+            }
+            _ => Error("Could not parse pattern".into())
+        }
     }
 }
 
@@ -80,70 +79,16 @@ impl PatternLayout {
     ///
     /// The pattern string syntax is documented in the `pattern` module.
     pub fn new(pattern: &str) -> Result<PatternLayout, Error> {
-        let mut parsed = vec![];
-        let mut next_text = String::new();
-        let mut it = pattern.chars().peekable();
-
-        while let Some(ch) = it.next() {
-            if ch == '%' {
-                let chunk = match it.next() {
-                    Some('%') => {
-                        next_text.push('%');
-                        None
-                    }
-                    Some('d') => {
-                        let fmt = match it.peek() {
-                            Some(&'{') => {
-                                it.next();
-                                let mut fmt = String::new();
-                                loop {
-                                    match it.next() {
-                                        Some('}') => break,
-                                        Some(c) => fmt.push(c),
-                                        None => {
-                                            return Err(Error("Unterminated time format".to_owned()));
-                                        }
-                                    }
-                                }
-                                if let Err(err) = time::now().strftime(&*fmt) {
-                                    return Err(Error(err.to_string()));
-                                }
-                                TimeFmt::Str(fmt)
-                            }
-                            _ => TimeFmt::Rfc3339,
-                        };
-                        Some(Chunk::Time(fmt))
-                    }
-                    Some('l') => Some(Chunk::Level),
-                    Some('m') => Some(Chunk::Message),
-                    Some('M') => Some(Chunk::Module),
-                    Some('f') => Some(Chunk::File),
-                    Some('L') => Some(Chunk::Line),
-                    Some('T') => Some(Chunk::Thread),
-                    Some('t') => Some(Chunk::Target),
-                    Some(ch) => return Err(Error(format!("Invalid formatter `%{}`", ch))),
-                    None => return Err(Error("Unexpected end of pattern".to_owned())),
-                };
-
-                if let Some(chunk) = chunk {
-                    if !next_text.is_empty() {
-                        parsed.push(Chunk::Text(next_text));
-                        next_text = String::new();
-                    }
-                    parsed.push(chunk);
-                }
-            } else {
-                next_text.push(ch);
+        match parse_pattern(pattern.as_bytes()) {
+            nom::IResult::Done(_, o) => Ok( PatternLayout {pattern: o} ),
+            nom::IResult::Error(nom_err) => {
+                Err(Error::from(nom_err))
+            }
+            nom::IResult::Incomplete(error) => {
+                // This is always a bug in the parser and should actually never happen.
+                panic!("Parser returned an incomplete error: {:?}. Please report this bug at https://github.com/sfackler/log4rs", error)
             }
         }
-
-        if !next_text.is_empty() {
-            parsed.push(Chunk::Text(next_text));
-        }
-
-        Ok(PatternLayout {
-            pattern: parsed,
-        })
     }
 
     /// Writes the specified `LogRecord` to the specified `Write`r according
@@ -200,7 +145,8 @@ mod tests {
 
     use log::LogLevel;
 
-    use super::{Chunk, TimeFmt, PatternLayout, Location};
+    use super::{PatternLayout, Location};
+    use parser::{TimeFmt, Chunk};
 
     #[test]
     fn test_parse() {
@@ -222,6 +168,16 @@ mod tests {
     #[test]
     fn test_invalid_date_format() {
         assert!(PatternLayout::new("%d{%q}").is_err());
+    }
+
+    #[test]
+    fn test_invalid_formatter() {
+        assert!(PatternLayout::new("%x").is_err());
+    }
+
+    #[test]
+    fn test_unclosed_delimiter() {
+        assert!(PatternLayout::new("%d{%Y-%m-%d").is_err());
     }
 
     #[test]
@@ -286,4 +242,3 @@ mod tests {
         let _: PatternLayout = Default::default();
     }
 }
-

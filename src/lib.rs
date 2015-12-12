@@ -94,6 +94,8 @@
 extern crate log;
 extern crate time;
 extern crate toml as toml_parser;
+#[macro_use] extern crate nom;
+
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
@@ -108,6 +110,7 @@ use std::sync::{Mutex, Arc};
 use std::thread;
 use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
+use pattern::Error;
 
 use toml::Creator;
 
@@ -116,6 +119,7 @@ pub mod config;
 pub mod filter;
 pub mod pattern;
 pub mod toml;
+mod parser;
 
 /// A trait implemented by log4rs appenders.
 pub trait Append: Send + 'static {
@@ -468,6 +472,10 @@ impl ConfigReloader {
             }
         }
     }
+}
+
+trait ErrorInternals {
+    fn new(message: String) -> Error;
 }
 
 #[doc(hidden)]
