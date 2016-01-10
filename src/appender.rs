@@ -64,14 +64,14 @@ impl FileAppenderBuilder {
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build(self) -> io::Result<FileAppender> {
         let file = try!(OpenOptions::new()
-            .write(true)
-            .append(self.append)
-            .create(true)
-            .open(&self.path));
+                            .write(true)
+                            .append(self.append)
+                            .create(true)
+                            .open(&self.path));
 
         Ok(FileAppender {
             file: BufWriter::with_capacity(1024, file),
-            pattern: self.pattern
+            pattern: self.pattern,
         })
     }
 }
@@ -94,9 +94,7 @@ impl Append for ConsoleAppender {
 impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder {
-            pattern: Default::default(),
-        }
+        ConsoleAppenderBuilder { pattern: Default::default() }
     }
 }
 

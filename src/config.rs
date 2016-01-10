@@ -47,7 +47,7 @@ impl RootBuilder {
     }
 
     /// Adds appenders.
-    pub fn appenders<I: IntoIterator<Item=String>>(mut self, appenders: I) -> RootBuilder {
+    pub fn appenders<I: IntoIterator<Item = String>>(mut self, appenders: I) -> RootBuilder {
         self.0.appenders.extend(appenders);
         self
     }
@@ -116,7 +116,7 @@ impl AppenderBuilder {
     }
 
     /// Adds filters.
-    pub fn filters<I: IntoIterator<Item=Box<Filter>>>(mut self, filters: I) -> AppenderBuilder {
+    pub fn filters<I: IntoIterator<Item = Box<Filter>>>(mut self, filters: I) -> AppenderBuilder {
         self.0.filters.extend(filters);
         self
     }
@@ -186,7 +186,7 @@ impl LoggerBuilder {
     }
 
     /// Adds appenders.
-    pub fn appenders<I: IntoIterator<Item=String>>(mut self, appenders: I) -> LoggerBuilder {
+    pub fn appenders<I: IntoIterator<Item = String>>(mut self, appenders: I) -> LoggerBuilder {
         self.0.appenders.extend(appenders);
         self
     }
@@ -248,7 +248,7 @@ impl ConfigBuilder {
     }
 
     /// Adds appenders.
-    pub fn appenders<I: IntoIterator<Item=Appender>>(mut self, appenders: I) -> ConfigBuilder {
+    pub fn appenders<I: IntoIterator<Item = Appender>>(mut self, appenders: I) -> ConfigBuilder {
         self.0.appenders.extend(appenders);
         self
     }
@@ -260,7 +260,7 @@ impl ConfigBuilder {
     }
 
     /// Adds loggers.
-    pub fn loggers<I: IntoIterator<Item=Logger>>(mut self, loggers: I) -> ConfigBuilder {
+    pub fn loggers<I: IntoIterator<Item = Logger>>(mut self, loggers: I) -> ConfigBuilder {
         self.0.loggers.extend(loggers);
         self
     }
@@ -446,19 +446,19 @@ impl error::Error for Error {
 mod test {
     #[test]
     fn check_logger_name() {
-        let tests = [
-            ("", false),
-            ("asdf", true),
-            ("asdf::jkl", true),
-            ("::", false),
-            ("asdf::jkl::", false),
-            ("asdf:jkl", false),
-            ("asdf:::jkl", false),
-            ("asdf::jkl::", false),
-        ];
+        let tests = [("", false),
+                     ("asdf", true),
+                     ("asdf::jkl", true),
+                     ("::", false),
+                     ("asdf::jkl::", false),
+                     ("asdf:jkl", false),
+                     ("asdf:::jkl", false),
+                     ("asdf::jkl::", false)];
 
         for &(ref name, expected) in &tests {
-            assert!(expected == super::check_logger_name(name).is_ok(), "{}", name);
+            assert!(expected == super::check_logger_name(name).is_ok(),
+                    "{}",
+                    name);
         }
     }
 }

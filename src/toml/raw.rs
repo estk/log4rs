@@ -64,9 +64,7 @@ fn parse_level(level: toml::Value) -> Result<LogLevelFilter, Vec<String>> {
                 Err(vec![format!("Invalid `level` \"{}\"", level)])
             }
         }
-        _ => {
-            Err(vec!["`level` must be a string".to_owned()])
-        }
+        _ => Err(vec!["`level` must be a string".to_owned()]),
     }
 }
 
@@ -95,13 +93,15 @@ fn parse_root(root: toml::Value) -> Result<Root, Vec<String>> {
     let mut errors = vec![];
 
     let level = match root.remove("level") {
-        Some(level) => match parse_level(level) {
-            Ok(level) => level,
-            Err(errs) => {
-                errors.extend(errs.into_iter());
-                LogLevelFilter::Off
+        Some(level) => {
+            match parse_level(level) {
+                Ok(level) => level,
+                Err(errs) => {
+                    errors.extend(errs.into_iter());
+                    LogLevelFilter::Off
+                }
             }
-        },
+        }
         None => {
             errors.push("`root` must contain a `level`".to_owned());
             LogLevelFilter::Off
@@ -109,14 +109,16 @@ fn parse_root(root: toml::Value) -> Result<Root, Vec<String>> {
     };
 
     let appenders = match root.remove("appenders") {
-        Some(appenders) => match parse_appenders(appenders) {
-            Ok(appenders) => Some(appenders),
-            Err(errs) => {
-                errors.extend(errs.into_iter());
-                None
+        Some(appenders) => {
+            match parse_appenders(appenders) {
+                Ok(appenders) => Some(appenders),
+                Err(errs) => {
+                    errors.extend(errs.into_iter());
+                    None
+                }
             }
-        },
-        None => None
+        }
+        None => None,
     };
 
     for key in root.keys() {
@@ -138,34 +140,42 @@ fn parse_filters(appender: &str, filters: toml::Value) -> Result<Vec<Filter>, Ve
         Value::Array(filters) => {
             let mut errors = vec![];
 
-            let filters = filters.into_iter().filter_map(|filter| {
-                match filter {
-                    Value::Table(mut filter) => {
-                        let kind = match filter.remove("kind") {
-                            Some(Value::String(kind)) => kind,
-                            Some(_) => {
-                                errors.push(format!("`kind` must be a string in filter for \
-                                                     appender {}", appender));
-                                return None;
-                            }
-                            None => {
-                                errors.push(format!("`kind` must be present in filter for \
-                                                     appender {}", appender));
-                                return None;
-                            }
-                        };
+            let filters = filters.into_iter()
+                                 .filter_map(|filter| {
+                                     match filter {
+                                         Value::Table(mut filter) => {
+                                             let kind = match filter.remove("kind") {
+                                                 Some(Value::String(kind)) => kind,
+                                                 Some(_) => {
+                                                     errors.push(format!("`kind` must be a \
+                                                                          string in filter for \
+                                                                          appender {}",
+                                                                         appender));
+                                                     return None;
+                                                 }
+                                                 None => {
+                                                     errors.push(format!("`kind` must be \
+                                                                          present in filter for \
+                                                                          appender {}",
+                                                                         appender));
+                                                     return None;
+                                                 }
+                                             };
 
-                        Some(Filter {
-                            kind: kind,
-                            config: filter,
-                        })
-                    }
-                    _ => {
-                        errors.push(format!("filter must be a table in appender {}", appender));
-                        None
-                    }
-                }
-            }).collect();
+                                             Some(Filter {
+                                                 kind: kind,
+                                                 config: filter,
+                                             })
+                                         }
+                                         _ => {
+                                             errors.push(format!("filter must be a table in \
+                                                                  appender {}",
+                                                                 appender));
+                                             None
+                                         }
+                                     }
+                                 })
+                                 .collect();
 
             if errors.is_empty() {
                 Ok(filters)
@@ -186,64 +196,68 @@ fn finish_parse_config(mut table: toml::Table) -> Result<Config, Vec<String>> {
             errors.push("`refresh_rate` must be an integer".to_owned());
             None
         }
-        None => None
+        None => None,
     };
 
     let root = match table.remove("root") {
-        Some(root) => match parse_root(root) {
-            Ok(root) => Some(root),
-            Err(errs) => {
-                errors.extend(errs.into_iter());
-                None
+        Some(root) => {
+            match parse_root(root) {
+                Ok(root) => Some(root),
+                Err(errs) => {
+                    errors.extend(errs.into_iter());
+                    None
+                }
             }
-        },
-        None => None
+        }
+        None => None,
     };
 
     let appenders = match table.remove("appender") {
         Some(Value::Table(table)) => {
-            table.into_iter().filter_map(|(name, spec)| {
-                let mut spec = match spec {
-                    Value::Table(spec) => spec,
-                    _ => {
-                        errors.push(format!("{} should be a table", name));
-                        return None;
-                    }
-                };
+            table.into_iter()
+                 .filter_map(|(name, spec)| {
+                     let mut spec = match spec {
+                         Value::Table(spec) => spec,
+                         _ => {
+                             errors.push(format!("{} should be a table", name));
+                             return None;
+                         }
+                     };
 
-                let kind = match spec.remove("kind") {
-                    Some(Value::String(kind)) => kind,
-                    Some(_) => {
-                        errors.push(format!("`kind` must be a string in appender {}", name));
-                        return None;
-                    }
-                    None => {
-                        errors.push(format!("`kind` must be present in appender {}", name));
-                        return None;
-                    }
-                };
+                     let kind = match spec.remove("kind") {
+                         Some(Value::String(kind)) => kind,
+                         Some(_) => {
+                             errors.push(format!("`kind` must be a string in appender {}", name));
+                             return None;
+                         }
+                         None => {
+                             errors.push(format!("`kind` must be present in appender {}", name));
+                             return None;
+                         }
+                     };
 
-                let filters = match spec.remove("filter") {
-                    Some(filters) => {
-                        match parse_filters(&name, filters) {
-                            Ok(filters) => Some(filters),
-                            Err(errs) => {
-                                errors.extend(errs);
-                                None
-                            }
-                        }
-                    }
-                    None => None,
-                };
+                     let filters = match spec.remove("filter") {
+                         Some(filters) => {
+                             match parse_filters(&name, filters) {
+                                 Ok(filters) => Some(filters),
+                                 Err(errs) => {
+                                     errors.extend(errs);
+                                     None
+                                 }
+                             }
+                         }
+                         None => None,
+                     };
 
-                let spec = Appender {
-                    kind: kind,
-                    config: spec,
-                    filters: filters,
-                };
+                     let spec = Appender {
+                         kind: kind,
+                         config: spec,
+                         filters: filters,
+                     };
 
-                Some((name, spec))
-            }).collect()
+                     Some((name, spec))
+                 })
+                 .collect()
         }
         None => HashMap::new(),
         _ => {
@@ -254,66 +268,72 @@ fn finish_parse_config(mut table: toml::Table) -> Result<Config, Vec<String>> {
 
     let loggers = match table.remove("logger") {
         Some(Value::Array(array)) => {
-            array.into_iter().filter_map(|directive| {
-                if let Value::Table(mut table) = directive {
-                    let name = match table.remove("name") {
-                        Some(Value::String(name)) => name,
-                        None => String::new(),
-                        _ => {
-                            errors.push("`name` should be a string".to_owned());
-                            String::new()
-                        }
-                    };
+            array.into_iter()
+                 .filter_map(|directive| {
+                     if let Value::Table(mut table) = directive {
+                         let name = match table.remove("name") {
+                             Some(Value::String(name)) => name,
+                             None => String::new(),
+                             _ => {
+                                 errors.push("`name` should be a string".to_owned());
+                                 String::new()
+                             }
+                         };
 
-                    let level = match table.remove("level") {
-                        Some(level) => match parse_level(level) {
-                            Ok(level) => level,
-                            Err(errs) => {
-                                errors.extend(errs.into_iter());
-                                LogLevelFilter::Off
-                            }
-                        },
-                        None => {
-                            errors.push("`level` must be present in all `logger`s".to_owned());
-                            LogLevelFilter::Off
-                        }
-                    };
+                         let level = match table.remove("level") {
+                             Some(level) => {
+                                 match parse_level(level) {
+                                     Ok(level) => level,
+                                     Err(errs) => {
+                                         errors.extend(errs.into_iter());
+                                         LogLevelFilter::Off
+                                     }
+                                 }
+                             }
+                             None => {
+                                 errors.push("`level` must be present in all `logger`s".to_owned());
+                                 LogLevelFilter::Off
+                             }
+                         };
 
-                    let appenders = match table.remove("appenders") {
-                        Some(appenders) => match parse_appenders(appenders) {
-                            Ok(appenders) => Some(appenders),
-                            Err(errs) => {
-                                errors.extend(errs.into_iter());
-                                None
-                            }
-                        },
-                        None => None
-                    };
+                         let appenders = match table.remove("appenders") {
+                             Some(appenders) => {
+                                 match parse_appenders(appenders) {
+                                     Ok(appenders) => Some(appenders),
+                                     Err(errs) => {
+                                         errors.extend(errs.into_iter());
+                                         None
+                                     }
+                                 }
+                             }
+                             None => None,
+                         };
 
-                    let additive = match table.remove("additive") {
-                        Some(Value::Boolean(additive)) => Some(additive),
-                        Some(_) => {
-                            errors.push("`additive` must be a boolean".to_owned());
-                            None
-                        }
-                        None => None
-                    };
+                         let additive = match table.remove("additive") {
+                             Some(Value::Boolean(additive)) => Some(additive),
+                             Some(_) => {
+                                 errors.push("`additive` must be a boolean".to_owned());
+                                 None
+                             }
+                             None => None,
+                         };
 
-                    for key in table.keys() {
-                        errors.push(format!("unrecognized `logger` key: {}", key));
-                    }
+                         for key in table.keys() {
+                             errors.push(format!("unrecognized `logger` key: {}", key));
+                         }
 
-                    Some(Logger {
-                        name: name,
-                        level: level,
-                        appenders: appenders,
-                        additive: additive,
-                    })
-                } else {
-                    errors.push("`logger` should contain tables".to_owned());
-                    None
-                }
-            }).collect()
+                         Some(Logger {
+                             name: name,
+                             level: level,
+                             appenders: appenders,
+                             additive: additive,
+                         })
+                     } else {
+                         errors.push("`logger` should contain tables".to_owned());
+                         None
+                     }
+                 })
+                 .collect()
         }
         None => vec![],
         _ => {
@@ -335,11 +355,19 @@ fn finish_parse_config(mut table: toml::Table) -> Result<Config, Vec<String>> {
 }
 
 fn make_errors(parser: &toml::Parser) -> Vec<String> {
-    parser.errors.iter().map(|error| {
-        let (lo_line, lo_col) = parser.to_linecol(error.lo);
-        let (hi_line, hi_col) = parser.to_linecol(error.hi);
-        format!("{}:{}: {}:{} {}", lo_line, lo_col, hi_line, hi_col, error.desc)
-    }).collect()
+    parser.errors
+          .iter()
+          .map(|error| {
+              let (lo_line, lo_col) = parser.to_linecol(error.lo);
+              let (hi_line, hi_col) = parser.to_linecol(error.hi);
+              format!("{}:{}: {}:{} {}",
+                      lo_line,
+                      lo_col,
+                      hi_line,
+                      hi_col,
+                      error.desc)
+          })
+          .collect()
 }
 
 #[cfg(test)]
@@ -390,14 +418,15 @@ additive = false
                              kind: "console".to_owned(),
                              config: BTreeMap::new(),
                              filters: Some(vec![Filter {
-                                kind: "threshold".to_string(),
-                                config: {
-                                    let mut m = BTreeMap::new();
-                                    m.insert("level".to_string(),
-                                             Value::String("debug".to_string()));
-                                    m
-                                }
-                             }])
+                                                    kind: "threshold".to_string(),
+                                                    config: {
+                                                        let mut m = BTreeMap::new();
+                                                        m.insert("level".to_string(),
+                                                                 Value::String("debug"
+                                                                                   .to_string()));
+                                                        m
+                                                    },
+                                                }]),
                          });
                 m.insert("baz".to_owned(),
                          Appender {
@@ -423,7 +452,7 @@ additive = false
                     appenders: Some(vec!["baz".to_owned()]),
                     additive: Some(false)
                 },
-            ]
+            ],
         };
 
         assert_eq!(expected, actual);

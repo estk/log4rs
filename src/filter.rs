@@ -11,9 +11,7 @@ pub struct ThresholdFilter {
 impl ThresholdFilter {
     /// Creates a new `ThresholdFilter` with the specified threshold.
     pub fn new(level: LogLevelFilter) -> ThresholdFilter {
-        ThresholdFilter {
-            level: level
-        }
+        ThresholdFilter { level: level }
     }
 }
 

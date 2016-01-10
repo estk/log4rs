@@ -50,13 +50,14 @@ impl error::Error for Error {
     }
 }
 
-impl<'a> From<nom::Err<&'a[u8]>> for Error {
-    fn from(nom_err: nom::Err<&'a[u8]>) -> Self {
+impl<'a> From<nom::Err<&'a [u8]>> for Error {
+    fn from(nom_err: nom::Err<&'a [u8]>) -> Self {
         match nom_err {
             nom::Err::Position(_, token) => {
-                Error(format!("Error parsing pattern at token \"{}\"", str::from_utf8(token).unwrap()))
+                Error(format!("Error parsing pattern at token \"{}\"",
+                              str::from_utf8(token).unwrap()))
             }
-            _ => Error("Could not parse pattern".into())
+            _ => Error("Could not parse pattern".into()),
         }
     }
 }
@@ -80,20 +81,22 @@ impl PatternLayout {
     /// The pattern string syntax is documented in the `pattern` module.
     pub fn new(pattern: &str) -> Result<PatternLayout, Error> {
         match parse_pattern(pattern.as_bytes()) {
-            nom::IResult::Done(_, o) => Ok( PatternLayout {pattern: o} ),
-            nom::IResult::Error(nom_err) => {
-                Err(Error::from(nom_err))
-            }
+            nom::IResult::Done(_, o) => Ok(PatternLayout { pattern: o }),
+            nom::IResult::Error(nom_err) => Err(Error::from(nom_err)),
             nom::IResult::Incomplete(error) => {
                 // This is always a bug in the parser and should actually never happen.
-                panic!("Parser returned an incomplete error: {:?}. Please report this bug at https://github.com/sfackler/log4rs", error)
+                panic!("Parser returned an incomplete error: {:?}. Please report this bug at \
+                        https://github.com/sfackler/log4rs",
+                       error)
             }
         }
     }
 
     /// Writes the specified `LogRecord` to the specified `Write`r according
     /// to its pattern.
-    pub fn append<W>(&self, w: &mut W, record: &LogRecord) -> io::Result<()> where W: Write {
+    pub fn append<W>(&self, w: &mut W, record: &LogRecord) -> io::Result<()>
+        where W: Write
+    {
         let location = Location {
             module_path: record.location().module_path(),
             file: record.location().file(),
@@ -108,12 +111,16 @@ impl PatternLayout {
                        target: &str,
                        location: &Location,
                        args: &fmt::Arguments)
-                       -> io::Result<()> where W: Write {
+                       -> io::Result<()>
+        where W: Write
+    {
         for chunk in self.pattern.iter() {
             try!(match *chunk {
                 Chunk::Text(ref text) => write!(w, "{}", text),
                 Chunk::Time(TimeFmt::Str(ref fmt)) => {
-                    time::now().strftime(&**fmt).map(|time| write!(w, "{}", time))
+                    time::now()
+                        .strftime(&**fmt)
+                        .map(|time| write!(w, "{}", time))
                         .unwrap_or(Ok(()))
                 }
                 Chunk::Time(TimeFmt::Rfc3339) => write!(w, "{}", time::now().rfc3339()),
@@ -122,9 +129,7 @@ impl PatternLayout {
                 Chunk::Module => write!(w, "{}", location.module_path),
                 Chunk::File => write!(w, "{}", location.file),
                 Chunk::Line => write!(w, "{}", location.line),
-                Chunk::Thread => {
-                    write!(w, "{}", thread::current().name().unwrap_or("<unnamed>"))
-                }
+                Chunk::Thread => write!(w, "{}", thread::current().name().unwrap_or("<unnamed>")),
                 Chunk::Target => write!(w, "{}", target),
             });
         }
@@ -194,7 +199,8 @@ mod tests {
                         LogLevel::Debug,
                         "target",
                         &LOCATION,
-                        &format_args!("the message")).unwrap();
+                        &format_args!("the message"))
+          .unwrap();
 
         assert_eq!(buf, &b"DEBUG the message at mod path in the file:132\n"[..]);
     }
@@ -213,28 +219,37 @@ mod tests {
                             LogLevel::Debug,
                             "target",
                             &LOCATION,
-                            &format_args!("message")).unwrap();
+                            &format_args!("message"))
+              .unwrap();
             assert_eq!(buf, b"<unnamed>\n");
-        }).join().unwrap();
+        })
+            .join()
+            .unwrap();
     }
 
     #[test]
     fn test_named_thread() {
-        thread::Builder::new().name("foobar".to_string()).spawn(|| {
-            let pw = PatternLayout::new("%T").unwrap();
-            static LOCATION: Location<'static> = Location {
-                module_path: "path",
-                file: "file",
-                line: 132,
-            };
-            let mut buf = vec![];
-            pw.append_inner(&mut buf,
-                            LogLevel::Debug,
-                            "target",
-                            &LOCATION,
-                            &format_args!("message")).unwrap();
-            assert_eq!(buf, b"foobar\n");
-        }).unwrap().join().unwrap();
+        thread::Builder::new()
+            .name("foobar".to_string())
+            .spawn(|| {
+                let pw = PatternLayout::new("%T").unwrap();
+                static LOCATION: Location<'static> = Location {
+                    module_path: "path",
+                    file: "file",
+                    line: 132,
+                };
+                let mut buf = vec![];
+                pw.append_inner(&mut buf,
+                                LogLevel::Debug,
+                                "target",
+                                &LOCATION,
+                                &format_args!("message"))
+                  .unwrap();
+                assert_eq!(buf, b"foobar\n");
+            })
+            .unwrap()
+            .join()
+            .unwrap();
     }
 
     #[test]

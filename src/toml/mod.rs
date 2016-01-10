@@ -68,7 +68,7 @@ use time::Duration;
 use toml_parser::{self, Value};
 
 use appender::{FileAppender, ConsoleAppender};
-use filter::{ThresholdFilter};
+use filter::ThresholdFilter;
 use config;
 use pattern::PatternLayout;
 use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
@@ -78,15 +78,15 @@ mod raw;
 /// A trait implemented by types that can create appenders.
 pub trait CreateAppender: Send + 'static {
     /// Creates an appender with the specified config.
-    fn create_appender(&self, config: toml_parser::Table)
+    fn create_appender(&self,
+                       config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>>;
 }
 
 /// A trait implemented by types that can create filters.
 pub trait CreateFilter: Send + 'static {
     /// Creates a filter with the specified config.
-    fn create_filter(&self, config: toml_parser::Table)
-                     -> Result<Box<Filter>, Box<error::Error>>;
+    fn create_filter(&self, config: toml_parser::Table) -> Result<Box<Filter>, Box<error::Error>>;
 }
 
 /// A type that can create appenders.
@@ -135,19 +135,30 @@ impl Creator {
         self.filters.insert(kind.to_string(), creator);
     }
 
-    fn create_appender(&self, kind: &str, config: toml_parser::Table)
+    fn create_appender(&self,
+                       kind: &str,
+                       config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         match self.appenders.get(kind) {
             Some(creator) => creator.create_appender(config),
-            None => Err(Box::new(StringError(format!("No creator registered for appender kind \"{}\"", kind))))
+            None => {
+                Err(Box::new(StringError(format!("No creator registered for appender kind \
+                                                  \"{}\"",
+                                                 kind))))
+            }
         }
     }
 
-    fn create_filter(&self, kind: &str, config: toml_parser::Table)
+    fn create_filter(&self,
+                     kind: &str,
+                     config: toml_parser::Table)
                      -> Result<Box<Filter>, Box<error::Error>> {
         match self.filters.get(kind) {
             Some(creator) => creator.create_filter(config),
-            None => Err(Box::new(StringError(format!("No creator registered for filter kind \"{}\"", kind))))
+            None => {
+                Err(Box::new(StringError(format!("No creator registered for filter kind \"{}\"",
+                                                 kind))))
+            }
         }
     }
 }
@@ -191,7 +202,10 @@ impl fmt::Display for Error {
                 write!(fmt, "Error creating appender `{}`: {}", appender, err)
             }
             Error::FilterCreation(ref appender, ref err) => {
-                write!(fmt, "Error creating filter for appender `{}`: {}", appender, err)
+                write!(fmt,
+                       "Error creating filter for appender `{}`: {}",
+                       appender,
+                       err)
             }
             Error::Config(ref err) => write!(fmt, "Error creating config: {}", err),
         }
@@ -248,7 +262,8 @@ pub struct Config {
 
 impl Config {
     /// Creates a log4rs `Config` from the specified TOML config string and `Creator`.
-    pub fn parse(config: &str, creator: &Creator)
+    pub fn parse(config: &str,
+                 creator: &Creator)
                  -> Result<(Config, Result<(), Errors>), ParseErrors> {
         let mut errors = vec![];
 
@@ -314,15 +329,13 @@ impl Config {
 
         let config = Config {
             refresh_rate: refresh_rate,
-            config: config
+            config: config,
         };
 
         let errors = if errors.is_empty() {
             Ok(())
         } else {
-            Err(Errors {
-                errors: errors
-            })
+            Err(Errors { errors: errors })
         };
 
         Ok((config, errors))
@@ -385,7 +398,8 @@ fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
 pub struct FileAppenderCreator;
 
 impl CreateAppender for FileAppenderCreator {
-    fn create_appender(&self, mut config: toml_parser::Table)
+    fn create_appender(&self,
+                       mut config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         let path = match config.remove("path") {
             Some(Value::String(path)) => path,
@@ -411,7 +425,7 @@ impl CreateAppender for FileAppenderCreator {
         try!(ensure_empty(&config));
         match appender.build() {
             Ok(appender) => Ok(Box::new(appender)),
-            Err(err) => Err(Box::new(err))
+            Err(err) => Err(Box::new(err)),
         }
     }
 }
@@ -423,7 +437,8 @@ impl CreateAppender for FileAppenderCreator {
 pub struct ConsoleAppenderCreator;
 
 impl CreateAppender for ConsoleAppenderCreator {
-    fn create_appender(&self, mut config: toml_parser::Table)
+    fn create_appender(&self,
+                       mut config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         let mut appender = ConsoleAppender::builder();
         match config.remove("pattern") {
@@ -445,7 +460,8 @@ impl CreateAppender for ConsoleAppenderCreator {
 pub struct ThresholdFilterCreator;
 
 impl CreateFilter for ThresholdFilterCreator {
-    fn create_filter(&self, mut config: toml_parser::Table)
+    fn create_filter(&self,
+                     mut config: toml_parser::Table)
                      -> Result<Box<Filter>, Box<error::Error>> {
         let level = match config.remove("level") {
             Some(Value::String(level)) => level,
