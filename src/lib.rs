@@ -120,7 +120,6 @@ pub mod config;
 pub mod filter;
 pub mod pattern;
 pub mod toml;
-mod parser;
 
 /// A trait implemented by log4rs appenders.
 pub trait Append: Send + 'static {

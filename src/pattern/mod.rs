@@ -21,12 +21,14 @@ use std::thread;
 use std::io;
 use std::io::Write;
 use std::str;
-use parser::{TimeFmt, Chunk, parse_pattern};
+use pattern::parser::{TimeFmt, Chunk, parse_pattern};
 use nom;
 use ErrorInternals;
 
 use log::{LogRecord, LogLevel};
 use time;
+
+mod parser;
 
 /// An error parsing a `PatternLayout` pattern.
 #[derive(Debug)]
@@ -151,7 +153,7 @@ mod tests {
     use log::LogLevel;
 
     use super::{PatternLayout, Location};
-    use parser::{TimeFmt, Chunk};
+    use pattern::parser::{TimeFmt, Chunk};
 
     #[test]
     fn test_parse() {
