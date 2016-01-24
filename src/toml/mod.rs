@@ -18,6 +18,13 @@
 //! # Arbitrary fields may be added to appender configurations. Remaining
 //! # entries will be passed to the `CreateAppender` object associated with
 //! # the specified kind.
+//!
+//! Each appender has an encoder. Currently there are
+//! two: pattern and JSON. You can select JSON encoder using
+//! encoder = "json"
+//! fields = ["message", "timestamp", "level"]
+//! and pattern (which is default)
+//! encoder = "pattern"
 //! pattern = "%d [%t] %m"
 //!
 //! # Filters attached to an appender are configured inside the "filter" array.
@@ -70,7 +77,8 @@ use toml_parser::{self, Value};
 use appender::{FileAppender, ConsoleAppender};
 use filter::ThresholdFilter;
 use config;
-use pattern::PatternLayout;
+use encoder;
+use encoder::Encoder;
 use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
@@ -389,12 +397,59 @@ fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
     }
 }
 
+fn parse_encoder(config: &mut toml_parser::Table) -> Result<Option<encoder::Encoder>, Box<error::Error>> {
+    #[derive(Debug)]
+    enum EncoderType {
+        Pattern,
+        Json
+    }
+
+    let encoder_type =
+        match config.remove("encoder") {
+            None => EncoderType::Pattern,
+            Some(Value::String(ref tpe)) if tpe == "pattern" => EncoderType::Pattern,
+            Some(Value::String(ref tpe)) if tpe == "json" => EncoderType::Json,
+            Some(Value::String(encoder)) => return Err(Box::new(StringError(format!("Unknown encoder {:?}", encoder)))),
+            Some(_) => return Err(Box::new(StringError("`encoder` must be a string".to_string())))
+        };
+
+    match encoder_type {
+        EncoderType::Pattern => {
+            match config.remove("pattern") {
+                Some(Value::String(pattern)) => {
+                    Ok(Some(try!(Encoder::pattern(&pattern))))
+                }
+                Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
+                None => Ok(None)
+            }
+        }
+        EncoderType::Json =>
+            match config.remove("fields") {
+                Some(Value::Array(ref fields)) => {
+                    let mut string_fields: Vec<&str> = Vec::new();
+                    for value in fields.iter() {
+                        match value {
+                            &Value::String(ref str) => string_fields.push(str),
+                            _ => return Err(Box::new(StringError("`fields` must be a list of strings".to_string()))),
+                        }
+                    }
+                    Ok(Some(try!(Encoder::json(string_fields.into_iter()))))
+                }
+                Some(_) => return Err(Box::new(StringError("`fields` must be an array".to_string()))),
+                None => Ok(None)
+            }
+    }
+
+}
+
 /// An appender creator for the `FileAppender`.
 ///
-/// The `path` key is required, and specifies the path to the log file. The
-/// `pattern` key is optional and specifies a `PatternLayout` pattern to be
-/// used for output. The `append` key is optional and specifies whether the
-/// output file should be truncated or appended to.
+/// The `path` key is required, and specifies the path to the log file.
+/// The `encoder` key is optinal, default value is "pattern". The
+/// `pattern` key is optional and specifies configuration for `Pattern`
+/// encoder to be used for output. The `fields` key is optinal and specifies
+/// configuration for `JSON` encoder. The `append` key is optional and
+/// specifies whether the output file should be truncated or appended to.
 pub struct FileAppenderCreator;
 
 impl CreateAppender for FileAppenderCreator {
@@ -408,11 +463,10 @@ impl CreateAppender for FileAppenderCreator {
         };
 
         let mut appender = FileAppender::builder(&path);
-        match config.remove("pattern") {
-            Some(Value::String(pattern)) => {
-                appender = appender.pattern(try!(PatternLayout::new(&pattern)));
+        match try!(parse_encoder(&mut config)) {
+            Some(encoder) => {
+                appender = appender.encoder(encoder);
             }
-            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
         }
 
@@ -432,8 +486,10 @@ impl CreateAppender for FileAppenderCreator {
 
 /// An appender creator for the `ConsoleAppender`.
 ///
-/// The `pattern` key is optional and specifies a `PatternLayout` pattern to be
-/// used for output.
+/// The `encoder` key is optinal, default value is "pattern". The
+/// `pattern` key is optional and specifies configuration for `Pattern`
+/// encoder to be used for output. The `fields` key is optinal and specifies
+/// configuration for `JSON` encoder.
 pub struct ConsoleAppenderCreator;
 
 impl CreateAppender for ConsoleAppenderCreator {
@@ -441,14 +497,12 @@ impl CreateAppender for ConsoleAppenderCreator {
                        mut config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         let mut appender = ConsoleAppender::builder();
-        match config.remove("pattern") {
-            Some(Value::String(pattern)) => {
-                appender = appender.pattern(try!(PatternLayout::new(&pattern)));
+        match try!(parse_encoder(&mut config)) {
+            Some(encoder) => {
+                appender = appender.encoder(encoder);
             }
-            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
         }
-
         try!(ensure_empty(&config));
         Ok(Box::new(appender.build()))
     }

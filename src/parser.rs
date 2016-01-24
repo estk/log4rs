@@ -1,5 +1,5 @@
 use nom::eof;
-use pattern::Error;
+use encoder::Error;
 use ErrorInternals;
 use std::str;
 use time;
