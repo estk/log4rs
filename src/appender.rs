@@ -11,17 +11,17 @@ use std::path::{Path, PathBuf};
 use log::LogRecord;
 
 use Append;
-use pattern::PatternLayout;
+use encoder::Encoder;
 
 /// An appender which logs to a file.
 pub struct FileAppender {
     file: BufWriter<File>,
-    pattern: PatternLayout,
+    encoder: Encoder,
 }
 
 impl Append for FileAppender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
-        try!(self.pattern.append(&mut self.file, record));
+        try!(self.encoder.append(&mut self.file, record));
         try!(self.file.flush());
         Ok(())
     }
@@ -33,7 +33,7 @@ impl FileAppender {
     pub fn builder<P: AsRef<Path>>(path: P) -> FileAppenderBuilder {
         FileAppenderBuilder {
             path: path.as_ref().to_path_buf(),
-            pattern: Default::default(),
+            encoder: Default::default(),
             append: true,
         }
     }
@@ -42,14 +42,14 @@ impl FileAppender {
 /// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
     path: PathBuf,
-    pattern: PatternLayout,
+    encoder: Encoder,
     append: bool,
 }
 
 impl FileAppenderBuilder {
-    /// Sets the output pattern for the `FileAppender`.
-    pub fn pattern(mut self, pattern: PatternLayout) -> FileAppenderBuilder {
-        self.pattern = pattern;
+    /// Sets the output encoder for the `FileAppender`.
+    pub fn encoder(mut self, encoder: Encoder) -> FileAppenderBuilder {
+        self.encoder = encoder;
         self
     }
 
@@ -71,7 +71,7 @@ impl FileAppenderBuilder {
 
         Ok(FileAppender {
             file: BufWriter::with_capacity(1024, file),
-            pattern: self.pattern,
+            encoder: self.encoder,
         })
     }
 }
@@ -79,13 +79,13 @@ impl FileAppenderBuilder {
 /// An appender which logs to stdout.
 pub struct ConsoleAppender {
     stdout: Stdout,
-    pattern: PatternLayout,
+    encoder: Encoder,
 }
 
 impl Append for ConsoleAppender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
         let mut stdout = self.stdout.lock();
-        try!(self.pattern.append(&mut stdout, record));
+        try!(self.encoder.append(&mut stdout, record));
         try!(stdout.flush());
         Ok(())
     }
@@ -94,19 +94,19 @@ impl Append for ConsoleAppender {
 impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder { pattern: Default::default() }
+        ConsoleAppenderBuilder { encoder: Default::default() }
     }
 }
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
-    pattern: PatternLayout,
+    encoder: Encoder,
 }
 
 impl ConsoleAppenderBuilder {
-    /// Sets the output pattern for the `ConsoleAppender`.
-    pub fn pattern(mut self, pattern: PatternLayout) -> ConsoleAppenderBuilder {
-        self.pattern = pattern;
+    /// Sets the output encoder for the `ConsoleAppender`.
+    pub fn encoder(mut self, encoder: Encoder) -> ConsoleAppenderBuilder {
+        self.encoder = encoder;
         self
     }
 
@@ -114,7 +114,7 @@ impl ConsoleAppenderBuilder {
     pub fn build(self) -> ConsoleAppender {
         ConsoleAppender {
             stdout: io::stdout(),
-            pattern: self.pattern,
+            encoder: self.encoder,
         }
     }
 }

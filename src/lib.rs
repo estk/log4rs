@@ -5,9 +5,13 @@
 //!
 //! The basic units of configuration are *appenders*, *filters*, and *loggers*.
 //!
+//! Encoders
+//! An encoder takes a log record and converts it to output format, for example,
+//! to a formatted string, or JSON.
+//!
 //! ## Appenders
 //!
-//! An appender takes a log record and logs it somewhere, for example, to a
+//! An appender takes an output of encoder and logs it somewhere, for example, to a
 //! file, the console, or the syslog.
 //!
 //! ## Filters
@@ -68,12 +72,15 @@
 //! [appender.requests]
 //! kind = "file"
 //! path = "log/requests.log"
-//! pattern = "%d - %m"
+//! encoder = "json"
+//! fields = ["message", "level", "timestamp"]
 //!
 //! # Set the default logging level to "warn" and attach the "stdout" appender to the root
 //! [root]
 //! level = "warn"
 //! appenders = ["stdout"]
+//! pattern = "%d - %m"
+
 //!
 //! # Raise the maximum log level for events sent to the "app::backend::db" logger to "info"
 //! [[logger]]
@@ -111,14 +118,14 @@ use std::sync::{Mutex, Arc};
 use std::thread;
 use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
-use pattern::Error;
+use encoder::Error;
 
 use toml::Creator;
 
 pub mod appender;
 pub mod config;
 pub mod filter;
-pub mod pattern;
+pub mod encoder;
 pub mod toml;
 mod parser;
 
