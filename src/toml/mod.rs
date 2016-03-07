@@ -132,14 +132,20 @@ impl Builder {
         self.builders.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind.to_owned(), builder);
     }
 
+    /// Retrieves the builder of the specified `kind`.
+    pub fn get<T: ?Sized + Any>(&self, kind: &str) -> Option<&Build<Trait = T>> {
+        self.builders.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b)
+    }
+
     fn build<T: ?Sized + Any>(&self,
+                              trait_: &str,
                               kind: &str,
                               config: toml_parser::Table)
                               -> Result<Box<T>, Box<error::Error>> {
-        match self.builders.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
-            Some(builder) => builder.build(config, self),
+        match self.get(kind) {
+            Some(b) => b.build(config, self),
             None => {
-                Err(Box::new(StringError(format!("No builder registered for kind `{}`", kind))))
+                Err(Box::new(StringError(format!("no {} builder named `{}` registered", trait_, kind))))
             }
         }
     }
@@ -275,11 +281,11 @@ impl Config {
         let mut config = config::Config::builder(root);
 
         for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
-            match creator.build(&kind, raw_config) {
+            match creator.build("appender", &kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder(name.clone(), appender_obj);
                     for raw::Filter { kind, config } in filters.unwrap_or(vec![]) {
-                        match creator.build(&kind, config) {
+                        match creator.build("filter", &kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
                         }
