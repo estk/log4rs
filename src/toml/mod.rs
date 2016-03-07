@@ -75,18 +75,15 @@ use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
 
-/// A trait implemented by types that can create appenders.
-pub trait CreateAppender: Send + 'static {
-    /// Creates an appender with the specified config.
-    fn create_appender(&self,
-                       config: toml_parser::Table)
-                       -> Result<Box<Append>, Box<error::Error>>;
-}
+/// A trait for objects that can create log4rs components out of a config.
+pub trait Build: Send + 'static {
+    /// The trait that this builder will create.
+    type Trait: ?Sized;
 
-/// A trait implemented by types that can create filters.
-pub trait CreateFilter: Send + 'static {
-    /// Creates a filter with the specified config.
-    fn create_filter(&self, config: toml_parser::Table) -> Result<Box<Filter>, Box<error::Error>>;
+    /// Create a new trait object based on the provided config.
+    fn build(&self,
+             config: toml_parser::Table)
+             -> Result<Box<Self::Trait>, Box<error::Error>>;
 }
 
 /// A type that can create appenders.
@@ -100,16 +97,16 @@ pub trait CreateFilter: Send + 'static {
 /// * Filters
 ///     * "threshold" -> `ThresholdFilterCreator`
 pub struct Creator {
-    appenders: HashMap<String, Box<CreateAppender>>,
-    filters: HashMap<String, Box<CreateFilter>>,
+    appenders: HashMap<String, Box<Build<Trait = Append>>>,
+    filters: HashMap<String, Box<Build<Trait = Filter>>>,
 }
 
 impl Default for Creator {
     fn default() -> Creator {
         let mut creator = Creator::new();
-        creator.add_appender("file", Box::new(FileAppenderCreator));
-        creator.add_appender("console", Box::new(ConsoleAppenderCreator));
-        creator.add_filter("threshold", Box::new(ThresholdFilterCreator));
+        creator.add_appender("file", Box::new(FileAppenderBuilder));
+        creator.add_appender("console", Box::new(ConsoleAppenderBuilder));
+        creator.add_filter("threshold", Box::new(ThresholdFilterBuilder));
         creator
     }
 }
@@ -125,13 +122,13 @@ impl Creator {
 
     /// Adds a mapping from the specified `kind` to the specified appender
     /// creator.
-    pub fn add_appender(&mut self, kind: &str, creator: Box<CreateAppender>) {
+    pub fn add_appender(&mut self, kind: &str, creator: Box<Build<Trait = Append>>) {
         self.appenders.insert(kind.to_string(), creator);
     }
 
     /// Adds a mapping from the specified `kind` to the specified filter
     /// creator.
-    pub fn add_filter(&mut self, kind: &str, creator: Box<CreateFilter>) {
+    pub fn add_filter(&mut self, kind: &str, creator: Box<Build<Trait = Filter>>) {
         self.filters.insert(kind.to_string(), creator);
     }
 
@@ -140,7 +137,7 @@ impl Creator {
                        config: toml_parser::Table)
                        -> Result<Box<Append>, Box<error::Error>> {
         match self.appenders.get(kind) {
-            Some(creator) => creator.create_appender(config),
+            Some(creator) => creator.build(config),
             None => {
                 Err(Box::new(StringError(format!("No creator registered for appender kind \
                                                   \"{}\"",
@@ -154,7 +151,7 @@ impl Creator {
                      config: toml_parser::Table)
                      -> Result<Box<Filter>, Box<error::Error>> {
         match self.filters.get(kind) {
-            Some(creator) => creator.create_filter(config),
+            Some(creator) => creator.build(config),
             None => {
                 Err(Box::new(StringError(format!("No creator registered for filter kind \"{}\"",
                                                  kind))))
@@ -389,18 +386,18 @@ fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
     }
 }
 
-/// An appender creator for the `FileAppender`.
+/// An builder for the `FileAppender`.
 ///
 /// The `path` key is required, and specifies the path to the log file. The
 /// `pattern` key is optional and specifies a `PatternLayout` pattern to be
 /// used for output. The `append` key is optional and specifies whether the
 /// output file should be truncated or appended to.
-pub struct FileAppenderCreator;
+pub struct FileAppenderBuilder;
 
-impl CreateAppender for FileAppenderCreator {
-    fn create_appender(&self,
-                       mut config: toml_parser::Table)
-                       -> Result<Box<Append>, Box<error::Error>> {
+impl Build for FileAppenderBuilder {
+    type Trait = Append;
+
+    fn build(&self, mut config: toml_parser::Table) -> Result<Box<Append>, Box<error::Error>> {
         let path = match config.remove("path") {
             Some(Value::String(path)) => path,
             Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
@@ -430,16 +427,16 @@ impl CreateAppender for FileAppenderCreator {
     }
 }
 
-/// An appender creator for the `ConsoleAppender`.
+/// An builder for the `ConsoleAppender`.
 ///
 /// The `pattern` key is optional and specifies a `PatternLayout` pattern to be
 /// used for output.
-pub struct ConsoleAppenderCreator;
+pub struct ConsoleAppenderBuilder;
 
-impl CreateAppender for ConsoleAppenderCreator {
-    fn create_appender(&self,
-                       mut config: toml_parser::Table)
-                       -> Result<Box<Append>, Box<error::Error>> {
+impl Build for ConsoleAppenderBuilder {
+    type Trait = Append;
+
+    fn build(&self, mut config: toml_parser::Table) -> Result<Box<Append>, Box<error::Error>> {
         let mut appender = ConsoleAppender::builder();
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
@@ -454,15 +451,15 @@ impl CreateAppender for ConsoleAppenderCreator {
     }
 }
 
-/// A filter creator for the `ThresholdFilter`.
+/// A builder for the `ThresholdFilter`.
 ///
 /// The `level` key is required and specifies the threshold for the filter.
-pub struct ThresholdFilterCreator;
+pub struct ThresholdFilterBuilder;
 
-impl CreateFilter for ThresholdFilterCreator {
-    fn create_filter(&self,
-                     mut config: toml_parser::Table)
-                     -> Result<Box<Filter>, Box<error::Error>> {
+impl Build for ThresholdFilterBuilder {
+    type Trait = Filter;
+
+    fn build(&self, mut config: toml_parser::Table) -> Result<Box<Filter>, Box<error::Error>> {
         let level = match config.remove("level") {
             Some(Value::String(level)) => level,
             Some(_) => return Err(Box::new(StringError("`level` must be a string".to_string()))),

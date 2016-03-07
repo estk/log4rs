@@ -96,7 +96,7 @@ extern crate time;
 extern crate toml as toml_parser;
 #[macro_use]
 extern crate nom;
-
+extern crate typemap;
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
