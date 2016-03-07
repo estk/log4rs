@@ -60,12 +60,14 @@
 //! additive = false
 //! ```
 use log::LogLevelFilter;
+use std::any::Any;
 use std::collections::HashMap;
-use std::default::Default;
+use std::marker::PhantomData;
 use std::error;
 use std::fmt;
 use time::Duration;
 use toml_parser::{self, Value};
+use typemap::{Key, ShareMap};
 
 use appender::{FileAppender, ConsoleAppender};
 use filter::ThresholdFilter;
@@ -75,8 +77,14 @@ use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
 
+struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
+
+impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
+    type Value = HashMap<String, Box<Build<Trait = T>>>;
+}
+
 /// A trait for objects that can create log4rs components out of a config.
-pub trait Build: Send + 'static {
+pub trait Build: Send + Sync + 'static {
     /// The trait that this builder will create.
     type Trait: ?Sized;
 
@@ -97,16 +105,15 @@ pub trait Build: Send + 'static {
 /// * Filters
 ///     * "threshold" -> `ThresholdFilterCreator`
 pub struct Creator {
-    appenders: HashMap<String, Box<Build<Trait = Append>>>,
-    filters: HashMap<String, Box<Build<Trait = Filter>>>,
+    builders: ShareMap,
 }
 
 impl Default for Creator {
     fn default() -> Creator {
         let mut creator = Creator::new();
-        creator.add_appender("file", Box::new(FileAppenderBuilder));
-        creator.add_appender("console", Box::new(ConsoleAppenderBuilder));
-        creator.add_filter("threshold", Box::new(ThresholdFilterBuilder));
+        creator.insert("file", Box::new(FileAppenderBuilder));
+        creator.insert("console", Box::new(ConsoleAppenderBuilder));
+        creator.insert("threshold", Box::new(ThresholdFilterBuilder));
         creator
     }
 }
@@ -115,46 +122,23 @@ impl Creator {
     /// Creates a new `Creator` with no appender or filter mappings.
     pub fn new() -> Creator {
         Creator {
-            appenders: HashMap::new(),
-            filters: HashMap::new(),
+            builders: ShareMap::custom(),
         }
     }
 
-    /// Adds a mapping from the specified `kind` to the specified appender
-    /// creator.
-    pub fn add_appender(&mut self, kind: &str, creator: Box<Build<Trait = Append>>) {
-        self.appenders.insert(kind.to_string(), creator);
+    /// Adds a mapping from the specified `kind` to a builder.
+    pub fn insert<T: ?Sized + Any>(&mut self, kind: &str, builder: Box<Build<Trait = T>>) {
+        self.builders.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind.to_owned(), builder);
     }
 
-    /// Adds a mapping from the specified `kind` to the specified filter
-    /// creator.
-    pub fn add_filter(&mut self, kind: &str, creator: Box<Build<Trait = Filter>>) {
-        self.filters.insert(kind.to_string(), creator);
-    }
-
-    fn create_appender(&self,
-                       kind: &str,
-                       config: toml_parser::Table)
-                       -> Result<Box<Append>, Box<error::Error>> {
-        match self.appenders.get(kind) {
-            Some(creator) => creator.build(config),
+    fn build<T: ?Sized + Any>(&self,
+                              kind: &str,
+                              config: toml_parser::Table)
+                              -> Result<Box<T>, Box<error::Error>> {
+        match self.builders.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
+            Some(builder) => builder.build(config),
             None => {
-                Err(Box::new(StringError(format!("No creator registered for appender kind \
-                                                  \"{}\"",
-                                                 kind))))
-            }
-        }
-    }
-
-    fn create_filter(&self,
-                     kind: &str,
-                     config: toml_parser::Table)
-                     -> Result<Box<Filter>, Box<error::Error>> {
-        match self.filters.get(kind) {
-            Some(creator) => creator.build(config),
-            None => {
-                Err(Box::new(StringError(format!("No creator registered for filter kind \"{}\"",
-                                                 kind))))
+                Err(Box::new(StringError(format!("No builder registered for kind `{}`", kind))))
             }
         }
     }
@@ -290,11 +274,11 @@ impl Config {
         let mut config = config::Config::builder(root);
 
         for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
-            match creator.create_appender(&kind, raw_config) {
+            match creator.build(&kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder(name.clone(), appender_obj);
                     for raw::Filter { kind, config } in filters.unwrap_or(vec![]) {
-                        match creator.create_filter(&kind, config) {
+                        match creator.build(&kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
                         }
