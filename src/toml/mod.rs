@@ -73,7 +73,7 @@ use appender::{FileAppender, ConsoleAppender};
 use filter::ThresholdFilter;
 use config;
 use encoder::pattern::PatternEncoder;
-use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
+use {Append, Filter, Encode, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
 
@@ -105,6 +105,8 @@ pub trait Build: Send + Sync + 'static {
 ///     * "console" -> `ConsoleAppenderBuilder`
 /// * Filters
 ///     * "threshold" -> `ThresholdFilterBuilder`
+/// * Encoders
+///     * "pattern" -> `PatternEncoderBuilder`
 pub struct Builder {
     builders: ShareMap,
 }
@@ -115,6 +117,7 @@ impl Default for Builder {
         creator.insert("file", Box::new(FileAppenderBuilder));
         creator.insert("console", Box::new(ConsoleAppenderBuilder));
         creator.insert("threshold", Box::new(ThresholdFilterBuilder));
+        creator.insert("pattern", Box::new(PatternEncoderBuilder));
         creator
     }
 }
@@ -470,5 +473,31 @@ impl Build for ThresholdFilterBuilder {
 
         try!(ensure_empty(&config));
         Ok(Box::new(ThresholdFilter::new(level)))
+    }
+}
+
+/// A builder for the `PatternEncoder`.
+///
+/// The `pattern` key is required and specifies the pattern for the encoder.
+pub struct PatternEncoderBuilder;
+
+impl Build for PatternEncoderBuilder {
+    type Trait = Encode;
+
+    fn build(&self,
+             mut config: toml_parser::Table,
+             _: &Builder)
+             -> Result<Box<Encode>, Box<error::Error>> {
+        let pattern = match config.remove("pattern") {
+            Some(Value::String(pattern)) => pattern,
+            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
+            None => return Err(Box::new(StringError("`pattern` must be provided".to_string()))),
+        };
+        try!(ensure_empty(&config));
+
+        match PatternEncoder::new(&pattern) {
+            Ok(encoder) => Ok(Box::new(encoder)),
+            Err(err) => Err(err.into()),
+        }
     }
 }
