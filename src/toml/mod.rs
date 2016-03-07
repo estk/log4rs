@@ -72,7 +72,7 @@ use typemap::{Key, ShareMap};
 use appender::{FileAppender, ConsoleAppender};
 use filter::ThresholdFilter;
 use config;
-use pattern::PatternLayout;
+use encoder::pattern::PatternLayout;
 use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;

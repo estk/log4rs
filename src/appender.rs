@@ -10,8 +10,8 @@ use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 use log::LogRecord;
 
-use Append;
-use pattern::PatternLayout;
+use {Encode, Append};
+use encoder::pattern::PatternLayout;
 
 /// An appender which logs to a file.
 pub struct FileAppender {
@@ -21,7 +21,7 @@ pub struct FileAppender {
 
 impl Append for FileAppender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
-        try!(self.pattern.append(&mut self.file, record));
+        try!(self.pattern.encode(&mut self.file, record));
         try!(self.file.flush());
         Ok(())
     }
@@ -85,7 +85,7 @@ pub struct ConsoleAppender {
 impl Append for ConsoleAppender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
         let mut stdout = self.stdout.lock();
-        try!(self.pattern.append(&mut stdout, record));
+        try!(self.pattern.encode(&mut stdout, record));
         try!(stdout.flush());
         Ok(())
     }

@@ -111,15 +111,15 @@ use std::sync::{Mutex, Arc};
 use std::thread;
 use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
-use pattern::Error;
 
+use encoder::pattern::Error;
 use toml::Builder;
 
 pub mod appender;
 pub mod config;
 pub mod filter;
-pub mod pattern;
 pub mod toml;
+pub mod encoder;
 
 /// A trait implemented by log4rs appenders.
 pub trait Append: Send + 'static {
@@ -149,6 +149,10 @@ pub enum FilterResponse {
 pub trait Filter: Send + 'static {
     /// Filters a log event.
     fn filter(&mut self, record: &LogRecord) -> FilterResponse;
+}
+
+pub trait Encode: Send + 'static {
+    fn encode(&mut self, w: &mut Write, record: &LogRecord) -> io::Result<()>;
 }
 
 struct ConfiguredLogger {

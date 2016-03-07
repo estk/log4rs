@@ -21,12 +21,13 @@ use std::thread;
 use std::io;
 use std::io::Write;
 use std::str;
-use pattern::parser::{TimeFmt, Chunk, parse_pattern};
+use encoder::pattern::parser::{TimeFmt, Chunk, parse_pattern};
 use nom;
 use ErrorInternals;
 
 use log::{LogRecord, LogLevel};
 use time;
+use Encode;
 
 mod parser;
 
@@ -94,28 +95,13 @@ impl PatternLayout {
         }
     }
 
-    /// Writes the specified `LogRecord` to the specified `Write`r according
-    /// to its pattern.
-    pub fn append<W>(&self, w: &mut W, record: &LogRecord) -> io::Result<()>
-        where W: Write
-    {
-        let location = Location {
-            module_path: record.location().module_path(),
-            file: record.location().file(),
-            line: record.location().line(),
-        };
-        self.append_inner(w, record.level(), record.target(), &location, record.args())
-    }
-
-    fn append_inner<W>(&self,
-                       w: &mut W,
-                       level: LogLevel,
-                       target: &str,
-                       location: &Location,
-                       args: &fmt::Arguments)
-                       -> io::Result<()>
-        where W: Write
-    {
+    fn append_inner(&self,
+                    w: &mut Write,
+                    level: LogLevel,
+                    target: &str,
+                    location: &Location,
+                    args: &fmt::Arguments)
+                    -> io::Result<()> {
         for chunk in self.pattern.iter() {
             try!(match *chunk {
                 Chunk::Text(ref text) => write!(w, "{}", text),
@@ -139,6 +125,17 @@ impl PatternLayout {
     }
 }
 
+impl Encode for PatternLayout {
+    fn encode(&mut self, w: &mut Write, record: &LogRecord) -> io::Result<()> {
+        let location = Location {
+            module_path: record.location().module_path(),
+            file: record.location().file(),
+            line: record.location().line(),
+        };
+        self.append_inner(w, record.level(), record.target(), &location, record.args())
+    }
+}
+
 struct Location<'a> {
     module_path: &'a str,
     file: &'a str,
@@ -153,7 +150,7 @@ mod tests {
     use log::LogLevel;
 
     use super::{PatternLayout, Location};
-    use pattern::parser::{TimeFmt, Chunk};
+    use encoder::pattern::parser::{TimeFmt, Chunk};
 
     #[test]
     fn test_parse() {
