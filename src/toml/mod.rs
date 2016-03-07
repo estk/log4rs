@@ -11,7 +11,7 @@
 //! # appender is named "foo".
 //! [appender.foo]
 //! # All appenders must specify a "kind", which must match the kind of an
-//! # appender mapping provided to the `Creator` used to deserialize the
+//! # appender mapping provided to the `Builder` used to deserialize the
 //! # config file.
 //! kind = "console"
 //!
@@ -96,21 +96,21 @@ pub trait Build: Send + Sync + 'static {
 
 /// A type that can create appenders.
 ///
-/// `Creator` implements `Default`, which returns a `Creator` with the
+/// `Builder` implements `Default`, which returns a `Builder` with the
 /// following mappings:
 ///
 /// * Appenders
-///     * "file" -> `FileAppenderCreator`
-///     * "console" -> `ConsoleAppenderCreator`
+///     * "file" -> `FileAppenderBuilder`
+///     * "console" -> `ConsoleAppenderBuilder`
 /// * Filters
-///     * "threshold" -> `ThresholdFilterCreator`
-pub struct Creator {
+///     * "threshold" -> `ThresholdFilterBuilder`
+pub struct Builder {
     builders: ShareMap,
 }
 
-impl Default for Creator {
-    fn default() -> Creator {
-        let mut creator = Creator::new();
+impl Default for Builder {
+    fn default() -> Builder {
+        let mut creator = Builder::new();
         creator.insert("file", Box::new(FileAppenderBuilder));
         creator.insert("console", Box::new(ConsoleAppenderBuilder));
         creator.insert("threshold", Box::new(ThresholdFilterBuilder));
@@ -118,10 +118,10 @@ impl Default for Creator {
     }
 }
 
-impl Creator {
-    /// Creates a new `Creator` with no appender or filter mappings.
-    pub fn new() -> Creator {
-        Creator {
+impl Builder {
+    /// Creates a new `Builder` with no appender or filter mappings.
+    pub fn new() -> Builder {
+        Builder {
             builders: ShareMap::custom(),
         }
     }
@@ -242,9 +242,9 @@ pub struct Config {
 }
 
 impl Config {
-    /// Creates a log4rs `Config` from the specified TOML config string and `Creator`.
+    /// Creates a log4rs `Config` from the specified TOML config string and `Builder`.
     pub fn parse(config: &str,
-                 creator: &Creator)
+                 creator: &Builder)
                  -> Result<(Config, Result<(), Errors>), ParseErrors> {
         let mut errors = vec![];
 

@@ -49,7 +49,7 @@
 //!
 //! The more common configuration method, however, is via a separate TOML
 //! config file. The `init_file` function takes the path to a config file as
-//! well as a `Creator` object which is responsible for instantiating the
+//! well as a `Builder` object which is responsible for instantiating the
 //! various objects specified by the config file. The `toml` module
 //! documentation covers the exact configuration syntax, but an example is
 //! provided below.
@@ -113,7 +113,7 @@ use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 use pattern::Error;
 
-use toml::Creator;
+use toml::Builder;
 
 pub mod appender;
 pub mod config;
@@ -358,16 +358,16 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
 /// Initializes the global logger with a log4rs logger.
 ///
 /// Configuration is read from a TOML file located at the provided path on the
-/// filesystem and appenders are created from the provided `Creator`.
+/// filesystem and appenders are created from the provided `Builder`.
 ///
 /// Any errors encountered when processing the configuration are reported to
 /// stderr.
-pub fn init_file<P: AsRef<Path>>(path: P, creator: Creator) -> Result<(), SetLoggerError> {
+pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
         let path = path.as_ref().to_path_buf();
         let (source, refresh_rate, config) = match read_config(&path) {
             Ok(source) => {
-                match parse_config(&source, &creator) {
+                match parse_config(&source, &builder) {
                     Ok(config) => {
                         let (refresh_rate, config) = config.unpack();
                         (source, refresh_rate, config)
@@ -395,7 +395,7 @@ pub fn init_file<P: AsRef<Path>>(path: P, creator: Creator) -> Result<(), SetLog
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
         if let Some(refresh_rate) = refresh_rate {
-            ConfigReloader::start(path, refresh_rate, source, creator, &logger, max_log_level);
+            ConfigReloader::start(path, refresh_rate, source, builder, &logger, max_log_level);
         }
         Box::new(logger)
     })
@@ -408,8 +408,8 @@ fn read_config(path: &Path) -> Result<String, io::Error> {
     Ok(s)
 }
 
-fn parse_config(source: &str, creator: &Creator) -> Result<toml::Config, Box<error::Error>> {
-    let (config, errors) = try!(toml::Config::parse(&source, creator));
+fn parse_config(source: &str, builder: &Builder) -> Result<toml::Config, Box<error::Error>> {
+    let (config, errors) = try!(toml::Config::parse(&source, builder));
     if let Err(errors) = errors {
         for error in errors.errors() {
             handle_error(error);
@@ -422,7 +422,7 @@ struct ConfigReloader {
     path: PathBuf,
     rate: Duration,
     source: String,
-    creator: Creator,
+    builder: Builder,
     shared: Arc<Mutex<SharedLogger>>,
     max_log_level: MaxLogLevelFilter,
 }
@@ -431,14 +431,14 @@ impl ConfigReloader {
     fn start(path: PathBuf,
              rate: Duration,
              source: String,
-             creator: Creator,
+             builder: Builder,
              logger: &Logger,
              max_log_level: MaxLogLevelFilter) {
         let mut reloader = ConfigReloader {
             path: path,
             rate: rate,
             source: source,
-            creator: creator,
+            builder: builder,
             shared: logger.inner.clone(),
             max_log_level: max_log_level,
         };
@@ -467,7 +467,7 @@ impl ConfigReloader {
 
             self.source = source;
 
-            let config = match parse_config(&self.source, &self.creator) {
+            let config = match parse_config(&self.source, &self.builder) {
                 Ok(config) => config,
                 Err(err) => {
                     handle_error(&*err);
