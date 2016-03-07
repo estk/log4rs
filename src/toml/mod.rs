@@ -400,7 +400,7 @@ impl Build for FileAppenderBuilder {
         let mut appender = FileAppender::builder(&path);
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
-                appender = appender.pattern(try!(PatternEncoder::new(&pattern)));
+                appender = appender.encoder(Box::new(try!(PatternEncoder::new(&pattern))));
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
@@ -435,7 +435,7 @@ impl Build for ConsoleAppenderBuilder {
         let mut appender = ConsoleAppender::builder();
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
-                appender = appender.pattern(try!(PatternEncoder::new(&pattern)));
+                appender = appender.encoder(Box::new(try!(PatternEncoder::new(&pattern))));
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
