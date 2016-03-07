@@ -31,7 +31,7 @@ use Encode;
 
 mod parser;
 
-/// An error parsing a `PatternLayout` pattern.
+/// An error parsing a `PatternEncoder` pattern.
 #[derive(Debug)]
 pub struct Error(String);
 
@@ -67,24 +67,24 @@ impl<'a> From<nom::Err<&'a [u8]>> for Error {
 
 /// A formatter object for `LogRecord`s.
 #[derive(Debug)]
-pub struct PatternLayout {
+pub struct PatternEncoder {
     pattern: Vec<Chunk>,
 }
 
-impl Default for PatternLayout {
-    /// Returns a `PatternLayout` using the default pattern of `%d %l %t - %m`.
-    fn default() -> PatternLayout {
-        PatternLayout::new("%d %l %t - %m").unwrap()
+impl Default for PatternEncoder {
+    /// Returns a `PatternEncoder` using the default pattern of `%d %l %t - %m`.
+    fn default() -> PatternEncoder {
+        PatternEncoder::new("%d %l %t - %m").unwrap()
     }
 }
 
-impl PatternLayout {
-    /// Creates a `PatternLayout` from a pattern string.
+impl PatternEncoder {
+    /// Creates a `PatternEncoder` from a pattern string.
     ///
     /// The pattern string syntax is documented in the `pattern` module.
-    pub fn new(pattern: &str) -> Result<PatternLayout, Error> {
+    pub fn new(pattern: &str) -> Result<PatternEncoder, Error> {
         match parse_pattern(pattern.as_bytes()) {
-            nom::IResult::Done(_, o) => Ok(PatternLayout { pattern: o }),
+            nom::IResult::Done(_, o) => Ok(PatternEncoder { pattern: o }),
             nom::IResult::Error(nom_err) => Err(Error::from(nom_err)),
             nom::IResult::Incomplete(error) => {
                 // This is always a bug in the parser and should actually never happen.
@@ -125,7 +125,7 @@ impl PatternLayout {
     }
 }
 
-impl Encode for PatternLayout {
+impl Encode for PatternEncoder {
     fn encode(&mut self, w: &mut Write, record: &LogRecord) -> io::Result<()> {
         let location = Location {
             module_path: record.location().module_path(),
@@ -149,7 +149,7 @@ mod tests {
 
     use log::LogLevel;
 
-    use super::{PatternLayout, Location};
+    use super::{PatternEncoder, Location};
     use encoder::pattern::parser::{TimeFmt, Chunk};
 
     #[test]
@@ -165,28 +165,28 @@ mod tests {
                         Chunk::Thread,
                         Chunk::Target,
                         Chunk::Text("%".to_string())];
-        let actual = PatternLayout::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%").unwrap().pattern;
+        let actual = PatternEncoder::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%").unwrap().pattern;
         assert_eq!(actual, expected)
     }
 
     #[test]
     fn test_invalid_date_format() {
-        assert!(PatternLayout::new("%d{%q}").is_err());
+        assert!(PatternEncoder::new("%d{%q}").is_err());
     }
 
     #[test]
     fn test_invalid_formatter() {
-        assert!(PatternLayout::new("%x").is_err());
+        assert!(PatternEncoder::new("%x").is_err());
     }
 
     #[test]
     fn test_unclosed_delimiter() {
-        assert!(PatternLayout::new("%d{%Y-%m-%d").is_err());
+        assert!(PatternEncoder::new("%d{%Y-%m-%d").is_err());
     }
 
     #[test]
     fn test_log() {
-        let pw = PatternLayout::new("%l %m at %M in %f:%L").unwrap();
+        let pw = PatternEncoder::new("%l %m at %M in %f:%L").unwrap();
 
         static LOCATION: Location<'static> = Location {
             module_path: "mod path",
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn test_unnamed_thread() {
         thread::spawn(|| {
-            let pw = PatternLayout::new("%T").unwrap();
+            let pw = PatternEncoder::new("%T").unwrap();
             static LOCATION: Location<'static> = Location {
                 module_path: "path",
                 file: "file",
@@ -231,7 +231,7 @@ mod tests {
         thread::Builder::new()
             .name("foobar".to_string())
             .spawn(|| {
-                let pw = PatternLayout::new("%T").unwrap();
+                let pw = PatternEncoder::new("%T").unwrap();
                 static LOCATION: Location<'static> = Location {
                     module_path: "path",
                     file: "file",
@@ -253,6 +253,6 @@ mod tests {
 
     #[test]
     fn test_default_okay() {
-        let _: PatternLayout = Default::default();
+        let _: PatternEncoder = Default::default();
     }
 }

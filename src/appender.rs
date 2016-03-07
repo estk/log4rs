@@ -11,12 +11,12 @@ use std::path::{Path, PathBuf};
 use log::LogRecord;
 
 use {Encode, Append};
-use encoder::pattern::PatternLayout;
+use encoder::pattern::PatternEncoder;
 
 /// An appender which logs to a file.
 pub struct FileAppender {
     file: BufWriter<File>,
-    pattern: PatternLayout,
+    pattern: PatternEncoder,
 }
 
 impl Append for FileAppender {
@@ -42,13 +42,13 @@ impl FileAppender {
 /// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
     path: PathBuf,
-    pattern: PatternLayout,
+    pattern: PatternEncoder,
     append: bool,
 }
 
 impl FileAppenderBuilder {
     /// Sets the output pattern for the `FileAppender`.
-    pub fn pattern(mut self, pattern: PatternLayout) -> FileAppenderBuilder {
+    pub fn pattern(mut self, pattern: PatternEncoder) -> FileAppenderBuilder {
         self.pattern = pattern;
         self
     }
@@ -79,7 +79,7 @@ impl FileAppenderBuilder {
 /// An appender which logs to stdout.
 pub struct ConsoleAppender {
     stdout: Stdout,
-    pattern: PatternLayout,
+    pattern: PatternEncoder,
 }
 
 impl Append for ConsoleAppender {
@@ -100,12 +100,12 @@ impl ConsoleAppender {
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
-    pattern: PatternLayout,
+    pattern: PatternEncoder,
 }
 
 impl ConsoleAppenderBuilder {
     /// Sets the output pattern for the `ConsoleAppender`.
-    pub fn pattern(mut self, pattern: PatternLayout) -> ConsoleAppenderBuilder {
+    pub fn pattern(mut self, pattern: PatternEncoder) -> ConsoleAppenderBuilder {
         self.pattern = pattern;
         self
     }

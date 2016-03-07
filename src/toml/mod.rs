@@ -72,7 +72,7 @@ use typemap::{Key, ShareMap};
 use appender::{FileAppender, ConsoleAppender};
 use filter::ThresholdFilter;
 use config;
-use encoder::pattern::PatternLayout;
+use encoder::pattern::PatternEncoder;
 use {Append, Filter, PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
@@ -380,7 +380,7 @@ fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
 /// An builder for the `FileAppender`.
 ///
 /// The `path` key is required, and specifies the path to the log file. The
-/// `pattern` key is optional and specifies a `PatternLayout` pattern to be
+/// `pattern` key is optional and specifies a `PatternEncoder` pattern to be
 /// used for output. The `append` key is optional and specifies whether the
 /// output file should be truncated or appended to.
 pub struct FileAppenderBuilder;
@@ -400,7 +400,7 @@ impl Build for FileAppenderBuilder {
         let mut appender = FileAppender::builder(&path);
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
-                appender = appender.pattern(try!(PatternLayout::new(&pattern)));
+                appender = appender.pattern(try!(PatternEncoder::new(&pattern)));
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
@@ -422,7 +422,7 @@ impl Build for FileAppenderBuilder {
 
 /// An builder for the `ConsoleAppender`.
 ///
-/// The `pattern` key is optional and specifies a `PatternLayout` pattern to be
+/// The `pattern` key is optional and specifies a `PatternEncoder` pattern to be
 /// used for output.
 pub struct ConsoleAppenderBuilder;
 
@@ -435,7 +435,7 @@ impl Build for ConsoleAppenderBuilder {
         let mut appender = ConsoleAppender::builder();
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
-                appender = appender.pattern(try!(PatternLayout::new(&pattern)));
+                appender = appender.pattern(try!(PatternEncoder::new(&pattern)));
             }
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
             None => {}
