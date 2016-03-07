@@ -90,7 +90,8 @@ pub trait Build: Send + Sync + 'static {
 
     /// Create a new trait object based on the provided config.
     fn build(&self,
-             config: toml_parser::Table)
+             config: toml_parser::Table,
+             builder: &Builder)
              -> Result<Box<Self::Trait>, Box<error::Error>>;
 }
 
@@ -136,7 +137,7 @@ impl Builder {
                               config: toml_parser::Table)
                               -> Result<Box<T>, Box<error::Error>> {
         match self.builders.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
-            Some(builder) => builder.build(config),
+            Some(builder) => builder.build(config, self),
             None => {
                 Err(Box::new(StringError(format!("No builder registered for kind `{}`", kind))))
             }
@@ -381,7 +382,9 @@ pub struct FileAppenderBuilder;
 impl Build for FileAppenderBuilder {
     type Trait = Append;
 
-    fn build(&self, mut config: toml_parser::Table) -> Result<Box<Append>, Box<error::Error>> {
+    fn build(&self,
+             mut config: toml_parser::Table,
+             _: &Builder) -> Result<Box<Append>, Box<error::Error>> {
         let path = match config.remove("path") {
             Some(Value::String(path)) => path,
             Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
@@ -420,7 +423,9 @@ pub struct ConsoleAppenderBuilder;
 impl Build for ConsoleAppenderBuilder {
     type Trait = Append;
 
-    fn build(&self, mut config: toml_parser::Table) -> Result<Box<Append>, Box<error::Error>> {
+    fn build(&self,
+             mut config: toml_parser::Table,
+             _: &Builder) -> Result<Box<Append>, Box<error::Error>> {
         let mut appender = ConsoleAppender::builder();
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
@@ -443,7 +448,9 @@ pub struct ThresholdFilterBuilder;
 impl Build for ThresholdFilterBuilder {
     type Trait = Filter;
 
-    fn build(&self, mut config: toml_parser::Table) -> Result<Box<Filter>, Box<error::Error>> {
+    fn build(&self,
+             mut config: toml_parser::Table,
+             _: &Builder) -> Result<Box<Filter>, Box<error::Error>> {
         let level = match config.remove("level") {
             Some(Value::String(level)) => level,
             Some(_) => return Err(Box::new(StringError("`level` must be a string".to_string()))),
