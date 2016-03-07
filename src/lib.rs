@@ -451,7 +451,7 @@ impl ConfigReloader {
 
     fn run(&mut self) {
         loop {
-            thread::sleep_ms(self.rate.num_milliseconds() as u32);
+            thread::sleep(std::time::Duration::from_millis(self.rate.num_milliseconds() as u64));
 
             let source = match read_config(&self.path) {
                 Ok(source) => source,
