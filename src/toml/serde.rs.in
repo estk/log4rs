@@ -1,0 +1,24 @@
+#[derive(PartialEq, Debug)]
+#[derive(Deserialize)]
+pub struct Config {
+    pub refresh_rate: Option<DeDuration>,
+    pub root: Option<Root>,
+    pub appenders: HashMap<String, Appender>,
+    pub loggers: Vec<Logger>,
+}
+
+#[derive(PartialEq, Debug)]
+#[derive(Deserialize)]
+pub struct Root {
+    pub level: DeLogLevelFilter,
+    pub appenders: Option<Vec<String>>,
+}
+
+#[derive(PartialEq, Debug)]
+#[derive(Deserialize)]
+pub struct Logger {
+    pub name: String,
+    pub level: DeLogLevelFilter,
+    pub appenders: Option<Vec<String>>,
+    pub additive: Option<bool>,
+}

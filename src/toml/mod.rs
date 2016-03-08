@@ -66,8 +66,8 @@ use std::marker::PhantomData;
 use std::error;
 use std::fmt;
 use time::Duration;
-use toml_parser::{self, Value};
 use typemap::{Key, ShareMap};
+use serde_value::Value;
 
 use appender::{FileAppender, ConsoleAppender};
 use filter::ThresholdFilter;
@@ -90,7 +90,7 @@ pub trait Build: Send + Sync + 'static {
 
     /// Create a new trait object based on the provided config.
     fn build(&self,
-             config: toml_parser::Table,
+             config: Value,
              builder: &Builder)
              -> Result<Box<Self::Trait>, Box<error::Error>>;
 }
@@ -143,7 +143,7 @@ impl Builder {
     fn build<T: ?Sized + Any>(&self,
                               trait_: &str,
                               kind: &str,
-                              config: toml_parser::Table)
+                              config: Value)
                               -> Result<Box<T>, Box<error::Error>> {
         match self.get(kind) {
             Some(b) => b.build(config, self),
@@ -151,27 +151,6 @@ impl Builder {
                 Err(Box::new(StringError(format!("no {} builder named `{}` registered", trait_, kind))))
             }
         }
-    }
-}
-
-/// Errors encountered when parsing a log4rs TOML config.
-#[derive(Debug)]
-pub struct ParseErrors {
-    errors: Vec<String>,
-}
-
-impl fmt::Display for ParseErrors {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        for error in &self.errors {
-            try!(writeln!(fmt, "{}", error));
-        }
-        Ok(())
-    }
-}
-
-impl error::Error for ParseErrors {
-    fn description(&self) -> &str {
-        "Errors encountered when parsing a log4rs TOML config"
     }
 }
 
@@ -255,13 +234,10 @@ impl Config {
     /// Creates a log4rs `Config` from the specified TOML config string and `Builder`.
     pub fn parse(config: &str,
                  creator: &Builder)
-                 -> Result<(Config, Result<(), Errors>), ParseErrors> {
+                 -> Result<(Config, Result<(), Errors>), Box<error::Error>> {
         let mut errors = vec![];
 
-        let config = match raw::parse(config) {
-            Ok(config) => config,
-            Err(errors) => return Err(ParseErrors { errors: errors }),
-        };
+        let config = try!(raw::parse(config));
 
         let raw::Config {
             refresh_rate,
@@ -272,7 +248,7 @@ impl Config {
 
         let root = match raw_root {
             Some(raw_root) => {
-                let mut root = config::Root::builder(raw_root.level);
+                let mut root = config::Root::builder(raw_root.level.0);
                 if let Some(appenders) = raw_root.appenders {
                     root = root.appenders(appenders);
                 }
@@ -287,7 +263,7 @@ impl Config {
             match creator.build("appender", &kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder(name.clone(), appender_obj);
-                    for raw::Filter { kind, config } in filters.unwrap_or(vec![]) {
+                    for raw::Filter { kind, config } in filters {
                         match creator.build("filter", &kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
@@ -301,7 +277,7 @@ impl Config {
 
         for logger in raw_loggers {
             let raw::Logger { name, level, appenders, additive } = logger;
-            let mut logger = config::Logger::builder(name, level);
+            let mut logger = config::Logger::builder(name, level.0);
             if let Some(appenders) = appenders {
                 logger = logger.appenders(appenders);
             }
@@ -319,7 +295,7 @@ impl Config {
         }
 
         let config = Config {
-            refresh_rate: refresh_rate,
+            refresh_rate: refresh_rate.map(|r| r.0),
             config: config,
         };
 
@@ -371,15 +347,6 @@ impl From<String> for StringError {
     }
 }
 
-fn ensure_empty(config: &toml_parser::Table) -> Result<(), Box<error::Error>> {
-    let remaining_keys: Vec<_> = config.keys().collect();
-    if remaining_keys.is_empty() {
-        Ok(())
-    } else {
-        Err(Box::new(StringError(format!("Unknown keys: {:?}", remaining_keys))))
-    }
-}
-
 /// An builder for the `FileAppender`.
 ///
 /// The `path` key is required, and specifies the path to the log file. The
@@ -392,8 +359,9 @@ impl Build for FileAppenderBuilder {
     type Trait = Append;
 
     fn build(&self,
-             mut config: toml_parser::Table,
+             mut config: Value,
              _: &Builder) -> Result<Box<Append>, Box<error::Error>> {
+        /*
         let path = match config.remove("path") {
             Some(Value::String(path)) => path,
             Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
@@ -420,6 +388,8 @@ impl Build for FileAppenderBuilder {
             Ok(appender) => Ok(Box::new(appender)),
             Err(err) => Err(Box::new(err)),
         }
+        */
+        panic!()
     }
 }
 
@@ -433,8 +403,9 @@ impl Build for ConsoleAppenderBuilder {
     type Trait = Append;
 
     fn build(&self,
-             mut config: toml_parser::Table,
+             mut config: Value,
              _: &Builder) -> Result<Box<Append>, Box<error::Error>> {
+        /*
         let mut appender = ConsoleAppender::builder();
         match config.remove("pattern") {
             Some(Value::String(pattern)) => {
@@ -446,6 +417,8 @@ impl Build for ConsoleAppenderBuilder {
 
         try!(ensure_empty(&config));
         Ok(Box::new(appender.build()))
+        */
+        panic!()
     }
 }
 
@@ -458,8 +431,9 @@ impl Build for ThresholdFilterBuilder {
     type Trait = Filter;
 
     fn build(&self,
-             mut config: toml_parser::Table,
+             mut config: Value,
              _: &Builder) -> Result<Box<Filter>, Box<error::Error>> {
+        /*
         let level = match config.remove("level") {
             Some(Value::String(level)) => level,
             Some(_) => return Err(Box::new(StringError("`level` must be a string".to_string()))),
@@ -473,6 +447,8 @@ impl Build for ThresholdFilterBuilder {
 
         try!(ensure_empty(&config));
         Ok(Box::new(ThresholdFilter::new(level)))
+        */
+        panic!()
     }
 }
 
@@ -485,9 +461,10 @@ impl Build for PatternEncoderBuilder {
     type Trait = Encode;
 
     fn build(&self,
-             mut config: toml_parser::Table,
+             mut config: Value,
              _: &Builder)
              -> Result<Box<Encode>, Box<error::Error>> {
+        /*
         let pattern = match config.remove("pattern") {
             Some(Value::String(pattern)) => pattern,
             Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
@@ -499,5 +476,7 @@ impl Build for PatternEncoderBuilder {
             Ok(encoder) => Ok(Box::new(encoder)),
             Err(err) => Err(err.into()),
         }
+        */
+        panic!()
     }
 }

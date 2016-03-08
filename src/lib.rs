@@ -93,10 +93,12 @@
 
 extern crate log;
 extern crate time;
-extern crate toml as toml_parser;
 #[macro_use]
 extern crate nom;
 extern crate typemap;
+extern crate serde;
+extern crate serde_value;
+extern crate serde_yaml;
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
