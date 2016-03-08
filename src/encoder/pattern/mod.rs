@@ -27,7 +27,7 @@ use ErrorInternals;
 
 use log::{LogRecord, LogLevel};
 use time;
-use Encode;
+use encoder::Encode;
 
 mod parser;
 

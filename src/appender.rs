@@ -1,4 +1,4 @@
-//! A set of common appenders
+//! Appenders
 
 use std::convert::AsRef;
 use std::default::Default;
@@ -10,8 +10,14 @@ use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 use log::LogRecord;
 
-use {Encode, Append};
+use encoder::Encode;
 use encoder::pattern::PatternEncoder;
+
+/// A trait implemented by log4rs appenders.
+pub trait Append: Send + 'static {
+    /// Processes the provided `LogRecord`.
+    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>>;
+}
 
 /// An appender which logs to a file.
 pub struct FileAppender {

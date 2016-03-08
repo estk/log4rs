@@ -114,6 +114,8 @@ use std::thread;
 use time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
+use appender::Append;
+use filter::{Filter, FilterResponse};
 use encoder::pattern::Error;
 use toml::Builder;
 
@@ -122,40 +124,6 @@ pub mod config;
 pub mod filter;
 pub mod toml;
 pub mod encoder;
-
-/// A trait implemented by log4rs appenders.
-pub trait Append: Send + 'static {
-    /// Processes the provided `LogRecord`.
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>>;
-}
-
-/// The response returned by a filter.
-pub enum FilterResponse {
-    /// Accept the log event.
-    ///
-    /// It will be immediately passed to the appender, bypassing any remaining
-    /// filters.
-    Accept,
-
-    /// Take no action on the log event.
-    ///
-    /// It will continue on to remaining filters or pass on to the appender if
-    /// there are none remaining.
-    Neutral,
-
-    /// Reject the log event.
-    Reject,
-}
-
-/// The trait implemented by log4rs filters.
-pub trait Filter: Send + 'static {
-    /// Filters a log event.
-    fn filter(&mut self, record: &LogRecord) -> FilterResponse;
-}
-
-pub trait Encode: Send + 'static {
-    fn encode(&mut self, w: &mut Write, record: &LogRecord) -> io::Result<()>;
-}
 
 struct ConfiguredLogger {
     level: LogLevelFilter,

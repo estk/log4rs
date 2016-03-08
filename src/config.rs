@@ -6,7 +6,9 @@ use std::iter::IntoIterator;
 use std::error;
 use log::LogLevelFilter;
 
-use {Append, Filter, ConfigPrivateExt, PrivateConfigErrorsExt, PrivateConfigAppenderExt};
+use appender::Append;
+use filter::Filter;
+use {ConfigPrivateExt, PrivateConfigErrorsExt, PrivateConfigAppenderExt};
 
 /// Configuration for the root logger.
 #[derive(Debug)]

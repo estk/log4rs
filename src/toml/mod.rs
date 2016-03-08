@@ -69,11 +69,12 @@ use time::Duration;
 use typemap::{Key, ShareMap};
 use serde_value::Value;
 
-use appender::{FileAppender, ConsoleAppender};
-use filter::ThresholdFilter;
+use appender::{Append, FileAppender, ConsoleAppender};
+use filter::{Filter, ThresholdFilter};
 use config;
+use encoder::Encode;
 use encoder::pattern::PatternEncoder;
-use {Append, Filter, Encode, PrivateTomlConfigExt, PrivateConfigErrorsExt};
+use {PrivateTomlConfigExt, PrivateConfigErrorsExt};
 
 mod raw;
 
@@ -467,7 +468,7 @@ loggers:
       - baz
     additive: false
 "#;
-        let (config, errs) = Config::parse(cfg, &Builder::default()).unwrap();
+        let (_, errs) = Config::parse(cfg, &Builder::default()).unwrap();
         errs.unwrap();
     }
 }
