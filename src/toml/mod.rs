@@ -359,37 +359,18 @@ impl Build for FileAppenderBuilder {
     type Trait = Append;
 
     fn build(&self,
-             mut config: Value,
-             _: &Builder) -> Result<Box<Append>, Box<error::Error>> {
-        /*
-        let path = match config.remove("path") {
-            Some(Value::String(path)) => path,
-            Some(_) => return Err(Box::new(StringError("`path` must be a string".to_string()))),
-            None => return Err(Box::new(StringError("`path` is required".to_string()))),
-        };
-
-        let mut appender = FileAppender::builder(&path);
-        match config.remove("pattern") {
-            Some(Value::String(pattern)) => {
-                appender = appender.encoder(Box::new(try!(PatternEncoder::new(&pattern))));
-            }
-            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
-            None => {}
+             config: Value,
+             builder: &Builder)
+             -> Result<Box<Append>, Box<error::Error>> {
+        let config = try!(config.deserialize_into::<raw::FileAppenderConfig>());
+        let mut appender = FileAppender::builder(&config.path);
+        if let Some(append) = config.append {
+            appender = appender.append(append);
         }
-
-        match config.remove("append") {
-            Some(Value::Boolean(append)) => appender = appender.append(append),
-            None => {}
-            Some(_) => return Err(Box::new(StringError("`append` must be a bool".to_string()))),
+        if let Some(encoder) = config.encoder {
+            appender = appender.encoder(try!(builder.build("encoder", &encoder.kind, encoder.config)));
         }
-
-        try!(ensure_empty(&config));
-        match appender.build() {
-            Ok(appender) => Ok(Box::new(appender)),
-            Err(err) => Err(Box::new(err)),
-        }
-        */
-        panic!()
+        Ok(Box::new(try!(appender.build())))
     }
 }
 
@@ -403,22 +384,15 @@ impl Build for ConsoleAppenderBuilder {
     type Trait = Append;
 
     fn build(&self,
-             mut config: Value,
-             _: &Builder) -> Result<Box<Append>, Box<error::Error>> {
-        /*
+             config: Value,
+             builder: &Builder)
+             -> Result<Box<Append>, Box<error::Error>> {
+        let config = try!(config.deserialize_into::<raw::ConsoleAppenderConfig>());
         let mut appender = ConsoleAppender::builder();
-        match config.remove("pattern") {
-            Some(Value::String(pattern)) => {
-                appender = appender.encoder(Box::new(try!(PatternEncoder::new(&pattern))));
-            }
-            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
-            None => {}
+        if let Some(encoder) = config.encoder {
+            appender = appender.encoder(try!(builder.build("encoder", &encoder.kind, encoder.config)));
         }
-
-        try!(ensure_empty(&config));
         Ok(Box::new(appender.build()))
-        */
-        panic!()
     }
 }
 
@@ -431,24 +405,11 @@ impl Build for ThresholdFilterBuilder {
     type Trait = Filter;
 
     fn build(&self,
-             mut config: Value,
-             _: &Builder) -> Result<Box<Filter>, Box<error::Error>> {
-        /*
-        let level = match config.remove("level") {
-            Some(Value::String(level)) => level,
-            Some(_) => return Err(Box::new(StringError("`level` must be a string".to_string()))),
-            None => return Err(Box::new(StringError("`level` must be provided".to_string()))),
-        };
-
-        let level = match level.parse() {
-            Ok(level) => level,
-            Err(_) => return Err(Box::new(StringError(format!("Invalid `level` \"{}\"", level)))),
-        };
-
-        try!(ensure_empty(&config));
-        Ok(Box::new(ThresholdFilter::new(level)))
-        */
-        panic!()
+             config: Value,
+             _: &Builder)
+             -> Result<Box<Filter>, Box<error::Error>> {
+        let config = try!(config.deserialize_into::<raw::ThresholdFilterConfig>());
+        Ok(Box::new(ThresholdFilter::new(config.level.0)))
     }
 }
 
@@ -461,22 +422,52 @@ impl Build for PatternEncoderBuilder {
     type Trait = Encode;
 
     fn build(&self,
-             mut config: Value,
+             config: Value,
              _: &Builder)
              -> Result<Box<Encode>, Box<error::Error>> {
-        /*
-        let pattern = match config.remove("pattern") {
-            Some(Value::String(pattern)) => pattern,
-            Some(_) => return Err(Box::new(StringError("`pattern` must be a string".to_string()))),
-            None => return Err(Box::new(StringError("`pattern` must be provided".to_string()))),
+        let config = try!(config.deserialize_into::<raw::PatternEncoderConfig>());
+        let encoder = match config.pattern {
+            Some(pattern) => try!(PatternEncoder::new(&pattern)),
+            None => PatternEncoder::default(),
         };
-        try!(ensure_empty(&config));
+        Ok(Box::new(encoder))
+    }
+}
 
-        match PatternEncoder::new(&pattern) {
-            Ok(encoder) => Ok(Box::new(encoder)),
-            Err(err) => Err(err.into()),
-        }
-        */
-        panic!()
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn basic() {
+        let cfg = r#"
+refresh_rate: 60
+
+appenders:
+  console:
+    kind: console
+    filters:
+      - kind: threshold
+        level: debug
+  baz:
+    kind: file
+    path: /tmp/baz.log
+    encoder:
+      pattern: "%m"
+
+root:
+  appenders:
+    - console
+  level: info
+
+loggers:
+  - name: foo::bar::baz
+    level: warn
+    appenders:
+      - baz
+    additive: false
+"#;
+        let (config, errs) = Config::parse(cfg, &Builder::default()).unwrap();
+        errs.unwrap();
     }
 }

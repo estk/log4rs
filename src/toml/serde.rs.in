@@ -22,3 +22,29 @@ pub struct Logger {
     pub appenders: Option<Vec<String>>,
     pub additive: Option<bool>,
 }
+
+#[derive(Deserialize)]
+pub struct FileAppenderConfig {
+    pub path: String,
+    #[serde(default)]
+    pub encoder: Option<Encoder>,
+    #[serde(default)]
+    pub append: Option<bool>,
+}
+
+#[derive(Deserialize)]
+pub struct ConsoleAppenderConfig {
+    #[serde(default)]
+    pub encoder: Option<Encoder>,
+}
+
+#[derive(Deserialize)]
+pub struct ThresholdFilterConfig {
+    pub level: DeLogLevelFilter,
+}
+
+#[derive(Deserialize)]
+pub struct PatternEncoderConfig {
+    #[serde(default)]
+    pub pattern: Option<String>,
+}

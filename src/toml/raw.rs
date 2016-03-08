@@ -89,6 +89,27 @@ impl Deserialize for Filter {
     }
 }
 
+pub struct Encoder {
+    pub kind: String,
+    pub config: Value,
+}
+
+impl Deserialize for Encoder {
+    fn deserialize<D>(d: &mut D) -> Result<Encoder, D::Error> where D: Deserializer {
+        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+
+        let kind = match map.remove(&Value::String("kind".to_owned())) {
+            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            None => "pattern".to_owned(),
+        };
+
+        Ok(Encoder {
+            kind: kind,
+            config: Value::Map(map),
+        })
+    }
+}
+
 pub fn parse(config: &str) -> Result<Config, Box<Error>> {
     serde_yaml::from_str(config).map_err(|e| e.into())
 }
@@ -117,10 +138,12 @@ appenders:
   baz:
     kind: file
     file: log/baz.log
+
 root:
   appenders:
     - console
   level: info
+
 loggers:
   - name: foo::bar::baz
     level: warn
