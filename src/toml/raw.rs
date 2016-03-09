@@ -145,7 +145,7 @@ root:
   level: info
 
 loggers:
-  - name: foo::bar::baz
+  foo::bar::baz:
     level: warn
     appenders:
       - baz
@@ -190,14 +190,16 @@ loggers:
                 level: DeLogLevelFilter(LogLevelFilter::Info),
                 appenders: Some(vec!["console".to_owned()]),
             }),
-            loggers: vec![
-                Logger {
-                    name: "foo::bar::baz".to_owned(),
-                    level: DeLogLevelFilter(LogLevelFilter::Warn),
-                    appenders: Some(vec!["baz".to_owned()]),
-                    additive: Some(false)
-                },
-            ],
+            loggers: {
+                let mut m = HashMap::new();
+                m.insert("foo::bar::baz".to_owned(),
+                         Logger {
+                            level: DeLogLevelFilter(LogLevelFilter::Warn),
+                            appenders: Some(vec!["baz".to_owned()]),
+                            additive: Some(false)
+                         });
+                m
+            },
         };
 
         println!("{:#?}", actual);

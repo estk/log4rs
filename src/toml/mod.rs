@@ -276,8 +276,8 @@ impl Config {
             }
         }
 
-        for logger in raw_loggers {
-            let raw::Logger { name, level, appenders, additive } = logger;
+        for (name, logger) in raw_loggers {
+            let raw::Logger { level, appenders, additive } = logger;
             let mut logger = config::Logger::builder(name, level.0);
             if let Some(appenders) = appenders {
                 logger = logger.appenders(appenders);
@@ -462,7 +462,7 @@ root:
   level: info
 
 loggers:
-  - name: foo::bar::baz
+  foo::bar::baz:
     level: warn
     appenders:
       - baz

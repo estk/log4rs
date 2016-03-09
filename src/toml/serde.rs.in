@@ -4,7 +4,7 @@ pub struct Config {
     pub refresh_rate: Option<DeDuration>,
     pub root: Option<Root>,
     pub appenders: HashMap<String, Appender>,
-    pub loggers: Vec<Logger>,
+    pub loggers: HashMap<String, Logger>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -17,7 +17,6 @@ pub struct Root {
 #[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
 pub struct Logger {
-    pub name: String,
     pub level: DeLogLevelFilter,
     pub appenders: Option<Vec<String>>,
     pub additive: Option<bool>,
