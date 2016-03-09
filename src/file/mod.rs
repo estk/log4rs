@@ -149,7 +149,7 @@ impl Builder {
         match self.get(kind) {
             Some(b) => b.build(config, self),
             None => {
-                Err(Box::new(StringError(format!("no {} builder named `{}` registered", trait_, kind))))
+                Err(Box::new(StringError(format!("no {} builder for kind `{}` registered", trait_, kind))))
             }
         }
     }
@@ -185,7 +185,7 @@ impl fmt::Display for Error {
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        "An error encountered when deserializing a TOML configuration into a log4rs `Config`"
+        "An error encountered when deserializing a configuration file into a log4rs `Config`"
     }
 
     fn cause(&self) -> Option<&error::Error> {
