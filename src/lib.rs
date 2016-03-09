@@ -117,12 +117,12 @@ use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxL
 use appender::Append;
 use filter::{Filter, FilterResponse};
 use encoder::pattern::Error;
-use toml::Builder;
+use file::Builder;
 
 pub mod appender;
 pub mod config;
 pub mod filter;
-pub mod toml;
+pub mod file;
 pub mod encoder;
 
 struct ConfiguredLogger {
@@ -382,8 +382,8 @@ fn read_config(path: &Path) -> Result<String, io::Error> {
     Ok(s)
 }
 
-fn parse_config(source: &str, builder: &Builder) -> Result<toml::Config, Box<error::Error>> {
-    let (config, errors) = try!(toml::Config::parse(&source, builder));
+fn parse_config(source: &str, builder: &Builder) -> Result<file::Config, Box<error::Error>> {
+    let (config, errors) = try!(file::Config::parse(&source, builder));
     if let Err(errors) = errors {
         for error in errors.errors() {
             handle_error(error);

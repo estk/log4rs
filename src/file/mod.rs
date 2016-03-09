@@ -225,7 +225,7 @@ impl error::Error for Errors {
     }
 }
 
-/// A deserialized TOML log4rs configuration.
+/// A deserialized log4rs configuration file.
 pub struct Config {
     refresh_rate: Option<Duration>,
     config: config::Config,
