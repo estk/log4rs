@@ -343,7 +343,8 @@ pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), SetLog
             Ok(source) => {
                 match parse_config(&source, &builder) {
                     Ok(config) => {
-                        let (refresh_rate, config) = config.unpack();
+                        let refresh_rate = config.refresh_rate();
+                        let config = config.into_config();
                         (source, refresh_rate, config)
                     }
                     Err(err) => {
@@ -383,11 +384,9 @@ fn read_config(path: &Path) -> Result<String, io::Error> {
 }
 
 fn parse_config(source: &str, builder: &Builder) -> Result<file::Config, Box<error::Error>> {
-    let (config, errors) = try!(file::Config::parse(&source, builder));
-    if let Err(errors) = errors {
-        for error in errors.errors() {
-            handle_error(error);
-        }
+    let config = try!(file::Config::parse(&source, builder));
+    for error in config.errors() {
+        handle_error(error);
     }
     Ok(config)
 }
@@ -448,7 +447,8 @@ impl ConfigReloader {
                     continue;
                 }
             };
-            let (refresh_rate, config) = config.unpack();
+            let refresh_rate = config.refresh_rate();
+            let config = config.into_config();
 
             let shared = SharedLogger::new(config);
             self.max_log_level.set(shared.root.max_log_level());
@@ -469,11 +469,6 @@ trait ErrorInternals {
 #[doc(hidden)]
 trait ConfigPrivateExt {
     fn unpack(self) -> (Vec<config::Appender>, config::Root, Vec<config::Logger>);
-}
-
-#[doc(hidden)]
-trait PrivateTomlConfigExt {
-    fn unpack(self) -> (Option<Duration>, config::Config);
 }
 
 #[doc(hidden)]

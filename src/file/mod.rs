@@ -74,7 +74,7 @@ use filter::{Filter, ThresholdFilter};
 use config;
 use encoder::Encode;
 use encoder::pattern::PatternEncoder;
-use {PrivateTomlConfigExt, PrivateConfigErrorsExt};
+use {PrivateConfigErrorsExt};
 
 mod raw;
 
@@ -197,45 +197,18 @@ impl error::Error for Error {
     }
 }
 
-/// Errors encountered when deserializing a TOML configuration into a log4rs `Config`.
-#[derive(Debug)]
-pub struct Errors {
-    errors: Vec<Error>,
-}
-
-impl Errors {
-    /// Returns the list of errors encountered.
-    pub fn errors(&self) -> &[Error] {
-        &self.errors
-    }
-}
-
-impl fmt::Display for Errors {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        for error in &self.errors {
-            try!(writeln!(fmt, "{}", error));
-        }
-        Ok(())
-    }
-}
-
-impl error::Error for Errors {
-    fn description(&self) -> &str {
-        "Errors encountered when deserializing a TOML configuration into a log4rs `Config`"
-    }
-}
-
 /// A deserialized log4rs configuration file.
 pub struct Config {
     refresh_rate: Option<Duration>,
     config: config::Config,
+    errors: Vec<Error>,
 }
 
 impl Config {
     /// Creates a log4rs `Config` from the specified TOML config string and `Builder`.
     pub fn parse(config: &str,
                  creator: &Builder)
-                 -> Result<(Config, Result<(), Errors>), Box<error::Error>> {
+                 -> Result<Config, Box<error::Error>> {
         let mut errors = vec![];
 
         let config = try!(raw::parse(config));
@@ -298,15 +271,10 @@ impl Config {
         let config = Config {
             refresh_rate: refresh_rate.map(|r| r.0),
             config: config,
+            errors: errors,
         };
 
-        let errors = if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(Errors { errors: errors })
-        };
-
-        Ok((config, errors))
+        Ok(config)
     }
 
     /// Returns the requested refresh rate.
@@ -315,15 +283,13 @@ impl Config {
     }
 
     /// Returns the log4rs `Config`.
-    pub fn config(&self) -> &config::Config {
-        &self.config
+    pub fn into_config(self) -> config::Config {
+        self.config
     }
-}
 
-impl PrivateTomlConfigExt for Config {
-    fn unpack(self) -> (Option<Duration>, config::Config) {
-        let Config { refresh_rate, config } = self;
-        (refresh_rate, config)
+    /// Returns any nonfatal errors encountered when deserializing the config.
+    pub fn errors(&self) -> &[Error] {
+        &self.errors
     }
 }
 
@@ -468,7 +434,7 @@ loggers:
       - baz
     additive: false
 "#;
-        let (_, errs) = Config::parse(cfg, &Builder::default()).unwrap();
-        errs.unwrap();
+        let config = Config::parse(cfg, &Builder::default()).unwrap();
+        assert!(config.errors().is_empty());
     }
 }
