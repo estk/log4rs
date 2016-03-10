@@ -230,11 +230,9 @@ impl Config {
 
         let root = match raw_root {
             Some(raw_root) => {
-                let mut root = config::Root::builder(raw_root.level.0);
-                if let Some(appenders) = raw_root.appenders {
-                    root = root.appenders(appenders);
-                }
-                root.build()
+                config::Root::builder(raw_root.level.0)
+                            .appenders(raw_root.appenders)
+                            .build()
             }
             None => config::Root::builder(LogLevelFilter::Debug).build(),
         };
@@ -259,10 +257,8 @@ impl Config {
 
         for (name, logger) in raw_loggers {
             let raw::Logger { level, appenders, additive } = logger;
-            let mut logger = config::Logger::builder(name, level.0);
-            if let Some(appenders) = appenders {
-                logger = logger.appenders(appenders);
-            }
+            let mut logger = config::Logger::builder(name, level.0)
+                                           .appenders(appenders);
             if let Some(additive) = additive {
                 logger = logger.additive(additive);
             }

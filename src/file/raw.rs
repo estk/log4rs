@@ -192,14 +192,14 @@ loggers:
             },
             root: Some(Root {
                 level: DeLogLevelFilter(LogLevelFilter::Info),
-                appenders: Some(vec!["console".to_owned()]),
+                appenders: vec!["console".to_owned()],
             }),
             loggers: {
                 let mut m = HashMap::new();
                 m.insert("foo::bar::baz".to_owned(),
                          Logger {
                             level: DeLogLevelFilter(LogLevelFilter::Warn),
-                            appenders: Some(vec!["baz".to_owned()]),
+                            appenders: vec!["baz".to_owned()],
                             additive: Some(false)
                          });
                 m

@@ -11,14 +11,16 @@ pub struct Config {
 #[derive(Deserialize)]
 pub struct Root {
     pub level: DeLogLevelFilter,
-    pub appenders: Option<Vec<String>>,
+    #[serde(default)]
+    pub appenders: Vec<String>,
 }
 
 #[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
 pub struct Logger {
     pub level: DeLogLevelFilter,
-    pub appenders: Option<Vec<String>>,
+    #[serde(default)]
+    pub appenders: Vec<String>,
     pub additive: Option<bool>,
 }
 

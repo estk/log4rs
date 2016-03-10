@@ -211,7 +211,7 @@ impl ::serde::de::Deserialize for Config {
 #[derive_PartialEq]
 pub struct Root {
     pub level: DeLogLevelFilter,
-    pub appenders: Option<Vec<String>>,
+    pub appenders: Vec<String>,
 }
 impl ::serde::de::Deserialize for Root {
     fn deserialize<__D>(deserializer: &mut __D)
@@ -333,12 +333,7 @@ impl ::serde::de::Deserialize for Root {
                         let __field1 =
                             match __field1 {
                                 Some(__field1) => __field1,
-                                None =>
-                                match visitor.missing_field("appenders") {
-                                    ::std::result::Result::Ok(value) => value,
-                                    ::std::result::Result::Err(value) =>
-                                    return ::std::result::Result::Err(value),
-                                },
+                                None => ::std::default::Default::default(),
                             };
                         try!(visitor . end (  ));
                         Ok(Root{level: __field0, appenders: __field1,})
@@ -355,7 +350,7 @@ impl ::serde::de::Deserialize for Root {
 #[derive_PartialEq]
 pub struct Logger {
     pub level: DeLogLevelFilter,
-    pub appenders: Option<Vec<String>>,
+    pub appenders: Vec<String>,
     pub additive: Option<bool>,
 }
 impl ::serde::de::Deserialize for Logger {
@@ -495,12 +490,7 @@ impl ::serde::de::Deserialize for Logger {
                         let __field1 =
                             match __field1 {
                                 Some(__field1) => __field1,
-                                None =>
-                                match visitor.missing_field("appenders") {
-                                    ::std::result::Result::Ok(value) => value,
-                                    ::std::result::Result::Err(value) =>
-                                    return ::std::result::Result::Err(value),
-                                },
+                                None => ::std::default::Default::default(),
                             };
                         let __field2 =
                             match __field2 {
