@@ -5,8 +5,9 @@ use time::Duration;
 use serde::de::{self, Deserialize, Deserializer};
 use serde_value::Value;
 use serde_yaml;
-
 use log::LogLevelFilter;
+
+use file::Format;
 
 include!("serde.rs");
 
@@ -110,8 +111,10 @@ impl Deserialize for Encoder {
     }
 }
 
-pub fn parse(config: &str) -> Result<Config, Box<Error>> {
-    serde_yaml::from_str(config).map_err(|e| e.into())
+pub fn parse(format: Format, config: &str) -> Result<Config, Box<Error>> {
+    match format {
+        Format::Yaml => serde_yaml::from_str(config).map_err(|e| e.into()),
+    }
 }
 
 #[cfg(test)]
@@ -123,6 +126,7 @@ mod test {
     use serde_value::Value;
 
     use super::*;
+    use file::Format;
 
     #[test]
     fn test_basic() {
@@ -152,7 +156,7 @@ loggers:
     additive: false
 "#;
 
-        let actual = parse(cfg).unwrap();
+        let actual = parse(Format::Yaml, cfg).unwrap();
 
         let expected = Config {
             refresh_rate: Some(DeDuration(Duration::seconds(60))),

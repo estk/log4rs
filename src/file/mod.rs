@@ -197,6 +197,13 @@ impl error::Error for Error {
     }
 }
 
+/// Specifies the format of a configuration file.
+#[derive(Copy, Clone)]
+pub enum Format {
+    /// YAML.
+    Yaml,
+}
+
 /// A deserialized log4rs configuration file.
 pub struct Config {
     refresh_rate: Option<Duration>,
@@ -207,11 +214,12 @@ pub struct Config {
 impl Config {
     /// Creates a log4rs `Config` from the specified TOML config string and `Builder`.
     pub fn parse(config: &str,
+                 format: Format,
                  creator: &Builder)
                  -> Result<Config, Box<error::Error>> {
         let mut errors = vec![];
 
-        let config = try!(raw::parse(config));
+        let config = try!(raw::parse(format, config));
 
         let raw::Config {
             refresh_rate,
@@ -434,7 +442,7 @@ loggers:
       - baz
     additive: false
 "#;
-        let config = Config::parse(cfg, &Builder::default()).unwrap();
+        let config = Config::parse(cfg, Format::Yaml, &Builder::default()).unwrap();
         assert!(config.errors().is_empty());
     }
 }
