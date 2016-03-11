@@ -74,7 +74,7 @@ use filter::{Filter, ThresholdFilter};
 use config;
 use encoder::Encode;
 use encoder::pattern::PatternEncoder;
-use {PrivateConfigErrorsExt};
+use PrivateConfigErrorsExt;
 
 mod raw;
 
@@ -126,14 +126,15 @@ impl Default for Builder {
 impl Builder {
     /// Creates a new `Builder` with no appender or filter mappings.
     pub fn new() -> Builder {
-        Builder {
-            builders: ShareMap::custom(),
-        }
+        Builder { builders: ShareMap::custom() }
     }
 
     /// Adds a mapping from the specified `kind` to a builder.
     pub fn insert<T: ?Sized + Any>(&mut self, kind: &str, builder: Box<Build<Trait = T>>) {
-        self.builders.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind.to_owned(), builder);
+        self.builders
+            .entry::<KeyAdaptor<T>>()
+            .or_insert(HashMap::new())
+            .insert(kind.to_owned(), builder);
     }
 
     /// Retrieves the builder of the specified `kind`.
@@ -149,7 +150,9 @@ impl Builder {
         match self.get(kind) {
             Some(b) => b.build(config, self),
             None => {
-                Err(Box::new(StringError(format!("no {} builder for kind `{}` registered", trait_, kind))))
+                Err(Box::new(StringError(format!("no {} builder for kind `{}` registered",
+                                                 trait_,
+                                                 kind))))
             }
         }
     }
@@ -221,18 +224,16 @@ impl Config {
 
         let config = try!(raw::parse(format, config));
 
-        let raw::Config {
-            refresh_rate,
-            root: raw_root,
-            appenders: raw_appenders,
-            loggers: raw_loggers,
-        } = config;
+        let raw::Config { refresh_rate,
+                          root: raw_root,
+                          appenders: raw_appenders,
+                          loggers: raw_loggers } = config;
 
         let root = match raw_root {
             Some(raw_root) => {
                 config::Root::builder(raw_root.level.0)
-                            .appenders(raw_root.appenders)
-                            .build()
+                    .appenders(raw_root.appenders)
+                    .build()
             }
             None => config::Root::builder(LogLevelFilter::Debug).build(),
         };
@@ -257,8 +258,7 @@ impl Config {
 
         for (name, logger) in raw_loggers {
             let raw::Logger { level, appenders, additive } = logger;
-            let mut logger = config::Logger::builder(name, level.0)
-                                           .appenders(appenders);
+            let mut logger = config::Logger::builder(name, level.0).appenders(appenders);
             if let Some(additive) = additive {
                 logger = logger.additive(additive);
             }
@@ -329,17 +329,16 @@ pub struct FileAppenderBuilder;
 impl Build for FileAppenderBuilder {
     type Trait = Append;
 
-    fn build(&self,
-             config: Value,
-             builder: &Builder)
-             -> Result<Box<Append>, Box<error::Error>> {
+    fn build(&self, config: Value, builder: &Builder) -> Result<Box<Append>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<raw::FileAppenderConfig>());
         let mut appender = FileAppender::builder(&config.path);
         if let Some(append) = config.append {
             appender = appender.append(append);
         }
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(builder.build("encoder", &encoder.kind, encoder.config)));
+            appender = appender.encoder(try!(builder.build("encoder",
+                                                           &encoder.kind,
+                                                           encoder.config)));
         }
         Ok(Box::new(try!(appender.build())))
     }
@@ -354,14 +353,13 @@ pub struct ConsoleAppenderBuilder;
 impl Build for ConsoleAppenderBuilder {
     type Trait = Append;
 
-    fn build(&self,
-             config: Value,
-             builder: &Builder)
-             -> Result<Box<Append>, Box<error::Error>> {
+    fn build(&self, config: Value, builder: &Builder) -> Result<Box<Append>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<raw::ConsoleAppenderConfig>());
         let mut appender = ConsoleAppender::builder();
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(builder.build("encoder", &encoder.kind, encoder.config)));
+            appender = appender.encoder(try!(builder.build("encoder",
+                                                           &encoder.kind,
+                                                           encoder.config)));
         }
         Ok(Box::new(appender.build()))
     }
@@ -375,10 +373,7 @@ pub struct ThresholdFilterBuilder;
 impl Build for ThresholdFilterBuilder {
     type Trait = Filter;
 
-    fn build(&self,
-             config: Value,
-             _: &Builder)
-             -> Result<Box<Filter>, Box<error::Error>> {
+    fn build(&self, config: Value, _: &Builder) -> Result<Box<Filter>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<raw::ThresholdFilterConfig>());
         Ok(Box::new(ThresholdFilter::new(config.level.0)))
     }
@@ -392,10 +387,7 @@ pub struct PatternEncoderBuilder;
 impl Build for PatternEncoderBuilder {
     type Trait = Encode;
 
-    fn build(&self,
-             config: Value,
-             _: &Builder)
-             -> Result<Box<Encode>, Box<error::Error>> {
+    fn build(&self, config: Value, _: &Builder) -> Result<Box<Encode>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<raw::PatternEncoderConfig>());
         let encoder = match config.pattern {
             Some(pattern) => try!(PatternEncoder::new(&pattern)),

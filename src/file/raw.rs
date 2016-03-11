@@ -15,7 +15,9 @@ include!("serde.rs");
 pub struct DeDuration(pub Duration);
 
 impl Deserialize for DeDuration {
-    fn deserialize<D>(d: &mut D) -> Result<DeDuration, D::Error> where D: Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<DeDuration, D::Error>
+        where D: Deserializer
+    {
         i64::deserialize(d).map(|r| DeDuration(Duration::seconds(r)))
     }
 }
@@ -24,13 +26,17 @@ impl Deserialize for DeDuration {
 pub struct DeLogLevelFilter(pub LogLevelFilter);
 
 impl Deserialize for DeLogLevelFilter {
-    fn deserialize<D>(d: &mut D) -> Result<DeLogLevelFilter, D::Error> where D: Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<DeLogLevelFilter, D::Error>
+        where D: Deserializer
+    {
         struct V;
 
         impl de::Visitor for V {
             type Value = DeLogLevelFilter;
 
-            fn visit_str<E>(&mut self, v: &str) -> Result<DeLogLevelFilter, E> where E: de::Error {
+            fn visit_str<E>(&mut self, v: &str) -> Result<DeLogLevelFilter, E>
+                where E: de::Error
+            {
                 v.parse().map(DeLogLevelFilter).map_err(|_| E::invalid_value(v))
             }
         }
@@ -47,7 +53,9 @@ pub struct Appender {
 }
 
 impl Deserialize for Appender {
-    fn deserialize<D>(d: &mut D) -> Result<Appender, D::Error> where D: Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<Appender, D::Error>
+        where D: Deserializer
+    {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
@@ -75,7 +83,9 @@ pub struct Filter {
 }
 
 impl Deserialize for Filter {
-    fn deserialize<D>(d: &mut D) -> Result<Filter, D::Error> where D: Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<Filter, D::Error>
+        where D: Deserializer
+    {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
@@ -96,7 +106,9 @@ pub struct Encoder {
 }
 
 impl Deserialize for Encoder {
-    fn deserialize<D>(d: &mut D) -> Result<Encoder, D::Error> where D: Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<Encoder, D::Error>
+        where D: Deserializer
+    {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
@@ -167,15 +179,14 @@ loggers:
                              kind: "console".to_owned(),
                              config: Value::Map(BTreeMap::new()),
                              filters: vec![Filter {
-                                                    kind: "threshold".to_string(),
-                                                    config: {
-                                                        let mut m = BTreeMap::new();
-                                                        m.insert(Value::String("level".to_string()),
-                                                                 Value::String("debug"
-                                                                                   .to_string()));
-                                                        Value::Map(m)
-                                                    },
-                                                }],
+                                               kind: "threshold".to_string(),
+                                               config: {
+                                                   let mut m = BTreeMap::new();
+                                                   m.insert(Value::String("level".to_string()),
+                                                            Value::String("debug".to_string()));
+                                                   Value::Map(m)
+                                               },
+                                           }],
                          });
                 m.insert("baz".to_owned(),
                          Appender {
@@ -198,9 +209,9 @@ loggers:
                 let mut m = HashMap::new();
                 m.insert("foo::bar::baz".to_owned(),
                          Logger {
-                            level: DeLogLevelFilter(LogLevelFilter::Warn),
-                            appenders: vec!["baz".to_owned()],
-                            additive: Some(false)
+                             level: DeLogLevelFilter(LogLevelFilter::Warn),
+                             appenders: vec!["baz".to_owned()],
+                             additive: Some(false),
                          });
                 m
             },
