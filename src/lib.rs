@@ -3,12 +3,19 @@
 //!
 //! # Architecture
 //!
-//! The basic units of configuration are *appenders*, *filters*, and *loggers*.
+//! The basic units of configuration are *appenders*, *encoders*, *filters*, and
+//! *loggers*.
 //!
 //! ## Appenders
 //!
 //! An appender takes a log record and logs it somewhere, for example, to a
 //! file, the console, or the syslog.
+//!
+//! ## Encoders
+//!
+//! An encoder is responsible for taking a log record, transforming it into the
+//! appropriate output format, and writing it out. An appender will normally
+//! use an encoder internally.
 //!
 //! ## Filters
 //!
@@ -38,7 +45,7 @@
 //! filtered out by the logger's maximum log level will be sent to all
 //! associated appenders.
 //!
-//! The "root" logger is the ancestor of all other logger. Since it has no
+//! The "root" logger is the ancestor of all other loggers. Since it has no
 //! ancestors, its additivity cannot be configured.
 //!
 //! # Configuration
@@ -47,46 +54,49 @@
 //! the `config` module to construct a log4rs `Config` object, which can be
 //! passed to the `init_config` function.
 //!
-//! The more common configuration method, however, is via a separate TOML
-//! config file. The `init_file` function takes the path to a config file as
+//! The more common configuration method, however, is via a separate config
+//! file. The `init_file` function takes the path to a config file as
 //! well as a `Builder` object which is responsible for instantiating the
-//! various objects specified by the config file. The `toml` module
-//! documentation covers the exact configuration syntax, but an example is
-//! provided below.
+//! various objects specified by the config file. The `file` module
+//! documentation covers the exact configuration syntax, but an example in the
+//! YAML format is provided below.
 //!
 //! # Examples
 //!
-//! ```toml
+//! ```yaml
 //! # Scan this file for changes every 30 seconds
-//! refresh_rate = 30
+//! refresh_rate: 30
 //!
-//! # An appender named "stdout" that writes to stdout
-//! [appender.stdout]
-//! kind = "console"
+//! appenders:
+//!   # An appender named "stdout" that writes to stdout
+//!   stdout:
+//!     kind: console
 //!
-//! # An appender named "requests" that writes to a file with a custom pattern
-//! [appender.requests]
-//! kind = "file"
-//! path = "log/requests.log"
-//! pattern = "%d - %m"
+//!   # An appender named "requests" that writes to a file with a custom pattern encoder
+//!   requests:
+//!     kind: file
+//!     path: "log/requests.log"
+//!     encoder:
+//!       pattern: "%d - %m"
 //!
 //! # Set the default logging level to "warn" and attach the "stdout" appender to the root
-//! [root]
-//! level = "warn"
-//! appenders = ["stdout"]
+//! root:
+//!   level: warn
+//!   appenders:
+//!     - stdout
 //!
-//! # Raise the maximum log level for events sent to the "app::backend::db" logger to "info"
-//! [[logger]]
-//! name = "app::backend::db"
-//! level = "info"
+//! loggers:
+//!   # Raise the maximum log level for events sent to the "app::backend::db" logger to "info"
+//!   app::backend::db:
+//!     level: info
 //!
-//! # Route log events sent to the "app::requests" logger to the "requests" appender,
-//! # and *not* the normal appenders installed at the root
-//! [[logger]]
-//! name = "app::requests"
-//! level = "info"
-//! appenders = ["requests"]
-//! additive = false
+//!   # Route log events sent to the "app::requests" logger to the "requests" # appender,
+//!   # and *not* the normal appenders installed at the root
+//!   app::requests:
+//!     level: info
+//!     appenders:
+//!       - requests
+//!     additive: false
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.3.3")]
 #![warn(missing_docs)]

@@ -1,63 +1,83 @@
-//! Support for log4rs configuration from TOML files.
+//! Support for log4rs configuration from files.
+//!
+//! Multiple file formats are supported, each requiring a Cargo feature to be
+//! enabled. YAML support requires the `yaml` feature, JSON support requires
+//! the `JSON` feature, and TOML support requires the `toml` feature.
 //!
 //! # Syntax
 //!
-//! ```toml
+//! All file formats currently share the same structure. The example below is
+//! of the YAML format, but JSON and TOML should follow.
+//!
+//! ```yaml
 //! # If set, log4rs will scan the file at the specified rate in seconds for
 //! # changes and automatically reconfigure the logger.
-//! refresh_rate = 30
+//! refresh_rate: 30
 //!
-//! # Appenders are configured as tables inside the "appender" table. This
-//! # appender is named "foo".
-//! [appender.foo]
-//! # All appenders must specify a "kind", which must match the kind of an
-//! # appender mapping provided to the `Builder` used to deserialize the
-//! # config file.
-//! kind = "console"
+//! # The "appenders" map contains the set of appenders, indexed by their names.
+//! appenders:
 //!
-//! # Arbitrary fields may be added to appender configurations. Remaining
-//! # entries will be passed to the `CreateAppender` object associated with
-//! # the specified kind.
-//! pattern = "%d [%t] %m"
+//!   foo:
 //!
-//! # Filters attached to an appender are configured inside the "filter" array.
-//! [[appender.foo.filter]]
-//! # Like appenders, filters must specify a "kind".
-//! kind = "threshold"
+//!     # All appenders must specify a "kind", which will be used to look up the
+//!     # logic to construct the appender in the `Builder` passed to the
+//!     # deserialization function.
+//!     kind: console
 //!
-//! # Also like appenders, arbitrary fields may be added to filter
-//! # configurations.
-//! level = "error"
+//!     # Filters attached to an appender are specified inside the "filters"
+//!     # array.
+//!     filters:
 //!
-//! # The root logger is configured by the "root" table. It is optional.
-//! # If the "root" table is not specified, the root will default to a level of
-//! # "debug" and no appenders.
-//! [root]
-//! # The maximum log level for the root logger. Must be specified if the
-//! # "root" table is defined.
-//! level = "warn"
+//!       -
+//!         # Like appenders, filters are identified by their "kind".
+//!         kind = threshold
+//!         # The remainder of the configuration is passed along to the
+//!         # filter's builder, and will vary based on the kind of filter.
+//!         level = error
 //!
-//! # The list of names of appenders attached to the root logger. If not
-//! # specified, defaults to an empty list.
-//! appenders = ["foo"]
+//!     # The remainder of the configuration is passed along to the appender's
+//!     # builder, and will vary based on the kind of appender.
+//!     # Appenders will commonly be associated with an encoder.
+//!     encoder:
 //!
-//! # Loggers are configured as tables inside of the "logger" array.
-//! [[logger]]
-//! # The name of the logger. Must be specified.
-//! name = "foo::bar::baz"
+//!       # Like appenders, encoders are identified by their "kind". If no kind
+//!       # is specified, it will default to "pattern".
+//!       kind: pattern
 //!
-//! # The maximum log level. If it is not present, the level of the logger's
-//! # parent is used.
-//! level = "trace"
+//!       # The remainder of the configuration is passed along to the
+//!       # encoder's builder, and will vary based on the kind of encoder.
+//!       pattern = "%d [%t] %m"
 //!
-//! # A list of names of appenders attached to the logger. If not specified,
-//! # defaults to an empty list.
-//! appenders = ["foo"]
+//! # The root logger is configured by the "root" map. It is optional.
+//! root:
 //!
-//! # The additivity of the logger. If true, the appenders attached to this
-//! # logger's parent will also be attached to this logger. If not specified,
-//! # defaults to true.
-//! additive = false
+//!   # The maximum log level for the root logger.
+//!   level: warn
+//!
+//!   # The list of appenders attached to the root logger. Defaults to an empty
+//!   # list if not specified.
+//!   appenders:
+//!     - foo
+//!
+//! # The "loggers" map contains the set of configured loggers, indexed by their
+//! # names.
+//! loggers:
+//!
+//!   foo::bar::baz:
+//!
+//!     # The maximum log level. Defaults to the level of the logger's parent if
+//!     # not specified.
+//!     level: trace
+//!
+//!     # The list of appenders attached to the logger. Defaults to an empty
+//!     # list if not specified
+//!     appenders:
+//!       - foo
+//!
+//!     # The additivity of the logger. If true, appenders attached to the
+//!     # logger's parent will also be attached to this logger. Defauts to true
+//!     # if not specified.
+//!     additive: false
 //! ```
 use log::LogLevelFilter;
 use std::any::Any;
