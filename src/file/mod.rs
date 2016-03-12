@@ -205,12 +205,12 @@ impl error::Error for Error {
 pub enum Format {
     /// YAML.
     ///
-    /// Requires the `serde_yaml` feature.
+    /// Requires the `yaml` feature.
     #[cfg(feature = "yaml")]
     Yaml,
     /// JSON.
     ///
-    /// Requires the `serde_json` feature.
+    /// Requires the `json` feature.
     #[cfg(feature = "json")]
     Json,
     /// TOML.
