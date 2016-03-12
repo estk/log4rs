@@ -100,6 +100,8 @@ extern crate serde;
 extern crate serde_value;
 #[cfg(feature = "serde_yaml")]
 extern crate serde_yaml;
+#[cfg(feature = "serde_json")]
+extern crate serde_json;
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
@@ -414,6 +416,10 @@ fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
         Some("yaml") => Ok(Format::Yaml),
         #[cfg(not(feature = "serde_yaml"))]
         Some("yaml") => Err("the `serde_yaml` feature is required for YAML support".into()),
+        #[cfg(feature = "serde_json")]
+        Some("json") => Ok(Format::Json),
+        #[cfg(not(feature = "serde_json"))]
+        Some("json") => Err("the `serde_json` feature is required for JSON support".into()),
         Some(f) => Err(format!("unsupported file format `{}`", f).into()),
         None => Err("unable to determine the file format".into())
     }

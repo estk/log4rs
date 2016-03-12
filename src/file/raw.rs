@@ -125,7 +125,9 @@ impl Deserialize for Encoder {
 pub fn parse(format: Format, _config: &str) -> Result<Config, Box<Error>> {
     match format {
         #[cfg(feature = "serde_yaml")]
-        Format::Yaml => ::serde_yaml::from_str(_config).map_err(|e| e.into()),
+        Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
+        #[cfg(feature = "serde_json")]
+        Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
     }
 }
 
@@ -141,38 +143,8 @@ mod test {
     use super::*;
     use file::Format;
 
-    #[test]
-    #[cfg(feature = "serde_yaml")]
-    fn basic_yaml() {
-        let cfg = r#"
-refresh_rate: 60
-
-appenders:
-  console:
-    kind: console
-    filters:
-      - kind: threshold
-        level: debug
-  baz:
-    kind: file
-    file: log/baz.log
-
-root:
-  appenders:
-    - console
-  level: info
-
-loggers:
-  foo::bar::baz:
-    level: warn
-    appenders:
-      - baz
-    additive: false
-"#;
-
-        let actual = parse(Format::Yaml, cfg).unwrap();
-
-        let expected = Config {
+    fn expected() -> Config {
+        Config {
             refresh_rate: Some(DeDuration(Duration::seconds(60))),
             appenders: {
                 let mut m = HashMap::new();
@@ -217,9 +189,79 @@ loggers:
                          });
                 m
             },
-        };
+        }
+    }
 
-        println!("{:#?}", actual);
+    #[test]
+    #[cfg(feature = "serde_yaml")]
+    fn basic_yaml() {
+        let cfg = r#"
+refresh_rate: 60
+
+appenders:
+  console:
+    kind: console
+    filters:
+      - kind: threshold
+        level: debug
+  baz:
+    kind: file
+    file: log/baz.log
+
+root:
+  appenders:
+    - console
+  level: info
+
+loggers:
+  foo::bar::baz:
+    level: warn
+    appenders:
+      - baz
+    additive: false
+"#;
+
+        let actual = parse(Format::Yaml, cfg).unwrap();
+        let expected = expected();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    #[cfg(feature = "serde_json")]
+    fn basic_json() {
+        let cfg = r#"
+{
+    "refresh_rate": 60,
+    "appenders": {
+        "console": {
+            "kind": "console",
+            "filters": [
+                {
+                    "kind": "threshold",
+                    "level": "debug"
+                }
+            ]
+        },
+        "baz": {
+            "kind": "file",
+            "file": "log/baz.log"
+        }
+    },
+    "root": {
+        "appenders": ["console"],
+        "level": "info"
+    },
+    "loggers": {
+        "foo::bar::baz": {
+            "level": "warn",
+            "appenders": ["baz"],
+            "additive": false
+        }
+    }
+}"#;
+
+        let actual = parse(Format::Json, cfg).unwrap();
+        let expected = expected();
         assert_eq!(expected, actual);
     }
 }

@@ -15,3 +15,4 @@ typemap = "0.3"
 serde = "0.7"
 serde-value = "0.1"
 serde_yaml = { version = "0.2", optional = true }
+serde_json = { version = "0.7", optional = true }
