@@ -413,9 +413,11 @@ impl From<Box<error::Error>> for Error {
 fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
     match path.extension().and_then(|s| s.to_str()) {
         #[cfg(feature = "serde_yaml")]
-        Some("yaml") => Ok(Format::Yaml),
+        Some("yaml") | Some("yml") => Ok(Format::Yaml),
         #[cfg(not(feature = "serde_yaml"))]
-        Some("yaml") => Err("the `serde_yaml` feature is required for YAML support".into()),
+        Some("yaml") | Some("yml") => {
+            Err("the `serde_yaml` feature is required for YAML support".into())
+        }
         #[cfg(feature = "serde_json")]
         Some("json") => Ok(Format::Json),
         #[cfg(not(feature = "serde_json"))]
