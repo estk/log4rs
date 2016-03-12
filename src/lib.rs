@@ -98,9 +98,9 @@ extern crate nom;
 extern crate typemap;
 extern crate serde;
 extern crate serde_value;
-#[cfg(feature = "serde_yaml")]
+#[cfg(feature = "yaml")]
 extern crate serde_yaml;
-#[cfg(feature = "serde_json")]
+#[cfg(feature = "json")]
 extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
@@ -414,16 +414,16 @@ impl From<Box<error::Error>> for Error {
 
 fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
     match path.extension().and_then(|s| s.to_str()) {
-        #[cfg(feature = "serde_yaml")]
+        #[cfg(feature = "yaml")]
         Some("yaml") | Some("yml") => Ok(Format::Yaml),
-        #[cfg(not(feature = "serde_yaml"))]
+        #[cfg(not(feature = "yaml"))]
         Some("yaml") | Some("yml") => {
-            Err("the `serde_yaml` feature is required for YAML support".into())
+            Err("the `yaml` feature is required for YAML support".into())
         }
-        #[cfg(feature = "serde_json")]
+        #[cfg(feature = "json")]
         Some("json") => Ok(Format::Json),
-        #[cfg(not(feature = "serde_json"))]
-        Some("json") => Err("the `serde_json` feature is required for JSON support".into()),
+        #[cfg(not(feature = "json"))]
+        Some("json") => Err("the `json` feature is required for JSON support".into()),
         #[cfg(feature = "toml")]
         Some("toml") => Ok(Format::Toml),
         #[cfg(not(feature = "toml"))]

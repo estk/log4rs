@@ -7,6 +7,10 @@ license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
 documentation = "https://sfackler.github.io/log4rs/doc/v0.3.3/log4rs"
 
+[features]
+yaml = ["serde_yaml"]
+json = ["serde_json"]
+
 [dependencies]
 time = "0.1"
 log = "0.3"

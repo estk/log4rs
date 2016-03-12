@@ -202,7 +202,7 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "serde_yaml")]
+    #[cfg(feature = "yaml")]
     fn basic_yaml() {
         let cfg = r#"
 refresh_rate: 60
@@ -236,7 +236,7 @@ loggers:
     }
 
     #[test]
-    #[cfg(feature = "serde_json")]
+    #[cfg(feature = "json")]
     fn basic_json() {
         let cfg = r#"
 {

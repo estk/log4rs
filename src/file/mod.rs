@@ -206,12 +206,12 @@ pub enum Format {
     /// YAML.
     ///
     /// Requires the `serde_yaml` feature.
-    #[cfg(feature = "serde_yaml")]
+    #[cfg(feature = "yaml")]
     Yaml,
     /// JSON.
     ///
     /// Requires the `serde_json` feature.
-    #[cfg(feature = "serde_json")]
+    #[cfg(feature = "json")]
     Json,
     /// TOML.
     ///
@@ -416,7 +416,7 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(feature = "serde_yaml")]
+    #[cfg(feature = "yaml")]
     fn basic_yaml() {
         let cfg = r#"
 refresh_rate: 60
