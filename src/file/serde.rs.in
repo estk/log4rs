@@ -27,15 +27,12 @@ pub struct Logger {
 #[derive(Deserialize)]
 pub struct FileAppenderConfig {
     pub path: String,
-    #[serde(default)]
     pub encoder: Option<Encoder>,
-    #[serde(default)]
     pub append: Option<bool>,
 }
 
 #[derive(Deserialize)]
 pub struct ConsoleAppenderConfig {
-    #[serde(default)]
     pub encoder: Option<Encoder>,
 }
 
@@ -46,6 +43,5 @@ pub struct ThresholdFilterConfig {
 
 #[derive(Deserialize)]
 pub struct PatternEncoderConfig {
-    #[serde(default)]
     pub pattern: Option<String>,
 }

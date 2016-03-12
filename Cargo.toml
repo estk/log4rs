@@ -17,7 +17,7 @@ log = "0.3"
 nom = "1.0.1"
 typemap = "0.3"
 serde = "0.7"
-serde-value = "0.1"
+serde-value = "0.2"
 serde_yaml = { version = "0.2", optional = true }
 serde_json = { version = "0.7", optional = true }
 toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }

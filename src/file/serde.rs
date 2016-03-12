@@ -658,12 +658,22 @@ impl ::serde::de::Deserialize for FileAppenderConfig {
                         let __field1 =
                             match __field1 {
                                 Some(__field1) => __field1,
-                                None => ::std::default::Default::default(),
+                                None =>
+                                match visitor.missing_field("encoder") {
+                                    ::std::result::Result::Ok(value) => value,
+                                    ::std::result::Result::Err(value) =>
+                                    return ::std::result::Result::Err(value),
+                                },
                             };
                         let __field2 =
                             match __field2 {
                                 Some(__field2) => __field2,
-                                None => ::std::default::Default::default(),
+                                None =>
+                                match visitor.missing_field("append") {
+                                    ::std::result::Result::Ok(value) => value,
+                                    ::std::result::Result::Err(value) =>
+                                    return ::std::result::Result::Err(value),
+                                },
                             };
                         try!(visitor . end (  ));
                         Ok(FileAppenderConfig{path: __field0,
@@ -777,7 +787,12 @@ impl ::serde::de::Deserialize for ConsoleAppenderConfig {
                         let __field0 =
                             match __field0 {
                                 Some(__field0) => __field0,
-                                None => ::std::default::Default::default(),
+                                None =>
+                                match visitor.missing_field("encoder") {
+                                    ::std::result::Result::Ok(value) => value,
+                                    ::std::result::Result::Err(value) =>
+                                    return ::std::result::Result::Err(value),
+                                },
                             };
                         try!(visitor . end (  ));
                         Ok(ConsoleAppenderConfig{encoder: __field0,})
@@ -1004,7 +1019,12 @@ impl ::serde::de::Deserialize for PatternEncoderConfig {
                         let __field0 =
                             match __field0 {
                                 Some(__field0) => __field0,
-                                None => ::std::default::Default::default(),
+                                None =>
+                                match visitor.missing_field("pattern") {
+                                    ::std::result::Result::Ok(value) => value,
+                                    ::std::result::Result::Err(value) =>
+                                    return ::std::result::Result::Err(value),
+                                },
                             };
                         try!(visitor . end (  ));
                         Ok(PatternEncoderConfig{pattern: __field0,})
