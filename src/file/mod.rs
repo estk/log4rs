@@ -213,6 +213,11 @@ pub enum Format {
     /// Requires the `serde_json` feature.
     #[cfg(feature = "serde_json")]
     Json,
+    /// TOML.
+    ///
+    /// Requires the `toml` feature.
+    #[cfg(feature = "toml")]
+    Toml,
 }
 
 /// A deserialized log4rs configuration file.
@@ -441,47 +446,6 @@ loggers:
     additive: false
 "#;
         let config = Config::parse(cfg, Format::Yaml, &Builder::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "serde_json")]
-    fn basic_json() {
-        let cfg = r#"
-{
-    "refresh_rate": 60,
-    "appenders": {
-        "console": {
-            "kind": "console",
-            "filters": [
-                {
-                    "kind": "threshold",
-                    "level": "debug"
-                }
-            ]
-        },
-        "baz": {
-            "kind": "file",
-            "path": "/tmp/baz.log",
-            "encoder": {
-                "pattern": "%m"
-            }
-        }
-    },
-    "root": {
-        "appenders": ["console"],
-        "level": "info"
-    },
-    "loggers": {
-        "foo::bar::baz": {
-            "level": "warn",
-            "appenders": ["baz"],
-            "additive": false
-        }
-    }
-}
-"#;
-        let config = Config::parse(cfg, Format::Json, &Builder::default()).unwrap();
         assert!(config.errors().is_empty());
     }
 }

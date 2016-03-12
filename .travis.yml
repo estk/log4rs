@@ -5,4 +5,4 @@ rust:
 - 1.7.0
 script:
 - cargo test
-- cargo test --features "serde_yaml serde_json"
+- cargo test --features "serde_yaml serde_json toml"

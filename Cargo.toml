@@ -16,3 +16,4 @@ serde = "0.7"
 serde-value = "0.1"
 serde_yaml = { version = "0.2", optional = true }
 serde_json = { version = "0.7", optional = true }
+toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }

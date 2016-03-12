@@ -102,6 +102,8 @@ extern crate serde_value;
 extern crate serde_yaml;
 #[cfg(feature = "serde_json")]
 extern crate serde_json;
+#[cfg(feature = "toml")]
+extern crate toml;
 
 use std::borrow::ToOwned;
 use std::convert::AsRef;
@@ -422,6 +424,10 @@ fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
         Some("json") => Ok(Format::Json),
         #[cfg(not(feature = "serde_json"))]
         Some("json") => Err("the `serde_json` feature is required for JSON support".into()),
+        #[cfg(feature = "toml")]
+        Some("toml") => Ok(Format::Toml),
+        #[cfg(not(feature = "toml"))]
+        Some("toml") => Err("the `toml` feature is required for TOML support".into()),
         Some(f) => Err(format!("unsupported file format `{}`", f).into()),
         None => Err("unable to determine the file format".into())
     }

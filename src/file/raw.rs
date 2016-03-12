@@ -128,6 +128,15 @@ pub fn parse(format: Format, _config: &str) -> Result<Config, Box<Error>> {
         Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
         #[cfg(feature = "serde_json")]
         Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
+        #[cfg(feature = "toml")]
+        Format::Toml => {
+            let mut parser = ::toml::Parser::new(_config);
+            let table = match parser.parse() {
+                Some(table) => ::toml::Value::Table(table),
+                None => return Err(parser.errors.pop().unwrap().into()),
+            };
+            Config::deserialize(&mut ::toml::Decoder::new(table)).map_err(Into::into)
+        }
     }
 }
 
@@ -261,6 +270,37 @@ loggers:
 }"#;
 
         let actual = parse(Format::Json, cfg).unwrap();
+        let expected = expected();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    #[cfg(feature = "toml")]
+    fn basic_toml() {
+        let cfg = r#"
+refresh_rate = 60
+
+[appenders.console]
+kind = "console"
+[[appenders.console.filters]]
+kind = "threshold"
+level = "debug"
+
+[appenders.baz]
+kind = "file"
+file = "log/baz.log"
+
+[root]
+appenders = ["console"]
+level = "info"
+
+[loggers."foo::bar::baz"]
+level = "warn"
+appenders = ["baz"]
+additive = false
+"#;
+
+        let actual = parse(Format::Toml, cfg).unwrap();
         let expected = expected();
         assert_eq!(expected, actual);
     }
