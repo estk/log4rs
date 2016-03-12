@@ -322,7 +322,7 @@ impl Logger {
 fn handle_error<E: error::Error + ?Sized>(e: &E) {
     let stderr = io::stderr();
     let mut stderr = stderr.lock();
-    let _ = writeln!(&mut stderr, "{}", e);
+    let _ = writeln!(&mut stderr, "log4rs: {}", e);
 }
 
 /// Initializes the global logger with a log4rs logger configured by `config`.
