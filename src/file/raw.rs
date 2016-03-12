@@ -4,7 +4,6 @@ use std::error::Error;
 use time::Duration;
 use serde::de::{self, Deserialize, Deserializer};
 use serde_value::Value;
-use serde_yaml;
 use log::LogLevelFilter;
 
 use file::Format;
@@ -123,13 +122,15 @@ impl Deserialize for Encoder {
     }
 }
 
-pub fn parse(format: Format, config: &str) -> Result<Config, Box<Error>> {
+pub fn parse(format: Format, _config: &str) -> Result<Config, Box<Error>> {
     match format {
-        Format::Yaml => serde_yaml::from_str(config).map_err(|e| e.into()),
+        #[cfg(feature = "serde_yaml")]
+        Format::Yaml => ::serde_yaml::from_str(_config).map_err(|e| e.into()),
     }
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod test {
     use std::borrow::ToOwned;
     use std::collections::{HashMap, BTreeMap};
@@ -141,7 +142,8 @@ mod test {
     use file::Format;
 
     #[test]
-    fn test_basic() {
+    #[cfg(feature = "serde_yaml")]
+    fn basic_yaml() {
         let cfg = r#"
 refresh_rate: 60
 

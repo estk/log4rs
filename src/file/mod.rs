@@ -204,6 +204,9 @@ impl error::Error for Error {
 #[derive(Copy, Clone)]
 pub enum Format {
     /// YAML.
+    ///
+    /// Requires the `serde_yaml` feature.
+    #[cfg(feature = "serde_yaml")]
     Yaml,
 }
 
@@ -398,11 +401,13 @@ impl Build for PatternEncoderBuilder {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod test {
     use super::*;
 
     #[test]
-    fn basic() {
+    #[cfg(feature = "serde_yaml")]
+    fn basic_yaml() {
         let cfg = r#"
 refresh_rate: 60
 

@@ -14,4 +14,4 @@ nom = "1.0.1"
 typemap = "0.3"
 serde = "0.7"
 serde-value = "0.1"
-serde_yaml = "0.2"
+serde_yaml = { version = "0.2", optional = true }

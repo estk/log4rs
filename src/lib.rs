@@ -98,6 +98,7 @@ extern crate nom;
 extern crate typemap;
 extern crate serde;
 extern crate serde_value;
+#[cfg(feature = "serde_yaml")]
 extern crate serde_yaml;
 
 use std::borrow::ToOwned;
@@ -105,6 +106,7 @@ use std::convert::AsRef;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
+use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -116,7 +118,6 @@ use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxL
 
 use appender::Append;
 use filter::{Filter, FilterResponse};
-use encoder::pattern::Error;
 use file::{Format, Builder};
 
 pub mod appender;
@@ -334,41 +335,19 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
 /// Configuration is read from a file located at the provided path on the
 /// filesystem and appenders are created from the provided `Builder`.
 ///
-/// Any errors encountered when processing the configuration are reported to
-/// stderr.
-pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), SetLoggerError> {
-    log::set_logger(|max_log_level| {
-        let path = path.as_ref().to_path_buf();
-        let format = Format::Yaml;
-        let (source, refresh_rate, config) = match read_config(&path) {
-            Ok(source) => {
-                match parse_config(&source, format, &builder) {
-                    Ok(config) => {
-                        let refresh_rate = config.refresh_rate();
-                        let config = config.into_config();
-                        (source, refresh_rate, config)
-                    }
-                    Err(err) => {
-                        handle_error(&*err);
-                        ("".to_string(),
-                         None,
-                         config::Config::builder(config::Root::builder(LogLevelFilter::Off)
-                                                     .build())
-                             .build()
-                             .unwrap())
-                    }
-                }
-            }
-            Err(err) => {
-                handle_error(&err);
-                ("".to_string(),
-                 None,
-                 config::Config::builder(config::Root::builder(LogLevelFilter::Off).build())
-                     .build()
-                     .unwrap())
-            }
-        };
+/// Any nonfatal errors encountered when processing the configuration are
+/// reported to stderr.
+pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), Error> {
+    let path = path.as_ref().to_path_buf();
+    let format = try!(get_format(&path));
+    let source = try!(read_config(&path));
+    let config = try!(parse_config(&source, format, &builder));
+
+    log::set_logger(move |max_log_level| {
+        let refresh_rate = config.refresh_rate();
+        let config = config.into_config();
         let logger = Logger::new(config);
+
         max_log_level.set(logger.max_log_level());
         if let Some(refresh_rate) = refresh_rate {
             ConfigReloader::start(path,
@@ -380,10 +359,67 @@ pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), SetLog
                                   max_log_level);
         }
         Box::new(logger)
-    })
+    }).map_err(Into::into)
 }
 
-fn read_config(path: &Path) -> Result<String, io::Error> {
+/// An error initializing the logging framework from a file.
+#[derive(Debug)]
+pub enum Error {
+    /// An error from the log crate
+    Log(SetLoggerError),
+    /// A fatal error initializing the log4rs config.
+    Log4rs(Box<error::Error>),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::Log(ref e) => fmt::Display::fmt(e, fmt),
+            Error::Log4rs(ref e) => fmt::Display::fmt(e, fmt),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        match *self {
+            Error::Log(ref e) => error::Error::description(e),
+            Error::Log4rs(ref e) => error::Error::description(&**e),
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            Error::Log(ref e) => Some(e),
+            Error::Log4rs(ref e) => Some(&**e),
+        }
+    }
+}
+
+impl From<SetLoggerError> for Error {
+    fn from(t: SetLoggerError) -> Error {
+        Error::Log(t)
+    }
+}
+
+impl From<Box<error::Error>> for Error {
+    fn from(t: Box<error::Error>) -> Error {
+        Error::Log4rs(t)
+    }
+}
+
+fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
+    match path.extension().and_then(|s| s.to_str()) {
+        #[cfg(feature = "serde_yaml")]
+        Some("yaml") => Ok(Format::Yaml),
+        #[cfg(not(feature = "serde_yaml"))]
+        Some("yaml") => Err("the `serde_yaml` feature is required for YAML support".into()),
+        Some(f) => Err(format!("unsupported file format `{}`", f).into()),
+        None => Err("unable to determine the file format".into())
+    }
+}
+
+fn read_config(path: &Path) -> Result<String, Box<error::Error>> {
     let mut file = try!(File::open(path));
     let mut s = String::new();
     try!(file.read_to_string(&mut s));
@@ -442,7 +478,7 @@ impl ConfigReloader {
             let source = match read_config(&self.path) {
                 Ok(source) => source,
                 Err(err) => {
-                    handle_error(&err);
+                    handle_error(&*err);
                     continue;
                 }
             };
@@ -476,7 +512,7 @@ impl ConfigReloader {
 }
 
 trait ErrorInternals {
-    fn new(message: String) -> Error;
+    fn new(message: String) -> Self;
 }
 
 #[doc(hidden)]
