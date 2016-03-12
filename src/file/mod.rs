@@ -115,26 +115,26 @@ pub struct Builder {
 impl Default for Builder {
     fn default() -> Builder {
         let mut creator = Builder::new();
-        creator.insert("file", Box::new(FileAppenderBuilder));
-        creator.insert("console", Box::new(ConsoleAppenderBuilder));
-        creator.insert("threshold", Box::new(ThresholdFilterBuilder));
-        creator.insert("pattern", Box::new(PatternEncoderBuilder));
+        creator.insert("file".to_owned(), Box::new(FileAppenderBuilder));
+        creator.insert("console".to_owned(), Box::new(ConsoleAppenderBuilder));
+        creator.insert("threshold".to_owned(), Box::new(ThresholdFilterBuilder));
+        creator.insert("pattern".to_owned(), Box::new(PatternEncoderBuilder));
         creator
     }
 }
 
 impl Builder {
-    /// Creates a new `Builder` with no appender or filter mappings.
+    /// Creates a new `Builder` with no mappings.
     pub fn new() -> Builder {
         Builder { builders: ShareMap::custom() }
     }
 
     /// Adds a mapping from the specified `kind` to a builder.
-    pub fn insert<T: ?Sized + Any>(&mut self, kind: &str, builder: Box<Build<Trait = T>>) {
+    pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Build<Trait = T>>) {
         self.builders
             .entry::<KeyAdaptor<T>>()
             .or_insert(HashMap::new())
-            .insert(kind.to_owned(), builder);
+            .insert(kind, builder);
     }
 
     /// Retrieves the builder of the specified `kind`.
