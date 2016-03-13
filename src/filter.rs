@@ -1,8 +1,10 @@
 //! Filters
+
+use std::fmt;
 use log::{LogRecord, LogLevelFilter};
 
 /// The trait implemented by log4rs filters.
-pub trait Filter: Send + 'static {
+pub trait Filter: fmt::Debug + Send + 'static {
     /// Filters a log event.
     fn filter(&mut self, record: &LogRecord) -> Response;
 }
@@ -26,6 +28,7 @@ pub enum Response {
 }
 
 /// A filter that rejects all events at a level below a provided threshold.
+#[derive(Debug)]
 pub struct ThresholdFilter {
     level: LogLevelFilter,
 }

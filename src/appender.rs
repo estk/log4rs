@@ -8,21 +8,32 @@ use std::io::prelude::*;
 use std::io::{BufWriter, Stdout};
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
+use std::fmt;
 use log::LogRecord;
 
 use encoder::Encode;
 use encoder::pattern::PatternEncoder;
 
 /// A trait implemented by log4rs appenders.
-pub trait Append: Send + 'static {
+pub trait Append: fmt::Debug + Send + 'static {
     /// Processes the provided `LogRecord`.
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>>;
 }
 
 /// An appender which logs to a file.
 pub struct FileAppender {
+    path: PathBuf,
     file: BufWriter<File>,
     encoder: Box<Encode>,
+}
+
+impl fmt::Debug for FileAppender {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("FileAppender")
+           .field("file", &self.path)
+           .field("encoder", &self.encoder)
+           .finish()
+    }
 }
 
 impl Append for FileAppender {
@@ -76,6 +87,7 @@ impl FileAppenderBuilder {
                             .open(&self.path));
 
         Ok(FileAppender {
+            path: self.path,
             file: BufWriter::with_capacity(1024, file),
             encoder: self.encoder,
         })
@@ -86,6 +98,14 @@ impl FileAppenderBuilder {
 pub struct ConsoleAppender {
     stdout: Stdout,
     encoder: Box<Encode>,
+}
+
+impl fmt::Debug for ConsoleAppender {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("ConsoleAppender")
+           .field("encoder", &self.encoder)
+           .finish()
+    }
 }
 
 impl Append for ConsoleAppender {

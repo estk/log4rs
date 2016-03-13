@@ -2,6 +2,7 @@ use nom::eof;
 use encoder::pattern::Error;
 use ErrorInternals;
 use std::str;
+use std::fmt::{self, Write};
 use time;
 
 #[derive(Debug)]
@@ -23,6 +24,36 @@ pub enum Chunk {
     Line,
     Thread,
     Target,
+}
+
+impl fmt::Display for Chunk {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Chunk::Text(ref text) => {
+                if text.contains('%') {
+                    for ch in text.chars() {
+                        if ch == '%' {
+                            try!(fmt.write_str("%%"));
+                        } else {
+                            try!(fmt.write_char(ch));
+                        }
+                    }
+                    Ok(())
+                } else {
+                    fmt.write_str(text)
+                }
+            }
+            Chunk::Time(TimeFmt::Rfc3339) => fmt.write_str("%d"),
+            Chunk::Time(TimeFmt::Str(ref s)) => write!(fmt, "%d{{{}}}", s),
+            Chunk::Level => fmt.write_str("%l"),
+            Chunk::Message => fmt.write_str("%m"),
+            Chunk::Module => fmt.write_str("%M"),
+            Chunk::File => fmt.write_str("%f"),
+            Chunk::Line => fmt.write_str("%L"),
+            Chunk::Thread => fmt.write_str("%T"),
+            Chunk::Target => fmt.write_str("%t"),
+        }
+    }
 }
 
 

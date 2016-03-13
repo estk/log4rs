@@ -65,10 +65,29 @@ impl<'a> From<nom::Err<&'a [u8]>> for Error {
     }
 }
 
+struct PatternDebug<'a>(&'a [Chunk]);
+
+impl<'a> fmt::Debug for PatternDebug<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        try!(fmt.write_str("\""));
+        for chunk in self.0 {
+            try!(write!(fmt, "{}", chunk));
+        }
+        fmt.write_str("\"")
+    }
+}
+
 /// A formatter object for `LogRecord`s.
-#[derive(Debug)]
 pub struct PatternEncoder {
     pattern: Vec<Chunk>,
+}
+
+impl fmt::Debug for PatternEncoder {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("PatternEncoder")
+           .field("pattern", &PatternDebug(&self.pattern))
+           .finish()
+    }
 }
 
 impl Default for PatternEncoder {
@@ -149,7 +168,7 @@ mod tests {
 
     use log::LogLevel;
 
-    use super::{PatternEncoder, Location};
+    use super::{PatternEncoder, Location, PatternDebug};
     use encoder::pattern::parser::{TimeFmt, Chunk};
 
     #[test]
@@ -165,8 +184,10 @@ mod tests {
                         Chunk::Thread,
                         Chunk::Target,
                         Chunk::Text("%".to_string())];
-        let actual = PatternEncoder::new("hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%").unwrap().pattern;
-        assert_eq!(actual, expected)
+        let raw = "hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%";
+        let actual = PatternEncoder::new(raw).unwrap().pattern;
+        assert_eq!(actual, expected);
+        assert_eq!(format!("{:?}", PatternDebug(&actual)), format!("{:?}", raw));
     }
 
     #[test]
