@@ -4,11 +4,11 @@ use log::{LogRecord, LogLevelFilter};
 /// The trait implemented by log4rs filters.
 pub trait Filter: Send + 'static {
     /// Filters a log event.
-    fn filter(&mut self, record: &LogRecord) -> FilterResponse;
+    fn filter(&mut self, record: &LogRecord) -> Response;
 }
 
 /// The response returned by a filter.
-pub enum FilterResponse {
+pub enum Response {
     /// Accept the log event.
     ///
     /// It will be immediately passed to the appender, bypassing any remaining
@@ -38,11 +38,11 @@ impl ThresholdFilter {
 }
 
 impl Filter for ThresholdFilter {
-    fn filter(&mut self, record: &LogRecord) -> FilterResponse {
+    fn filter(&mut self, record: &LogRecord) -> Response {
         if record.level() > self.level {
-            FilterResponse::Reject
+            Response::Reject
         } else {
-            FilterResponse::Neutral
+            Response::Neutral
         }
     }
 }

@@ -131,7 +131,7 @@ use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use appender::Append;
-use filter::{Filter, FilterResponse};
+use filter::Filter;
 use file::{Format, Builder};
 
 pub mod appender;
@@ -236,9 +236,9 @@ impl Appender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>> {
         for filter in &mut self.filters {
             match filter.filter(record) {
-                FilterResponse::Accept => break,
-                FilterResponse::Neutral => {}
-                FilterResponse::Reject => return Ok(()),
+                filter::Response::Accept => break,
+                filter::Response::Neutral => {}
+                filter::Response::Reject => return Ok(()),
             }
         }
 
