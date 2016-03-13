@@ -1,5 +1,6 @@
 #[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     pub refresh_rate: Option<DeDuration>,
     pub root: Option<Root>,
@@ -9,6 +10,7 @@ pub struct Config {
 
 #[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Root {
     pub level: DeLogLevelFilter,
     #[serde(default)]
@@ -17,6 +19,7 @@ pub struct Root {
 
 #[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Logger {
     pub level: DeLogLevelFilter,
     #[serde(default)]
@@ -25,6 +28,7 @@ pub struct Logger {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FileAppenderConfig {
     pub path: String,
     pub encoder: Option<Encoder>,
@@ -32,16 +36,19 @@ pub struct FileAppenderConfig {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     pub encoder: Option<Encoder>,
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ThresholdFilterConfig {
     pub level: DeLogLevelFilter,
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PatternEncoderConfig {
     pub pattern: Option<String>,
 }

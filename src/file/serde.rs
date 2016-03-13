@@ -12,7 +12,7 @@ impl ::serde::de::Deserialize for Config {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __field2, __field3, __ignore, }
+            enum __Field { __field0, __field1, __field2, __field3, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -36,7 +36,9 @@ impl ::serde::de::Deserialize for Config {
                                 1usize => { Ok(__Field::__field1) }
                                 2usize => { Ok(__Field::__field2) }
                                 3usize => { Ok(__Field::__field3) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -47,7 +49,8 @@ impl ::serde::de::Deserialize for Config {
                                 "root" => { Ok(__Field::__field1) }
                                 "appenders" => { Ok(__Field::__field2) }
                                 "loggers" => { Ok(__Field::__field3) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -58,7 +61,11 @@ impl ::serde::de::Deserialize for Config {
                                 b"root" => { Ok(__Field::__field1) }
                                 b"appenders" => { Ok(__Field::__field2) }
                                 b"loggers" => { Ok(__Field::__field3) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -146,10 +153,6 @@ impl ::serde::de::Deserialize for Config {
                                     __field3 =
                                         Some(try!(visitor.visit_value()));
                                 }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
-                                }
                             }
                         }
                         let __field0 =
@@ -219,7 +222,7 @@ impl ::serde::de::Deserialize for Root {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __ignore, }
+            enum __Field { __field0, __field1, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -241,7 +244,9 @@ impl ::serde::de::Deserialize for Root {
                             match value {
                                 0usize => { Ok(__Field::__field0) }
                                 1usize => { Ok(__Field::__field1) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -250,7 +255,8 @@ impl ::serde::de::Deserialize for Root {
                             match value {
                                 "level" => { Ok(__Field::__field0) }
                                 "appenders" => { Ok(__Field::__field1) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -259,7 +265,11 @@ impl ::serde::de::Deserialize for Root {
                             match value {
                                 b"level" => { Ok(__Field::__field0) }
                                 b"appenders" => { Ok(__Field::__field1) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -314,10 +324,6 @@ impl ::serde::de::Deserialize for Root {
                                     __field1 =
                                         Some(try!(visitor.visit_value()));
                                 }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
-                                }
                             }
                         }
                         let __field0 =
@@ -359,7 +365,7 @@ impl ::serde::de::Deserialize for Logger {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __field2, __ignore, }
+            enum __Field { __field0, __field1, __field2, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -382,7 +388,9 @@ impl ::serde::de::Deserialize for Logger {
                                 0usize => { Ok(__Field::__field0) }
                                 1usize => { Ok(__Field::__field1) }
                                 2usize => { Ok(__Field::__field2) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -392,7 +400,8 @@ impl ::serde::de::Deserialize for Logger {
                                 "level" => { Ok(__Field::__field0) }
                                 "appenders" => { Ok(__Field::__field1) }
                                 "additive" => { Ok(__Field::__field2) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -402,7 +411,11 @@ impl ::serde::de::Deserialize for Logger {
                                 b"level" => { Ok(__Field::__field0) }
                                 b"appenders" => { Ok(__Field::__field1) }
                                 b"additive" => { Ok(__Field::__field2) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -471,10 +484,6 @@ impl ::serde::de::Deserialize for Logger {
                                     __field2 =
                                         Some(try!(visitor.visit_value()));
                                 }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
-                                }
                             }
                         }
                         let __field0 =
@@ -527,7 +536,7 @@ impl ::serde::de::Deserialize for FileAppenderConfig {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __field2, __ignore, }
+            enum __Field { __field0, __field1, __field2, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -550,7 +559,9 @@ impl ::serde::de::Deserialize for FileAppenderConfig {
                                 0usize => { Ok(__Field::__field0) }
                                 1usize => { Ok(__Field::__field1) }
                                 2usize => { Ok(__Field::__field2) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -560,7 +571,8 @@ impl ::serde::de::Deserialize for FileAppenderConfig {
                                 "path" => { Ok(__Field::__field0) }
                                 "encoder" => { Ok(__Field::__field1) }
                                 "append" => { Ok(__Field::__field2) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -570,7 +582,11 @@ impl ::serde::de::Deserialize for FileAppenderConfig {
                                 b"path" => { Ok(__Field::__field0) }
                                 b"encoder" => { Ok(__Field::__field1) }
                                 b"append" => { Ok(__Field::__field2) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -639,10 +655,6 @@ impl ::serde::de::Deserialize for FileAppenderConfig {
                                     __field2 =
                                         Some(try!(visitor.visit_value()));
                                 }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
-                                }
                             }
                         }
                         let __field0 =
@@ -698,7 +710,7 @@ impl ::serde::de::Deserialize for ConsoleAppenderConfig {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __ignore, }
+            enum __Field { __field0, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -719,7 +731,9 @@ impl ::serde::de::Deserialize for ConsoleAppenderConfig {
                          E: ::serde::de::Error {
                             match value {
                                 0usize => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -727,7 +741,8 @@ impl ::serde::de::Deserialize for ConsoleAppenderConfig {
                          E: ::serde::de::Error {
                             match value {
                                 "encoder" => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -735,7 +750,11 @@ impl ::serde::de::Deserialize for ConsoleAppenderConfig {
                          E: ::serde::de::Error {
                             match value {
                                 b"encoder" => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -778,10 +797,6 @@ impl ::serde::de::Deserialize for ConsoleAppenderConfig {
                                     __field0 =
                                         Some(try!(visitor.visit_value()));
                                 }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
-                                }
                             }
                         }
                         let __field0 =
@@ -814,7 +829,7 @@ impl ::serde::de::Deserialize for ThresholdFilterConfig {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __ignore, }
+            enum __Field { __field0, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -835,7 +850,9 @@ impl ::serde::de::Deserialize for ThresholdFilterConfig {
                          E: ::serde::de::Error {
                             match value {
                                 0usize => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -843,7 +860,8 @@ impl ::serde::de::Deserialize for ThresholdFilterConfig {
                          E: ::serde::de::Error {
                             match value {
                                 "level" => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -851,7 +869,11 @@ impl ::serde::de::Deserialize for ThresholdFilterConfig {
                          E: ::serde::de::Error {
                             match value {
                                 b"level" => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -894,10 +916,6 @@ impl ::serde::de::Deserialize for ThresholdFilterConfig {
                                     __field0 =
                                         Some(try!(visitor.visit_value()));
                                 }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
-                                }
                             }
                         }
                         let __field0 =
@@ -930,7 +948,7 @@ impl ::serde::de::Deserialize for PatternEncoderConfig {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __ignore, }
+            enum __Field { __field0, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -951,7 +969,9 @@ impl ::serde::de::Deserialize for PatternEncoderConfig {
                          E: ::serde::de::Error {
                             match value {
                                 0usize => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    Err(::serde::de::Error::invalid_value("expected a field"))
+                                }
                             }
                         }
                         fn visit_str<E>(&mut self, value: &str)
@@ -959,7 +979,8 @@ impl ::serde::de::Deserialize for PatternEncoderConfig {
                          E: ::serde::de::Error {
                             match value {
                                 "pattern" => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ =>
+                                Err(::serde::de::Error::unknown_field(value)),
                             }
                         }
                         fn visit_bytes<E>(&mut self, value: &[u8])
@@ -967,7 +988,11 @@ impl ::serde::de::Deserialize for PatternEncoderConfig {
                          E: ::serde::de::Error {
                             match value {
                                 b"pattern" => { Ok(__Field::__field0) }
-                                _ => Ok(__Field::__ignore),
+                                _ => {
+                                    let value =
+                                        ::std::string::String::from_utf8_lossy(value);
+                                    Err(::serde::de::Error::unknown_field(&value))
+                                }
                             }
                         }
                     }
@@ -1009,10 +1034,6 @@ impl ::serde::de::Deserialize for PatternEncoderConfig {
                                 __Field::__field0 => {
                                     __field0 =
                                         Some(try!(visitor.visit_value()));
-                                }
-                                _ => {
-                                    try!(visitor . visit_value:: < :: serde::
-                                         de:: impls:: IgnoredAny > (  ));
                                 }
                             }
                         }

@@ -38,8 +38,6 @@ lib.rs:
 extern crate log;
 extern crate log4rs;
 
-use std::default::Default;
-
 fn main() {
     log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
 

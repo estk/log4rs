@@ -248,7 +248,7 @@ pub struct Config {
 }
 
 impl Config {
-    /// Creates a log4rs `Config` from the specified TOML config string and `Builder`.
+    /// Creates a log4rs `Config` from the specified config string and `Builder`.
     pub fn parse(config: &str,
                  format: Format,
                  creator: &Builder)
