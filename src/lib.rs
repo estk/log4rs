@@ -373,7 +373,8 @@ pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), Error>
                                   max_log_level);
         }
         Box::new(logger)
-    }).map_err(Into::into)
+    })
+        .map_err(Into::into)
 }
 
 /// An error initializing the logging framework from a file.
@@ -427,9 +428,7 @@ fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
         #[cfg(feature = "yaml")]
         Some("yaml") | Some("yml") => Ok(Format::Yaml),
         #[cfg(not(feature = "yaml"))]
-        Some("yaml") | Some("yml") => {
-            Err("the `yaml` feature is required for YAML support".into())
-        }
+        Some("yaml") | Some("yml") => Err("the `yaml` feature is required for YAML support".into()),
         #[cfg(feature = "json")]
         Some("json") => Ok(Format::Json),
         #[cfg(not(feature = "json"))]
@@ -439,7 +438,7 @@ fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
         #[cfg(not(feature = "toml"))]
         Some("toml") => Err("the `toml` feature is required for TOML support".into()),
         Some(f) => Err(format!("unsupported file format `{}`", f).into()),
-        None => Err("unable to determine the file format".into())
+        None => Err("unable to determine the file format".into()),
     }
 }
 
@@ -490,7 +489,7 @@ impl ConfigReloader {
         };
 
         thread::Builder::new()
-            .name("log4rs config refresh thread".to_string())
+            .name("log4rs config refresh thread".to_owned())
             .spawn(move || reloader.run())
             .unwrap();
     }

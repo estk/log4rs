@@ -151,10 +151,7 @@ impl Builder {
 
     /// Adds a mapping from the specified `kind` to a builder.
     pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Build<Trait = T>>) {
-        self.builders
-            .entry::<KeyAdaptor<T>>()
-            .or_insert(HashMap::new())
-            .insert(kind, builder);
+        self.builders.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind, builder);
     }
 
     /// Retrieves the builder of the specified `kind`.
@@ -213,7 +210,7 @@ impl error::Error for Error {
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            Error::AppenderCreation(_, ref err) => Some(&**err),
+            Error::AppenderCreation(_, ref err) |
             Error::FilterCreation(_, ref err) => Some(&**err),
             Error::Config(ref err) => Some(err),
         }

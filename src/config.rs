@@ -346,26 +346,26 @@ impl ConfigBuilder {
 
 fn check_logger_name(name: &str) -> Result<(), Error> {
     if name.is_empty() {
-        return Err(Error::InvalidLoggerName(name.to_string()));
+        return Err(Error::InvalidLoggerName(name.to_owned()));
     }
 
     let mut streak = 0;
     for ch in name.chars() {
-        if ch != ':' {
-            if streak > 0 && streak != 2 {
-                return Err(Error::InvalidLoggerName(name.to_string()));
-            }
-            streak = 0;
-        } else {
+        if ch == ':' {
             streak += 1;
             if streak > 2 {
-                return Err(Error::InvalidLoggerName(name.to_string()));
+                return Err(Error::InvalidLoggerName(name.to_owned()));
             }
+        } else {
+            if streak > 0 && streak != 2 {
+                return Err(Error::InvalidLoggerName(name.to_owned()));
+            }
+            streak = 0;
         }
     }
 
     if streak > 0 {
-        Err(Error::InvalidLoggerName(name.to_string()))
+        Err(Error::InvalidLoggerName(name.to_owned()))
     } else {
         Ok(())
     }

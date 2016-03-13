@@ -102,7 +102,7 @@ impl PatternEncoder {
                     location: &Location,
                     args: &fmt::Arguments)
                     -> io::Result<()> {
-        for chunk in self.pattern.iter() {
+        for chunk in &self.pattern {
             try!(match *chunk {
                 Chunk::Text(ref text) => write!(w, "{}", text),
                 Chunk::Time(TimeFmt::Str(ref fmt)) => {
