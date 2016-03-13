@@ -61,16 +61,11 @@ impl RootBuilder {
 }
 
 /// Configuration for an appender.
+#[derive(Debug)]
 pub struct Appender {
     name: String,
     appender: Box<Append>,
     filters: Vec<Box<Filter>>,
-}
-
-impl fmt::Debug for Appender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Appender {{ name: {} }}", self.name)
-    }
 }
 
 impl Appender {

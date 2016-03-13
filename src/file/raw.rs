@@ -152,6 +152,7 @@ mod test {
     use super::*;
     use file::Format;
 
+    #[allow(dead_code)]
     fn expected() -> Config {
         Config {
             refresh_rate: Some(DeDuration(Duration::from_secs(60))),
