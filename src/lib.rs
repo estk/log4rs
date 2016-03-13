@@ -115,8 +115,6 @@ extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
 
-use std::borrow::ToOwned;
-use std::convert::AsRef;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
