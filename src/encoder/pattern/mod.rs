@@ -17,6 +17,7 @@
 use std::default::Default;
 use std::error;
 use std::fmt;
+use std::fmt::Write as FmtWrite;
 use std::thread;
 use std::io;
 use std::io::Write;
@@ -69,11 +70,11 @@ struct PatternDebug<'a>(&'a [Chunk]);
 
 impl<'a> fmt::Debug for PatternDebug<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        try!(fmt.write_str("\""));
+        try!(fmt.write_char('"'));
         for chunk in self.0 {
             try!(write!(fmt, "{}", chunk));
         }
-        fmt.write_str("\"")
+        fmt.write_char('"')
     }
 }
 
