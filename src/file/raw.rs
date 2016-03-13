@@ -1,7 +1,7 @@
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
-use time::Duration;
+use std::time::Duration;
 use serde::de::{self, Deserialize, Deserializer};
 use serde_value::Value;
 use log::LogLevelFilter;
@@ -17,7 +17,7 @@ impl Deserialize for DeDuration {
     fn deserialize<D>(d: &mut D) -> Result<DeDuration, D::Error>
         where D: Deserializer
     {
-        i64::deserialize(d).map(|r| DeDuration(Duration::seconds(r)))
+        u64::deserialize(d).map(|r| DeDuration(Duration::from_secs(r)))
     }
 }
 
@@ -145,7 +145,7 @@ pub fn parse(format: Format, _config: &str) -> Result<Config, Box<Error>> {
 mod test {
     use std::borrow::ToOwned;
     use std::collections::{HashMap, BTreeMap};
-    use time::Duration;
+    use std::time::Duration;
     use log::LogLevelFilter;
     use serde_value::Value;
 
@@ -154,7 +154,7 @@ mod test {
 
     fn expected() -> Config {
         Config {
-            refresh_rate: Some(DeDuration(Duration::seconds(60))),
+            refresh_rate: Some(DeDuration(Duration::from_secs(60))),
             appenders: {
                 let mut m = HashMap::new();
                 m.insert("console".to_owned(),

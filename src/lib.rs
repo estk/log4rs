@@ -127,7 +127,7 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, Arc};
 use std::thread;
-use time::Duration;
+use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use appender::Append;
@@ -496,7 +496,7 @@ impl ConfigReloader {
 
     fn run(&mut self) {
         loop {
-            thread::sleep(std::time::Duration::from_millis(self.rate.num_milliseconds() as u64));
+            thread::sleep(self.rate);
 
             let source = match read_config(&self.path) {
                 Ok(source) => source,

@@ -85,7 +85,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::error;
 use std::fmt;
-use time::Duration;
+use std::time::Duration;
 use typemap::{Key, ShareMap};
 use serde_value::Value;
 
