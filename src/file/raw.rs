@@ -7,6 +7,7 @@ use serde_value::Value;
 use log::LogLevelFilter;
 
 use file::Format;
+use priv_serde::Undeserializable;
 
 include!("serde.rs");
 
@@ -151,6 +152,7 @@ mod test {
 
     use super::*;
     use file::Format;
+    use priv_serde::Undeserializable;
 
     #[allow(dead_code)]
     fn expected() -> Config {
@@ -188,6 +190,7 @@ mod test {
             root: Some(Root {
                 level: DeLogLevelFilter(LogLevelFilter::Info),
                 appenders: vec!["console".to_owned()],
+                _p: Undeserializable,
             }),
             loggers: {
                 let mut m = HashMap::new();
@@ -196,9 +199,11 @@ mod test {
                              level: DeLogLevelFilter(LogLevelFilter::Warn),
                              appenders: vec!["baz".to_owned()],
                              additive: Some(false),
+                             _p: Undeserializable,
                          });
                 m
             },
+            _p: Undeserializable,
         }
     }
 

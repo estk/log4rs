@@ -5,6 +5,7 @@ pub struct Config {
     pub root: Option<Root>,
     pub appenders: HashMap<String, Appender>,
     pub loggers: HashMap<String, Logger>,
+    _p: Undeserializable,
 }
 impl ::serde::de::Deserialize for Config {
     fn deserialize<__D>(deserializer: &mut __D)
@@ -12,7 +13,7 @@ impl ::serde::de::Deserialize for Config {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __field2, __field3, }
+            enum __Field { __field0, __field1, __field2, __field3, __field4, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -36,6 +37,7 @@ impl ::serde::de::Deserialize for Config {
                                 1usize => { Ok(__Field::__field1) }
                                 2usize => { Ok(__Field::__field2) }
                                 3usize => { Ok(__Field::__field3) }
+                                4usize => { Ok(__Field::__field4) }
                                 _ => {
                                     Err(::serde::de::Error::invalid_value("expected a field"))
                                 }
@@ -49,6 +51,7 @@ impl ::serde::de::Deserialize for Config {
                                 "root" => { Ok(__Field::__field1) }
                                 "appenders" => { Ok(__Field::__field2) }
                                 "loggers" => { Ok(__Field::__field3) }
+                                "_p" => { Ok(__Field::__field4) }
                                 _ =>
                                 Err(::serde::de::Error::unknown_field(value)),
                             }
@@ -61,6 +64,7 @@ impl ::serde::de::Deserialize for Config {
                                 b"root" => { Ok(__Field::__field1) }
                                 b"appenders" => { Ok(__Field::__field2) }
                                 b"loggers" => { Ok(__Field::__field3) }
+                                b"_p" => { Ok(__Field::__field4) }
                                 _ => {
                                     let value =
                                         ::std::string::String::from_utf8_lossy(value);
@@ -118,11 +122,19 @@ impl ::serde::de::Deserialize for Config {
                                     return Err(::serde::de::Error::end_of_stream());
                                 }
                             };
+                        let __field4 =
+                            match try!(visitor . visit (  )) {
+                                Some(value) => { value }
+                                None => {
+                                    return Err(::serde::de::Error::end_of_stream());
+                                }
+                            };
                         try!(visitor . end (  ));
                         Ok(Config{refresh_rate: __field0,
                                   root: __field1,
                                   appenders: __field2,
-                                  loggers: __field3,})
+                                  loggers: __field3,
+                                  _p: __field4,})
                     }
                 }
                 #[inline]
@@ -134,6 +146,7 @@ impl ::serde::de::Deserialize for Config {
                         let mut __field1 = None;
                         let mut __field2 = None;
                         let mut __field3 = None;
+                        let mut __field4 = None;
                         while let Some(key) = try!(visitor . visit_key (  )) {
                             match key {
                                 __Field::__field0 => {
@@ -150,6 +163,10 @@ impl ::serde::de::Deserialize for Config {
                                 }
                                 __Field::__field3 => {
                                     __field3 =
+                                        Some(try!(visitor.visit_value()));
+                                }
+                                __Field::__field4 => {
+                                    __field4 =
                                         Some(try!(visitor.visit_value()));
                                 }
                             }
@@ -194,16 +211,22 @@ impl ::serde::de::Deserialize for Config {
                                     return ::std::result::Result::Err(value),
                                 },
                             };
+                        let __field4 =
+                            match __field4 {
+                                Some(__field4) => __field4,
+                                None => ::std::default::Default::default(),
+                            };
                         try!(visitor . end (  ));
                         Ok(Config{refresh_rate: __field0,
                                   root: __field1,
                                   appenders: __field2,
-                                  loggers: __field3,})
+                                  loggers: __field3,
+                                  _p: __field4,})
                     }
                 }
             }
             const FIELDS: &'static [&'static str] =
-                &["refresh_rate", "root", "appenders", "loggers"];
+                &["refresh_rate", "root", "appenders", "loggers", "_p"];
             deserializer.deserialize_struct("Config", FIELDS,
                                             __Visitor::<__D>(::std::marker::PhantomData))
         }
@@ -214,6 +237,7 @@ impl ::serde::de::Deserialize for Config {
 pub struct Root {
     pub level: DeLogLevelFilter,
     pub appenders: Vec<String>,
+    _p: Undeserializable,
 }
 impl ::serde::de::Deserialize for Root {
     fn deserialize<__D>(deserializer: &mut __D)
@@ -221,7 +245,7 @@ impl ::serde::de::Deserialize for Root {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, }
+            enum __Field { __field0, __field1, __field2, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -243,6 +267,7 @@ impl ::serde::de::Deserialize for Root {
                             match value {
                                 0usize => { Ok(__Field::__field0) }
                                 1usize => { Ok(__Field::__field1) }
+                                2usize => { Ok(__Field::__field2) }
                                 _ => {
                                     Err(::serde::de::Error::invalid_value("expected a field"))
                                 }
@@ -254,6 +279,7 @@ impl ::serde::de::Deserialize for Root {
                             match value {
                                 "level" => { Ok(__Field::__field0) }
                                 "appenders" => { Ok(__Field::__field1) }
+                                "_p" => { Ok(__Field::__field2) }
                                 _ =>
                                 Err(::serde::de::Error::unknown_field(value)),
                             }
@@ -264,6 +290,7 @@ impl ::serde::de::Deserialize for Root {
                             match value {
                                 b"level" => { Ok(__Field::__field0) }
                                 b"appenders" => { Ok(__Field::__field1) }
+                                b"_p" => { Ok(__Field::__field2) }
                                 _ => {
                                     let value =
                                         ::std::string::String::from_utf8_lossy(value);
@@ -302,8 +329,17 @@ impl ::serde::de::Deserialize for Root {
                                     return Err(::serde::de::Error::end_of_stream());
                                 }
                             };
+                        let __field2 =
+                            match try!(visitor . visit (  )) {
+                                Some(value) => { value }
+                                None => {
+                                    return Err(::serde::de::Error::end_of_stream());
+                                }
+                            };
                         try!(visitor . end (  ));
-                        Ok(Root{level: __field0, appenders: __field1,})
+                        Ok(Root{level: __field0,
+                                appenders: __field1,
+                                _p: __field2,})
                     }
                 }
                 #[inline]
@@ -313,6 +349,7 @@ impl ::serde::de::Deserialize for Root {
                     {
                         let mut __field0 = None;
                         let mut __field1 = None;
+                        let mut __field2 = None;
                         while let Some(key) = try!(visitor . visit_key (  )) {
                             match key {
                                 __Field::__field0 => {
@@ -321,6 +358,10 @@ impl ::serde::de::Deserialize for Root {
                                 }
                                 __Field::__field1 => {
                                     __field1 =
+                                        Some(try!(visitor.visit_value()));
+                                }
+                                __Field::__field2 => {
+                                    __field2 =
                                         Some(try!(visitor.visit_value()));
                                 }
                             }
@@ -340,12 +381,20 @@ impl ::serde::de::Deserialize for Root {
                                 Some(__field1) => __field1,
                                 None => ::std::default::Default::default(),
                             };
+                        let __field2 =
+                            match __field2 {
+                                Some(__field2) => __field2,
+                                None => ::std::default::Default::default(),
+                            };
                         try!(visitor . end (  ));
-                        Ok(Root{level: __field0, appenders: __field1,})
+                        Ok(Root{level: __field0,
+                                appenders: __field1,
+                                _p: __field2,})
                     }
                 }
             }
-            const FIELDS: &'static [&'static str] = &["level", "appenders"];
+            const FIELDS: &'static [&'static str] =
+                &["level", "appenders", "_p"];
             deserializer.deserialize_struct("Root", FIELDS,
                                             __Visitor::<__D>(::std::marker::PhantomData))
         }
@@ -357,6 +406,7 @@ pub struct Logger {
     pub level: DeLogLevelFilter,
     pub appenders: Vec<String>,
     pub additive: Option<bool>,
+    _p: Undeserializable,
 }
 impl ::serde::de::Deserialize for Logger {
     fn deserialize<__D>(deserializer: &mut __D)
@@ -364,7 +414,7 @@ impl ::serde::de::Deserialize for Logger {
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __field2, }
+            enum __Field { __field0, __field1, __field2, __field3, }
             impl ::serde::de::Deserialize for __Field {
                 #[inline]
                 fn deserialize<D>(deserializer: &mut D)
@@ -387,6 +437,7 @@ impl ::serde::de::Deserialize for Logger {
                                 0usize => { Ok(__Field::__field0) }
                                 1usize => { Ok(__Field::__field1) }
                                 2usize => { Ok(__Field::__field2) }
+                                3usize => { Ok(__Field::__field3) }
                                 _ => {
                                     Err(::serde::de::Error::invalid_value("expected a field"))
                                 }
@@ -399,6 +450,7 @@ impl ::serde::de::Deserialize for Logger {
                                 "level" => { Ok(__Field::__field0) }
                                 "appenders" => { Ok(__Field::__field1) }
                                 "additive" => { Ok(__Field::__field2) }
+                                "_p" => { Ok(__Field::__field3) }
                                 _ =>
                                 Err(::serde::de::Error::unknown_field(value)),
                             }
@@ -410,6 +462,7 @@ impl ::serde::de::Deserialize for Logger {
                                 b"level" => { Ok(__Field::__field0) }
                                 b"appenders" => { Ok(__Field::__field1) }
                                 b"additive" => { Ok(__Field::__field2) }
+                                b"_p" => { Ok(__Field::__field3) }
                                 _ => {
                                     let value =
                                         ::std::string::String::from_utf8_lossy(value);
@@ -455,10 +508,18 @@ impl ::serde::de::Deserialize for Logger {
                                     return Err(::serde::de::Error::end_of_stream());
                                 }
                             };
+                        let __field3 =
+                            match try!(visitor . visit (  )) {
+                                Some(value) => { value }
+                                None => {
+                                    return Err(::serde::de::Error::end_of_stream());
+                                }
+                            };
                         try!(visitor . end (  ));
                         Ok(Logger{level: __field0,
                                   appenders: __field1,
-                                  additive: __field2,})
+                                  additive: __field2,
+                                  _p: __field3,})
                     }
                 }
                 #[inline]
@@ -469,6 +530,7 @@ impl ::serde::de::Deserialize for Logger {
                         let mut __field0 = None;
                         let mut __field1 = None;
                         let mut __field2 = None;
+                        let mut __field3 = None;
                         while let Some(key) = try!(visitor . visit_key (  )) {
                             match key {
                                 __Field::__field0 => {
@@ -481,6 +543,10 @@ impl ::serde::de::Deserialize for Logger {
                                 }
                                 __Field::__field2 => {
                                     __field2 =
+                                        Some(try!(visitor.visit_value()));
+                                }
+                                __Field::__field3 => {
+                                    __field3 =
                                         Some(try!(visitor.visit_value()));
                                 }
                             }
@@ -510,15 +576,21 @@ impl ::serde::de::Deserialize for Logger {
                                     return ::std::result::Result::Err(value),
                                 },
                             };
+                        let __field3 =
+                            match __field3 {
+                                Some(__field3) => __field3,
+                                None => ::std::default::Default::default(),
+                            };
                         try!(visitor . end (  ));
                         Ok(Logger{level: __field0,
                                   appenders: __field1,
-                                  additive: __field2,})
+                                  additive: __field2,
+                                  _p: __field3,})
                     }
                 }
             }
             const FIELDS: &'static [&'static str] =
-                &["level", "appenders", "additive"];
+                &["level", "appenders", "additive", "_p"];
             deserializer.deserialize_struct("Logger", FIELDS,
                                             __Visitor::<__D>(::std::marker::PhantomData))
         }

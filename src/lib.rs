@@ -137,6 +137,7 @@ pub mod config;
 pub mod filter;
 pub mod file;
 pub mod encode;
+mod priv_serde;
 
 struct ConfiguredLogger {
     level: LogLevelFilter,

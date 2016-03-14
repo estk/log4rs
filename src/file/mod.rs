@@ -257,7 +257,8 @@ impl Config {
         let raw::Config { refresh_rate,
                           root: raw_root,
                           appenders: raw_appenders,
-                          loggers: raw_loggers } = config;
+                          loggers: raw_loggers,
+                          .. } = config;
 
         let root = match raw_root {
             Some(raw_root) => {
@@ -287,7 +288,7 @@ impl Config {
         }
 
         for (name, logger) in raw_loggers {
-            let raw::Logger { level, appenders, additive } = logger;
+            let raw::Logger { level, appenders, additive, .. } = logger;
             let mut logger = config::Logger::builder(name, level.0).appenders(appenders);
             if let Some(additive) = additive {
                 logger = logger.additive(additive);
