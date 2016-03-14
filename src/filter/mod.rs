@@ -6,9 +6,9 @@ use log::LogRecord;
 pub mod threshold;
 
 /// The trait implemented by log4rs filters.
-pub trait Filter: fmt::Debug + Send + 'static {
+pub trait Filter: fmt::Debug + Send + Sync + 'static {
     /// Filters a log event.
-    fn filter(&mut self, record: &LogRecord) -> Response;
+    fn filter(&self, record: &LogRecord) -> Response;
 }
 
 /// The response returned by a filter.

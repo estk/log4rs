@@ -24,7 +24,7 @@ impl fmt::Debug for ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
+    fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
         let mut stdout = SimpleWriter(self.stdout.lock());
         try!(self.encoder.encode(&mut stdout, record));
         try!(stdout.flush());
