@@ -24,12 +24,16 @@ use std::io::Write;
 use std::str;
 use std::thread;
 use time;
+use serde_value::Value;
 
 use encode::pattern::parser::{TimeFmt, Chunk, parse_pattern};
 use encode::{self, Encode};
+use file::{Build, Builder};
 use ErrorInternals;
 
 mod parser;
+
+include!("serde.rs");
 
 /// An error parsing a `PatternEncoder` pattern.
 #[derive(Debug)]
@@ -159,6 +163,24 @@ struct Location<'a> {
     module_path: &'a str,
     file: &'a str,
     line: u32,
+}
+
+/// A builder for the `PatternEncoder`.
+///
+/// The `pattern` key is required and specifies the pattern for the encoder.
+pub struct PatternEncoderBuilder;
+
+impl Build for PatternEncoderBuilder {
+    type Trait = Encode;
+
+    fn build(&self, config: Value, _: &Builder) -> Result<Box<Encode>, Box<error::Error>> {
+        let config = try!(config.deserialize_into::<PatternEncoderConfig>());
+        let encoder = match config.pattern {
+            Some(pattern) => try!(PatternEncoder::new(&pattern)),
+            None => PatternEncoder::default(),
+        };
+        Ok(Box::new(encoder))
+    }
 }
 
 #[cfg(test)]

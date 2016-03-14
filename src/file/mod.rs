@@ -95,8 +95,7 @@ use append::console::ConsoleAppender;
 use filter::Filter;
 use filter::threshold::ThresholdFilter;
 use config;
-use encode::Encode;
-use encode::pattern::PatternEncoder;
+use encode::pattern::PatternEncoderBuilder;
 use PrivateConfigErrorsExt;
 
 mod raw;
@@ -386,24 +385,6 @@ impl Build for ThresholdFilterBuilder {
     fn build(&self, config: Value, _: &Builder) -> Result<Box<Filter>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<raw::ThresholdFilterConfig>());
         Ok(Box::new(ThresholdFilter::new(config.level.0)))
-    }
-}
-
-/// A builder for the `PatternEncoder`.
-///
-/// The `pattern` key is required and specifies the pattern for the encoder.
-pub struct PatternEncoderBuilder;
-
-impl Build for PatternEncoderBuilder {
-    type Trait = Encode;
-
-    fn build(&self, config: Value, _: &Builder) -> Result<Box<Encode>, Box<error::Error>> {
-        let config = try!(config.deserialize_into::<raw::PatternEncoderConfig>());
-        let encoder = match config.pattern {
-            Some(pattern) => try!(PatternEncoder::new(&pattern)),
-            None => PatternEncoder::default(),
-        };
-        Ok(Box::new(encoder))
     }
 }
 

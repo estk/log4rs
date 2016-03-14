@@ -46,9 +46,3 @@ pub struct ConsoleAppenderConfig {
 pub struct ThresholdFilterConfig {
     pub level: DeLogLevelFilter,
 }
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PatternEncoderConfig {
-    pub pattern: Option<String>,
-}
