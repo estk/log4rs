@@ -102,7 +102,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&mut self, w: &mut encode::Write, record: &LogRecord) -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> io::Result<()> {
         let location = Location {
             module_path: record.location().module_path(),
             file: record.location().file(),

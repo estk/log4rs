@@ -25,7 +25,7 @@ impl<W: io::Write> io::Write for SimpleWriter<W> {
 impl<W: io::Write> encode::Write for SimpleWriter<W> {}
 
 /// A trait implemented by log4rs appenders.
-pub trait Append: fmt::Debug + Send + 'static {
+pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `LogRecord`.
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>>;
+    fn append(&self, record: &LogRecord) -> Result<(), Box<Error>>;
 }

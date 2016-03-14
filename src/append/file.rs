@@ -1,10 +1,11 @@
 //! The file appender.
 
 use std::error::Error;
-use std::path::{Path, PathBuf};
-use std::io::{self, Write, BufWriter};
-use std::fs::{File, OpenOptions};
 use std::fmt;
+use std::fs::{File, OpenOptions};
+use std::io::{self, Write, BufWriter};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use log::LogRecord;
 
 use append::{Append, SimpleWriter};
@@ -14,7 +15,7 @@ use encode::pattern::PatternEncoder;
 /// An appender which logs to a file.
 pub struct FileAppender {
     path: PathBuf,
-    file: SimpleWriter<BufWriter<File>>,
+    file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<Encode>,
 }
 
@@ -28,9 +29,10 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
-        try!(self.encoder.encode(&mut self.file, record));
-        try!(self.file.flush());
+    fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
+        let mut file = self.file.lock().unwrap_or_else(|e| e.into_inner());
+        try!(self.encoder.encode(&mut *file, record));
+        try!(file.flush());
         Ok(())
     }
 }
@@ -79,7 +81,7 @@ impl FileAppenderBuilder {
 
         Ok(FileAppender {
             path: self.path,
-            file: SimpleWriter(BufWriter::with_capacity(1024, file)),
+            file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self.encoder,
         })
     }

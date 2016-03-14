@@ -123,7 +123,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, Arc};
+use std::sync::{RwLock, Arc};
 use std::thread;
 use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
@@ -215,7 +215,7 @@ impl ConfiguredLogger {
         self.level >= level
     }
 
-    fn log(&self, record: &log::LogRecord, appenders: &mut [Appender]) {
+    fn log(&self, record: &log::LogRecord, appenders: &[Appender]) {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
@@ -232,8 +232,8 @@ struct Appender {
 }
 
 impl Appender {
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<error::Error>> {
-        for filter in &mut self.filters {
+    fn append(&self, record: &LogRecord) -> Result<(), Box<error::Error>> {
+        for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
                 filter::Response::Neutral => {}
@@ -298,16 +298,16 @@ impl SharedLogger {
 }
 
 struct Logger {
-    inner: Arc<Mutex<SharedLogger>>,
+    inner: Arc<RwLock<SharedLogger>>,
 }
 
 impl Logger {
     fn new(config: config::Config) -> Logger {
-        Logger { inner: Arc::new(Mutex::new(SharedLogger::new(config))) }
+        Logger { inner: Arc::new(RwLock::new(SharedLogger::new(config))) }
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
-        self.inner.lock().unwrap().root.max_log_level()
+        self.inner.read().unwrap().root.max_log_level()
     }
 }
 
@@ -317,14 +317,14 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &log::LogRecord) {
-        let shared = &mut *self.inner.lock().unwrap();
-        shared.root.find(record.target()).log(record, &mut shared.appenders);
+        let shared = &*self.inner.read().unwrap();
+        shared.root.find(record.target()).log(record, &shared.appenders);
     }
 }
 
 impl Logger {
     fn enabled_inner(&self, level: LogLevel, target: &str) -> bool {
-        self.inner.lock().unwrap().root.find(target).enabled(level)
+        self.inner.read().unwrap().root.find(target).enabled(level)
     }
 }
 
@@ -465,7 +465,7 @@ struct ConfigReloader {
     rate: Duration,
     source: String,
     builder: Builder,
-    shared: Arc<Mutex<SharedLogger>>,
+    shared: Arc<RwLock<SharedLogger>>,
     max_log_level: MaxLogLevelFilter,
 }
 
@@ -523,7 +523,7 @@ impl ConfigReloader {
 
             let shared = SharedLogger::new(config);
             self.max_log_level.set(shared.root.max_log_level());
-            *self.shared.lock().unwrap() = shared;
+            *self.shared.write().unwrap() = shared;
 
             match refresh_rate {
                 Some(rate) => self.rate = rate,
