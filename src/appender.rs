@@ -11,8 +11,22 @@ use std::path::{Path, PathBuf};
 use std::fmt;
 use log::LogRecord;
 
-use encoder::Encode;
+use encoder::{self, Encode};
 use encoder::pattern::PatternEncoder;
+
+struct SimpleWriter<W>(W);
+
+impl<W: Write> io::Write for SimpleWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush()
+    }
+}
+
+impl<W: Write> encoder::Write for SimpleWriter<W> {}
 
 /// A trait implemented by log4rs appenders.
 pub trait Append: fmt::Debug + Send + 'static {
@@ -23,7 +37,7 @@ pub trait Append: fmt::Debug + Send + 'static {
 /// An appender which logs to a file.
 pub struct FileAppender {
     path: PathBuf,
-    file: BufWriter<File>,
+    file: SimpleWriter<BufWriter<File>>,
     encoder: Box<Encode>,
 }
 
@@ -88,7 +102,7 @@ impl FileAppenderBuilder {
 
         Ok(FileAppender {
             path: self.path,
-            file: BufWriter::with_capacity(1024, file),
+            file: SimpleWriter(BufWriter::with_capacity(1024, file)),
             encoder: self.encoder,
         })
     }
@@ -110,7 +124,7 @@ impl fmt::Debug for ConsoleAppender {
 
 impl Append for ConsoleAppender {
     fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
-        let mut stdout = self.stdout.lock();
+        let mut stdout = SimpleWriter(self.stdout.lock());
         try!(self.encoder.encode(&mut stdout, record));
         try!(stdout.flush());
         Ok(())

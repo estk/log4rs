@@ -28,7 +28,7 @@ use ErrorInternals;
 
 use log::{LogRecord, LogLevel};
 use time;
-use encoder::Encode;
+use encoder::{self, Encode};
 
 mod parser;
 
@@ -98,6 +98,17 @@ impl Default for PatternEncoder {
     }
 }
 
+impl Encode for PatternEncoder {
+    fn encode(&mut self, w: &mut encoder::Write, record: &LogRecord) -> io::Result<()> {
+        let location = Location {
+            module_path: record.location().module_path(),
+            file: record.location().file(),
+            line: record.location().line(),
+        };
+        self.append_inner(w, record.level(), record.target(), &location, record.args())
+    }
+}
+
 impl PatternEncoder {
     /// Creates a `PatternEncoder` from a pattern string.
     ///
@@ -116,7 +127,7 @@ impl PatternEncoder {
     }
 
     fn append_inner(&self,
-                    w: &mut Write,
+                    w: &mut encoder::Write,
                     level: LogLevel,
                     target: &str,
                     location: &Location,
@@ -145,17 +156,6 @@ impl PatternEncoder {
     }
 }
 
-impl Encode for PatternEncoder {
-    fn encode(&mut self, w: &mut Write, record: &LogRecord) -> io::Result<()> {
-        let location = Location {
-            module_path: record.location().module_path(),
-            file: record.location().file(),
-            line: record.location().line(),
-        };
-        self.append_inner(w, record.level(), record.target(), &location, record.args())
-    }
-}
-
 struct Location<'a> {
     module_path: &'a str,
     file: &'a str,
@@ -166,11 +166,27 @@ struct Location<'a> {
 mod tests {
     use std::default::Default;
     use std::thread;
+    use std::io::{self, Write};
 
     use log::LogLevel;
 
     use super::{PatternEncoder, Location, PatternDebug};
     use encoder::pattern::parser::{TimeFmt, Chunk};
+    use encoder;
+
+    struct SimpleWriter<W>(W);
+
+    impl<W: Write> io::Write for SimpleWriter<W> {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.flush()
+        }
+    }
+
+    impl<W: Write> encoder::Write for SimpleWriter<W> {}
 
     #[test]
     fn test_parse() {
@@ -215,7 +231,7 @@ mod tests {
             file: "the file",
             line: 132,
         };
-        let mut buf = vec![];
+        let mut buf = SimpleWriter(vec![]);
         pw.append_inner(&mut buf,
                         LogLevel::Debug,
                         "target",
@@ -223,7 +239,7 @@ mod tests {
                         &format_args!("the message"))
           .unwrap();
 
-        assert_eq!(buf, &b"DEBUG the message at mod path in the file:132\n"[..]);
+        assert_eq!(buf.0, &b"DEBUG the message at mod path in the file:132\n"[..]);
     }
 
     #[test]
@@ -235,14 +251,14 @@ mod tests {
                 file: "file",
                 line: 132,
             };
-            let mut buf = vec![];
+            let mut buf = SimpleWriter(vec![]);
             pw.append_inner(&mut buf,
                             LogLevel::Debug,
                             "target",
                             &LOCATION,
                             &format_args!("message"))
               .unwrap();
-            assert_eq!(buf, b"<unnamed>\n");
+            assert_eq!(buf.0, b"<unnamed>\n");
         })
             .join()
             .unwrap();
@@ -259,14 +275,14 @@ mod tests {
                     file: "file",
                     line: 132,
                 };
-                let mut buf = vec![];
+                let mut buf = SimpleWriter(vec![]);
                 pw.append_inner(&mut buf,
                                 LogLevel::Debug,
                                 "target",
                                 &LOCATION,
                                 &format_args!("message"))
                   .unwrap();
-                assert_eq!(buf, b"foobar\n");
+                assert_eq!(buf.0, b"foobar\n");
             })
             .unwrap()
             .join()
