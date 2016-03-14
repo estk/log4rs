@@ -1,4 +1,4 @@
-//! Simple pattern syntax for appender output formats.
+//! A simple pattern-based encoder.
 //!
 //! # Basic Specifiers
 //!
@@ -12,23 +12,22 @@
 //! * `%M` - The module that the log message came from.
 //! * `%T` - The name of the thread that the log message came from.
 //! * `%t` - The target of the log message.
-//!
 
+use log::{LogRecord, LogLevel};
+use nom;
 use std::default::Default;
 use std::error;
 use std::fmt;
 use std::fmt::Write as FmtWrite;
-use std::thread;
 use std::io;
 use std::io::Write;
 use std::str;
-use encoder::pattern::parser::{TimeFmt, Chunk, parse_pattern};
-use nom;
-use ErrorInternals;
-
-use log::{LogRecord, LogLevel};
+use std::thread;
 use time;
-use encoder::{self, Encode};
+
+use encode::pattern::parser::{TimeFmt, Chunk, parse_pattern};
+use encode::{self, Encode};
+use ErrorInternals;
 
 mod parser;
 
@@ -99,7 +98,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&mut self, w: &mut encoder::Write, record: &LogRecord) -> io::Result<()> {
+    fn encode(&mut self, w: &mut encode::Write, record: &LogRecord) -> io::Result<()> {
         let location = Location {
             module_path: record.location().module_path(),
             file: record.location().file(),
@@ -127,7 +126,7 @@ impl PatternEncoder {
     }
 
     fn append_inner(&self,
-                    w: &mut encoder::Write,
+                    w: &mut encode::Write,
                     level: LogLevel,
                     target: &str,
                     location: &Location,
@@ -167,12 +166,11 @@ mod tests {
     use std::default::Default;
     use std::thread;
     use std::io::{self, Write};
-
     use log::LogLevel;
 
     use super::{PatternEncoder, Location, PatternDebug};
-    use encoder::pattern::parser::{TimeFmt, Chunk};
-    use encoder;
+    use encode;
+    use encode::pattern::parser::{TimeFmt, Chunk};
 
     struct SimpleWriter<W>(W);
 
@@ -186,7 +184,7 @@ mod tests {
         }
     }
 
-    impl<W: Write> encoder::Write for SimpleWriter<W> {}
+    impl<W: Write> encode::Write for SimpleWriter<W> {}
 
     #[test]
     fn test_parse() {

@@ -1,9 +1,10 @@
 use nom::eof;
-use encoder::pattern::Error;
-use ErrorInternals;
-use std::str;
 use std::fmt::{self, Write};
+use std::str;
 use time;
+
+use encode::pattern::Error;
+use ErrorInternals;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]

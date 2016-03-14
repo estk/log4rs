@@ -6,7 +6,7 @@ use std::iter::IntoIterator;
 use std::error;
 use log::LogLevelFilter;
 
-use appender::Append;
+use append::Append;
 use filter::Filter;
 use {ConfigPrivateExt, PrivateConfigErrorsExt, PrivateConfigAppenderExt};
 

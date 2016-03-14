@@ -89,11 +89,14 @@ use std::time::Duration;
 use typemap::{Key, ShareMap};
 use serde_value::Value;
 
-use appender::{Append, FileAppender, ConsoleAppender};
-use filter::{Filter, ThresholdFilter};
+use append::Append;
+use append::file::FileAppender;
+use append::console::ConsoleAppender;
+use filter::Filter;
+use filter::threshold::ThresholdFilter;
 use config;
-use encoder::Encode;
-use encoder::pattern::PatternEncoder;
+use encode::Encode;
+use encode::pattern::PatternEncoder;
 use PrivateConfigErrorsExt;
 
 mod raw;

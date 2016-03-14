@@ -1,38 +1,15 @@
-//! Appenders
+//! The file appender.
 
-use std::convert::AsRef;
-use std::default::Default;
-use std::io;
 use std::error::Error;
-use std::io::prelude::*;
-use std::io::{BufWriter, Stdout};
-use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
+use std::io::{self, Write, BufWriter};
+use std::fs::{File, OpenOptions};
 use std::fmt;
 use log::LogRecord;
 
-use encoder::{self, Encode};
-use encoder::pattern::PatternEncoder;
-
-struct SimpleWriter<W>(W);
-
-impl<W: Write> io::Write for SimpleWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.0.flush()
-    }
-}
-
-impl<W: Write> encoder::Write for SimpleWriter<W> {}
-
-/// A trait implemented by log4rs appenders.
-pub trait Append: fmt::Debug + Send + 'static {
-    /// Processes the provided `LogRecord`.
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>>;
-}
+use append::{Append, SimpleWriter};
+use encode::Encode;
+use encode::pattern::PatternEncoder;
 
 /// An appender which logs to a file.
 pub struct FileAppender {
@@ -108,53 +85,3 @@ impl FileAppenderBuilder {
     }
 }
 
-/// An appender which logs to stdout.
-pub struct ConsoleAppender {
-    stdout: Stdout,
-    encoder: Box<Encode>,
-}
-
-impl fmt::Debug for ConsoleAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("ConsoleAppender")
-           .field("encoder", &self.encoder)
-           .finish()
-    }
-}
-
-impl Append for ConsoleAppender {
-    fn append(&mut self, record: &LogRecord) -> Result<(), Box<Error>> {
-        let mut stdout = SimpleWriter(self.stdout.lock());
-        try!(self.encoder.encode(&mut stdout, record));
-        try!(stdout.flush());
-        Ok(())
-    }
-}
-
-impl ConsoleAppender {
-    /// Creates a new `ConsoleAppender` builder.
-    pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder { encoder: Box::new(PatternEncoder::default()) }
-    }
-}
-
-/// A builder for `ConsoleAppender`s.
-pub struct ConsoleAppenderBuilder {
-    encoder: Box<Encode>,
-}
-
-impl ConsoleAppenderBuilder {
-    /// Sets the output encoder for the `ConsoleAppender`.
-    pub fn encoder(mut self, encoder: Box<Encode>) -> ConsoleAppenderBuilder {
-        self.encoder = encoder;
-        self
-    }
-
-    /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
-    pub fn build(self) -> ConsoleAppender {
-        ConsoleAppender {
-            stdout: io::stdout(),
-            encoder: self.encoder,
-        }
-    }
-}

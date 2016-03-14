@@ -128,15 +128,15 @@ use std::thread;
 use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
-use appender::Append;
+use append::Append;
 use filter::Filter;
 use file::{Format, Builder};
 
-pub mod appender;
+pub mod append;
 pub mod config;
 pub mod filter;
 pub mod file;
-pub mod encoder;
+pub mod encode;
 
 struct ConfiguredLogger {
     level: LogLevelFilter,
