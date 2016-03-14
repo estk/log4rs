@@ -125,9 +125,9 @@ impl Deserialize for Encoder {
 
 pub fn parse(format: Format, _config: &str) -> Result<Config, Box<Error>> {
     match format {
-        #[cfg(feature = "serde_yaml")]
+        #[cfg(feature = "yaml")]
         Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "serde_json")]
+        #[cfg(feature = "json")]
         Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
         #[cfg(feature = "toml")]
         Format::Toml => {
