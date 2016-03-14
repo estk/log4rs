@@ -170,9 +170,7 @@ impl Builder {
         match self.get(kind) {
             Some(b) => b.build(config, self),
             None => {
-                Err(Box::new(StringError(format!("no {} builder for kind `{}` registered",
-                                                 trait_,
-                                                 kind))))
+                Err(format!("no {} builder for kind `{}` registered", trait_, kind).into())
             }
         }
     }
@@ -327,27 +325,6 @@ impl Config {
     /// Returns any nonfatal errors encountered when deserializing the config.
     pub fn errors(&self) -> &[Error] {
         &self.errors
-    }
-}
-
-#[derive(Debug)]
-struct StringError(String);
-
-impl fmt::Display for StringError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str(&self.0)
-    }
-}
-
-impl error::Error for StringError {
-    fn description(&self) -> &str {
-        &self.0
-    }
-}
-
-impl From<String> for StringError {
-    fn from(s: String) -> StringError {
-        StringError(s)
     }
 }
 
