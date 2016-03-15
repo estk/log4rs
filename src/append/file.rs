@@ -7,10 +7,13 @@ use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use log::LogRecord;
+use serde_value::Value;
 
 use append::{Append, SimpleWriter};
 use encode::Encode;
 use encode::pattern::PatternEncoder;
+use file::{Build, Builder};
+use file::raw::Encoder;
 
 /// An appender which logs to a file.
 pub struct FileAppender {
@@ -87,3 +90,31 @@ impl FileAppenderBuilder {
     }
 }
 
+
+/// A deserializer for the `FileAppender`.
+///
+/// The `path` key is required, and specifies the path to the log file. The
+/// `pattern` key is optional and specifies a `PatternEncoder` pattern to be
+/// used for output. The `append` key is optional and specifies whether the
+/// output file should be truncated or appended to.
+pub struct FileAppenderDeserializer;
+
+impl Build for FileAppenderDeserializer {
+    type Trait = Append;
+
+    fn build(&self, config: Value, builder: &Builder) -> Result<Box<Append>, Box<Error>> {
+        let config = try!(config.deserialize_into::<FileAppenderConfig>());
+        let mut appender = FileAppender::builder(&config.path);
+        if let Some(append) = config.append {
+            appender = appender.append(append);
+        }
+        if let Some(encoder) = config.encoder {
+            appender = appender.encoder(try!(builder.build("encoder",
+                                                           &encoder.kind,
+                                                           encoder.config)));
+        }
+        Ok(Box::new(try!(appender.build())))
+    }
+}
+
+include!("file_serde.rs");

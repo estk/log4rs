@@ -6,8 +6,6 @@ pub struct Config {
     pub root: Option<Root>,
     pub appenders: HashMap<String, Appender>,
     pub loggers: HashMap<String, Logger>,
-    #[serde(default)]
-    _p: Undeserializable,
 }
 
 #[derive(PartialEq, Debug)]
@@ -17,8 +15,6 @@ pub struct Root {
     pub level: DeLogLevelFilter,
     #[serde(default)]
     pub appenders: Vec<String>,
-    #[serde(default)]
-    _p: Undeserializable,
 }
 
 #[derive(PartialEq, Debug)]
@@ -29,26 +25,4 @@ pub struct Logger {
     #[serde(default)]
     pub appenders: Vec<String>,
     pub additive: Option<bool>,
-    #[serde(default)]
-    _p: Undeserializable,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct FileAppenderConfig {
-    pub path: String,
-    pub encoder: Option<Encoder>,
-    pub append: Option<bool>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ConsoleAppenderConfig {
-    pub encoder: Option<Encoder>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ThresholdFilterConfig {
-    pub level: DeLogLevelFilter,
 }

@@ -4,10 +4,13 @@ use std::io::{self, Write, Stdout};
 use std::fmt;
 use std::error::Error;
 use log::LogRecord;
+use serde_value::Value;
 
 use append::{Append, SimpleWriter};
 use encode::Encode;
 use encode::pattern::PatternEncoder;
+use file::{Build, Builder};
+use file::raw::Encoder;
 
 /// An appender which logs to stdout.
 pub struct ConsoleAppender {
@@ -59,3 +62,26 @@ impl ConsoleAppenderBuilder {
         }
     }
 }
+
+/// A deserializer for the `ConsoleAppender`.
+///
+/// The `pattern` key is optional and specifies a `PatternEncoder` pattern to be
+/// used for output.
+pub struct ConsoleAppenderDeserializer;
+
+impl Build for ConsoleAppenderDeserializer {
+    type Trait = Append;
+
+    fn build(&self, config: Value, builder: &Builder) -> Result<Box<Append>, Box<Error>> {
+        let config = try!(config.deserialize_into::<ConsoleAppenderConfig>());
+        let mut appender = ConsoleAppender::builder();
+        if let Some(encoder) = config.encoder {
+            appender = appender.encoder(try!(builder.build("encoder",
+                                                           &encoder.kind,
+                                                           encoder.config)));
+        }
+        Ok(Box::new(appender.build()))
+    }
+}
+
+include!("console_serde.rs");
