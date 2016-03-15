@@ -212,7 +212,7 @@ mod tests {
     impl<W: Write> encode::Write for SimpleWriter<W> {}
 
     #[test]
-    fn test_parse() {
+    fn parse() {
         let expected = [Chunk::Text("hi".to_string()),
                         Chunk::Time(TimeFmt::Str("%Y-%m-%d".to_string())),
                         Chunk::Time(TimeFmt::Rfc3339),
@@ -231,22 +231,22 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_date_format() {
+    fn invalid_date_format() {
         assert!(PatternEncoder::new("%d{%q}").is_err());
     }
 
     #[test]
-    fn test_invalid_formatter() {
+    fn invalid_formatter() {
         assert!(PatternEncoder::new("%x").is_err());
     }
 
     #[test]
-    fn test_unclosed_delimiter() {
+    fn unclosed_delimiter() {
         assert!(PatternEncoder::new("%d{%Y-%m-%d").is_err());
     }
 
     #[test]
-    fn test_log() {
+    fn log() {
         let pw = PatternEncoder::new("%l %m at %M in %f:%L").unwrap();
 
         static LOCATION: Location<'static> = Location {
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unnamed_thread() {
+    fn unnamed_thread() {
         thread::spawn(|| {
             let pw = PatternEncoder::new("%T").unwrap();
             static LOCATION: Location<'static> = Location {
@@ -288,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn test_named_thread() {
+    fn named_thread() {
         thread::Builder::new()
             .name("foobar".to_string())
             .spawn(|| {
@@ -313,7 +313,12 @@ mod tests {
     }
 
     #[test]
-    fn test_default_okay() {
-        let _: PatternEncoder = Default::default();
+    fn default_okay() {
+        PatternEncoder::default();
+    }
+
+    #[test]
+    fn bogus_trailing_chars() {
+        assert!(PatternEncoder::new("%lasdf").is_err());
     }
 }

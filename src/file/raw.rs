@@ -165,6 +165,7 @@ mod test {
     use serde_value::Value;
 
     use super::*;
+    #[allow(unused_imports)]
     use file::{Format, parse};
 
     #[allow(dead_code)]
