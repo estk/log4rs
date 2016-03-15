@@ -79,6 +79,7 @@
 //!     # if not specified.
 //!     additive: false
 //! ```
+
 use log::LogLevelFilter;
 use std::any::Any;
 use std::collections::HashMap;
@@ -88,15 +89,15 @@ use std::fmt;
 use std::time::Duration;
 use typemap::{Key, ShareMap};
 use serde_value::Value;
-use serde::Deserialize;
+use serde::Deserialize as SerdeDeserialize;
 
 use append::Append;
 use append::file::FileAppenderDeserializer;
 use append::console::ConsoleAppenderDeserializer;
 use filter::Filter;
-use filter::threshold::ThresholdFilterBuilder;
+use filter::threshold::ThresholdFilterDeserializer;
 use config;
-use encode::pattern::PatternEncoderBuilder;
+use encode::pattern::PatternEncoderDeserializer;
 use PrivateConfigErrorsExt;
 
 pub mod raw;
@@ -104,72 +105,70 @@ pub mod raw;
 struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
 
 impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Box<Build<Trait = T>>>;
+    type Value = HashMap<String, Box<Deserialize<Trait = T>>>;
 }
 
-/// A trait for objects that can create log4rs components out of a config.
-pub trait Build: Send + Sync + 'static {
+/// A trait for objects that can deserialize log4rs components out of a config.
+pub trait Deserialize: Send + Sync + 'static {
     /// The trait that this builder will create.
     type Trait: ?Sized;
 
     /// Create a new trait object based on the provided config.
-    fn build(&self,
-             config: Value,
-             builder: &Builder)
-             -> Result<Box<Self::Trait>, Box<error::Error>>;
+    fn deserialize(&self,
+                   config: Value,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Self::Trait>, Box<error::Error>>;
 }
 
-/// A type that can create appenders.
+/// A container of `Deserialize`rs.
 ///
-/// `Builder` implements `Default`, which returns a `Builder` with the
-/// following mappings:
+/// `Deserializers` implements `Default`, which returns a `Deserializers` with
+/// the following mappings:
 ///
 /// * Appenders
 ///     * "file" -> `FileAppenderDeserializer`
 ///     * "console" -> `ConsoleAppenderDeserializer`
 /// * Filters
-///     * "threshold" -> `ThresholdFilterBuilder`
+///     * "threshold" -> `ThresholdFilterDeserializer`
 /// * Encoders
-///     * "pattern" -> `PatternEncoderBuilder`
-pub struct Builder {
-    builders: ShareMap,
-}
+///     * "pattern" -> `PatternEncoderDeserializer`
+pub struct Deserializers(ShareMap);
 
-impl Default for Builder {
-    fn default() -> Builder {
-        let mut creator = Builder::new();
-        creator.insert("file".to_owned(), Box::new(FileAppenderDeserializer));
-        creator.insert("console".to_owned(), Box::new(ConsoleAppenderDeserializer));
-        creator.insert("threshold".to_owned(), Box::new(ThresholdFilterBuilder));
-        creator.insert("pattern".to_owned(), Box::new(PatternEncoderBuilder));
-        creator
+impl Default for Deserializers {
+    fn default() -> Deserializers {
+        let mut deserializers = Deserializers::new();
+        deserializers.insert("file".to_owned(), Box::new(FileAppenderDeserializer));
+        deserializers.insert("console".to_owned(), Box::new(ConsoleAppenderDeserializer));
+        deserializers.insert("threshold".to_owned(), Box::new(ThresholdFilterDeserializer));
+        deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
+        deserializers
     }
 }
 
-impl Builder {
-    /// Creates a new `Builder` with no mappings.
-    pub fn new() -> Builder {
-        Builder { builders: ShareMap::custom() }
+impl Deserializers {
+    /// Creates a new `Deserializers` with no mappings.
+    pub fn new() -> Deserializers {
+        Deserializers(ShareMap::custom())
     }
 
-    /// Adds a mapping from the specified `kind` to a builder.
-    pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Build<Trait = T>>) {
-        self.builders.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind, builder);
+    /// Adds a mapping from the specified `kind` to a deserializer.
+    pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Deserialize<Trait = T>>) {
+        self.0.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind, builder);
     }
 
-    /// Retrieves the builder of the specified `kind`.
-    pub fn get<T: ?Sized + Any>(&self, kind: &str) -> Option<&Build<Trait = T>> {
-        self.builders.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b)
+    /// Retrieves the deserializer of the specified `kind`.
+    pub fn get<T: ?Sized + Any>(&self, kind: &str) -> Option<&Deserialize<Trait = T>> {
+        self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b)
     }
 
     /// A utility method that deserializes a value.
-    pub fn build<T: ?Sized + Any>(&self,
-                                  trait_: &str,
-                                  kind: &str,
-                                  config: Value)
-                                  -> Result<Box<T>, Box<error::Error>> {
+    pub fn deserialize<T: ?Sized + Any>(&self,
+                                        trait_: &str,
+                                        kind: &str,
+                                        config: Value)
+                                        -> Result<Box<T>, Box<error::Error>> {
         match self.get(kind) {
-            Some(b) => b.build(config, self),
+            Some(b) => b.deserialize(config, self),
             None => {
                 Err(format!("no {} builder for kind `{}` registered", trait_, kind).into())
             }
@@ -247,10 +246,10 @@ pub struct Config {
 }
 
 impl Config {
-    /// Creates a log4rs `Config` from the specified config string and `Builder`.
+    /// Creates a log4rs `Config` from the specified config string and `Deserializers`.
     pub fn parse(config: &str,
                  format: Format,
-                 creator: &Builder)
+                 deserializers: &Deserializers)
                  -> Result<Config, Box<error::Error>> {
         let mut errors = vec![];
 
@@ -274,11 +273,11 @@ impl Config {
         let mut config = config::Config::builder(root);
 
         for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
-            match creator.build("appender", &kind, raw_config) {
+            match deserializers.deserialize("appender", &kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder(name.clone(), appender_obj);
                     for raw::Filter { kind, config } in filters {
-                        match creator.build("filter", &kind, config) {
+                        match deserializers.deserialize("filter", &kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
                         }
@@ -359,7 +358,7 @@ mod test {
 
     use super::*;
     use super::parse;
-    use priv_serde::{Undeserializable, DeLogLevelFilter, DeDuration};
+    use priv_serde::{DeLogLevelFilter, DeDuration};
 
     #[test]
     #[cfg(feature = "yaml")]
@@ -391,7 +390,7 @@ loggers:
       - baz
     additive: false
 "#;
-        let config = Config::parse(cfg, Format::Yaml, &Builder::default()).unwrap();
+        let config = Config::parse(cfg, Format::Yaml, &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
     }
 

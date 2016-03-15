@@ -130,7 +130,7 @@ use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxL
 
 use append::Append;
 use filter::Filter;
-use file::{Format, Builder};
+use file::{Format, Deserializers};
 
 pub mod append;
 pub mod config;
@@ -346,15 +346,15 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
 /// Initializes the global logger with a log4rs logger.
 ///
 /// Configuration is read from a file located at the provided path on the
-/// filesystem and appenders are created from the provided `Builder`.
+/// filesystem and appenders are created from the provided `Deserializers`.
 ///
 /// Any nonfatal errors encountered when processing the configuration are
 /// reported to stderr.
-pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), Error> {
+pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Result<(), Error> {
     let path = path.as_ref().to_path_buf();
     let format = try!(get_format(&path));
     let source = try!(read_config(&path));
-    let config = try!(parse_config(&source, format, &builder));
+    let config = try!(parse_config(&source, format, &deserializers));
 
     log::set_logger(move |max_log_level| {
         let refresh_rate = config.refresh_rate();
@@ -367,7 +367,7 @@ pub fn init_file<P: AsRef<Path>>(path: P, builder: Builder) -> Result<(), Error>
                                   format,
                                   refresh_rate,
                                   source,
-                                  builder,
+                                  deserializers,
                                   &logger,
                                   max_log_level);
         }
@@ -450,9 +450,9 @@ fn read_config(path: &Path) -> Result<String, Box<error::Error>> {
 
 fn parse_config(source: &str,
                 format: Format,
-                builder: &Builder)
+                deserializers: &Deserializers)
                 -> Result<file::Config, Box<error::Error>> {
-    let config = try!(file::Config::parse(&source, format, builder));
+    let config = try!(file::Config::parse(&source, format, deserializers));
     for error in config.errors() {
         handle_error(error);
     }
@@ -464,7 +464,7 @@ struct ConfigReloader {
     format: Format,
     rate: Duration,
     source: String,
-    builder: Builder,
+    deserializers: Deserializers,
     shared: Arc<RwLock<SharedLogger>>,
     max_log_level: MaxLogLevelFilter,
 }
@@ -474,7 +474,7 @@ impl ConfigReloader {
              format: Format,
              rate: Duration,
              source: String,
-             builder: Builder,
+             deserializers: Deserializers,
              logger: &Logger,
              max_log_level: MaxLogLevelFilter) {
         let mut reloader = ConfigReloader {
@@ -482,7 +482,7 @@ impl ConfigReloader {
             format: format,
             rate: rate,
             source: source,
-            builder: builder,
+            deserializers: deserializers,
             shared: logger.inner.clone(),
             max_log_level: max_log_level,
         };
@@ -511,7 +511,7 @@ impl ConfigReloader {
 
             self.source = source;
 
-            let config = match parse_config(&self.source, self.format, &self.builder) {
+            let config = match parse_config(&self.source, self.format, &self.deserializers) {
                 Ok(config) => config,
                 Err(err) => {
                     handle_error(&*err);

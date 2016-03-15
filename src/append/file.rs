@@ -12,7 +12,7 @@ use serde_value::Value;
 use append::{Append, SimpleWriter};
 use encode::Encode;
 use encode::pattern::PatternEncoder;
-use file::{Build, Builder};
+use file::{Deserialize, Deserializers};
 use file::raw::Encoder;
 
 /// An appender which logs to a file.
@@ -99,19 +99,22 @@ impl FileAppenderBuilder {
 /// output file should be truncated or appended to.
 pub struct FileAppenderDeserializer;
 
-impl Build for FileAppenderDeserializer {
+impl Deserialize for FileAppenderDeserializer {
     type Trait = Append;
 
-    fn build(&self, config: Value, builder: &Builder) -> Result<Box<Append>, Box<Error>> {
+    fn deserialize(&self,
+                   config: Value,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Append>, Box<Error>> {
         let config = try!(config.deserialize_into::<FileAppenderConfig>());
         let mut appender = FileAppender::builder(&config.path);
         if let Some(append) = config.append {
             appender = appender.append(append);
         }
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(builder.build("encoder",
-                                                           &encoder.kind,
-                                                           encoder.config)));
+            appender = appender.encoder(try!(deserializers.deserialize("encoder",
+                                                                       &encoder.kind,
+                                                                       encoder.config)));
         }
         Ok(Box::new(try!(appender.build())))
     }

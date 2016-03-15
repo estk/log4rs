@@ -9,7 +9,7 @@ use serde_value::Value;
 use log::LogLevelFilter;
 
 use file::Format;
-use priv_serde::{Undeserializable, DeLogLevelFilter, DeDuration};
+use priv_serde::{DeLogLevelFilter, DeDuration};
 
 include!("serde.rs");
 

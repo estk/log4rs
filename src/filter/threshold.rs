@@ -5,7 +5,7 @@ use log::{LogLevelFilter, LogRecord};
 use std::error::Error;
 use serde_value::Value;
 
-use file::{Build, Builder};
+use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
 use priv_serde::DeLogLevelFilter;
 
@@ -32,15 +32,18 @@ impl Filter for ThresholdFilter {
     }
 }
 
-/// A builder for the `ThresholdFilter`.
+/// A deserializer for the `ThresholdFilter`.
 ///
 /// The `level` key is required and specifies the threshold for the filter.
-pub struct ThresholdFilterBuilder;
+pub struct ThresholdFilterDeserializer;
 
-impl Build for ThresholdFilterBuilder {
+impl Deserialize for ThresholdFilterDeserializer {
     type Trait = Filter;
 
-    fn build(&self, config: Value, _: &Builder) -> Result<Box<Filter>, Box<Error>> {
+    fn deserialize(&self,
+                   config: Value,
+                   _: &Deserializers)
+                   -> Result<Box<Filter>, Box<Error>> {
         let config = try!(config.deserialize_into::<ThresholdFilterConfig>());
         Ok(Box::new(ThresholdFilter::new(config.level.0)))
     }

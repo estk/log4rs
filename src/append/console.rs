@@ -9,7 +9,7 @@ use serde_value::Value;
 use append::{Append, SimpleWriter};
 use encode::Encode;
 use encode::pattern::PatternEncoder;
-use file::{Build, Builder};
+use file::{Deserialize, Deserializers};
 use file::raw::Encoder;
 
 /// An appender which logs to stdout.
@@ -69,16 +69,19 @@ impl ConsoleAppenderBuilder {
 /// used for output.
 pub struct ConsoleAppenderDeserializer;
 
-impl Build for ConsoleAppenderDeserializer {
+impl Deserialize for ConsoleAppenderDeserializer {
     type Trait = Append;
 
-    fn build(&self, config: Value, builder: &Builder) -> Result<Box<Append>, Box<Error>> {
+    fn deserialize(&self,
+                   config: Value,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Append>, Box<Error>> {
         let config = try!(config.deserialize_into::<ConsoleAppenderConfig>());
         let mut appender = ConsoleAppender::builder();
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(builder.build("encoder",
-                                                           &encoder.kind,
-                                                           encoder.config)));
+            appender = appender.encoder(try!(deserializers.deserialize("encoder",
+                                                                       &encoder.kind,
+                                                                       encoder.config)));
         }
         Ok(Box::new(appender.build()))
     }

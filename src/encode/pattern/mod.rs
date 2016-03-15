@@ -28,7 +28,7 @@ use serde_value::Value;
 
 use encode::pattern::parser::{TimeFmt, Chunk, parse_pattern};
 use encode::{self, Encode};
-use file::{Build, Builder};
+use file::{Deserialize, Deserializers};
 use ErrorInternals;
 
 mod parser;
@@ -165,15 +165,18 @@ struct Location<'a> {
     line: u32,
 }
 
-/// A builder for the `PatternEncoder`.
+/// A deserializer for the `PatternEncoder`.
 ///
 /// The `pattern` key is required and specifies the pattern for the encoder.
-pub struct PatternEncoderBuilder;
+pub struct PatternEncoderDeserializer;
 
-impl Build for PatternEncoderBuilder {
+impl Deserialize for PatternEncoderDeserializer {
     type Trait = Encode;
 
-    fn build(&self, config: Value, _: &Builder) -> Result<Box<Encode>, Box<error::Error>> {
+    fn deserialize(&self,
+                   config: Value,
+                   _: &Deserializers)
+                   -> Result<Box<Encode>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<PatternEncoderConfig>());
         let encoder = match config.pattern {
             Some(pattern) => try!(PatternEncoder::new(&pattern)),

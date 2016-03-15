@@ -2,15 +2,6 @@ use serde::de;
 use log::LogLevelFilter;
 use std::time::Duration;
 
-#[derive(PartialEq, Eq, Debug, Default)]
-pub struct Undeserializable;
-
-impl de::Deserialize for Undeserializable {
-    fn deserialize<D>(_: &mut D) -> Result<Undeserializable, D::Error> where D: de::Deserializer {
-        Err(de::Error::invalid_value("field name is reserved"))
-    }
-}
-
 #[derive(PartialEq, Debug)]
 pub struct DeLogLevelFilter(pub LogLevelFilter);
 
