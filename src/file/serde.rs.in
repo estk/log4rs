@@ -1,28 +1,25 @@
-#[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Config {
-    pub refresh_rate: Option<DeDuration>,
-    pub root: Option<Root>,
-    pub appenders: HashMap<String, Appender>,
-    pub loggers: HashMap<String, Logger>,
+struct PrivConfig {
+    refresh_rate: Option<DeDuration>,
+    root: Option<Root>,
+    appenders: HashMap<String, Appender>,
+    loggers: HashMap<String, Logger>,
 }
 
-#[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Root {
-    pub level: DeLogLevelFilter,
+struct PrivRoot {
+    level: DeLogLevelFilter,
     #[serde(default)]
-    pub appenders: Vec<String>,
+    appenders: Vec<String>,
 }
 
-#[derive(PartialEq, Debug)]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Logger {
-    pub level: DeLogLevelFilter,
+struct PrivLogger {
+    level: DeLogLevelFilter,
     #[serde(default)]
-    pub appenders: Vec<String>,
-    pub additive: Option<bool>,
+    appenders: Vec<String>,
+    additive: Option<bool>,
 }

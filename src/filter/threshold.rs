@@ -1,6 +1,5 @@
 //! The threshold filter.
 
-use serde::de;
 use log::{LogLevelFilter, LogRecord};
 use std::error::Error;
 use serde_value::Value;

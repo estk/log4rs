@@ -91,7 +91,6 @@ use typemap::{Key, ShareMap};
 use serde_value::Value;
 use serde::Deserialize as SerdeDeserialize;
 
-use append::Append;
 use append::file::FileAppenderDeserializer;
 use append::console::ConsoleAppenderDeserializer;
 use filter::Filter;
@@ -263,7 +262,7 @@ impl Config {
 
         let root = match raw_root {
             Some(raw_root) => {
-                config::Root::builder(raw_root.level.0)
+                config::Root::builder(raw_root.level)
                     .appenders(raw_root.appenders)
                     .build()
             }
@@ -290,7 +289,7 @@ impl Config {
 
         for (name, logger) in raw_loggers {
             let raw::Logger { level, appenders, additive, .. } = logger;
-            let mut logger = config::Logger::builder(name, level.0).appenders(appenders);
+            let mut logger = config::Logger::builder(name, level).appenders(appenders);
             if let Some(additive) = additive {
                 logger = logger.additive(additive);
             }
@@ -305,7 +304,7 @@ impl Config {
         }
 
         let config = Config {
-            refresh_rate: refresh_rate.map(|r| r.0),
+            refresh_rate: refresh_rate.map(|r| r),
             config: config,
             errors: errors,
         };
@@ -350,15 +349,7 @@ fn parse(format: Format, _config: &str) -> Result<raw::Config, Box<error::Error>
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
-    use std::borrow::ToOwned;
-    use std::collections::{HashMap, BTreeMap};
-    use std::time::Duration;
-    use log::LogLevelFilter;
-    use serde_value::Value;
-
     use super::*;
-    use super::parse;
-    use priv_serde::{DeLogLevelFilter, DeDuration};
 
     #[test]
     #[cfg(feature = "yaml")]
@@ -394,157 +385,4 @@ loggers:
         assert!(config.errors().is_empty());
     }
 
-    #[allow(dead_code)]
-    fn expected() -> raw::Config {
-        raw::Config {
-            refresh_rate: Some(DeDuration(Duration::from_secs(60))),
-            appenders: {
-                let mut m = HashMap::new();
-                m.insert("console".to_owned(),
-                         raw::Appender {
-                             kind: "console".to_owned(),
-                             config: Value::Map(BTreeMap::new()),
-                             filters: vec![raw::Filter {
-                                               kind: "threshold".to_string(),
-                                               config: {
-                                                   let mut m = BTreeMap::new();
-                                                   m.insert(Value::String("level".to_string()),
-                                                            Value::String("debug".to_string()));
-                                                   Value::Map(m)
-                                               },
-                                           }],
-                         });
-                m.insert("baz".to_owned(),
-                         raw::Appender {
-                             kind: "file".to_owned(),
-                             config: {
-                                 let mut m = BTreeMap::new();
-                                 m.insert(Value::String("file".to_owned()),
-                                          Value::String("log/baz.log".to_owned()));
-                                 Value::Map(m)
-                             },
-                             filters: vec![],
-                         });
-                m
-            },
-            root: Some(raw::Root {
-                level: DeLogLevelFilter(LogLevelFilter::Info),
-                appenders: vec!["console".to_owned()],
-            }),
-            loggers: {
-                let mut m = HashMap::new();
-                m.insert("foo::bar::baz".to_owned(),
-                         raw::Logger {
-                             level: DeLogLevelFilter(LogLevelFilter::Warn),
-                             appenders: vec!["baz".to_owned()],
-                             additive: Some(false),
-                         });
-                m
-            },
-        }
-    }
-
-    #[test]
-    #[cfg(feature = "yaml")]
-    fn basic_yaml() {
-        let cfg = r#"
-refresh_rate: 60
-
-appenders:
-  console:
-    kind: console
-    filters:
-      - kind: threshold
-        level: debug
-  baz:
-    kind: file
-    file: log/baz.log
-
-root:
-  appenders:
-    - console
-  level: info
-
-loggers:
-  foo::bar::baz:
-    level: warn
-    appenders:
-      - baz
-    additive: false
-"#;
-
-        let actual = parse(Format::Yaml, cfg).unwrap();
-        let expected = expected();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    #[cfg(feature = "json")]
-    fn basic_json() {
-        let cfg = r#"
-{
-    "refresh_rate": 60,
-    "appenders": {
-        "console": {
-            "kind": "console",
-            "filters": [
-                {
-                    "kind": "threshold",
-                    "level": "debug"
-                }
-            ]
-        },
-        "baz": {
-            "kind": "file",
-            "file": "log/baz.log"
-        }
-    },
-    "root": {
-        "appenders": ["console"],
-        "level": "info"
-    },
-    "loggers": {
-        "foo::bar::baz": {
-            "level": "warn",
-            "appenders": ["baz"],
-            "additive": false
-        }
-    }
-}"#;
-
-        let actual = parse(Format::Json, cfg).unwrap();
-        let expected = expected();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    #[cfg(feature = "toml")]
-    fn basic_toml() {
-        let cfg = r#"
-refresh_rate = 60
-
-[appenders.console]
-kind = "console"
-[[appenders.console.filters]]
-kind = "threshold"
-level = "debug"
-
-[appenders.baz]
-kind = "file"
-file = "log/baz.log"
-
-[root]
-appenders = ["console"]
-level = "info"
-
-[loggers."foo::bar::baz"]
-level = "warn"
-appenders = ["baz"]
-additive = false
-"#;
-
-        let actual = parse(Format::Toml, cfg).unwrap();
-        let expected = expected();
-        assert_eq!(expected, actual);
-    }
 }

@@ -1,14 +1,12 @@
-#[derive_Debug]
-#[derive_PartialEq]
-pub struct Config {
-    pub refresh_rate: Option<DeDuration>,
-    pub root: Option<Root>,
-    pub appenders: HashMap<String, Appender>,
-    pub loggers: HashMap<String, Logger>,
+struct PrivConfig {
+    refresh_rate: Option<DeDuration>,
+    root: Option<Root>,
+    appenders: HashMap<String, Appender>,
+    loggers: HashMap<String, Logger>,
 }
-impl ::serde::de::Deserialize for Config {
+impl ::serde::de::Deserialize for PrivConfig {
     fn deserialize<__D>(deserializer: &mut __D)
-     -> ::std::result::Result<Config, __D::Error> where
+     -> ::std::result::Result<PrivConfig, __D::Error> where
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
@@ -81,10 +79,10 @@ impl ::serde::de::Deserialize for Config {
                 type
                 Value
                 =
-                Config;
+                PrivConfig;
                 #[inline]
                 fn visit_seq<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<Config, __V::Error> where
+                 -> ::std::result::Result<PrivConfig, __V::Error> where
                  __V: ::serde::de::SeqVisitor {
                     {
                         let __field0 =
@@ -116,15 +114,15 @@ impl ::serde::de::Deserialize for Config {
                                 }
                             };
                         try!(visitor . end (  ));
-                        Ok(Config{refresh_rate: __field0,
-                                  root: __field1,
-                                  appenders: __field2,
-                                  loggers: __field3,})
+                        Ok(PrivConfig{refresh_rate: __field0,
+                                      root: __field1,
+                                      appenders: __field2,
+                                      loggers: __field3,})
                     }
                 }
                 #[inline]
                 fn visit_map<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<Config, __V::Error> where
+                 -> ::std::result::Result<PrivConfig, __V::Error> where
                  __V: ::serde::de::MapVisitor {
                     {
                         let mut __field0 = None;
@@ -192,29 +190,27 @@ impl ::serde::de::Deserialize for Config {
                                 },
                             };
                         try!(visitor . end (  ));
-                        Ok(Config{refresh_rate: __field0,
-                                  root: __field1,
-                                  appenders: __field2,
-                                  loggers: __field3,})
+                        Ok(PrivConfig{refresh_rate: __field0,
+                                      root: __field1,
+                                      appenders: __field2,
+                                      loggers: __field3,})
                     }
                 }
             }
             const FIELDS: &'static [&'static str] =
                 &["refresh_rate", "root", "appenders", "loggers"];
-            deserializer.deserialize_struct("Config", FIELDS,
+            deserializer.deserialize_struct("PrivConfig", FIELDS,
                                             __Visitor::<__D>(::std::marker::PhantomData))
         }
     }
 }
-#[derive_Debug]
-#[derive_PartialEq]
-pub struct Root {
-    pub level: DeLogLevelFilter,
-    pub appenders: Vec<String>,
+struct PrivRoot {
+    level: DeLogLevelFilter,
+    appenders: Vec<String>,
 }
-impl ::serde::de::Deserialize for Root {
+impl ::serde::de::Deserialize for PrivRoot {
     fn deserialize<__D>(deserializer: &mut __D)
-     -> ::std::result::Result<Root, __D::Error> where
+     -> ::std::result::Result<PrivRoot, __D::Error> where
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
@@ -279,10 +275,10 @@ impl ::serde::de::Deserialize for Root {
                 type
                 Value
                 =
-                Root;
+                PrivRoot;
                 #[inline]
                 fn visit_seq<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<Root, __V::Error> where
+                 -> ::std::result::Result<PrivRoot, __V::Error> where
                  __V: ::serde::de::SeqVisitor {
                     {
                         let __field0 =
@@ -300,12 +296,12 @@ impl ::serde::de::Deserialize for Root {
                                 }
                             };
                         try!(visitor . end (  ));
-                        Ok(Root{level: __field0, appenders: __field1,})
+                        Ok(PrivRoot{level: __field0, appenders: __field1,})
                     }
                 }
                 #[inline]
                 fn visit_map<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<Root, __V::Error> where
+                 -> ::std::result::Result<PrivRoot, __V::Error> where
                  __V: ::serde::de::MapVisitor {
                     {
                         let mut __field0 = None;
@@ -338,26 +334,24 @@ impl ::serde::de::Deserialize for Root {
                                 None => ::std::default::Default::default(),
                             };
                         try!(visitor . end (  ));
-                        Ok(Root{level: __field0, appenders: __field1,})
+                        Ok(PrivRoot{level: __field0, appenders: __field1,})
                     }
                 }
             }
             const FIELDS: &'static [&'static str] = &["level", "appenders"];
-            deserializer.deserialize_struct("Root", FIELDS,
+            deserializer.deserialize_struct("PrivRoot", FIELDS,
                                             __Visitor::<__D>(::std::marker::PhantomData))
         }
     }
 }
-#[derive_Debug]
-#[derive_PartialEq]
-pub struct Logger {
-    pub level: DeLogLevelFilter,
-    pub appenders: Vec<String>,
-    pub additive: Option<bool>,
+struct PrivLogger {
+    level: DeLogLevelFilter,
+    appenders: Vec<String>,
+    additive: Option<bool>,
 }
-impl ::serde::de::Deserialize for Logger {
+impl ::serde::de::Deserialize for PrivLogger {
     fn deserialize<__D>(deserializer: &mut __D)
-     -> ::std::result::Result<Logger, __D::Error> where
+     -> ::std::result::Result<PrivLogger, __D::Error> where
      __D: ::serde::de::Deserializer {
         {
             #[allow(non_camel_case_types)]
@@ -425,10 +419,10 @@ impl ::serde::de::Deserialize for Logger {
                 type
                 Value
                 =
-                Logger;
+                PrivLogger;
                 #[inline]
                 fn visit_seq<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<Logger, __V::Error> where
+                 -> ::std::result::Result<PrivLogger, __V::Error> where
                  __V: ::serde::de::SeqVisitor {
                     {
                         let __field0 =
@@ -453,14 +447,14 @@ impl ::serde::de::Deserialize for Logger {
                                 }
                             };
                         try!(visitor . end (  ));
-                        Ok(Logger{level: __field0,
-                                  appenders: __field1,
-                                  additive: __field2,})
+                        Ok(PrivLogger{level: __field0,
+                                      appenders: __field1,
+                                      additive: __field2,})
                     }
                 }
                 #[inline]
                 fn visit_map<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<Logger, __V::Error> where
+                 -> ::std::result::Result<PrivLogger, __V::Error> where
                  __V: ::serde::de::MapVisitor {
                     {
                         let mut __field0 = None;
@@ -508,15 +502,15 @@ impl ::serde::de::Deserialize for Logger {
                                 },
                             };
                         try!(visitor . end (  ));
-                        Ok(Logger{level: __field0,
-                                  appenders: __field1,
-                                  additive: __field2,})
+                        Ok(PrivLogger{level: __field0,
+                                      appenders: __field1,
+                                      additive: __field2,})
                     }
                 }
             }
             const FIELDS: &'static [&'static str] =
                 &["level", "appenders", "additive"];
-            deserializer.deserialize_struct("Logger", FIELDS,
+            deserializer.deserialize_struct("PrivLogger", FIELDS,
                                             __Visitor::<__D>(::std::marker::PhantomData))
         }
     }

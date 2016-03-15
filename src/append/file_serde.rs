@@ -1,7 +1,7 @@
-pub struct FileAppenderConfig {
-    pub path: String,
-    pub encoder: Option<Encoder>,
-    pub append: Option<bool>,
+struct FileAppenderConfig {
+    path: String,
+    encoder: Option<Encoder>,
+    append: Option<bool>,
 }
 impl ::serde::de::Deserialize for FileAppenderConfig {
     fn deserialize<__D>(deserializer: &mut __D)
