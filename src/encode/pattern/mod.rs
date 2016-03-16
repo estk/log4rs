@@ -94,8 +94,8 @@ impl fmt::Debug for PatternEncoder {
     }
 }
 
+/// Returns a `PatternEncoder` using the default pattern of `%d %l %t - %m`.
 impl Default for PatternEncoder {
-    /// Returns a `PatternEncoder` using the default pattern of `%d %l %t - %m`.
     fn default() -> PatternEncoder {
         PatternEncoder::new("%d %l %t - %m").unwrap()
     }
