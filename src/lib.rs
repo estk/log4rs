@@ -123,11 +123,12 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use std::sync::{RwLock, Arc};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
+use atomic::AtomicReference;
 use append::Append;
 use filter::Filter;
 use file::{Format, Deserializers};
@@ -137,6 +138,7 @@ pub mod config;
 pub mod filter;
 pub mod file;
 pub mod encode;
+mod atomic;
 mod priv_serde;
 
 struct ConfiguredLogger {
@@ -298,16 +300,16 @@ impl SharedLogger {
 }
 
 struct Logger {
-    inner: Arc<RwLock<SharedLogger>>,
+    inner: Arc<AtomicReference<SharedLogger>>,
 }
 
 impl Logger {
     fn new(config: config::Config) -> Logger {
-        Logger { inner: Arc::new(RwLock::new(SharedLogger::new(config))) }
+        Logger { inner: Arc::new(AtomicReference::new(Arc::new(SharedLogger::new(config)))) }
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
-        self.inner.read().unwrap().root.max_log_level()
+        self.inner.get().root.max_log_level()
     }
 }
 
@@ -317,14 +319,14 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &log::LogRecord) {
-        let shared = &*self.inner.read().unwrap();
+        let shared = self.inner.get();
         shared.root.find(record.target()).log(record, &shared.appenders);
     }
 }
 
 impl Logger {
     fn enabled_inner(&self, level: LogLevel, target: &str) -> bool {
-        self.inner.read().unwrap().root.find(target).enabled(level)
+        self.inner.get().root.find(target).enabled(level)
     }
 }
 
@@ -465,7 +467,7 @@ struct ConfigReloader {
     rate: Duration,
     source: String,
     deserializers: Deserializers,
-    shared: Arc<RwLock<SharedLogger>>,
+    shared: Arc<AtomicReference<SharedLogger>>,
     max_log_level: MaxLogLevelFilter,
 }
 
@@ -523,7 +525,7 @@ impl ConfigReloader {
 
             let shared = SharedLogger::new(config);
             self.max_log_level.set(shared.root.max_log_level());
-            *self.shared.write().unwrap() = shared;
+            self.shared.set(Arc::new(shared));
 
             match refresh_rate {
                 Some(rate) => self.rate = rate,
