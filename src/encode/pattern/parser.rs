@@ -1,172 +1,144 @@
-use nom::eof;
-use std::fmt::{self, Write};
-use std::str;
-use time;
+// cribbed to a large extent from libfmt_macros
+use std::iter::Peekable;
+use std::str::CharIndices;
 
-use encode::pattern::Error;
-use ErrorInternals;
-
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-pub enum TimeFmt {
-    Rfc3339,
-    Str(String),
+pub enum Piece<'a> {
+    Text(&'a str),
+    Argument {
+        formatter: Formatter<'a>,
+    },
+    Error(String),
 }
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-pub enum Chunk {
-    Text(String),
-    Time(TimeFmt),
-    Level,
-    Message,
-    Module,
-    File,
-    Line,
-    Thread,
-    Target,
+pub struct Formatter<'a> {
+    pub name: &'a str,
+    pub arg: &'a str,
 }
 
-impl fmt::Display for Chunk {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Chunk::Text(ref text) => {
-                if text.contains('%') {
-                    for ch in text.chars() {
-                        if ch == '%' {
-                            try!(fmt.write_str("%%"));
-                        } else {
-                            try!(fmt.write_char(ch));
-                        }
-                    }
-                    Ok(())
-                } else {
-                    fmt.write_str(text)
+pub struct Parser<'a> {
+    pattern: &'a str,
+    it: Peekable<CharIndices<'a>>,
+}
+
+impl<'a> Parser<'a> {
+    pub fn new(pattern: &'a str) -> Parser<'a> {
+        Parser {
+            pattern: pattern,
+            it: pattern.char_indices().peekable(),
+        }
+    }
+
+    fn consume(&mut self, ch: char) -> bool {
+        match self.it.peek() {
+            Some(&(_, c)) if c == ch => {
+                self.it.next();
+                true
+            }
+            _ => false
+        }
+    }
+
+    fn argument(&mut self) -> Piece<'a> {
+        match self.formatter() {
+            Ok(formatter) => {
+                Piece::Argument {
+                    formatter: formatter,
                 }
             }
-            Chunk::Time(TimeFmt::Rfc3339) => fmt.write_str("%d"),
-            Chunk::Time(TimeFmt::Str(ref s)) => write!(fmt, "%d{{{}}}", s),
-            Chunk::Level => fmt.write_str("%l"),
-            Chunk::Message => fmt.write_str("%m"),
-            Chunk::Module => fmt.write_str("%M"),
-            Chunk::File => fmt.write_str("%f"),
-            Chunk::Line => fmt.write_str("%L"),
-            Chunk::Thread => fmt.write_str("%T"),
-            Chunk::Target => fmt.write_str("%t"),
+            Err(err) => Piece::Error(err),
+        }
+    }
+
+    fn formatter(&mut self) -> Result<Formatter<'a>, String> {
+        Ok(Formatter {
+            name: self.name(),
+            arg: try!(self.arg()),
+        })
+    }
+
+    fn name(&mut self) -> &'a str {
+        let start = match self.it.peek() {
+            Some(&(pos, ch)) if ch.is_alphabetic() => {
+                self.it.next();
+                pos
+            }
+            _ => return "",
+        };
+
+        loop {
+            match self.it.peek() {
+                Some(&(_, ch)) if ch.is_alphanumeric() => {
+                    self.it.next();
+                }
+                Some(&(end, _)) => return &self.pattern[start..end],
+                None => return &self.pattern[start..],
+            }
+        }
+    }
+
+    fn arg(&mut self) -> Result<&'a str, String> {
+        if !self.consume('(') {
+            return Ok("");
+        }
+
+        let start = match self.it.next() {
+            Some((_, ')')) => return Ok(""),
+            Some((pos, _)) => pos,
+            None => return Err("unclosed '('".to_owned()),
+        };
+
+        loop {
+            match self.it.next() {
+                Some((pos, ')')) => return Ok(&self.pattern[start..pos]),
+                Some(_) => {}
+                None => return Err("enclosed '('".to_owned()),
+            }
+        }
+    }
+
+    fn text(&mut self, start: usize) -> Piece<'a> {
+        while let Some(&(pos, ch)) = self.it.peek() {
+            match ch {
+                '{' | '}' => return Piece::Text(&self.pattern[start..pos]),
+                _ => {
+                    self.it.next();
+                }
+            }
+        }
+        Piece::Text(&self.pattern[start..])
+    }
+}
+
+impl<'a> Iterator for Parser<'a> {
+    type Item = Piece<'a>;
+
+    fn next(&mut self) -> Option<Piece<'a>> {
+        match self.it.peek() {
+            Some(&(_, '{')) => {
+                self.it.next();
+                if self.consume('{') {
+                    Some(Piece::Text("{"))
+                } else {
+                    let piece = self.argument();
+                    if self.consume('}') {
+                        Some(piece)
+                    } else {
+                        for _ in &mut self.it {}
+                        Some(Piece::Error("expected '}'".to_owned()))
+                    }
+                }
+            }
+            Some(&(_, '}')) => {
+                self.it.next();
+                if self.consume('}') {
+                    Some(Piece::Text("}"))
+                } else {
+                    Some(Piece::Error("unmatched '}'".to_owned()))
+                }
+            }
+            Some(&(pos, _)) => Some(self.text(pos)),
+            None => None,
         }
     }
 }
 
-
-named!(pub parse_pattern(&[u8]) -> Vec<Chunk>,
-    chain!(
-        result: many0!(
-            alt!(
-                escaped_percent |
-                time |
-                level |
-                message |
-                module |
-                file |
-                line |
-                thread |
-                target |
-                regular_text
-            )
-        ) ~
-        eof,
-        || result
-    )
-);
-
-named!(regular_text<Chunk>,
-    chain!(
-        text: map_res!(take_until!("%"), str::from_utf8),
-        || Chunk::Text(text.into())
-    )
-);
-
-named!(level<Chunk>,
-    chain!(
-        tag!("%l"),
-        || Chunk::Level
-    )
-);
-
-named!(message<Chunk>,
-    chain!(
-        tag!("%m"),
-        || Chunk::Message
-    )
-);
-
-named!(module<Chunk>,
-    chain!(
-        tag!("%M"),
-        || Chunk::Module
-    )
-);
-
-named!(file<Chunk>,
-    chain!(
-        tag!("%f"),
-        || Chunk::File
-    )
-);
-
-named!(line<Chunk>,
-    chain!(
-        tag!("%L"),
-        || Chunk::Line
-    )
-);
-
-named!(thread<Chunk>,
-    chain!(
-        tag!("%T"),
-        || Chunk::Thread
-    )
-);
-
-named!(target<Chunk>,
-    chain!(
-        tag!("%t"),
-        || Chunk::Target
-    )
-);
-
-named!(escaped_percent<Chunk>,
-    chain!(
-        tag!("%%"),
-        || Chunk::Text("%".into())
-    )
-);
-
-named!(time<Chunk>,
-    chain!(
-        tag!("%d") ~
-        timefmt: timefmt,
-        || Chunk::Time(timefmt)
-    )
-);
-
-named!(timefmt<TimeFmt>,
-    alt!(
-        map_res!(delimited!(tag!("{"), timefmt_string, tag!("}")), check_timefmt_error) => { |res: String| TimeFmt::Str(res) }
-        | take!(0)                                    => { |_| TimeFmt::Rfc3339 }
-    )
-);
-
-named!(timefmt_string<String>,
-    chain!(
-        format: map_res!(take_until!("}"), str::from_utf8),
-        || format.into())
-);
-
-fn check_timefmt_error(fmt: String) -> Result<String, Error> {
-    if let Err(err) = time::now().strftime(&*fmt) {
-        Err(Error::new(err.to_string()))
-    } else {
-        Ok(fmt)
-    }
-}

@@ -2,31 +2,29 @@
 //!
 //! # Basic Specifiers
 //!
-//! * `%d` - The current time. By default, the ISO 8601 format is used. A
-//!     custom format may be provided in the syntax accepted by `Tm::sprintf`,
-//!     enclosed in `{}`s immediately after the specifier: `%d{%Y/%m/%d}`.
-//! * `%f` - The source file that the log message came from.
-//! * `%l` - The log level.
-//! * `%L` - The line that the log message came from.
-//! * `%m` - The log message.
-//! * `%M` - The module that the log message came from.
-//! * `%T` - The name of the thread that the log message came from.
-//! * `%t` - The target of the log message.
+//! * `d` - The current time. By default, the ISO 8601 format is used. A
+//!     custom format may be provided in the syntax accepted by `chrono` as an
+//!     argument.
+//! * `f` - The source file that the log message came from.
+//! * `l` - The log level.
+//! * `L` - The line that the log message came from.
+//! * `m` - The log message.
+//! * `M` - The module that the log message came from.
+//! * `T` - The name of the thread that the log message came from.
+//! * `t` - The target of the log message.
 
+use chrono::UTC;
 use log::{LogRecord, LogLevel};
-use nom;
+use serde_value::Value;
 use std::default::Default;
 use std::error;
 use std::fmt;
 use std::fmt::Write as FmtWrite;
 use std::io;
 use std::io::Write;
-use std::str;
 use std::thread;
-use time;
-use serde_value::Value;
 
-use encode::pattern::parser::{TimeFmt, Chunk, parse_pattern};
+use encode::pattern::parser::{Parser, Piece};
 use encode::{self, Encode};
 use file::{Deserialize, Deserializers};
 use ErrorInternals;
@@ -35,69 +33,38 @@ mod parser;
 
 include!("serde.rs");
 
-/// An error parsing a `PatternEncoder` pattern.
-#[derive(Debug)]
-pub struct Error(String);
-
-impl ErrorInternals for Error {
-    fn new(message: String) -> Error {
-        Error(message)
-    }
+#[cfg_attr(test, derive(PartialEq, Debug))]
+enum Chunk {
+    Text(String),
+    Time(String),
+    Level,
+    Message,
+    Module,
+    File,
+    Line,
+    Thread,
+    Target,
+    Error(String),
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str(&self.0)
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "Error parsing a pattern"
-    }
-}
-
-impl<'a> From<nom::Err<&'a [u8]>> for Error {
-    fn from(nom_err: nom::Err<&'a [u8]>) -> Self {
-        match nom_err {
-            nom::Err::Position(_, token) => {
-                Error(format!("Error parsing pattern at token \"{}\"",
-                              str::from_utf8(token).unwrap()))
-            }
-            _ => Error("Could not parse pattern".into()),
-        }
-    }
-}
-
-struct PatternDebug<'a>(&'a [Chunk]);
-
-impl<'a> fmt::Debug for PatternDebug<'a> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        try!(fmt.write_char('"'));
-        for chunk in self.0 {
-            try!(write!(fmt, "{}", chunk));
-        }
-        fmt.write_char('"')
-    }
-}
-
-/// A formatter object for `LogRecord`s.
+/// An `Encode`r configured via a format string.
 pub struct PatternEncoder {
-    pattern: Vec<Chunk>,
+    chunks: Vec<Chunk>,
+    pattern: String,
 }
 
 impl fmt::Debug for PatternEncoder {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("PatternEncoder")
-           .field("pattern", &PatternDebug(&self.pattern))
+           .field("pattern", &self.pattern)
            .finish()
     }
 }
 
-/// Returns a `PatternEncoder` using the default pattern of `%d %l %t - %m`.
+/// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}`.
 impl Default for PatternEncoder {
     fn default() -> PatternEncoder {
-        PatternEncoder::new("%d %l %t - %m").unwrap()
+        PatternEncoder::new("{d} {l} {t} - {m}")
     }
 }
 
@@ -116,16 +83,48 @@ impl PatternEncoder {
     /// Creates a `PatternEncoder` from a pattern string.
     ///
     /// The pattern string syntax is documented in the `pattern` module.
-    pub fn new(pattern: &str) -> Result<PatternEncoder, Error> {
-        match parse_pattern(pattern.as_bytes()) {
-            nom::IResult::Done(_, o) => Ok(PatternEncoder { pattern: o }),
-            nom::IResult::Error(nom_err) => Err(Error::from(nom_err)),
-            nom::IResult::Incomplete(error) => {
-                // This is always a bug in the parser and should actually never happen.
-                panic!("Parser returned an incomplete error: {:?}. Please report this bug at \
-                        https://github.com/sfackler/log4rs",
-                       error)
-            }
+    pub fn new(pattern: &str) -> PatternEncoder {
+        let mut chunks = vec![];
+
+        for piece in Parser::new(pattern) {
+            let chunk = match piece {
+                Piece::Text(text) => Chunk::Text(text.to_owned()),
+                Piece::Argument { formatter } => {
+                    match formatter.name {
+                        "d" |
+                        "date" => {
+                            let format = if formatter.arg.is_empty() {
+                                "%+".to_owned()
+                            } else {
+                                formatter.arg.to_owned()
+                            };
+                            Chunk::Time(format)
+                        }
+                        "l" |
+                        "level" => Chunk::Level,
+                        "m" |
+                        "message" => Chunk::Message,
+                        "M" |
+                        "module" => Chunk::Module,
+                        "f" |
+                        "file" => Chunk::File,
+                        "L" |
+                        "line" => Chunk::Line,
+                        "T" |
+                        "thread" => Chunk::Thread,
+                        "t" |
+                        "target" => Chunk::Target,
+                        name => Chunk::Error(format!("unknown formatter `{}`", name)),
+                    }
+                }
+                Piece::Error(err) => Chunk::Error(err),
+            };
+            chunks.push(chunk);
+        }
+
+        PatternEncoder {
+            chunks: chunks,
+            pattern: pattern.to_owned(),
         }
     }
 
@@ -136,16 +135,10 @@ impl PatternEncoder {
                     location: &Location,
                     args: &fmt::Arguments)
                     -> io::Result<()> {
-        for chunk in &self.pattern {
+        for chunk in &self.chunks {
             try!(match *chunk {
                 Chunk::Text(ref text) => write!(w, "{}", text),
-                Chunk::Time(TimeFmt::Str(ref fmt)) => {
-                    time::now()
-                        .strftime(&**fmt)
-                        .map(|time| write!(w, "{}", time))
-                        .unwrap_or(Ok(()))
-                }
-                Chunk::Time(TimeFmt::Rfc3339) => write!(w, "{}", time::now().rfc3339()),
+                Chunk::Time(ref fmt) => write!(w, "{}", UTC::now().format(fmt)),
                 Chunk::Level => write!(w, "{}", level),
                 Chunk::Message => write!(w, "{}", args),
                 Chunk::Module => write!(w, "{}", location.module_path),
@@ -153,6 +146,7 @@ impl PatternEncoder {
                 Chunk::Line => write!(w, "{}", location.line),
                 Chunk::Thread => write!(w, "{}", thread::current().name().unwrap_or("<unnamed>")),
                 Chunk::Target => write!(w, "{}", target),
+                Chunk::Error(ref msg) => write!(w, "{{ERROR: {}}}", msg),
             });
         }
         writeln!(w, "")
@@ -179,7 +173,7 @@ impl Deserialize for PatternEncoderDeserializer {
                    -> Result<Box<Encode>, Box<error::Error>> {
         let config = try!(config.deserialize_into::<PatternEncoderConfig>());
         let encoder = match config.pattern {
-            Some(pattern) => try!(PatternEncoder::new(&pattern)),
+            Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),
         };
         Ok(Box::new(encoder))
@@ -193,9 +187,8 @@ mod tests {
     use std::io::{self, Write};
     use log::LogLevel;
 
-    use super::{PatternEncoder, Location, PatternDebug};
+    use super::{PatternEncoder, Location, Chunk};
     use encode;
-    use encode::pattern::parser::{TimeFmt, Chunk};
 
     struct SimpleWriter<W>(W);
 
@@ -211,11 +204,15 @@ mod tests {
 
     impl<W: Write> encode::Write for SimpleWriter<W> {}
 
+    fn error_free(encoder: &PatternEncoder) -> bool {
+        encoder.chunks.iter().all(|c| match *c { Chunk::Error(_) => false, _ => true })
+    }
+
     #[test]
     fn parse() {
-        let expected = [Chunk::Text("hi".to_string()),
-                        Chunk::Time(TimeFmt::Str("%Y-%m-%d".to_string())),
-                        Chunk::Time(TimeFmt::Rfc3339),
+        let expected = [Chunk::Text("hi".to_owned()),
+                        Chunk::Time("%Y-%m-%d".to_owned()),
+                        Chunk::Time("%+".to_owned()),
                         Chunk::Level,
                         Chunk::Message,
                         Chunk::Module,
@@ -223,31 +220,25 @@ mod tests {
                         Chunk::Line,
                         Chunk::Thread,
                         Chunk::Target,
-                        Chunk::Text("%".to_string())];
-        let raw = "hi%d{%Y-%m-%d}%d%l%m%M%f%L%T%t%%";
-        let actual = PatternEncoder::new(raw).unwrap().pattern;
+                        Chunk::Text("{".to_owned())];
+        let raw = "hi{d(%Y-%m-%d)}{d}{l}{m}{M}{f}{L}{T}{t}{{";
+        let actual = PatternEncoder::new(raw).chunks;
         assert_eq!(actual, expected);
-        assert_eq!(format!("{:?}", PatternDebug(&actual)), format!("{:?}", raw));
-    }
-
-    #[test]
-    fn invalid_date_format() {
-        assert!(PatternEncoder::new("%d{%q}").is_err());
     }
 
     #[test]
     fn invalid_formatter() {
-        assert!(PatternEncoder::new("%x").is_err());
+        assert!(!error_free(&PatternEncoder::new("{x}")));
     }
 
     #[test]
     fn unclosed_delimiter() {
-        assert!(PatternEncoder::new("%d{%Y-%m-%d").is_err());
+        assert!(!error_free(&PatternEncoder::new("{d(%Y-%m-%d)")));
     }
 
     #[test]
     fn log() {
-        let pw = PatternEncoder::new("%l %m at %M in %f:%L").unwrap();
+        let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
 
         static LOCATION: Location<'static> = Location {
             module_path: "mod path",
@@ -268,7 +259,7 @@ mod tests {
     #[test]
     fn unnamed_thread() {
         thread::spawn(|| {
-            let pw = PatternEncoder::new("%T").unwrap();
+            let pw = PatternEncoder::new("{T}");
             static LOCATION: Location<'static> = Location {
                 module_path: "path",
                 file: "file",
@@ -292,7 +283,7 @@ mod tests {
         thread::Builder::new()
             .name("foobar".to_string())
             .spawn(|| {
-                let pw = PatternEncoder::new("%T").unwrap();
+                let pw = PatternEncoder::new("{T}");
                 static LOCATION: Location<'static> = Location {
                     module_path: "path",
                     file: "file",
@@ -314,11 +305,6 @@ mod tests {
 
     #[test]
     fn default_okay() {
-        PatternEncoder::default();
-    }
-
-    #[test]
-    fn bogus_trailing_chars() {
-        assert!(PatternEncoder::new("%lasdf").is_err());
+        assert!(error_free(&PatternEncoder::default()));
     }
 }

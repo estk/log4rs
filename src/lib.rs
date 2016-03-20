@@ -101,13 +101,12 @@
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.3.3")]
 #![warn(missing_docs)]
 
+extern crate chrono;
 extern crate log;
-extern crate time;
-#[macro_use]
-extern crate nom;
-extern crate typemap;
 extern crate serde;
 extern crate serde_value;
+extern crate time;
+extern crate typemap;
 #[cfg(feature = "yaml")]
 extern crate serde_yaml;
 #[cfg(feature = "json")]
