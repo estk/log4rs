@@ -1,17 +1,32 @@
 //! A simple pattern-based encoder.
 //!
-//! # Basic Specifiers
+//! The supported syntax is similar to that used by Rust's string formatting
+//! infrastructure. It consists of text which will be output verbatim, with
+//! formatting specifiers denoted by braces containing the configuration of the
+//! formatter. This consists of a formatter name followed optionally by a
+//! parenthesized argument.
 //!
-//! * `d` - The current time. By default, the ISO 8601 format is used. A
-//!     custom format may be provided in the syntax accepted by `chrono` as an
-//!     argument.
-//! * `f` - The source file that the log message came from.
-//! * `l` - The log level.
-//! * `L` - The line that the log message came from.
-//! * `m` - The log message.
-//! * `M` - The module that the log message came from.
-//! * `T` - The name of the thread that the log message came from.
-//! * `t` - The target of the log message.
+//! # Supported Formatters
+//!
+//! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
+//!     A custom format may be provided in the syntax accepted by `chrono` as
+//!     an argument.
+//! * `f`, `file` - The source file that the log message came from.
+//! * `l``, level` - The log level.
+//! * `L`, `line` - The line that the log message came from.
+//! * `m`, `message` - The log message.
+//! * `M`, `module` - The module that the log message came from.
+//! * `T`, `thread` - The name of the thread that the log message came from.
+//! * `t`, `target` - The target of the log message.
+//!
+//! # Examples
+//!
+//! The default pattern is `{d} {l} {t} - {m}` which produces output like
+//! `2016-03-20T22:22:20.644420340+00:00 INFO module::path - this is a log
+//! message`.
+//!
+//! The pattern `{d(%Y-%m-%d %H:%M:%S)}` will output the current time with a
+//! custom format looking like `2016-03-20 22:22:20`.
 
 use chrono::UTC;
 use log::{LogRecord, LogLevel};
@@ -79,6 +94,14 @@ impl Encode for PatternEncoder {
     }
 }
 
+fn empty_args(arg: &str) -> Option<Chunk> {
+    if arg.is_empty() {
+        None
+    } else {
+        Some(Chunk::Error("unexpected arguments".to_owned()))
+    }
+}
+
 impl PatternEncoder {
     /// Creates a `PatternEncoder` from a pattern string.
     ///
@@ -101,19 +124,19 @@ impl PatternEncoder {
                             Chunk::Time(format)
                         }
                         "l" |
-                        "level" => Chunk::Level,
+                        "level" => empty_args(formatter.arg).unwrap_or(Chunk::Level),
                         "m" |
-                        "message" => Chunk::Message,
+                        "message" => empty_args(formatter.arg).unwrap_or(Chunk::Message),
                         "M" |
-                        "module" => Chunk::Module,
+                        "module" => empty_args(formatter.arg).unwrap_or(Chunk::Module),
                         "f" |
-                        "file" => Chunk::File,
+                        "file" => empty_args(formatter.arg).unwrap_or(Chunk::File),
                         "L" |
-                        "line" => Chunk::Line,
+                        "line" => empty_args(formatter.arg).unwrap_or(Chunk::Line),
                         "T" |
-                        "thread" => Chunk::Thread,
+                        "thread" => empty_args(formatter.arg).unwrap_or(Chunk::Thread),
                         "t" |
-                        "target" => Chunk::Target,
+                        "target" => empty_args(formatter.arg).unwrap_or(Chunk::Target),
                         name => Chunk::Error(format!("unknown formatter `{}`", name)),
                     }
                 }
