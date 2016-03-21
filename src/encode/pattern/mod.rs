@@ -112,7 +112,7 @@ impl PatternEncoder {
         for piece in Parser::new(pattern) {
             let chunk = match piece {
                 Piece::Text(text) => Chunk::Text(text.to_owned()),
-                Piece::Argument { formatter } => {
+                Piece::Argument { formatter, parameters } => {
                     match formatter.name {
                         "d" |
                         "date" => {

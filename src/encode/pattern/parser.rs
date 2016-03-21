@@ -1,11 +1,13 @@
 // cribbed to a large extent from libfmt_macros
 use std::iter::Peekable;
 use std::str::CharIndices;
+use std::usize;
 
 pub enum Piece<'a> {
     Text(&'a str),
     Argument {
         formatter: Formatter<'a>,
+        parameters: Parameters,
     },
     Error(String),
 }
@@ -13,6 +15,18 @@ pub enum Piece<'a> {
 pub struct Formatter<'a> {
     pub name: &'a str,
     pub arg: &'a str,
+}
+
+pub struct Parameters {
+    pub fill: char,
+    pub align: Alignment,
+    pub width: usize,
+    pub precision: usize,
+}
+
+pub enum Alignment {
+    Left,
+    Right,
 }
 
 pub struct Parser<'a> {
@@ -39,13 +53,14 @@ impl<'a> Parser<'a> {
     }
 
     fn argument(&mut self) -> Piece<'a> {
-        match self.formatter() {
-            Ok(formatter) => {
-                Piece::Argument {
-                    formatter: formatter,
-                }
-            }
-            Err(err) => Piece::Error(err),
+        let formatter = match self.formatter() {
+            Ok(formatter) => formatter,
+            Err(err) => return Piece::Error(err),
+        };
+
+        Piece::Argument {
+            formatter: formatter,
+            parameters: self.parameters(),
         }
     }
 
@@ -93,6 +108,67 @@ impl<'a> Parser<'a> {
                 Some(_) => {}
                 None => return Err("enclosed '('".to_owned()),
             }
+        }
+    }
+
+    fn parameters(&mut self) -> Parameters {
+        let mut params = Parameters {
+            fill: ' ',
+            align: Alignment::Left,
+            width: 0,
+            precision: usize::max_value(),
+        };
+
+        if !self.consume(':') {
+            return params;
+        }
+
+        if let Some(&(_, ch)) = self.it.peek() {
+            match self.it.clone().skip(1).next() {
+                Some((_, '<')) | Some((_, '>')) => {
+                    self.it.next();
+                    params.fill = ch;
+                }
+                _ => {}
+            }
+        }
+
+        if self.consume('<') {
+            params.align = Alignment::Left;
+        } else if self.consume('>') {
+            params.align = Alignment::Right;
+        }
+
+        if let Some(width) = self.integer() {
+            params.width = width;
+        }
+
+        if self.consume('.') {
+            if let Some(precision) = self.integer() {
+                params.precision = precision;
+            }
+        }
+
+        params
+    }
+
+    fn integer(&mut self) -> Option<usize> {
+        let mut cur = 0;
+        let mut found = false;
+        while let Some(&(_, ch)) = self.it.peek() {
+            if let Some(digit) = ch.to_digit(10) {
+                cur = cur * 10 + digit as usize;
+                found = true;
+                self.it.next();
+            } else {
+                break;
+            }
+        }
+
+        if found {
+            Some(cur)
+        } else {
+            None
         }
     }
 
