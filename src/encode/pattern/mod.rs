@@ -48,7 +48,6 @@ mod parser;
 
 include!("serde.rs");
 
-#[cfg_attr(test, derive(PartialEq, Debug))]
 enum Chunk {
     Text(String),
     Time(String),
@@ -229,24 +228,6 @@ mod tests {
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| match *c { Chunk::Error(_) => false, _ => true })
-    }
-
-    #[test]
-    fn parse() {
-        let expected = [Chunk::Text("hi".to_owned()),
-                        Chunk::Time("%Y-%m-%d".to_owned()),
-                        Chunk::Time("%+".to_owned()),
-                        Chunk::Level,
-                        Chunk::Message,
-                        Chunk::Module,
-                        Chunk::File,
-                        Chunk::Line,
-                        Chunk::Thread,
-                        Chunk::Target,
-                        Chunk::Text("{".to_owned())];
-        let raw = "hi{d(%Y-%m-%d)}{d}{l}{m}{M}{f}{L}{T}{t}{{";
-        let actual = PatternEncoder::new(raw).chunks;
-        assert_eq!(actual, expected);
     }
 
     #[test]
