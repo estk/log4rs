@@ -46,7 +46,7 @@
 //!
 //!       # The remainder of the configuration is passed along to the
 //!       # encoder's builder, and will vary based on the kind of encoder.
-//!       pattern = "%d [%t] %m"
+//!       pattern = "{d} [{t}] {m}"
 //!
 //! # The root logger is configured by the "root" map. It is optional.
 //! root:

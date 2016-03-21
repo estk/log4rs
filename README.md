@@ -17,7 +17,7 @@ appenders:
     kind: file
     path: "log/requests.log"
     encoder:
-      pattern: "%d - %m"
+      pattern: "{d} - {m}"
 root:
   level: warn
   appenders:
