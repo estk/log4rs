@@ -106,7 +106,7 @@ impl<'a> Parser<'a> {
             match self.it.next() {
                 Some((pos, ')')) => return Ok(&self.pattern[start..pos]),
                 Some(_) => {}
-                None => return Err("enclosed '('".to_owned()),
+                None => return Err("unclosed '('".to_owned()),
             }
         }
     }
