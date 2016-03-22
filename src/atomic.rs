@@ -18,7 +18,7 @@ impl<T> AtomicReference<T> {
 
     fn take(&self) -> Arc<T> {
         loop {
-            match self.0.swap(0, Ordering::SeqCst) {
+            match self.0.swap(0, Ordering::Acquire) {
                 0 => {}
                 r => return unsafe { mem::transmute(r) },
             }
@@ -27,7 +27,7 @@ impl<T> AtomicReference<T> {
 
     fn put(&self, t: Arc<T>) {
         debug_assert_eq!(0, self.0.load(Ordering::SeqCst));
-        self.0.store(unsafe { mem::transmute(t) }, Ordering::SeqCst);
+        self.0.store(unsafe { mem::transmute(t) }, Ordering::Release);
     }
 
     pub fn set(&self, t: Arc<T>) -> Arc<T> {
