@@ -3,7 +3,6 @@
 
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
 use std::time::Duration;
 use serde::de::{self, Deserialize, Deserializer};
 use serde_value::Value;
