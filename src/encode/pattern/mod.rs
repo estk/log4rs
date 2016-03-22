@@ -4,7 +4,8 @@
 //! infrastructure. It consists of text which will be output verbatim, with
 //! formatting specifiers denoted by braces containing the configuration of the
 //! formatter. This consists of a formatter name followed optionally by a
-//! parenthesized argument.
+//! parenthesized argument. A subset of the standard formatting parameters is
+//! also supported.
 //!
 //! # Supported Formatters
 //!
@@ -19,6 +20,12 @@
 //! * `T`, `thread` - The name of the thread that the log message came from.
 //! * `t`, `target` - The target of the log message.
 //!
+//! # Supported Parameters
+//!
+//! Left and right alignment with a custom fill character and width is
+//! supported. In addition, the "precision" parameter can be used to set a
+//! maximum length for formatter output.
+//!
 //! # Examples
 //!
 //! The default pattern is `{d} {l} {t} - {m}` which produces output like
@@ -27,6 +34,11 @@
 //!
 //! The pattern `{d(%Y-%m-%d %H:%M:%S)}` will output the current time with a
 //! custom format looking like `2016-03-20 22:22:20`.
+//!
+//! The pattern `{m:~>10.15}` will right-align the log message to a minimum of
+//! 10 bytes, filling in with `~` characters, and truncate output after 15
+//! bytes. The message `hello` will therefore be displayed as `~~~~~hello`,
+//! while the message `hello, world!` will be displayed as `hello, wor`.
 
 use chrono::UTC;
 use log::{LogRecord, LogLevel};
