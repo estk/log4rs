@@ -39,10 +39,7 @@ pub struct ThresholdFilterDeserializer;
 impl Deserialize for ThresholdFilterDeserializer {
     type Trait = Filter;
 
-    fn deserialize(&self,
-                   config: Value,
-                   _: &Deserializers)
-                   -> Result<Box<Filter>, Box<Error>> {
+    fn deserialize(&self, config: Value, _: &Deserializers) -> Result<Box<Filter>, Box<Error>> {
         let config = try!(config.deserialize_into::<ThresholdFilterConfig>());
         Ok(Box::new(ThresholdFilter::new(config.level.0)))
     }

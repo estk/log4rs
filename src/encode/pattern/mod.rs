@@ -79,7 +79,7 @@ impl<'a> io::Write for PrecisionWriter<'a> {
                 self.precision -= len;
                 Ok(len)
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -112,7 +112,7 @@ impl<'a> io::Write for LeftAlignWriter<'a> {
                 self.width = self.width.saturating_sub(len);
                 Ok(len)
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -406,7 +406,12 @@ mod tests {
     impl<W: Write> encode::Write for SimpleWriter<W> {}
 
     fn error_free(encoder: &PatternEncoder) -> bool {
-        encoder.chunks.iter().all(|c| match *c { Chunk::Error(_) => false, _ => true })
+        encoder.chunks.iter().all(|c| {
+            match *c {
+                Chunk::Error(_) => false,
+                _ => true,
+            }
+        })
     }
 
     #[test]
@@ -480,11 +485,21 @@ mod tests {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
         let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf, LogLevel::Debug, "", &LOCATION, &format_args!("foo")).unwrap();
+        pw.append_inner(&mut buf,
+                        LogLevel::Debug,
+                        "",
+                        &LOCATION,
+                        &format_args!("foo"))
+          .unwrap();
         assert_eq!(buf.0, b"foo~~\n");
 
         buf.0.clear();
-        pw.append_inner(&mut buf, LogLevel::Debug, "", &LOCATION, &format_args!("foobar!")).unwrap();
+        pw.append_inner(&mut buf,
+                        LogLevel::Debug,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+          .unwrap();
         assert_eq!(buf.0, b"foobar\n");
     }
 
@@ -493,11 +508,21 @@ mod tests {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
         let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf, LogLevel::Debug, "", &LOCATION, &format_args!("foo")).unwrap();
+        pw.append_inner(&mut buf,
+                        LogLevel::Debug,
+                        "",
+                        &LOCATION,
+                        &format_args!("foo"))
+          .unwrap();
         assert_eq!(buf.0, b"~~foo\n");
 
         buf.0.clear();
-        pw.append_inner(&mut buf, LogLevel::Debug, "", &LOCATION, &format_args!("foobar!")).unwrap();
+        pw.append_inner(&mut buf,
+                        LogLevel::Debug,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+          .unwrap();
         assert_eq!(buf.0, b"foobar\n");
     }
 }

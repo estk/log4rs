@@ -23,11 +23,11 @@ pub struct Config {
 }
 
 impl de::Deserialize for Config {
-    fn deserialize<D>(d: &mut D) -> Result<Config, D::Error> where D: de::Deserializer {
-        let PrivConfig { refresh_rate,
-                         root,
-                         appenders,
-                         loggers } = try!(PrivConfig::deserialize(d));
+    fn deserialize<D>(d: &mut D) -> Result<Config, D::Error>
+        where D: de::Deserializer
+    {
+        let PrivConfig { refresh_rate, root, appenders, loggers } =
+            try!(PrivConfig::deserialize(d));
 
         Ok(Config {
             refresh_rate: refresh_rate.map(|r| r.0),
@@ -47,7 +47,9 @@ pub struct Root {
 }
 
 impl de::Deserialize for Root {
-    fn deserialize<D>(d: &mut D) -> Result<Root, D::Error> where D: de::Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<Root, D::Error>
+        where D: de::Deserializer
+    {
         let PrivRoot { level, appenders } = try!(PrivRoot::deserialize(d));
 
         Ok(Root {
@@ -67,7 +69,9 @@ pub struct Logger {
 }
 
 impl de::Deserialize for Logger {
-    fn deserialize<D>(d: &mut D) -> Result<Logger, D::Error> where D: de::Deserializer {
+    fn deserialize<D>(d: &mut D) -> Result<Logger, D::Error>
+        where D: de::Deserializer
+    {
         let PrivLogger { level, appenders, additive } = try!(PrivLogger::deserialize(d));
 
         Ok(Logger {

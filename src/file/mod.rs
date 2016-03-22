@@ -138,7 +138,8 @@ impl Default for Deserializers {
         let mut deserializers = Deserializers::new();
         deserializers.insert("file".to_owned(), Box::new(FileAppenderDeserializer));
         deserializers.insert("console".to_owned(), Box::new(ConsoleAppenderDeserializer));
-        deserializers.insert("threshold".to_owned(), Box::new(ThresholdFilterDeserializer));
+        deserializers.insert("threshold".to_owned(),
+                             Box::new(ThresholdFilterDeserializer));
         deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
         deserializers
     }
@@ -168,9 +169,7 @@ impl Deserializers {
                                         -> Result<Box<T>, Box<error::Error>> {
         match self.get(kind) {
             Some(b) => b.deserialize(config, self),
-            None => {
-                Err(format!("no {} builder for kind `{}` registered", trait_, kind).into())
-            }
+            None => Err(format!("no {} builder for kind `{}` registered", trait_, kind).into()),
         }
     }
 }

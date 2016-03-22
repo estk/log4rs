@@ -48,7 +48,7 @@ impl<'a> Parser<'a> {
                 self.it.next();
                 true
             }
-            _ => false
+            _ => false,
         }
     }
 
@@ -217,4 +217,3 @@ impl<'a> Iterator for Parser<'a> {
         }
     }
 }
-
