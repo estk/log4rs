@@ -7,7 +7,7 @@ pub struct AtomicReference<T>(AtomicUsize, PhantomData<Arc<T>>);
 
 impl<T> Drop for AtomicReference<T> {
     fn drop(&mut self) {
-        let _: Arc<T> = unsafe { mem::transmute(self.0.load(Ordering::SeqCst)) };
+        self.take();
     }
 }
 
@@ -16,31 +16,30 @@ impl<T> AtomicReference<T> {
         unsafe { AtomicReference(AtomicUsize::new(mem::transmute(t)), PhantomData) }
     }
 
-    fn take(&self) -> usize {
+    fn take(&self) -> Arc<T> {
         loop {
             match self.0.swap(0, Ordering::SeqCst) {
                 0 => {}
-                r => return r,
+                r => return unsafe { mem::transmute(r) },
             }
         }
     }
 
-    fn put(&self, ptr: usize) {
+    fn put(&self, t: Arc<T>) {
         debug_assert_eq!(0, self.0.load(Ordering::SeqCst));
-        self.0.store(ptr, Ordering::SeqCst);
+        self.0.store(unsafe { mem::transmute(t) }, Ordering::SeqCst);
     }
 
     pub fn set(&self, t: Arc<T>) -> Arc<T> {
-        let raw = self.take();
-        self.put(unsafe { mem::transmute(t) });
-        unsafe { mem::transmute(raw) }
+        let old = self.take();
+        self.put(t);
+        old
     }
 
     pub fn get(&self) -> Arc<T> {
-        let raw = self.take();
-        let ret = unsafe { (*(&raw as *const _ as *const Arc<T>)).clone() };
-        self.put(raw);
-        ret
+        let t = self.take();
+        self.put(t.clone());
+        t
     }
 }
 
