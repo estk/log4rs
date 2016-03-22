@@ -30,10 +30,11 @@
 //!
 //!       -
 //!         # Like appenders, filters are identified by their "kind".
-//!         kind = threshold
+//!         kind: threshold
+//!
 //!         # The remainder of the configuration is passed along to the
 //!         # filter's builder, and will vary based on the kind of filter.
-//!         level = error
+//!         level: error
 //!
 //!     # The remainder of the configuration is passed along to the appender's
 //!     # builder, and will vary based on the kind of appender.
@@ -46,7 +47,7 @@
 //!
 //!       # The remainder of the configuration is passed along to the
 //!       # encoder's builder, and will vary based on the kind of encoder.
-//!       pattern = "{d} [{t}] {m}"
+//!       pattern: "{d} [{t}] {m}"
 //!
 //! # The root logger is configured by the "root" map. It is optional.
 //! root:
@@ -70,7 +71,7 @@
 //!     level: trace
 //!
 //!     # The list of appenders attached to the logger. Defaults to an empty
-//!     # list if not specified
+//!     # list if not specified.
 //!     appenders:
 //!       - foo
 //!

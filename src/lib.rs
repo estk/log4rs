@@ -50,9 +50,9 @@
 //!
 //! # Configuration
 //!
-//! log4rs can be configured either programmatically by using the builders in
-//! the `config` module to construct a log4rs `Config` object, which can be
-//! passed to the `init_config` function.
+//! log4rs can be configured programmatically by using the builders in the
+//! `config` module to construct a log4rs `Config` object, which can be passed
+//! to the `init_config` function.
 //!
 //! The more common configuration method, however, is via a separate config
 //! file. The `init_file` function takes the path to a config file as
@@ -90,7 +90,7 @@
 //!   app::backend::db:
 //!     level: info
 //!
-//!   # Route log events sent to the "app::requests" logger to the "requests" # appender,
+//!   # Route log events sent to the "app::requests" logger to the "requests" appender,
 //!   # and *not* the normal appenders installed at the root
 //!   app::requests:
 //!     level: info
