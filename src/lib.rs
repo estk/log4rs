@@ -105,7 +105,6 @@ extern crate chrono;
 extern crate log;
 extern crate serde;
 extern crate serde_value;
-extern crate time;
 extern crate typemap;
 #[cfg(feature = "yaml")]
 extern crate serde_yaml;
