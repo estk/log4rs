@@ -178,25 +178,17 @@ impl Deserializers {
 /// An error returned when deserializing a TOML configuration into a log4rs `Config`.
 #[derive(Debug)]
 pub enum Error {
-    /// An error instantiating an appender.
-    AppenderCreation(String, Box<error::Error>),
-    /// An error instantiating a filter.
-    FilterCreation(String, Box<error::Error>),
-    /// An error when creating the log4rs `Config`.
+    /// An error deserializing a component.
+    Deserialization(Box<error::Error>),
+    /// An error creating the log4rs `Config`.
     Config(config::Error),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::AppenderCreation(ref appender, ref err) => {
-                write!(fmt, "Error creating appender `{}`: {}", appender, err)
-            }
-            Error::FilterCreation(ref appender, ref err) => {
-                write!(fmt,
-                       "Error creating filter for appender `{}`: {}",
-                       appender,
-                       err)
+            Error::Deserialization(ref err) => {
+                write!(fmt, "Error deserializing component: {}", err)
             }
             Error::Config(ref err) => write!(fmt, "Error creating config: {}", err),
         }
@@ -210,8 +202,7 @@ impl error::Error for Error {
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            Error::AppenderCreation(_, ref err) |
-            Error::FilterCreation(_, ref err) => Some(&**err),
+            Error::Deserialization(ref err) => Some(&**err),
             Error::Config(ref err) => Some(err),
         }
     }
@@ -278,12 +269,12 @@ impl Config {
                     for raw::Filter { kind, config } in filters {
                         match deserializers.deserialize("filter", &kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
-                            Err(err) => errors.push(Error::FilterCreation(name.clone(), err)),
+                            Err(err) => errors.push(Error::Deserialization(err)),
                         }
                     }
                     config = config.appender(builder.build());
                 }
-                Err(err) => errors.push(Error::AppenderCreation(name, err)),
+                Err(err) => errors.push(Error::Deserialization(err)),
             }
         }
 
