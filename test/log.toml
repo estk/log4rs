@@ -10,7 +10,7 @@ level = "error"
 [appenders.file]
 kind = "file"
 path = "error.log"
-pattern = "%d [%t] %l %M:%m"
+pattern = "{d} [{t}] {l} {M}:{m}{n}"
 
 [root]
 level = "warn"
