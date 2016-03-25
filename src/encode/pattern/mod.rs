@@ -19,6 +19,7 @@
 //! * `M`, `module` - The module that the log message came from.
 //! * `T`, `thread` - The name of the thread that the log message came from.
 //! * `t`, `target` - The target of the log message.
+//! * `n` - A newline.
 //!
 //! # Supported Parameters
 //!
@@ -28,7 +29,7 @@
 //!
 //! # Examples
 //!
-//! The default pattern is `{d} {l} {t} - {m}` which produces output like
+//! The default pattern is `{d} {l} {t} - {m}{n}` which produces output like
 //! `2016-03-20T22:22:20.644420340+00:00 INFO module::path - this is a log
 //! message`.
 //!
@@ -214,6 +215,7 @@ enum FormattedChunk {
     Line,
     Thread,
     Target,
+    Newline,
 }
 
 impl FormattedChunk {
@@ -235,6 +237,7 @@ impl FormattedChunk {
                 w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
+            FormattedChunk::Newline => w.write_all(b"\n"), // FIXME
         }
     }
 }
@@ -253,10 +256,10 @@ impl fmt::Debug for PatternEncoder {
     }
 }
 
-/// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}`.
+/// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.
 impl Default for PatternEncoder {
     fn default() -> PatternEncoder {
-        PatternEncoder::new("{d} {l} {t} - {m}")
+        PatternEncoder::new("{d} {l} {t} - {m}{n}")
     }
 }
 
@@ -320,6 +323,7 @@ impl PatternEncoder {
                         "thread" => no_args(formatter.arg, parameters, FormattedChunk::Thread),
                         "t" |
                         "target" => no_args(formatter.arg, parameters, FormattedChunk::Target),
+                        "n" => no_args(formatter.arg, parameters, FormattedChunk::Newline),
                         name => Chunk::Error(format!("unknown formatter `{}`", name)),
                     }
                 }
@@ -344,7 +348,7 @@ impl PatternEncoder {
         for chunk in &self.chunks {
             try!(chunk.encode(w, level, target, location, args));
         }
-        writeln!(w, "")
+        Ok(())
     }
 }
 
@@ -435,7 +439,7 @@ mod tests {
                         &format_args!("the message"))
           .unwrap();
 
-        assert_eq!(buf.0, &b"DEBUG the message at path in file:132\n"[..]);
+        assert_eq!(buf.0, &b"DEBUG the message at path in file:132"[..]);
     }
 
     #[test]
@@ -449,7 +453,7 @@ mod tests {
                             &LOCATION,
                             &format_args!("message"))
               .unwrap();
-            assert_eq!(buf.0, b"<unnamed>\n");
+            assert_eq!(buf.0, b"<unnamed>");
         })
             .join()
             .unwrap();
@@ -468,7 +472,7 @@ mod tests {
                                 &LOCATION,
                                 &format_args!("message"))
                   .unwrap();
-                assert_eq!(buf.0, b"foobar\n");
+                assert_eq!(buf.0, b"foobar");
             })
             .unwrap()
             .join()
@@ -491,7 +495,7 @@ mod tests {
                         &LOCATION,
                         &format_args!("foo"))
           .unwrap();
-        assert_eq!(buf.0, b"foo~~\n");
+        assert_eq!(buf.0, b"foo~~");
 
         buf.0.clear();
         pw.append_inner(&mut buf,
@@ -500,7 +504,7 @@ mod tests {
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"foobar\n");
+        assert_eq!(buf.0, b"foobar");
     }
 
     #[test]
@@ -514,7 +518,7 @@ mod tests {
                         &LOCATION,
                         &format_args!("foo"))
           .unwrap();
-        assert_eq!(buf.0, b"~~foo\n");
+        assert_eq!(buf.0, b"~~foo");
 
         buf.0.clear();
         pw.append_inner(&mut buf,
@@ -523,6 +527,6 @@ mod tests {
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"foobar\n");
+        assert_eq!(buf.0, b"foobar");
     }
 }
