@@ -142,7 +142,7 @@ mod priv_serde;
 struct ConfiguredLogger {
     level: LogLevelFilter,
     appenders: Vec<usize>,
-    children: Vec<(String, Box<ConfiguredLogger>)>,
+    children: Vec<(String, ConfiguredLogger)>,
 }
 
 impl ConfiguredLogger {
@@ -183,7 +183,7 @@ impl ConfiguredLogger {
             child
         };
 
-        self.children.push((part.to_owned(), Box::new(child)));
+        self.children.push((part.to_owned(), child));
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
