@@ -65,8 +65,8 @@ impl ConsoleAppenderBuilder {
 
 /// A deserializer for the `ConsoleAppender`.
 ///
-/// The `pattern` key is optional and specifies a `PatternEncoder` pattern to be
-/// used for output.
+/// The `encoder` key is optional and specifies an `Encoder` to be used for
+/// output.
 pub struct ConsoleAppenderDeserializer;
 
 impl Deserialize for ConsoleAppenderDeserializer {

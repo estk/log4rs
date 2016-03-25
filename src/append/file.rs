@@ -94,9 +94,9 @@ impl FileAppenderBuilder {
 /// A deserializer for the `FileAppender`.
 ///
 /// The `path` key is required, and specifies the path to the log file. The
-/// `pattern` key is optional and specifies a `PatternEncoder` pattern to be
-/// used for output. The `append` key is optional and specifies whether the
-/// output file should be truncated or appended to.
+/// `encoder` key is optional and specifies an `Encoder` to be used for output.
+/// The `append` key is optional and specifies whether the output file should be
+/// truncated or appended to.
 pub struct FileAppenderDeserializer;
 
 impl Deserialize for FileAppenderDeserializer {
