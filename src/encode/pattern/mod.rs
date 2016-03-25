@@ -60,6 +60,11 @@ use ErrorInternals;
 
 mod parser;
 
+#[cfg(windows)]
+const NEWLINE: &'static str = "\r\n";
+#[cfg(not(windows))]
+const NEWLINE: &'static str = "\n";
+
 include!("serde.rs");
 
 struct PrecisionWriter<'a> {
@@ -237,7 +242,7 @@ impl FormattedChunk {
                 w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
-            FormattedChunk::Newline => w.write_all(b"\n"), // FIXME
+            FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
         }
     }
 }
