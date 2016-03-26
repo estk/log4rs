@@ -21,6 +21,9 @@
 //! * `t`, `target` - The target of the log message.
 //! * `n` - A newline.
 //!
+//! In addition, an "unnamed" formatter exists to apply parameters (see below)
+//! to an entire group of formatters.
+//!
 //! # Supported Parameters
 //!
 //! Left and right alignment with a custom fill character and width is
@@ -36,10 +39,17 @@
 //! The pattern `{d(%Y-%m-%d %H:%M:%S)}` will output the current time with a
 //! custom format looking like `2016-03-20 22:22:20`.
 //!
-//! The pattern `{m:~>10.15}` will right-align the log message to a minimum of
-//! 10 bytes, filling in with `~` characters, and truncate output after 15
-//! bytes. The message `hello` will therefore be displayed as `~~~~~hello`,
-//! while the message `hello, world!` will be displayed as `hello, wor`.
+//! The pattern `{m:>10.15}` will right-align the log message to a minimum of
+//! 10 bytes, filling in with space  characters, and truncate output after 15
+//! bytes. The message `hello` will therefore be displayed as
+//! <code>     hello</code>, while the message `hello, world!` will be displayed
+//! as `hello, wor`.
+//!
+//! The pattern `{({l} {m}):15.15}` will output the log level and message limited
+//! to exactly 15 bytes, padding with space characters on the right if
+//! necessary. The message `hello` and log level `INFO` will be displayed as
+//! <code>INFO hello     </code>, while the message `hello, world!` and log
+//! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 
 use chrono::UTC;
 use log::{LogRecord, LogLevel};
