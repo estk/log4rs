@@ -14,7 +14,7 @@ pub enum Piece<'a> {
 
 pub struct Formatter<'a> {
     pub name: &'a str,
-    pub arg: &'a str,
+    pub arg: Vec<Piece<'a>>,
 }
 
 pub struct Parameters {
@@ -91,22 +91,20 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn arg(&mut self) -> Result<&'a str, String> {
+    fn arg(&mut self) -> Result<Vec<Piece<'a>>, String> {
         if !self.consume('(') {
-            return Ok("");
+            return Ok(vec![]);
         }
 
-        let start = match self.it.next() {
-            Some((_, ')')) => return Ok(""),
-            Some((pos, _)) => pos,
-            None => return Err("unclosed '('".to_owned()),
-        };
-
+        let mut arg = vec![];
         loop {
-            match self.it.next() {
-                Some((pos, ')')) => return Ok(&self.pattern[start..pos]),
-                Some(_) => {}
-                None => return Err("unclosed '('".to_owned()),
+            if self.consume(')') {
+                return Ok(arg);
+            } else {
+                match self.next() {
+                    Some(piece) => arg.push(piece),
+                    None => return Err("unclosed '('".to_owned()),
+                }
             }
         }
     }

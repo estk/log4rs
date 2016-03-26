@@ -279,7 +279,7 @@ impl Encode for PatternEncoder {
     }
 }
 
-fn no_args(arg: &str, params: Parameters, chunk: FormattedChunk) -> Chunk {
+fn no_args(arg: &[Piece], params: Parameters, chunk: FormattedChunk) -> Chunk {
     if arg.is_empty() {
         Chunk::Formatted {
             chunk: chunk,
@@ -304,31 +304,43 @@ impl PatternEncoder {
                     match formatter.name {
                         "d" |
                         "date" => {
-                            let format = if formatter.arg.is_empty() {
-                                "%+".to_owned()
-                            } else {
-                                formatter.arg.to_owned()
-                            };
+                            let mut format = String::new();
+                            for piece in &formatter.arg {
+                                match *piece {
+                                    Piece::Text(text) => format.push_str(text),
+                                    Piece::Argument { .. } => {
+                                        format.push_str("{ERROR: unexpected formatter}");
+                                    }
+                                    Piece::Error(ref err) => {
+                                        format.push_str("{ERROR: ");
+                                        format.push_str(err);
+                                        format.push('}');
+                                    }
+                                }
+                            }
+                            if format.is_empty() {
+                                format.push_str("%+");
+                            }
                             Chunk::Formatted {
                                 chunk: FormattedChunk::Time(format),
                                 params: parameters,
                             }
                         }
                         "l" |
-                        "level" => no_args(formatter.arg, parameters, FormattedChunk::Level),
+                        "level" => no_args(&formatter.arg, parameters, FormattedChunk::Level),
                         "m" |
-                        "message" => no_args(formatter.arg, parameters, FormattedChunk::Message),
+                        "message" => no_args(&formatter.arg, parameters, FormattedChunk::Message),
                         "M" |
-                        "module" => no_args(formatter.arg, parameters, FormattedChunk::Module),
+                        "module" => no_args(&formatter.arg, parameters, FormattedChunk::Module),
                         "f" |
-                        "file" => no_args(formatter.arg, parameters, FormattedChunk::File),
+                        "file" => no_args(&formatter.arg, parameters, FormattedChunk::File),
                         "L" |
-                        "line" => no_args(formatter.arg, parameters, FormattedChunk::Line),
+                        "line" => no_args(&formatter.arg, parameters, FormattedChunk::Line),
                         "T" |
-                        "thread" => no_args(formatter.arg, parameters, FormattedChunk::Thread),
+                        "thread" => no_args(&formatter.arg, parameters, FormattedChunk::Thread),
                         "t" |
-                        "target" => no_args(formatter.arg, parameters, FormattedChunk::Target),
-                        "n" => no_args(formatter.arg, parameters, FormattedChunk::Newline),
+                        "target" => no_args(&formatter.arg, parameters, FormattedChunk::Target),
+                        "n" => no_args(&formatter.arg, parameters, FormattedChunk::Newline),
                         name => Chunk::Error(format!("unknown formatter `{}`", name)),
                     }
                 }
