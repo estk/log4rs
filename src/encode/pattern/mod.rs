@@ -211,6 +211,66 @@ impl Chunk {
     }
 }
 
+impl<'a> From<Piece<'a>> for Chunk {
+    fn from(piece: Piece<'a>) -> Chunk {
+        match piece {
+            Piece::Text(text) => Chunk::Text(text.to_owned()),
+            Piece::Argument { formatter, parameters } => {
+                match formatter.name {
+                    "d" |
+                    "date" => {
+                        let mut format = String::new();
+                        for piece in &formatter.arg {
+                            match *piece {
+                                Piece::Text(text) => format.push_str(text),
+                                Piece::Argument { .. } => {
+                                    format.push_str("{ERROR: unexpected formatter}");
+                                }
+                                Piece::Error(ref err) => {
+                                    format.push_str("{ERROR: ");
+                                    format.push_str(err);
+                                    format.push('}');
+                                }
+                            }
+                        }
+                        if format.is_empty() {
+                            format.push_str("%+");
+                        }
+                        Chunk::Formatted {
+                            chunk: FormattedChunk::Time(format),
+                            params: parameters,
+                        }
+                    }
+                    "l" |
+                    "level" => no_args(&formatter.arg, parameters, FormattedChunk::Level),
+                    "m" |
+                    "message" => no_args(&formatter.arg, parameters, FormattedChunk::Message),
+                    "M" |
+                    "module" => no_args(&formatter.arg, parameters, FormattedChunk::Module),
+                    "f" |
+                    "file" => no_args(&formatter.arg, parameters, FormattedChunk::File),
+                    "L" |
+                    "line" => no_args(&formatter.arg, parameters, FormattedChunk::Line),
+                    "T" |
+                    "thread" => no_args(&formatter.arg, parameters, FormattedChunk::Thread),
+                    "t" |
+                    "target" => no_args(&formatter.arg, parameters, FormattedChunk::Target),
+                    "n" => no_args(&formatter.arg, parameters, FormattedChunk::Newline),
+                    "" => {
+                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        Chunk::Formatted {
+                            chunk: FormattedChunk::Align(chunks),
+                            params: parameters,
+                        }
+                    }
+                    name => Chunk::Error(format!("unknown formatter `{}`", name)),
+                }
+            }
+            Piece::Error(err) => Chunk::Error(err),
+        }
+    }
+}
+
 enum FormattedChunk {
     Time(String),
     Level,
@@ -221,6 +281,7 @@ enum FormattedChunk {
     Thread,
     Target,
     Newline,
+    Align(Vec<Chunk>),
 }
 
 impl FormattedChunk {
@@ -243,6 +304,12 @@ impl FormattedChunk {
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
+            FormattedChunk::Align(ref chunks) => {
+                for chunk in chunks {
+                    try!(chunk.encode(w, level, target, location, args));
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -295,62 +362,8 @@ impl PatternEncoder {
     ///
     /// The pattern string syntax is documented in the `pattern` module.
     pub fn new(pattern: &str) -> PatternEncoder {
-        let mut chunks = vec![];
-
-        for piece in Parser::new(pattern) {
-            let chunk = match piece {
-                Piece::Text(text) => Chunk::Text(text.to_owned()),
-                Piece::Argument { formatter, parameters } => {
-                    match formatter.name {
-                        "d" |
-                        "date" => {
-                            let mut format = String::new();
-                            for piece in &formatter.arg {
-                                match *piece {
-                                    Piece::Text(text) => format.push_str(text),
-                                    Piece::Argument { .. } => {
-                                        format.push_str("{ERROR: unexpected formatter}");
-                                    }
-                                    Piece::Error(ref err) => {
-                                        format.push_str("{ERROR: ");
-                                        format.push_str(err);
-                                        format.push('}');
-                                    }
-                                }
-                            }
-                            if format.is_empty() {
-                                format.push_str("%+");
-                            }
-                            Chunk::Formatted {
-                                chunk: FormattedChunk::Time(format),
-                                params: parameters,
-                            }
-                        }
-                        "l" |
-                        "level" => no_args(&formatter.arg, parameters, FormattedChunk::Level),
-                        "m" |
-                        "message" => no_args(&formatter.arg, parameters, FormattedChunk::Message),
-                        "M" |
-                        "module" => no_args(&formatter.arg, parameters, FormattedChunk::Module),
-                        "f" |
-                        "file" => no_args(&formatter.arg, parameters, FormattedChunk::File),
-                        "L" |
-                        "line" => no_args(&formatter.arg, parameters, FormattedChunk::Line),
-                        "T" |
-                        "thread" => no_args(&formatter.arg, parameters, FormattedChunk::Thread),
-                        "t" |
-                        "target" => no_args(&formatter.arg, parameters, FormattedChunk::Target),
-                        "n" => no_args(&formatter.arg, parameters, FormattedChunk::Newline),
-                        name => Chunk::Error(format!("unknown formatter `{}`", name)),
-                    }
-                }
-                Piece::Error(err) => Chunk::Error(err),
-            };
-            chunks.push(chunk);
-        }
-
         PatternEncoder {
-            chunks: chunks,
+            chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
         }
     }
@@ -545,5 +558,33 @@ mod tests {
                         &format_args!("foobar!"))
           .unwrap();
         assert_eq!(buf.0, b"foobar");
+    }
+
+    #[test]
+    fn left_align_formatter() {
+        let pw = PatternEncoder::new("{({l} {m}):15}");
+
+        let mut buf = SimpleWriter(vec![]);
+        pw.append_inner(&mut buf,
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+          .unwrap();
+        assert_eq!(buf.0, b"INFO foobar!   ");
+    }
+
+    #[test]
+    fn right_align_formatter() {
+        let pw = PatternEncoder::new("{({l} {m}):>15}");
+
+        let mut buf = SimpleWriter(vec![]);
+        pw.append_inner(&mut buf,
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+          .unwrap();
+        assert_eq!(buf.0, b"   INFO foobar!");
     }
 }
