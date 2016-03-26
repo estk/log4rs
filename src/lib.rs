@@ -77,7 +77,7 @@
 //!     kind: file
 //!     path: "log/requests.log"
 //!     encoder:
-//!       pattern: "{d} - {m}"
+//!       pattern: "{d} - {m}{n}"
 //!
 //! # Set the default logging level to "warn" and attach the "stdout" appender to the root
 //! root:
