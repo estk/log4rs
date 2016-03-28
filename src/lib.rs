@@ -488,7 +488,7 @@ impl ConfigReloader {
         };
 
         thread::Builder::new()
-            .name("log4rs config refresh thread".to_owned())
+            .name("log4rs refresh".to_owned())
             .spawn(move || reloader.run())
             .unwrap();
     }
