@@ -20,9 +20,7 @@ pub struct Root {
 impl Root {
     /// Creates a new `RootBuilder` with no appenders.
     pub fn builder() -> RootBuilder {
-        RootBuilder {
-            appenders: vec![],
-        }
+        RootBuilder { appenders: vec![] }
     }
 
     /// Returns the minimum level of log messages that the root logger will accept.
@@ -75,9 +73,7 @@ pub struct Appender {
 impl Appender {
     /// Creates a new `AppenderBuilder` with the specified name and `Append` trait object.
     pub fn builder() -> AppenderBuilder {
-        AppenderBuilder {
-            filters: vec![],
-        }
+        AppenderBuilder { filters: vec![] }
     }
 
     /// Returns the name of the appender.
