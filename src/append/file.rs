@@ -41,11 +41,9 @@ impl Append for FileAppender {
 }
 
 impl FileAppender {
-    /// Creates a new `FileAppender` builder for an appender which will log to
-    /// a file at the provided path.
-    pub fn builder<P: AsRef<Path>>(path: P) -> FileAppenderBuilder {
+    /// Creates a new `FileAppender` builder.
+    pub fn builder() -> FileAppenderBuilder {
         FileAppenderBuilder {
-            path: path.as_ref().to_path_buf(),
             encoder: Box::new(PatternEncoder::default()),
             append: true,
         }
@@ -54,7 +52,6 @@ impl FileAppender {
 
 /// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
-    path: PathBuf,
     encoder: Box<Encode>,
     append: bool,
 }
@@ -75,15 +72,16 @@ impl FileAppenderBuilder {
     }
 
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
-    pub fn build(self) -> io::Result<FileAppender> {
+    pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
+        let path = path.as_ref().to_owned();
         let file = try!(OpenOptions::new()
                             .write(true)
                             .append(self.append)
                             .create(true)
-                            .open(&self.path));
+                            .open(&path));
 
         Ok(FileAppender {
-            path: self.path,
+            path: path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self.encoder,
         })
@@ -107,7 +105,7 @@ impl Deserialize for FileAppenderDeserializer {
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
         let config = try!(config.deserialize_into::<FileAppenderConfig>());
-        let mut appender = FileAppender::builder(&config.path);
+        let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);
         }
@@ -116,7 +114,7 @@ impl Deserialize for FileAppenderDeserializer {
                                                                        &encoder.kind,
                                                                        encoder.config)));
         }
-        Ok(Box::new(try!(appender.build())))
+        Ok(Box::new(try!(appender.build(&config.path))))
     }
 }
 

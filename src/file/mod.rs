@@ -253,26 +253,26 @@ impl Config {
 
         let root = match raw_root {
             Some(raw_root) => {
-                config::Root::builder(raw_root.level)
+                config::Root::builder()
                     .appenders(raw_root.appenders)
-                    .build()
+                    .build(raw_root.level)
             }
-            None => config::Root::builder(LogLevelFilter::Debug).build(),
+            None => config::Root::builder().build(LogLevelFilter::Debug),
         };
 
-        let mut config = config::Config::builder(root);
+        let mut config = config::Config::builder();
 
         for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
             match deserializers.deserialize("appender", &kind, raw_config) {
                 Ok(appender_obj) => {
-                    let mut builder = config::Appender::builder(name.clone(), appender_obj);
+                    let mut builder = config::Appender::builder();
                     for raw::Filter { kind, config } in filters {
                         match deserializers.deserialize("filter", &kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::Deserialization(err)),
                         }
                     }
-                    config = config.appender(builder.build());
+                    config = config.appender(builder.build(name.clone(), appender_obj));
                 }
                 Err(err) => errors.push(Error::Deserialization(err)),
             }
@@ -280,14 +280,14 @@ impl Config {
 
         for (name, logger) in raw_loggers {
             let raw::Logger { level, appenders, additive, .. } = logger;
-            let mut logger = config::Logger::builder(name, level).appenders(appenders);
+            let mut logger = config::Logger::builder().appenders(appenders);
             if let Some(additive) = additive {
                 logger = logger.additive(additive);
             }
-            config = config.logger(logger.build());
+            config = config.logger(logger.build(name, level));
         }
 
-        let (config, config_errors) = config.build_lossy();
+        let (config, config_errors) = config.build_lossy(root);
         if let Err(config_errors) = config_errors {
             for error in config_errors.unpack() {
                 errors.push(Error::Config(error));

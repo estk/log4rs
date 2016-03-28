@@ -560,17 +560,17 @@ mod test {
 
     #[test]
     fn enabled() {
-        let root = config::Root::builder(LogLevelFilter::Debug).build();
-        let mut config = config::Config::builder(root);
-        let logger = config::Logger::builder("foo::bar".to_string(), LogLevelFilter::Trace).build();
+        let root = config::Root::builder().build(LogLevelFilter::Debug);
+        let mut config = config::Config::builder();
+        let logger = config::Logger::builder().build("foo::bar".to_string(), LogLevelFilter::Trace);
         config = config.logger(logger);
-        let logger = config::Logger::builder("foo::bar::baz".to_string(), LogLevelFilter::Off)
-                         .build();
+        let logger = config::Logger::builder()
+                         .build("foo::bar::baz".to_string(), LogLevelFilter::Off);
         config = config.logger(logger);
-        let logger = config::Logger::builder("foo::baz::buz".to_string(), LogLevelFilter::Error)
-                         .build();
+        let logger = config::Logger::builder()
+                         .build("foo::baz::buz".to_string(), LogLevelFilter::Error);
         config = config.logger(logger);
-        let config = config.build().unwrap();
+        let config = config.build(root).unwrap();
 
         let logger = super::Logger::new(config);
 

@@ -18,12 +18,11 @@ pub struct Root {
 }
 
 impl Root {
-    /// Creates a new `RootBuilder` with no appenders and the specified level.
-    pub fn builder(level: LogLevelFilter) -> RootBuilder {
-        RootBuilder(Root {
-            level: level,
+    /// Creates a new `RootBuilder` with no appenders.
+    pub fn builder() -> RootBuilder {
+        RootBuilder {
             appenders: vec![],
-        })
+        }
     }
 
     /// Returns the minimum level of log messages that the root logger will accept.
@@ -39,24 +38,29 @@ impl Root {
 
 /// A builder for `Root`s.
 #[derive(Debug)]
-pub struct RootBuilder(Root);
+pub struct RootBuilder {
+    appenders: Vec<String>,
+}
 
 impl RootBuilder {
     /// Adds an appender.
     pub fn appender(mut self, appender: String) -> RootBuilder {
-        self.0.appenders.push(appender);
+        self.appenders.push(appender);
         self
     }
 
     /// Adds appenders.
     pub fn appenders<I: IntoIterator<Item = String>>(mut self, appenders: I) -> RootBuilder {
-        self.0.appenders.extend(appenders);
+        self.appenders.extend(appenders);
         self
     }
 
     /// Consumes the `RootBuilder`, returning the `Root`.
-    pub fn build(self) -> Root {
-        self.0
+    pub fn build(self, level: LogLevelFilter) -> Root {
+        Root {
+            level: level,
+            appenders: self.appenders,
+        }
     }
 }
 
@@ -70,12 +74,10 @@ pub struct Appender {
 
 impl Appender {
     /// Creates a new `AppenderBuilder` with the specified name and `Append` trait object.
-    pub fn builder(name: String, appender: Box<Append>) -> AppenderBuilder {
-        AppenderBuilder(Appender {
-            name: name,
-            appender: appender,
+    pub fn builder() -> AppenderBuilder {
+        AppenderBuilder {
             filters: vec![],
-        })
+        }
     }
 
     /// Returns the name of the appender.
@@ -103,24 +105,30 @@ impl PrivateConfigAppenderExt for Appender {
 
 /// A builder for `Appender`s.
 #[derive(Debug)]
-pub struct AppenderBuilder(Appender);
+pub struct AppenderBuilder {
+    filters: Vec<Box<Filter>>,
+}
 
 impl AppenderBuilder {
     /// Adds a filter.
     pub fn filter(mut self, filter: Box<Filter>) -> AppenderBuilder {
-        self.0.filters.push(filter);
+        self.filters.push(filter);
         self
     }
 
     /// Adds filters.
     pub fn filters<I: IntoIterator<Item = Box<Filter>>>(mut self, filters: I) -> AppenderBuilder {
-        self.0.filters.extend(filters);
+        self.filters.extend(filters);
         self
     }
 
     /// Consumes the `AppenderBuilder`, returning the `Appender`.
-    pub fn build(self) -> Appender {
-        self.0
+    pub fn build(self, name: String, appender: Box<Append>) -> Appender {
+        Appender {
+            name: name,
+            appender: appender,
+            filters: self.filters,
+        }
     }
 }
 
@@ -141,13 +149,11 @@ impl Logger {
     /// Creates a new `LoggerBuilder` with the specified name and level.
     ///
     /// There are initially no appenders attached and `additive` is `true`.
-    pub fn builder(name: String, level: LogLevelFilter) -> LoggerBuilder {
-        LoggerBuilder(Logger {
-            name: name,
-            level: level,
+    pub fn builder() -> LoggerBuilder {
+        LoggerBuilder {
             appenders: vec![],
             additive: true,
-        })
+        }
     }
 
     /// Returns the name of the logger.
@@ -173,30 +179,38 @@ impl Logger {
 
 /// A builder for `Logger`s.
 #[derive(Debug)]
-pub struct LoggerBuilder(Logger);
+pub struct LoggerBuilder {
+    appenders: Vec<String>,
+    additive: bool,
+}
 
 impl LoggerBuilder {
     /// Adds an appender.
     pub fn appender(mut self, appender: String) -> LoggerBuilder {
-        self.0.appenders.push(appender);
+        self.appenders.push(appender);
         self
     }
 
     /// Adds appenders.
     pub fn appenders<I: IntoIterator<Item = String>>(mut self, appenders: I) -> LoggerBuilder {
-        self.0.appenders.extend(appenders);
+        self.appenders.extend(appenders);
         self
     }
 
     /// Sets the additivity of the logger.
     pub fn additive(mut self, additive: bool) -> LoggerBuilder {
-        self.0.additive = additive;
+        self.additive = additive;
         self
     }
 
     /// Consumes the `LoggerBuilder`, returning the `Logger`.
-    pub fn build(self) -> Logger {
-        self.0
+    pub fn build(self, name: String, level: LogLevelFilter) -> Logger {
+        Logger {
+            name: name,
+            level: level,
+            appenders: self.appenders,
+            additive: self.additive,
+        }
     }
 }
 
@@ -209,13 +223,12 @@ pub struct Config {
 }
 
 impl Config {
-    /// Creates a new `ConfigBuilder` with the specified `Root`.
-    pub fn builder(root: Root) -> ConfigBuilder {
-        ConfigBuilder(Config {
+    /// Creates a new `ConfigBuilder`.
+    pub fn builder() -> ConfigBuilder {
+        ConfigBuilder {
             appenders: vec![],
-            root: root,
             loggers: vec![],
-        })
+        }
     }
 
     /// Returns the `Appender`s associated with the `Config`.
@@ -235,30 +248,33 @@ impl Config {
 }
 
 /// A builder for `Config`s.
-pub struct ConfigBuilder(Config);
+pub struct ConfigBuilder {
+    appenders: Vec<Appender>,
+    loggers: Vec<Logger>,
+}
 
 impl ConfigBuilder {
     /// Adds an appender.
     pub fn appender(mut self, appender: Appender) -> ConfigBuilder {
-        self.0.appenders.push(appender);
+        self.appenders.push(appender);
         self
     }
 
     /// Adds appenders.
     pub fn appenders<I: IntoIterator<Item = Appender>>(mut self, appenders: I) -> ConfigBuilder {
-        self.0.appenders.extend(appenders);
+        self.appenders.extend(appenders);
         self
     }
 
     /// Adds a logger.
     pub fn logger(mut self, logger: Logger) -> ConfigBuilder {
-        self.0.loggers.push(logger);
+        self.loggers.push(logger);
         self
     }
 
     /// Adds loggers.
     pub fn loggers<I: IntoIterator<Item = Logger>>(mut self, loggers: I) -> ConfigBuilder {
-        self.0.loggers.extend(loggers);
+        self.loggers.extend(loggers);
         self
     }
 
@@ -266,10 +282,10 @@ impl ConfigBuilder {
     ///
     /// Unlike `build`, this method will always return a `Config` by stripping
     /// portions of the configuration that are incorrect.
-    pub fn build_lossy(self) -> (Config, Result<(), Errors>) {
+    pub fn build_lossy(self, mut root: Root) -> (Config, Result<(), Errors>) {
         let mut errors = vec![];
 
-        let Config { appenders, mut root, loggers } = self.0;
+        let ConfigBuilder { appenders, loggers } = self;
 
         let mut ok_appenders = vec![];
         let mut appender_names = HashSet::new();
@@ -333,8 +349,8 @@ impl ConfigBuilder {
     }
 
     /// Consumes the `ConfigBuilder`, returning the `Config`.
-    pub fn build(self) -> Result<Config, Errors> {
-        let (config, errors) = self.build_lossy();
+    pub fn build(self, root: Root) -> Result<Config, Errors> {
+        let (config, errors) = self.build_lossy(root);
         errors.map(|_| config)
     }
 }
