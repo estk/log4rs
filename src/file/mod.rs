@@ -121,9 +121,9 @@ pub trait Deserialize: Send + Sync + 'static {
 }
 
 /// A container of `Deserialize`rs.
-///
-/// `Deserializers` implements `Default`, which returns a `Deserializers` with
-/// the following mappings:
+pub struct Deserializers(ShareMap);
+
+/// Creates a `Deserializers` with the following mappings:
 ///
 /// * Appenders
 ///     * "file" -> `FileAppenderDeserializer`
@@ -132,8 +132,6 @@ pub trait Deserialize: Send + Sync + 'static {
 ///     * "threshold" -> `ThresholdFilterDeserializer`
 /// * Encoders
 ///     * "pattern" -> `PatternEncoderDeserializer`
-pub struct Deserializers(ShareMap);
-
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();

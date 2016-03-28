@@ -17,8 +17,8 @@
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
 //! * `M`, `module` - The module that the log message came from.
-//! * `T`, `thread` - The name of the thread that the log message came from.
 //! * `t`, `target` - The target of the log message.
+//! * `T`, `thread` - The name of the thread that the log message came from.
 //! * `n` - A newline.
 //!
 //! In addition, an "unnamed" formatter exists to apply parameters (see below)
@@ -42,8 +42,8 @@
 //! The pattern `{m:>10.15}` will right-align the log message to a minimum of
 //! 10 bytes, filling in with space  characters, and truncate output after 15
 //! bytes. The message `hello` will therefore be displayed as
-//! <code>     hello</code>, while the message `hello, world!` will be displayed
-//! as `hello, wor`.
+//! <code>     hello</code>, while the message `hello there, world!` will be
+//! displayed as `hello there, wo`.
 //!
 //! The pattern `{({l} {m}):15.15}` will output the log level and message limited
 //! to exactly 15 bytes, padding with space characters on the right if

@@ -17,5 +17,5 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
 ///
 /// It extends `std::io::Write` and currently offers no functionality beyond
 /// that, though additional methods (with default implementations) may be added
-/// in the future for functionality such as output color control.
+/// in the future to support things like color control.
 pub trait Write: io::Write {}
