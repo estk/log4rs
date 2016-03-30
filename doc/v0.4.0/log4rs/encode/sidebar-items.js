@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["pattern","A simple pattern-based encoder."]],"trait":[["Encode","A trait implemented by types that can serialize a `LogRecord` into a `Write`r."],["Write","A trait for types that an `Encode`r will write to."]]});

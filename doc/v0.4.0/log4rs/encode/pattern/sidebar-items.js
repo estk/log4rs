@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["PatternEncoder","An `Encode`r configured via a format string."],["PatternEncoderDeserializer","A deserializer for the `PatternEncoder`."]]});
