@@ -4,7 +4,5 @@ version = "0.0.1"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 
 [dependencies]
-log = "0.2"
-
-[dependencies.log4rs]
-path = ".."
+log = "0.3"
+log4rs = { path = "..", features = ["toml"] }

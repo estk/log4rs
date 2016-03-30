@@ -1,0 +1,7 @@
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FileAppenderConfig {
+    path: String,
+    encoder: Option<Encoder>,
+    append: Option<bool>,
+}

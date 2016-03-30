@@ -1,0 +1,5 @@
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PatternEncoderConfig {
+    pattern: Option<String>,
+}
