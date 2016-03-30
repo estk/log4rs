@@ -98,7 +98,7 @@
 //!       - requests
 //!     additive: false
 //! ```
-#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.3.3")]
+#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.0")]
 #![warn(missing_docs)]
 
 extern crate chrono;
