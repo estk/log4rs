@@ -252,7 +252,7 @@ struct SharedLogger {
 
 impl SharedLogger {
     fn new(config: config::Config) -> SharedLogger {
-        let (appenders, root, loggers) = config.unpack();
+        let (appenders, root, mut loggers) = config.unpack();
 
         let root = {
             let appender_map = appenders.iter()
@@ -269,6 +269,8 @@ impl SharedLogger {
                 children: vec![],
             };
 
+            // sort loggers by name length to ensure that we initialize them top to bottom
+            loggers.sort_by_key(|l| l.name().len());
             for logger in loggers {
                 let appenders = logger.appenders()
                                       .iter()
