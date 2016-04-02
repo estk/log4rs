@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["console","The console appender."],["file","The file appender."]],"trait":[["Append","A trait implemented by log4rs appenders."]]});
