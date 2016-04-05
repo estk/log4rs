@@ -173,7 +173,7 @@ impl<'a> Parser<'a> {
     fn text(&mut self, start: usize) -> Piece<'a> {
         while let Some(&(pos, ch)) = self.it.peek() {
             match ch {
-                '{' | '}' => return Piece::Text(&self.pattern[start..pos]),
+                '{' | '}' | ')' => return Piece::Text(&self.pattern[start..pos]),
                 _ => {
                     self.it.next();
                 }
