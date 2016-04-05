@@ -597,4 +597,9 @@ mod tests {
           .unwrap();
         assert_eq!(buf.0, b"   INFO foobar!");
     }
+
+    #[test]
+    fn custom_date_format() {
+        assert!(error_free(&PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {m}{n}")));
+    }
 }

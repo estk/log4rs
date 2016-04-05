@@ -131,13 +131,9 @@ impl AppenderBuilder {
 /// Configuration for a logger.
 #[derive(Debug)]
 pub struct Logger {
-    /// The name of the logger.
     name: String,
-    /// The minimum level of log messages that the logger will accept.
     level: LogLevelFilter,
-    /// The set of names of appenders that will be attached to the logger.
     appenders: Vec<String>,
-    /// If `true`, appenders of parent loggers will also be attached to this logger.
     additive: bool,
 }
 
