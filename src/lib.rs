@@ -102,6 +102,7 @@
 #![warn(missing_docs)]
 
 extern crate chrono;
+extern crate crossbeam;
 extern crate log;
 extern crate serde;
 extern crate serde_value;
@@ -113,6 +114,7 @@ extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
 
+use crossbeam::sync::ArcCell;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
@@ -126,7 +128,6 @@ use std::thread;
 use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
-use atomic::AtomicReference;
 use append::Append;
 use filter::Filter;
 use file::{Format, Deserializers};
@@ -136,7 +137,6 @@ pub mod config;
 pub mod filter;
 pub mod file;
 pub mod encode;
-mod atomic;
 mod priv_serde;
 
 struct ConfiguredLogger {
@@ -300,12 +300,12 @@ impl SharedLogger {
 }
 
 struct Logger {
-    inner: Arc<AtomicReference<SharedLogger>>,
+    inner: Arc<ArcCell<SharedLogger>>,
 }
 
 impl Logger {
     fn new(config: config::Config) -> Logger {
-        Logger { inner: Arc::new(AtomicReference::new(Arc::new(SharedLogger::new(config)))) }
+        Logger { inner: Arc::new(ArcCell::new(Arc::new(SharedLogger::new(config)))) }
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
@@ -467,7 +467,7 @@ struct ConfigReloader {
     rate: Duration,
     source: String,
     deserializers: Deserializers,
-    shared: Arc<AtomicReference<SharedLogger>>,
+    shared: Arc<ArcCell<SharedLogger>>,
     max_log_level: MaxLogLevelFilter,
 }
 
