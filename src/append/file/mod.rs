@@ -1,13 +1,13 @@
 //! The file appender.
 
+use antidote::Mutex;
+use log::LogRecord;
+use serde_value::Value;
 use std::error::Error;
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use log::LogRecord;
-use serde_value::Value;
 
 use append::{Append, SimpleWriter};
 use append::file::serde::FileAppenderConfig;
@@ -35,7 +35,7 @@ impl fmt::Debug for FileAppender {
 
 impl Append for FileAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
-        let mut file = self.file.lock().unwrap_or_else(|e| e.into_inner());
+        let mut file = self.file.lock();
         try!(self.encoder.encode(&mut *file, record));
         try!(file.flush());
         Ok(())

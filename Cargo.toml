@@ -12,6 +12,7 @@ yaml = ["serde_yaml"]
 json = ["serde_json"]
 
 [dependencies]
+antidote = "0.1"
 log = "0.3"
 typemap = "0.3"
 serde = "0.7"

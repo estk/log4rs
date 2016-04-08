@@ -101,6 +101,7 @@
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.2")]
 #![warn(missing_docs)]
 
+extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
 extern crate log;
