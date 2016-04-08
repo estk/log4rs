@@ -10,10 +10,12 @@ use log::LogRecord;
 use serde_value::Value;
 
 use append::{Append, SimpleWriter};
+use append::file::serde::FileAppenderConfig;
 use encode::Encode;
 use encode::pattern::PatternEncoder;
 use file::{Deserialize, Deserializers};
-use file::raw::Encoder;
+
+mod serde;
 
 /// An appender which logs to a file.
 pub struct FileAppender {
@@ -117,5 +119,3 @@ impl Deserialize for FileAppenderDeserializer {
         Ok(Box::new(try!(appender.build(&config.path))))
     }
 }
-
-include!("file_serde.rs");

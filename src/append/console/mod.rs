@@ -7,10 +7,12 @@ use log::LogRecord;
 use serde_value::Value;
 
 use append::{Append, SimpleWriter};
+use append::console::serde::ConsoleAppenderConfig;
 use encode::Encode;
 use encode::pattern::PatternEncoder;
 use file::{Deserialize, Deserializers};
-use file::raw::Encoder;
+
+mod serde;
 
 /// An appender which logs to stdout.
 pub struct ConsoleAppender {
@@ -86,5 +88,3 @@ impl Deserialize for ConsoleAppenderDeserializer {
         Ok(Box::new(appender.build()))
     }
 }
-
-include!("console_serde.rs");

@@ -1,6 +1,0 @@
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ConsoleAppenderConfig {
-    encoder: Option<Encoder>,
-}
-
