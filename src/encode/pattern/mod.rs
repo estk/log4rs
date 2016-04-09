@@ -13,6 +13,9 @@
 //!     A custom format may be provided in the syntax accepted by `chrono` as
 //!     an argument.
 //! * `f`, `file` - The source file that the log message came from.
+//! * `h`, `highlight` - Styles a portion of patterned output based on the log
+//!     level. The style is intense red for errors, red for warnings, blue for
+//!     info, and the default style for all other levels.
 //! * `l``, level` - The log level.
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
@@ -64,7 +67,7 @@ use std::io::Write;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::{self, Encode, Style};
+use encode::{self, Encode, Style, Color};
 use encode::Write as EncodeWrite;
 use file::{Deserialize, Deserializers};
 use ErrorInternals;
@@ -285,6 +288,14 @@ impl<'a> From<Piece<'a>> for Chunk {
                             params: parameters,
                         }
                     }
+                    "h" |
+                    "highlight" => {
+                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        Chunk::Formatted {
+                            chunk: FormattedChunk::Highlight(chunks),
+                            params: parameters,
+                        }
+                    }
                     "l" |
                     "level" => no_args(&formatter.arg, parameters, FormattedChunk::Level),
                     "m" |
@@ -326,6 +337,7 @@ enum FormattedChunk {
     Target,
     Newline,
     Align(Vec<Chunk>),
+    Highlight(Vec<Chunk>),
 }
 
 impl FormattedChunk {
@@ -351,6 +363,26 @@ impl FormattedChunk {
             FormattedChunk::Align(ref chunks) => {
                 for chunk in chunks {
                     try!(chunk.encode(w, level, target, location, args));
+                }
+                Ok(())
+            }
+            FormattedChunk::Highlight(ref chunks) => {
+                match level {
+                    LogLevel::Error => {
+                        try!(w.set_style(Style::new().text(Color::Red).intense(true)));
+                    }
+                    LogLevel::Warn => try!(w.set_style(Style::new().text(Color::Red))),
+                    LogLevel::Info => try!(w.set_style(Style::new().text(Color::Blue))),
+                    _ => {}
+                }
+                for chunk in chunks {
+                    try!(chunk.encode(w, level, target, location, args));
+                }
+                match level {
+                    LogLevel::Error |
+                    LogLevel::Warn |
+                    LogLevel::Info => try!(w.set_style(&Style::new())),
+                    _ => {}
                 }
                 Ok(())
             }

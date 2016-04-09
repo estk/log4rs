@@ -90,7 +90,7 @@ impl fmt::Debug for ConsoleAppender {
 
 impl Append for ConsoleAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
-        let mut stdout = SimpleWriter::new(self.stdout.lock());
+        let mut stdout = self.stdout.lock();
         try!(self.encoder.encode(&mut stdout, record));
         try!(stdout.flush());
         Ok(())
