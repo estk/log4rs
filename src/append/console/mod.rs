@@ -6,10 +6,11 @@ use std::error::Error;
 use log::LogRecord;
 use serde_value::Value;
 
-use append::{Append, SimpleWriter};
+use append::Append;
 use append::console::serde::ConsoleAppenderConfig;
 use encode::Encode;
 use encode::pattern::PatternEncoder;
+use encode::writer::SimpleWriter;
 use file::{Deserialize, Deserializers};
 
 mod serde;
@@ -30,7 +31,7 @@ impl fmt::Debug for ConsoleAppender {
 
 impl Append for ConsoleAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
-        let mut stdout = SimpleWriter(self.stdout.lock());
+        let mut stdout = SimpleWriter::new(self.stdout.lock());
         try!(self.encoder.encode(&mut stdout, record));
         try!(stdout.flush());
         Ok(())

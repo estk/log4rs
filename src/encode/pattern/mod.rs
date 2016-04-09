@@ -423,31 +423,16 @@ impl Deserialize for PatternEncoderDeserializer {
 mod tests {
     use std::default::Default;
     use std::thread;
-    use std::io::{self, Write};
     use log::LogLevel;
 
     use super::{PatternEncoder, Location, Chunk};
-    use encode;
+    use encode::writer::SimpleWriter;
 
     static LOCATION: Location<'static> = Location {
         module_path: "path",
         file: "file",
         line: 132,
     };
-
-    struct SimpleWriter<W>(W);
-
-    impl<W: Write> io::Write for SimpleWriter<W> {
-        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.0.write(buf)
-        }
-
-        fn flush(&mut self) -> io::Result<()> {
-            self.0.flush()
-        }
-    }
-
-    impl<W: Write> encode::Write for SimpleWriter<W> {}
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| {
@@ -471,29 +456,29 @@ mod tests {
     #[test]
     fn log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Debug,
                         "target",
                         &LOCATION,
                         &format_args!("the message"))
           .unwrap();
 
-        assert_eq!(buf.0, &b"DEBUG the message at path in file:132"[..]);
+        assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
 
     #[test]
     fn unnamed_thread() {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{T}");
-            let mut buf = SimpleWriter(vec![]);
-            pw.append_inner(&mut buf,
+            let mut buf = vec![];
+            pw.append_inner(&mut SimpleWriter::new(&mut buf),
                             LogLevel::Debug,
                             "target",
                             &LOCATION,
                             &format_args!("message"))
               .unwrap();
-            assert_eq!(buf.0, b"<unnamed>");
+            assert_eq!(buf, b"<unnamed>");
         })
             .join()
             .unwrap();
@@ -505,14 +490,14 @@ mod tests {
             .name("foobar".to_string())
             .spawn(|| {
                 let pw = PatternEncoder::new("{T}");
-                let mut buf = SimpleWriter(vec![]);
-                pw.append_inner(&mut buf,
+                let mut buf = vec![];
+                pw.append_inner(&mut SimpleWriter::new(&mut buf),
                                 LogLevel::Debug,
                                 "target",
                                 &LOCATION,
                                 &format_args!("message"))
                   .unwrap();
-                assert_eq!(buf.0, b"foobar");
+                assert_eq!(buf, b"foobar");
             })
             .unwrap()
             .join()
@@ -528,74 +513,74 @@ mod tests {
     fn left_align() {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foo"))
           .unwrap();
-        assert_eq!(buf.0, b"foo~~");
+        assert_eq!(buf, b"foo~~");
 
-        buf.0.clear();
-        pw.append_inner(&mut buf,
+        buf.clear();
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"foobar");
+        assert_eq!(buf, b"foobar");
     }
 
     #[test]
     fn right_align() {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foo"))
           .unwrap();
-        assert_eq!(buf.0, b"~~foo");
+        assert_eq!(buf, b"~~foo");
 
-        buf.0.clear();
-        pw.append_inner(&mut buf,
+        buf.clear();
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"foobar");
+        assert_eq!(buf, b"foobar");
     }
 
     #[test]
     fn left_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"INFO foobar!   ");
+        assert_eq!(buf, b"INFO foobar!   ");
     }
 
     #[test]
     fn right_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter::new(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"   INFO foobar!");
+        assert_eq!(buf, b"   INFO foobar!");
     }
 
     #[test]

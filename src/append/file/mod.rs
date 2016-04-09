@@ -9,10 +9,11 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 
-use append::{Append, SimpleWriter};
+use append::Append;
 use append::file::serde::FileAppenderConfig;
 use encode::Encode;
 use encode::pattern::PatternEncoder;
+use encode::writer::SimpleWriter;
 use file::{Deserialize, Deserializers};
 
 mod serde;
@@ -84,7 +85,7 @@ impl FileAppenderBuilder {
 
         Ok(FileAppender {
             path: path,
-            file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
+            file: Mutex::new(SimpleWriter::new(BufWriter::with_capacity(1024, file))),
             encoder: self.encoder,
         })
     }
