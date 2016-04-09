@@ -104,6 +104,7 @@
 extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
+extern crate kernel32;
 extern crate libc;
 extern crate log;
 extern crate serde;

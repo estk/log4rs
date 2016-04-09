@@ -145,3 +145,190 @@ mod imp {
         }
     }
 }
+
+#[cfg(windows)]
+mod imp {
+    use winapi;
+    use kernel32;
+    use std::io::{self, Stdout, StdoutLock, Write};
+    use std::fmt;
+    use std::mem;
+
+    use encode::{self, Style, Color};
+
+    struct RawConsole {
+        handle: winapi::HANDLE,
+        defaults: winapi::WORD,
+    }
+
+    unsafe impl Sync for RawConsole {}
+    unsafe impl Send for RawConsole {}
+
+    impl RawConsole {
+        fn set_style(&self, style: &Style) -> io::Result<()> {
+            let mut attrs = self.defaults;
+
+            if let Some(text) = style.text {
+                attrs &= !((winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE) as winapi::WORD);
+                attrs |= match text {
+                    Color::Black => 0,
+                    Color::Red => winapi::FOREGROUND_RED,
+                    Color::Green => winapi::FOREGROUND_GREEN,
+                    Color::Yellow => winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN,
+                    Color::Blue => winapi::FOREGROUND_BLUE,
+                    Color::Magenta => winapi::FOREGROUND_RED | winapi::FOREGROUND_BLUE,
+                    Color::Cyan => winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE,
+                    Color::White => winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE,
+                } as winapi::WORD;
+            }
+
+            if let Some(background) = style.background {
+                attrs &= !((winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE) as winapi::WORD);
+                attrs |= match background {
+                    Color::Black => 0,
+                    Color::Red => winapi::BACKGROUND_RED,
+                    Color::Green => winapi::BACKGROUND_GREEN,
+                    Color::Yellow => winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN,
+                    Color::Blue => winapi::BACKGROUND_BLUE,
+                    Color::Magenta => winapi::BACKGROUND_RED | winapi::BACKGROUND_BLUE,
+                    Color::Cyan => winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE,
+                    Color::White => winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE,
+                } as winapi::WORD;
+            }
+
+            if let Some(intense) = style.intense {
+                if intense {
+                    attrs |= winapi::FOREGROUND_INTENSITY as winapi::WORD;
+                } else {
+                    attrs &= !(winapi::FOREGROUND_INTENSITY as winapi::WORD);
+                }
+            }
+
+            attrs &= !(winapi::BACKGROUND_INTENSITY as winapi::WORD);
+
+            if unsafe { kernel32::SetConsoleTextAttribute(self.handle, attrs) } == 0 {
+                Err(io::Error::last_os_error())
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    pub struct Writer {
+        console: RawConsole,
+        stdout: Stdout,
+    }
+
+    impl Writer {
+        pub fn stdout() -> Option<Writer> {
+            unsafe {
+                let handle = kernel32::GetStdHandle(winapi::STD_OUTPUT_HANDLE);
+                if handle == winapi::INVALID_HANDLE_VALUE {
+                    return None;
+                }
+
+                let mut info = mem::zeroed();
+                if kernel32::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
+                    return None;
+                }
+
+                // FIXME should use a newly created console buffer to get defaults
+                Some(Writer {
+                    console: RawConsole {
+                        handle: handle,
+                        defaults: info.wAttributes,
+                    },
+                    stdout: io::stdout(),
+                })
+            }
+        }
+
+        pub fn lock<'a>(&'a self) -> WriterLock<'a> {
+            WriterLock {
+                console: &self.console,
+                stdout: self.stdout.lock(),
+            }
+        }
+    }
+
+    impl io::Write for Writer {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.stdout.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.stdout.flush()
+        }
+
+        fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+            self.stdout.write_all(buf)
+        }
+
+        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+            self.stdout.write_fmt(fmt)
+        }
+    }
+
+    impl encode::Write for Writer {
+        fn set_style(&mut self, style: &Style) -> io::Result<()> {
+            try!(self.stdout.flush());
+            self.console.set_style(style)
+        }
+    }
+
+    pub struct WriterLock<'a> {
+        console: &'a RawConsole,
+        stdout: StdoutLock<'a>,
+    }
+
+    impl<'a> io::Write for WriterLock<'a> {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.stdout.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.stdout.flush()
+        }
+
+        fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+            self.stdout.write_all(buf)
+        }
+
+        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+            self.stdout.write_fmt(fmt)
+        }
+    }
+
+    impl<'a> encode::Write for WriterLock<'a> {
+        fn set_style(&mut self, style: &Style) -> io::Result<()> {
+            try!(self.stdout.flush());
+            self.console.set_style(style)
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::io::Write;
+
+    use encode::{Style, Color};
+    use encode::Write as EncodeWrite;
+    use super::*;
+
+    #[test]
+    fn basic() {
+        let mut w = match ConsoleWriter::stdout() {
+            Some(w) => w,
+            None => return,
+        };
+
+        w.write_all(b"normal ").unwrap();
+        w.set_style(Style::new().text(Color::Red).background(Color::Blue).intense(true)).unwrap();
+        w.write_all(b"styled").unwrap();
+        w.set_style(Style::new().text(Color::Green)).unwrap();
+        w.write_all(b" styled2").unwrap();
+        w.set_style(&Style::new()).unwrap();
+        w.write_all(b" normal\n").unwrap();
+        w.flush().unwrap();
+    }
+}
