@@ -16,6 +16,7 @@ use encode::pattern::PatternEncoder;
 use encode::writer::SimpleWriter;
 use file::{Deserialize, Deserializers};
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
 
 /// An appender which logs to a file.

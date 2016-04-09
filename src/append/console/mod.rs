@@ -13,6 +13,7 @@ use encode::pattern::PatternEncoder;
 use encode::writer::{SimpleWriter, ConsoleWriter, ConsoleWriterLock};
 use file::{Deserialize, Deserializers};
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
 
 enum Writer {
