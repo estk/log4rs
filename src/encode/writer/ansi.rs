@@ -1,8 +1,10 @@
 use std::io;
+use std::fmt;
 use encode::{self, Color, Style};
 
 /// A `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
+#[derive(Debug)]
 pub struct AnsiWriter<W>(W);
 
 impl<W: io::Write> AnsiWriter<W> {
@@ -19,6 +21,14 @@ impl<W: io::Write> io::Write for AnsiWriter<W> {
 
     fn flush(&mut self) -> io::Result<()> {
         self.0.flush()
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.0.write_all(buf)
+    }
+
+    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        self.0.write_fmt(fmt)
     }
 }
 
