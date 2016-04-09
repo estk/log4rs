@@ -34,24 +34,39 @@ impl<W: io::Write> io::Write for AnsiWriter<W> {
 
 impl<W: io::Write> encode::Write for AnsiWriter<W> {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
-        let mut buf = *b"\x1b[3_;4_;___";
-        buf[3] = color_byte(style.text);
-        buf[6] = color_byte(style.background);
-        let len = if style.intense {
-            buf[8] = b'1';
-            buf[9] = b'm';
-            10
-        } else {
-            buf[8] = b'2';
-            buf[9] = b'2';
-            buf[10] = b'm';
-            11
-        };
-        self.0.write_all(&buf[..len])
-    }
+        let mut buf = [0; 12];
+        buf[0] = b'\x1b';
+        buf[1] = b'[';
+        buf[2] = b'0';
+        let mut idx = 3;
 
-    fn reset_style(&mut self) -> io::Result<()> {
-        self.0.write_all(b"\x1b[0m")
+        if let Some(text) = style.text {
+            buf[idx] = b';';
+            buf[idx + 1] = b'3';
+            buf[idx + 2] = color_byte(text);
+            idx += 3;
+        }
+
+        if let Some(background) = style.background {
+            buf[idx] = b';';
+            buf[idx + 1] = b'4';
+            buf[idx + 2] = color_byte(background);
+            idx += 3;
+        }
+
+        if let Some(intense) = style.intense {
+            buf[idx] = b';';
+            if intense {
+                buf[idx + 1] = b'1';
+                idx += 2;
+            } else {
+                buf[idx + 1] = b'2';
+                buf[idx + 2] = b'2';
+                idx += 3;
+            }
+        }
+        buf[idx] = b'm';
+        self.0.write_all(&buf[..idx + 1])
     }
 }
 
@@ -65,7 +80,6 @@ fn color_byte(c: Color) -> u8 {
         Color::Magenta => b'5',
         Color::Cyan => b'6',
         Color::White => b'7',
-        Color::Default => b'9',
     }
 }
 
@@ -83,13 +97,11 @@ mod test {
         let mut w = AnsiWriter::new(stdout.lock());
 
         w.write_all(b"normal ").unwrap();
-        w.set_style(&Style { text: Color::Red, background: Color::Blue, intense: true, _p: () })
-            .unwrap();
+        w.set_style(Style::new().text(Color::Red).background(Color::Blue).intense(true)).unwrap();
         w.write_all(b"styled").unwrap();
-        w.set_style(&Style { text: Color::Green, background: Color::Default, intense: false, _p: () })
-            .unwrap();
+        w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();
-        w.reset_style().unwrap();
+        w.set_style(&Style::new()).unwrap();
         w.write_all(b" normal\n").unwrap();
         w.flush().unwrap();
     }

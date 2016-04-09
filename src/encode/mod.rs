@@ -26,18 +26,19 @@ pub enum Color {
     Magenta,
     Cyan,
     White,
-    Default,
 }
 
 /// The style applied to text output.
-#[derive(Clone)]
+///
+/// Any fields set to `None` will be set to the default format.
+#[derive(Clone, Default)]
 pub struct Style {
     /// The text (or foreground) color.
-    pub text: Color,
+    pub text: Option<Color>,
     /// The background color.
-    pub background: Color,
+    pub background: Option<Color>,
     /// True if the text should have increased intensity.
-    pub intense: bool,
+    pub intense: Option<bool>,
     _p: (),
 }
 
@@ -51,14 +52,28 @@ impl fmt::Debug for Style {
     }
 }
 
-impl Default for Style {
-    fn default() -> Style {
-        Style {
-            text: Color::Default,
-            background: Color::Default,
-            intense: false,
-            _p: (),
-        }
+impl Style {
+    /// Returns a `Style` with all fields set to their defaults.
+    pub fn new() -> Style {
+        Style::default()
+    }
+
+    /// Sets the text color.
+    pub fn text(&mut self, text: Color) -> &mut Style {
+        self.text = Some(text);
+        self
+    }
+
+    /// Sets the background color.
+    pub fn background(&mut self, background: Color) -> &mut Style {
+        self.background = Some(background);
+        self
+    }
+
+    /// Sets the text intensity.
+    pub fn intense(&mut self, intense: bool) -> &mut Style {
+        self.intense = Some(intense);
+        self
     }
 }
 
@@ -75,21 +90,10 @@ pub trait Write: io::Write {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         Ok(())
     }
-
-    /// Resets the output text style, if supported.
-    ///
-    /// The default implementation returns `Ok(())`.
-    fn reset_style(&mut self) -> io::Result<()> {
-        Ok(())
-    }
 }
 
 impl<'a, W: Write> Write for &'a mut W {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         <W as Write>::set_style(*self, style)
-    }
-
-    fn reset_style(&mut self) -> io::Result<()> {
-        <W as Write>::reset_style(*self)
     }
 }
