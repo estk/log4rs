@@ -58,3 +58,26 @@ fn color_byte(c: Color) -> u8 {
         Color::Default => b'9',
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::io::{self, Write};
+
+    use encode::{Style, Color};
+    use encode::Write as EncodeWrite;
+    use super::*;
+
+    #[test]
+    fn basic() {
+        let stdout = io::stdout();
+        let mut w = AnsiWriter::new(stdout.lock());
+
+        w.write_all(b"normal ").unwrap();
+        w.set_style(&Style { text: Color::Red, background: Color::Blue, intense: true, _p: () })
+            .unwrap();
+        w.write_all(b"styled ").unwrap();
+        w.reset_style().unwrap();
+        w.write_all(b" normal\n").unwrap();
+        w.flush().unwrap();
+    }
+}
