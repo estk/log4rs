@@ -12,6 +12,11 @@ impl<W: io::Write> AnsiWriter<W> {
     pub fn new(w: W) -> AnsiWriter<W> {
         AnsiWriter(w)
     }
+
+    /// Returns a reference to the inner `Write`r.
+    pub fn get_ref(&self) -> &W {
+        &self.0
+    }
 }
 
 impl<W: io::Write> io::Write for AnsiWriter<W> {

@@ -13,12 +13,14 @@ json = ["serde_json"]
 
 [dependencies]
 antidote = "0.1"
-log = "0.3"
-typemap = "0.3"
-serde = "0.7"
-serde-value = "0.2"
 chrono = "0.2"
 crossbeam = "0.2.9"
-serde_yaml = { version = "0.2", optional = true }
+libc = "0.2"
+log = "0.3"
+serde = "0.7"
+serde-value = "0.2"
+typemap = "0.3"
+winapi = "0.2"
 serde_json = { version = "0.7", optional = true }
+serde_yaml = { version = "0.2", optional = true }
 toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }

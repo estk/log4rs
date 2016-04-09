@@ -104,10 +104,12 @@
 extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
+extern crate libc;
 extern crate log;
 extern crate serde;
 extern crate serde_value;
 extern crate typemap;
+extern crate winapi;
 #[cfg(feature = "yaml")]
 extern crate serde_yaml;
 #[cfg(feature = "json")]
