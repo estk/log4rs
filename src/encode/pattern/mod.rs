@@ -64,7 +64,8 @@ use std::io::Write;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::{self, Encode};
+use encode::{self, Encode, Style};
+use encode::Write as EncodeWrite;
 use file::{Deserialize, Deserializers};
 use ErrorInternals;
 
@@ -104,7 +105,11 @@ impl<'a> io::Write for PrecisionWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for PrecisionWriter<'a> {}
+impl<'a> encode::Write for PrecisionWriter<'a> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.w.set_style(style)
+    }
+}
 
 struct LeftAlignWriter<'a> {
     width: usize,
@@ -137,13 +142,22 @@ impl<'a> io::Write for LeftAlignWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for LeftAlignWriter<'a> {}
+impl<'a> encode::Write for LeftAlignWriter<'a> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.w.set_style(style)
+    }
+}
+
+enum BufferedOutput {
+    Data(Vec<u8>),
+    Style(Style),
+}
 
 struct RightAlignWriter<'a> {
     width: usize,
     fill: char,
     w: PrecisionWriter<'a>,
-    buf: Vec<u8>,
+    buf: Vec<BufferedOutput>,
 }
 
 impl<'a> RightAlignWriter<'a> {
@@ -151,14 +165,29 @@ impl<'a> RightAlignWriter<'a> {
         for _ in 0..self.width {
             try!(write!(self.w, "{}", self.fill));
         }
-        self.w.write_all(&self.buf)
+        for out in self.buf {
+            match out {
+                BufferedOutput::Data(ref buf) => try!(self.w.write_all(buf)),
+                BufferedOutput::Style(ref style) => try!(self.w.set_style(style)),
+            }
+        }
+        Ok(())
     }
 }
 
 impl<'a> io::Write for RightAlignWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.width = self.width.saturating_sub(buf.len());
-        self.buf.extend_from_slice(buf);
+
+        let mut pushed = false;
+        if let Some(&mut BufferedOutput::Data(ref mut data)) = self.buf.last_mut() {
+            data.extend_from_slice(buf);
+            pushed = true;
+        };
+
+        if !pushed {
+            self.buf.push(BufferedOutput::Data(buf.to_owned()));
+        }
         Ok(buf.len())
     }
 
@@ -167,7 +196,12 @@ impl<'a> io::Write for RightAlignWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for RightAlignWriter<'a> {}
+impl<'a> encode::Write for RightAlignWriter<'a> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.buf.push(BufferedOutput::Style(style.clone()));
+        Ok(())
+    }
+}
 
 enum Chunk {
     Text(String),
