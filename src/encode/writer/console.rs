@@ -204,8 +204,6 @@ mod imp {
                 }
             }
 
-            attrs &= !(winapi::BACKGROUND_INTENSITY as winapi::WORD);
-
             if unsafe { kernel32::SetConsoleTextAttribute(self.handle, attrs) } == 0 {
                 Err(io::Error::last_os_error())
             } else {
@@ -232,7 +230,6 @@ mod imp {
                     return None;
                 }
 
-                // FIXME should use a newly created console buffer to get defaults
                 Some(Writer {
                     console: RawConsole {
                         handle: handle,
@@ -317,10 +314,11 @@ mod test {
 
     #[test]
     fn basic() {
-        let mut w = match ConsoleWriter::stdout() {
+        let w = match ConsoleWriter::stdout() {
             Some(w) => w,
             None => return,
         };
+        let mut w = w.lock();
 
         w.write_all(b"normal ").unwrap();
         w.set_style(Style::new().text(Color::Red).background(Color::Blue).intense(true)).unwrap();
