@@ -75,7 +75,10 @@ mod test {
         w.write_all(b"normal ").unwrap();
         w.set_style(&Style { text: Color::Red, background: Color::Blue, intense: true, _p: () })
             .unwrap();
-        w.write_all(b"styled ").unwrap();
+        w.write_all(b"styled").unwrap();
+        w.set_style(&Style { text: Color::Green, background: Color::Default, intense: false, _p: () })
+            .unwrap();
+        w.write_all(b" styled2").unwrap();
         w.reset_style().unwrap();
         w.write_all(b" normal\n").unwrap();
         w.flush().unwrap();
