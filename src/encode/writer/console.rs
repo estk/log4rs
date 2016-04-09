@@ -169,7 +169,8 @@ mod imp {
             let mut attrs = self.defaults;
 
             if let Some(text) = style.text {
-                attrs &= !((winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE) as winapi::WORD);
+                attrs &= !((winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN |
+                            winapi::FOREGROUND_BLUE) as winapi::WORD);
                 attrs |= match text {
                     Color::Black => 0,
                     Color::Red => winapi::FOREGROUND_RED,
@@ -178,12 +179,15 @@ mod imp {
                     Color::Blue => winapi::FOREGROUND_BLUE,
                     Color::Magenta => winapi::FOREGROUND_RED | winapi::FOREGROUND_BLUE,
                     Color::Cyan => winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE,
-                    Color::White => winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE,
+                    Color::White => {
+                        winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE
+                    }
                 } as winapi::WORD;
             }
 
             if let Some(background) = style.background {
-                attrs &= !((winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE) as winapi::WORD);
+                attrs &= !((winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN |
+                            winapi::BACKGROUND_BLUE) as winapi::WORD);
                 attrs |= match background {
                     Color::Black => 0,
                     Color::Red => winapi::BACKGROUND_RED,
@@ -192,7 +196,9 @@ mod imp {
                     Color::Blue => winapi::BACKGROUND_BLUE,
                     Color::Magenta => winapi::BACKGROUND_RED | winapi::BACKGROUND_BLUE,
                     Color::Cyan => winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE,
-                    Color::White => winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE,
+                    Color::White => {
+                        winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE
+                    }
                 } as winapi::WORD;
             }
 
