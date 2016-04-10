@@ -227,7 +227,7 @@ mod imp {
         pub fn stdout() -> Option<Writer> {
             unsafe {
                 let handle = kernel32::GetStdHandle(winapi::STD_OUTPUT_HANDLE);
-                if handle == winapi::INVALID_HANDLE_VALUE {
+                if handle.is_null() || handle == winapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
 
