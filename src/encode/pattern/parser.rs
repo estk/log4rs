@@ -23,6 +23,7 @@ pub struct Parameters {
     pub max_width: Option<usize>,
 }
 
+#[derive(Copy, Clone)]
 pub enum Alignment {
     Left,
     Right,

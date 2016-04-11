@@ -92,7 +92,7 @@ pub trait Write: io::Write {
     }
 }
 
-impl<'a, W: Write> Write for &'a mut W {
+impl<'a, W: Write + ?Sized> Write for &'a mut W {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         <W as Write>::set_style(*self, style)
     }

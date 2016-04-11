@@ -172,13 +172,13 @@ impl<'a> encode::Write for MaxWidthWriter<'a> {
     }
 }
 
-struct LeftAlignWriter<'a> {
+struct LeftAlignWriter<W> {
     to_fill: usize,
     fill: char,
-    w: MaxWidthWriter<'a>,
+    w: W,
 }
 
-impl<'a> LeftAlignWriter<'a> {
+impl<W: encode::Write> LeftAlignWriter<W> {
     fn finish(mut self) -> io::Result<()> {
         for _ in 0..self.to_fill {
             try!(write!(self.w, "{}", self.fill));
@@ -187,7 +187,7 @@ impl<'a> LeftAlignWriter<'a> {
     }
 }
 
-impl<'a> io::Write for LeftAlignWriter<'a> {
+impl<W: encode::Write> io::Write for LeftAlignWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.w.write(buf) {
             Ok(len) => {
@@ -203,7 +203,7 @@ impl<'a> io::Write for LeftAlignWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for LeftAlignWriter<'a> {
+impl<W: encode::Write> encode::Write for LeftAlignWriter<W> {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         self.w.set_style(style)
     }
@@ -214,14 +214,14 @@ enum BufferedOutput {
     Style(Style),
 }
 
-struct RightAlignWriter<'a> {
+struct RightAlignWriter<W> {
     to_fill: usize,
     fill: char,
-    w: MaxWidthWriter<'a>,
+    w: W,
     buf: Vec<BufferedOutput>,
 }
 
-impl<'a> RightAlignWriter<'a> {
+impl<W: encode::Write> RightAlignWriter<W> {
     fn finish(mut self) -> io::Result<()> {
         for _ in 0..self.to_fill {
             try!(write!(self.w, "{}", self.fill));
@@ -236,7 +236,7 @@ impl<'a> RightAlignWriter<'a> {
     }
 }
 
-impl<'a> io::Write for RightAlignWriter<'a> {
+impl<W: encode::Write> io::Write for RightAlignWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.to_fill = self.to_fill.saturating_sub(char_starts(buf));
 
@@ -257,7 +257,7 @@ impl<'a> io::Write for RightAlignWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for RightAlignWriter<'a> {
+impl<W: encode::Write> encode::Write for RightAlignWriter<W> {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         self.buf.push(BufferedOutput::Style(style.clone()));
         Ok(())
@@ -284,31 +284,54 @@ impl Chunk {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted { ref chunk, ref params } => {
-                // fast path for no width requirements
-                if params.min_width.is_none() && params.max_width.is_none() {
-                    return chunk.encode(w, level, target, location, args);
-                }
-
-                let w = MaxWidthWriter {
-                    remaining: params.max_width.unwrap_or(usize::max_value()),
-                    w: w,
-                };
-
-                match params.align {
-                    Alignment::Left => {
+                match (params.min_width, params.max_width, params.align) {
+                    (None, None, _) => chunk.encode(w, level, target, location, args),
+                    (None, Some(max_width), _) => {
+                        let mut w = MaxWidthWriter {
+                            remaining: max_width,
+                            w: w,
+                        };
+                        chunk.encode(&mut w, level, target, location, args)
+                    }
+                    (Some(min_width), None, Alignment::Left) => {
                         let mut w = LeftAlignWriter {
-                            to_fill: params.min_width.unwrap_or(0),
+                            to_fill: min_width,
                             fill: params.fill,
                             w: w,
                         };
                         try!(chunk.encode(&mut w, level, target, location, args));
                         w.finish()
                     }
-                    Alignment::Right => {
+                    (Some(min_width), None, Alignment::Right) => {
                         let mut w = RightAlignWriter {
-                            to_fill: params.min_width.unwrap_or(0),
+                            to_fill: min_width,
                             fill: params.fill,
                             w: w,
+                            buf: vec![],
+                        };
+                        try!(chunk.encode(&mut w, level, target, location, args));
+                        w.finish()
+                    }
+                    (Some(min_width), Some(max_width), Alignment::Left) => {
+                        let mut w = LeftAlignWriter {
+                            to_fill: min_width,
+                            fill: params.fill,
+                            w: MaxWidthWriter {
+                                remaining: max_width,
+                                w: w,
+                            },
+                        };
+                        try!(chunk.encode(&mut w, level, target, location, args));
+                        w.finish()
+                    }
+                    (Some(min_width), Some(max_width), Alignment::Right) => {
+                        let mut w = RightAlignWriter {
+                            to_fill: min_width,
+                            fill: params.fill,
+                            w: MaxWidthWriter {
+                                remaining: max_width,
+                                w: w,
+                            },
                             buf: vec![],
                         };
                         try!(chunk.encode(&mut w, level, target, location, args));
