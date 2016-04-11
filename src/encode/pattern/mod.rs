@@ -134,7 +134,7 @@ impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut remaining = self.remaining;
         let mut end = buf.len();
-        for idx in buf.iter().enumerate().filter(|&(_, &b)| is_char_boundary(b)).map(|(i, _)| i) {
+        for (idx, _) in buf.iter().enumerate().filter(|&(_, &b)| is_char_boundary(b)) {
             if remaining == 0 {
                 end = idx;
                 break;
