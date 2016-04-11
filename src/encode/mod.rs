@@ -30,7 +30,8 @@ pub enum Color {
 
 /// The style applied to text output.
 ///
-/// Any fields set to `None` will be set to the default format.
+/// Any fields set to `None` will be set to their default format, as defined
+/// by the `Write`r.
 #[derive(Clone, Default)]
 pub struct Style {
     /// The text (or foreground) color.
@@ -85,7 +86,8 @@ pub trait Write: io::Write {
     ///
     /// `Write`rs should ignore any parts of the `Style` they do not support.
     ///
-    /// The default implementation returns `Ok(())`.
+    /// The default implementation returns `Ok(())`. Implementations that do
+    /// not support styling should do this as well.
     #[allow(unused_variables)]
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         Ok(())
