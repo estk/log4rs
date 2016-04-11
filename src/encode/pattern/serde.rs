@@ -1,5 +1,5 @@
-struct PatternEncoderConfig {
-    pattern: Option<String>,
+pub struct PatternEncoderConfig {
+    pub pattern: Option<String>,
 }
 impl ::serde::de::Deserialize for PatternEncoderConfig {
     fn deserialize<__D>(deserializer: &mut __D)

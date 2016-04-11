@@ -103,19 +103,20 @@ use std::io::Write;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
+use encode::pattern::serde::PatternEncoderConfig;
 use encode::{self, Encode, Style, Color};
 use encode::Write as EncodeWrite;
 use file::{Deserialize, Deserializers};
 use ErrorInternals;
 
 mod parser;
+#[cfg_attr(rustfmt, rustfmt_skip)]
+mod serde;
 
 #[cfg(windows)]
 const NEWLINE: &'static str = "\r\n";
 #[cfg(not(windows))]
 const NEWLINE: &'static str = "\n";
-
-include!("serde.rs");
 
 struct MaxWidthWriter<'a> {
     remaining: usize,
