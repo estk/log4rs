@@ -20,8 +20,8 @@ pub struct Formatter<'a> {
 pub struct Parameters {
     pub fill: char,
     pub align: Alignment,
-    pub width: usize,
-    pub precision: usize,
+    pub min_width: usize,
+    pub max_width: usize,
 }
 
 pub enum Alignment {
@@ -113,8 +113,8 @@ impl<'a> Parser<'a> {
         let mut params = Parameters {
             fill: ' ',
             align: Alignment::Left,
-            width: 0,
-            precision: usize::max_value(),
+            min_width: 0,
+            max_width: usize::max_value(),
         };
 
         if !self.consume(':') {
@@ -137,13 +137,13 @@ impl<'a> Parser<'a> {
             params.align = Alignment::Right;
         }
 
-        if let Some(width) = self.integer() {
-            params.width = width;
+        if let Some(min_width) = self.integer() {
+            params.min_width = min_width;
         }
 
         if self.consume('.') {
-            if let Some(precision) = self.integer() {
-                params.precision = precision;
+            if let Some(max_width) = self.integer() {
+                params.max_width = max_width;
             }
         }
 

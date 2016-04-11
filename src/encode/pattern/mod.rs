@@ -117,22 +117,22 @@ const NEWLINE: &'static str = "\n";
 
 include!("serde.rs");
 
-struct PrecisionWriter<'a> {
-    precision: usize,
+struct MaxWidthWriter<'a> {
+    remaining: usize,
     w: &'a mut encode::Write,
 }
 
-impl<'a> io::Write for PrecisionWriter<'a> {
+impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         // we don't want to report EOF, so just act as a sink past this point
-        if self.precision == 0 {
+        if self.remaining == 0 {
             return Ok(buf.len());
         }
 
-        let buf = &buf[..cmp::min(buf.len(), self.precision)];
+        let buf = &buf[..cmp::min(buf.len(), self.remaining)];
         match self.w.write(buf) {
             Ok(len) => {
-                self.precision -= len;
+                self.remaining -= len;
                 Ok(len)
             }
             Err(e) => Err(e),
@@ -144,21 +144,21 @@ impl<'a> io::Write for PrecisionWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for PrecisionWriter<'a> {
+impl<'a> encode::Write for MaxWidthWriter<'a> {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         self.w.set_style(style)
     }
 }
 
 struct LeftAlignWriter<'a> {
-    width: usize,
+    to_fill: usize,
     fill: char,
-    w: PrecisionWriter<'a>,
+    w: MaxWidthWriter<'a>,
 }
 
 impl<'a> LeftAlignWriter<'a> {
     fn finish(mut self) -> io::Result<()> {
-        for _ in 0..self.width {
+        for _ in 0..self.to_fill {
             try!(write!(self.w, "{}", self.fill));
         }
         Ok(())
@@ -169,7 +169,7 @@ impl<'a> io::Write for LeftAlignWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.w.write(buf) {
             Ok(len) => {
-                self.width = self.width.saturating_sub(len);
+                self.to_fill = self.to_fill.saturating_sub(len);
                 Ok(len)
             }
             Err(e) => Err(e),
@@ -193,15 +193,15 @@ enum BufferedOutput {
 }
 
 struct RightAlignWriter<'a> {
-    width: usize,
+    to_fill: usize,
     fill: char,
-    w: PrecisionWriter<'a>,
+    w: MaxWidthWriter<'a>,
     buf: Vec<BufferedOutput>,
 }
 
 impl<'a> RightAlignWriter<'a> {
     fn finish(mut self) -> io::Result<()> {
-        for _ in 0..self.width {
+        for _ in 0..self.to_fill {
             try!(write!(self.w, "{}", self.fill));
         }
         for out in self.buf {
@@ -216,7 +216,7 @@ impl<'a> RightAlignWriter<'a> {
 
 impl<'a> io::Write for RightAlignWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.width = self.width.saturating_sub(buf.len());
+        self.to_fill = self.to_fill.saturating_sub(buf.len());
 
         let mut pushed = false;
         if let Some(&mut BufferedOutput::Data(ref mut data)) = self.buf.last_mut() {
@@ -262,15 +262,15 @@ impl Chunk {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted { ref chunk, ref params } => {
-                let w = PrecisionWriter {
-                    precision: params.precision,
+                let w = MaxWidthWriter {
+                    remaining: params.max_width,
                     w: w,
                 };
 
                 match params.align {
                     Alignment::Left => {
                         let mut w = LeftAlignWriter {
-                            width: params.width,
+                            to_fill: params.min_width,
                             fill: params.fill,
                             w: w,
                         };
@@ -279,7 +279,7 @@ impl Chunk {
                     }
                     Alignment::Right => {
                         let mut w = RightAlignWriter {
-                            width: params.width,
+                            to_fill: params.min_width,
                             fill: params.fill,
                             w: w,
                             buf: vec![],
