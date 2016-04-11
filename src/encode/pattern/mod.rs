@@ -94,7 +94,6 @@ use chrono::UTC;
 use log::{LogRecord, LogLevel};
 use serde_value::Value;
 use std::default::Default;
-use std::cmp;
 use std::error;
 use std::fmt;
 use std::fmt::Write as FmtWrite;
@@ -118,6 +117,14 @@ const NEWLINE: &'static str = "\r\n";
 #[cfg(not(windows))]
 const NEWLINE: &'static str = "\n";
 
+fn is_char_boundary(b: u8) -> bool {
+    b as i8 >= -0x40
+}
+
+fn char_starts(buf: &[u8]) -> usize {
+    buf.iter().filter(|&&b| is_char_boundary(b)).count()
+}
+
 struct MaxWidthWriter<'a> {
     remaining: usize,
     w: &'a mut encode::Write,
@@ -125,15 +132,29 @@ struct MaxWidthWriter<'a> {
 
 impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let end = buf.iter()
+                     .enumerate()
+                     .filter_map(|(i, &b)| {
+                         if is_char_boundary(b) {
+                             Some(i)
+                         } else {
+                             None
+                         }
+                     })
+                     .skip(self.remaining)
+                     .next()
+                     .unwrap_or(buf.len());
+
         // we don't want to report EOF, so just act as a sink past this point
-        if self.remaining == 0 {
+        if end == 0 {
             return Ok(buf.len());
         }
 
-        let buf = &buf[..cmp::min(buf.len(), self.remaining)];
+        let buf = &buf[..end];
         match self.w.write(buf) {
             Ok(len) => {
-                self.remaining -= len;
+                // FIXME add a fast path for len == end
+                self.remaining -= char_starts(&buf[..len]);
                 Ok(len)
             }
             Err(e) => Err(e),
@@ -170,7 +191,7 @@ impl<'a> io::Write for LeftAlignWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.w.write(buf) {
             Ok(len) => {
-                self.to_fill = self.to_fill.saturating_sub(len);
+                self.to_fill = self.to_fill.saturating_sub(char_starts(&buf[..len]));
                 Ok(len)
             }
             Err(e) => Err(e),
@@ -217,7 +238,7 @@ impl<'a> RightAlignWriter<'a> {
 
 impl<'a> io::Write for RightAlignWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.to_fill = self.to_fill.saturating_sub(buf.len());
+        self.to_fill = self.to_fill.saturating_sub(char_starts(buf));
 
         let mut pushed = false;
         if let Some(&mut BufferedOutput::Data(ref mut data)) = self.buf.last_mut() {
