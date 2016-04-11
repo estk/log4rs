@@ -46,7 +46,7 @@
 //! * `n` - A platform-specific newline.
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
-//!     * `{({l} {m}):15}` - <code>INFO hello    </code>
+//!     * `{({l} {m})}` - `INFO hello`
 //!
 //! # Format Specification
 //!
