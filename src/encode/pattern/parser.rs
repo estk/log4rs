@@ -1,7 +1,6 @@
 // cribbed to a large extent from libfmt_macros
 use std::iter::Peekable;
 use std::str::CharIndices;
-use std::usize;
 
 pub enum Piece<'a> {
     Text(&'a str),
@@ -20,8 +19,8 @@ pub struct Formatter<'a> {
 pub struct Parameters {
     pub fill: char,
     pub align: Alignment,
-    pub min_width: usize,
-    pub max_width: usize,
+    pub min_width: Option<usize>,
+    pub max_width: Option<usize>,
 }
 
 pub enum Alignment {
@@ -113,8 +112,8 @@ impl<'a> Parser<'a> {
         let mut params = Parameters {
             fill: ' ',
             align: Alignment::Left,
-            min_width: 0,
-            max_width: usize::max_value(),
+            min_width: None,
+            max_width: None,
         };
 
         if !self.consume(':') {
@@ -138,12 +137,12 @@ impl<'a> Parser<'a> {
         }
 
         if let Some(min_width) = self.integer() {
-            params.min_width = min_width;
+            params.min_width = Some(min_width);
         }
 
         if self.consume('.') {
             if let Some(max_width) = self.integer() {
-                params.max_width = max_width;
+                params.max_width = Some(max_width);
             }
         }
 

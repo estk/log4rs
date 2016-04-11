@@ -263,15 +263,20 @@ impl Chunk {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted { ref chunk, ref params } => {
+                // fast path for no width requirements
+                if params.min_width.is_none() && params.max_width.is_none() {
+                    return chunk.encode(w, level, target, location, args);
+                }
+
                 let w = MaxWidthWriter {
-                    remaining: params.max_width,
+                    remaining: params.max_width.unwrap_or(usize::max_value()),
                     w: w,
                 };
 
                 match params.align {
                     Alignment::Left => {
                         let mut w = LeftAlignWriter {
-                            to_fill: params.min_width,
+                            to_fill: params.min_width.unwrap_or(0),
                             fill: params.fill,
                             w: w,
                         };
@@ -280,7 +285,7 @@ impl Chunk {
                     }
                     Alignment::Right => {
                         let mut w = RightAlignWriter {
-                            to_fill: params.min_width,
+                            to_fill: params.min_width.unwrap_or(0),
                             fill: params.fill,
                             w: w,
                             buf: vec![],
