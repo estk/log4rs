@@ -7,8 +7,10 @@ use encode::{self, Style};
 pub struct ConsoleWriter(imp::Writer);
 
 impl ConsoleWriter {
-    /// Returns a new `ConsoleWriter` that will write to standard out if it is
-    /// a console.
+    /// Returns a new `ConsoleWriter` that will write to standard out.
+    ///
+    /// Returns `None` if standard out is not a console buffer on Windows,
+    /// and if `isatty` indicates does not refer to a terminal on Unix.
     pub fn stdout() -> Option<ConsoleWriter> {
         imp::Writer::stdout().map(ConsoleWriter)
     }
