@@ -132,18 +132,15 @@ struct MaxWidthWriter<'a> {
 
 impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let end = buf.iter()
-                     .enumerate()
-                     .filter_map(|(i, &b)| {
-                         if is_char_boundary(b) {
-                             Some(i)
-                         } else {
-                             None
-                         }
-                     })
-                     .skip(self.remaining)
-                     .next()
-                     .unwrap_or(buf.len());
+        let mut remaining = self.remaining;
+        let mut end = buf.len();
+        for idx in buf.iter().enumerate().filter(|&(_, &b)| is_char_boundary(b)).map(|(i, _)| i) {
+            if remaining == 0 {
+                end = idx;
+                break;
+            }
+            remaining -= 1;
+        }
 
         // we don't want to report EOF, so just act as a sink past this point
         if end == 0 {
@@ -153,8 +150,11 @@ impl<'a> io::Write for MaxWidthWriter<'a> {
         let buf = &buf[..end];
         match self.w.write(buf) {
             Ok(len) => {
-                // FIXME add a fast path for len == end
-                self.remaining -= char_starts(&buf[..len]);
+                if len == end {
+                    self.remaining = remaining;
+                } else {
+                    self.remaining -= char_starts(&buf[..len]);
+                }
                 Ok(len)
             }
             Err(e) => Err(e),
