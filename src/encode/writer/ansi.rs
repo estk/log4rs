@@ -2,7 +2,7 @@ use std::io;
 use std::fmt;
 use encode::{self, Color, Style};
 
-/// A `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
+/// An `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
 #[derive(Debug)]
 pub struct AnsiWriter<W>(pub W);
