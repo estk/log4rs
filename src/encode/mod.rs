@@ -9,6 +9,9 @@ pub mod writer;
 
 /// A trait implemented by types that can serialize a `LogRecord` into a
 /// `Write`r.
+///
+/// `Encode`rs are commonly used by `Append`ers to format a log record for
+/// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `LogRecord` into bytes and writes them.
     fn encode(&self, w: &mut Write, record: &LogRecord) -> io::Result<()>;

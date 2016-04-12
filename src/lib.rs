@@ -340,7 +340,7 @@ fn handle_error<E: error::Error + ?Sized>(e: &E) {
     let _ = writeln!(&mut stderr, "log4rs: {}", e);
 }
 
-/// Initializes the global logger with a log4rs logger configured by `config`.
+/// Initializes the global logger as a log4rs logger with the provided config.
 pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
         let logger = Logger::new(config);
@@ -349,7 +349,7 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
     })
 }
 
-/// Initializes the global logger with a log4rs logger.
+/// Initializes the global logger as a log4rs logger configured via a file.
 ///
 /// Configuration is read from a file located at the provided path on the
 /// filesystem and appenders are created from the provided `Deserializers`.
