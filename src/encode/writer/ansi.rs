@@ -5,18 +5,9 @@ use encode::{self, Color, Style};
 /// A `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
 #[derive(Debug)]
-pub struct AnsiWriter<W>(W);
+pub struct AnsiWriter<W>(pub W);
 
 impl<W: io::Write> AnsiWriter<W> {
-    /// Constructs a new `AnsiWriter`.
-    pub fn new(w: W) -> AnsiWriter<W> {
-        AnsiWriter(w)
-    }
-
-    /// Returns a reference to the inner `Write`r.
-    pub fn get_ref(&self) -> &W {
-        &self.0
-    }
 }
 
 impl<W: io::Write> io::Write for AnsiWriter<W> {
@@ -99,7 +90,7 @@ mod test {
     #[test]
     fn basic() {
         let stdout = io::stdout();
-        let mut w = AnsiWriter::new(stdout.lock());
+        let mut w = AnsiWriter(stdout.lock());
 
         w.write_all(b"normal ").unwrap();
         w.set_style(Style::new().text(Color::Red).background(Color::Blue).intense(true)).unwrap();

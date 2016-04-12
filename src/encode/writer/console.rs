@@ -89,11 +89,11 @@ mod imp {
                 return None;
             }
 
-            Some(Writer(AnsiWriter::new(io::stdout())))
+            Some(Writer(AnsiWriter(io::stdout())))
         }
 
         pub fn lock<'a>(&'a self) -> WriterLock<'a> {
-            WriterLock(AnsiWriter::new(self.0.get_ref().lock()))
+            WriterLock(AnsiWriter((self.0).0.lock()))
         }
     }
 
