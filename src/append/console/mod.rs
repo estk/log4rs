@@ -25,7 +25,7 @@ impl Writer {
     fn lock<'a>(&'a self) -> WriterLock<'a> {
         match *self {
             Writer::Tty(ref w) => WriterLock::Tty(w.lock()),
-            Writer::Raw(ref w) => WriterLock::Raw(SimpleWriter::new(w.lock())),
+            Writer::Raw(ref w) => WriterLock::Raw(SimpleWriter(w.lock())),
         }
     }
 }

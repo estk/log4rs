@@ -86,7 +86,7 @@ impl FileAppenderBuilder {
 
         Ok(FileAppender {
             path: path,
-            file: Mutex::new(SimpleWriter::new(BufWriter::with_capacity(1024, file))),
+            file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self.encoder,
         })
     }

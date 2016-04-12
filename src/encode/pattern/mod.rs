@@ -609,7 +609,7 @@ mod tests {
     fn log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "target",
                         &LOCATION,
@@ -624,7 +624,7 @@ mod tests {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{T}");
             let mut buf = vec![];
-            pw.append_inner(&mut SimpleWriter::new(&mut buf),
+            pw.append_inner(&mut SimpleWriter(&mut buf),
                             LogLevel::Debug,
                             "target",
                             &LOCATION,
@@ -643,7 +643,7 @@ mod tests {
             .spawn(|| {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
-                pw.append_inner(&mut SimpleWriter::new(&mut buf),
+                pw.append_inner(&mut SimpleWriter(&mut buf),
                                 LogLevel::Debug,
                                 "target",
                                 &LOCATION,
@@ -666,7 +666,7 @@ mod tests {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
@@ -675,7 +675,7 @@ mod tests {
         assert_eq!(buf, b"foo~~");
 
         buf.clear();
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
@@ -689,7 +689,7 @@ mod tests {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
@@ -698,7 +698,7 @@ mod tests {
         assert_eq!(buf, b"~~foo");
 
         buf.clear();
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
@@ -712,7 +712,7 @@ mod tests {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,
@@ -726,7 +726,7 @@ mod tests {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter::new(&mut buf),
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,

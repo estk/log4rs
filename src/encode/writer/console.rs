@@ -3,7 +3,7 @@ use std::fmt;
 
 use encode::{self, Style};
 
-/// A writer that outputs to a console.
+/// A `encode::Write`r that outputs to a console.
 pub struct ConsoleWriter(imp::Writer);
 
 impl ConsoleWriter {
