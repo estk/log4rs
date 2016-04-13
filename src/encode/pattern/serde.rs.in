@@ -1,5 +1,5 @@
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct PatternEncoderConfig {
-    pattern: Option<String>,
+pub struct PatternEncoderConfig {
+    pub pattern: Option<String>,
 }

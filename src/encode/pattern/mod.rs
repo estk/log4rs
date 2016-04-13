@@ -1,34 +1,76 @@
 //! A simple pattern-based encoder.
 //!
-//! The supported syntax is similar to that used by Rust's string formatting
-//! infrastructure. It consists of text which will be output verbatim, with
-//! formatting specifiers denoted by braces containing the configuration of the
-//! formatter. This consists of a formatter name followed optionally by a
-//! parenthesized argument. A subset of the standard formatting parameters is
-//! also supported.
+//! The pattern syntax is similar to Rust's string formatting syntax. It
+//! consists of raw text interspersed with format arguments. The grammar is:
 //!
-//! # Supported Formatters
+//! ```not_rust
+//! format_string := <text> [ format <text> ] *
+//! format := '{' formatter [ ':' format_spec ] '}'
+//! formatter := [ name ] [ '(' argument ')' ]
+//! name := identifier
+//! argument := format_string
+//!
+//! format_spec := [ [ fill ] align ] [ min_width ] [ '.' max_width ]
+//! fill := character
+//! align := '<' | '>'
+//! min_width := number
+//! max_width := number
+//! ```
+//!
+//! # Formatters
+//!
+//! A formatter inserts a dynamic portion of text into the pattern. It may be
+//! text derived from a log event or from some other context like the current
+//! time. Formatters may be passed an argument consisting of a parenthesized
+//! format string. If an argument is not provided, it is equivalent to an empty
+//! format string (i.e.  `{foo}` `{foo()}` are equivalent).
+//!
+//! The following formatters are currently supported. Unless otherwise stated,
+//! a formatter does not accept any argument.
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
-//!     A custom format may be provided in the syntax accepted by `chrono` as
-//!     an argument.
+//!     A custom format may be provided in the syntax accepted by `chrono`.
+//!     * `{d}` - `2016-03-20T22:22:20.644420340+00:00`
+//!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 22:22:20`
 //! * `f`, `file` - The source file that the log message came from.
+//! * `h`, `highlight` - Styles its argument according to the log level. The
+//!     style is intense red for errors, red for warnings, blue for info, and
+//!     the default style for all other levels.
+//!     * `{h(the level is {l})}` - <code style="color: red; font-weight: bold">the level is ERROR</code>
 //! * `l``, level` - The log level.
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
 //! * `M`, `module` - The module that the log message came from.
 //! * `t`, `target` - The target of the log message.
-//! * `T`, `thread` - The name of the thread that the log message came from.
-//! * `n` - A newline.
+//! * `T`, `thread` - The name of the current thread.
+//! * `n` - A platform-specific newline.
+//! * An "unnamed" formatter simply formats its argument, applying the format
+//!     specification.
+//!     * `{({l} {m})}` - `INFO hello`
 //!
-//! In addition, an "unnamed" formatter exists to apply parameters (see below)
-//! to an entire group of formatters.
+//! # Format Specification
 //!
-//! # Supported Parameters
+//! The format specification determines how the output of a formatter is
+//! adjusted before being returned.
 //!
-//! Left and right alignment with a custom fill character and width is
-//! supported. In addition, the "precision" parameter can be used to set a
-//! maximum length for formatter output.
+//! ## Fill/Alignment
+//!
+//! The fill and alignment values are used in conjunction with a minimum width
+//! value (see below) to control the behavior when a formatter's output is less
+//! than the minimum. While the default behavior is to pad the output to the
+//! right with space characters (i.e. left align it), the fill value specifies
+//! the character used, and the alignment value is one of:
+//!
+//! * `<` - Left align by appending the fill character to the formatter output
+//! * `>` - Right align by prepending the fill character to the formatter
+//!     output.
+//!
+//! ## Width
+//!
+//! By default, the full contents of a formatter's output will be inserted into
+//! the pattern output, but both the minimum and maximum lengths can be
+//! configured. Any output over the maximum length will be truncated, and
+//! output under the minimum length will be padded (see above).
 //!
 //! # Examples
 //!
@@ -36,17 +78,14 @@
 //! `2016-03-20T22:22:20.644420340+00:00 INFO module::path - this is a log
 //! message`.
 //!
-//! The pattern `{d(%Y-%m-%d %H:%M:%S)}` will output the current time with a
-//! custom format looking like `2016-03-20 22:22:20`.
-//!
 //! The pattern `{m:>10.15}` will right-align the log message to a minimum of
-//! 10 bytes, filling in with space  characters, and truncate output after 15
+//! 10 bytes, filling in with space characters, and truncate output after 15
 //! bytes. The message `hello` will therefore be displayed as
 //! <code>     hello</code>, while the message `hello there, world!` will be
 //! displayed as `hello there, wo`.
 //!
-//! The pattern `{({l} {m}):15.15}` will output the log level and message limited
-//! to exactly 15 bytes, padding with space characters on the right if
+//! The pattern `{({l} {m}):15.15}` will output the log level and message
+//! limited to exactly 15 bytes, padding with space characters on the right if
 //! necessary. The message `hello` and log level `INFO` will be displayed as
 //! <code>INFO hello     </code>, while the message `hello, world!` and log
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
@@ -55,7 +94,6 @@ use chrono::UTC;
 use log::{LogRecord, LogLevel};
 use serde_value::Value;
 use std::default::Default;
-use std::cmp;
 use std::error;
 use std::fmt;
 use std::fmt::Write as FmtWrite;
@@ -64,35 +102,59 @@ use std::io::Write;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::{self, Encode};
+use encode::pattern::serde::PatternEncoderConfig;
+use encode::{self, Encode, Style, Color};
+use encode::Write as EncodeWrite;
 use file::{Deserialize, Deserializers};
 use ErrorInternals;
 
 mod parser;
+#[cfg_attr(rustfmt, rustfmt_skip)]
+mod serde;
 
 #[cfg(windows)]
 const NEWLINE: &'static str = "\r\n";
 #[cfg(not(windows))]
 const NEWLINE: &'static str = "\n";
 
-include!("serde.rs");
+fn is_char_boundary(b: u8) -> bool {
+    b as i8 >= -0x40
+}
 
-struct PrecisionWriter<'a> {
-    precision: usize,
+fn char_starts(buf: &[u8]) -> usize {
+    buf.iter().filter(|&&b| is_char_boundary(b)).count()
+}
+
+struct MaxWidthWriter<'a> {
+    remaining: usize,
     w: &'a mut encode::Write,
 }
 
-impl<'a> io::Write for PrecisionWriter<'a> {
+impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let mut remaining = self.remaining;
+        let mut end = buf.len();
+        for (idx, _) in buf.iter().enumerate().filter(|&(_, &b)| is_char_boundary(b)) {
+            if remaining == 0 {
+                end = idx;
+                break;
+            }
+            remaining -= 1;
+        }
+
         // we don't want to report EOF, so just act as a sink past this point
-        if self.precision == 0 {
+        if end == 0 {
             return Ok(buf.len());
         }
 
-        let buf = &buf[..cmp::min(buf.len(), self.precision)];
+        let buf = &buf[..end];
         match self.w.write(buf) {
             Ok(len) => {
-                self.precision -= len;
+                if len == end {
+                    self.remaining = remaining;
+                } else {
+                    self.remaining -= char_starts(&buf[..len]);
+                }
                 Ok(len)
             }
             Err(e) => Err(e),
@@ -104,28 +166,32 @@ impl<'a> io::Write for PrecisionWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for PrecisionWriter<'a> {}
-
-struct LeftAlignWriter<'a> {
-    width: usize,
-    fill: char,
-    w: PrecisionWriter<'a>,
+impl<'a> encode::Write for MaxWidthWriter<'a> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.w.set_style(style)
+    }
 }
 
-impl<'a> LeftAlignWriter<'a> {
+struct LeftAlignWriter<W> {
+    to_fill: usize,
+    fill: char,
+    w: W,
+}
+
+impl<W: encode::Write> LeftAlignWriter<W> {
     fn finish(mut self) -> io::Result<()> {
-        for _ in 0..self.width {
+        for _ in 0..self.to_fill {
             try!(write!(self.w, "{}", self.fill));
         }
         Ok(())
     }
 }
 
-impl<'a> io::Write for LeftAlignWriter<'a> {
+impl<W: encode::Write> io::Write for LeftAlignWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.w.write(buf) {
             Ok(len) => {
-                self.width = self.width.saturating_sub(len);
+                self.to_fill = self.to_fill.saturating_sub(char_starts(&buf[..len]));
                 Ok(len)
             }
             Err(e) => Err(e),
@@ -137,28 +203,52 @@ impl<'a> io::Write for LeftAlignWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for LeftAlignWriter<'a> {}
-
-struct RightAlignWriter<'a> {
-    width: usize,
-    fill: char,
-    w: PrecisionWriter<'a>,
-    buf: Vec<u8>,
-}
-
-impl<'a> RightAlignWriter<'a> {
-    fn finish(mut self) -> io::Result<()> {
-        for _ in 0..self.width {
-            try!(write!(self.w, "{}", self.fill));
-        }
-        self.w.write_all(&self.buf)
+impl<W: encode::Write> encode::Write for LeftAlignWriter<W> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.w.set_style(style)
     }
 }
 
-impl<'a> io::Write for RightAlignWriter<'a> {
+enum BufferedOutput {
+    Data(Vec<u8>),
+    Style(Style),
+}
+
+struct RightAlignWriter<W> {
+    to_fill: usize,
+    fill: char,
+    w: W,
+    buf: Vec<BufferedOutput>,
+}
+
+impl<W: encode::Write> RightAlignWriter<W> {
+    fn finish(mut self) -> io::Result<()> {
+        for _ in 0..self.to_fill {
+            try!(write!(self.w, "{}", self.fill));
+        }
+        for out in self.buf {
+            match out {
+                BufferedOutput::Data(ref buf) => try!(self.w.write_all(buf)),
+                BufferedOutput::Style(ref style) => try!(self.w.set_style(style)),
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<W: encode::Write> io::Write for RightAlignWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.width = self.width.saturating_sub(buf.len());
-        self.buf.extend_from_slice(buf);
+        self.to_fill = self.to_fill.saturating_sub(char_starts(buf));
+
+        let mut pushed = false;
+        if let Some(&mut BufferedOutput::Data(ref mut data)) = self.buf.last_mut() {
+            data.extend_from_slice(buf);
+            pushed = true;
+        };
+
+        if !pushed {
+            self.buf.push(BufferedOutput::Data(buf.to_owned()));
+        }
         Ok(buf.len())
     }
 
@@ -167,7 +257,12 @@ impl<'a> io::Write for RightAlignWriter<'a> {
     }
 }
 
-impl<'a> encode::Write for RightAlignWriter<'a> {}
+impl<W: encode::Write> encode::Write for RightAlignWriter<W> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.buf.push(BufferedOutput::Style(style.clone()));
+        Ok(())
+    }
+}
 
 enum Chunk {
     Text(String),
@@ -189,26 +284,54 @@ impl Chunk {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted { ref chunk, ref params } => {
-                let w = PrecisionWriter {
-                    precision: params.precision,
-                    w: w,
-                };
-
-                match params.align {
-                    Alignment::Left => {
+                match (params.min_width, params.max_width, params.align) {
+                    (None, None, _) => chunk.encode(w, level, target, location, args),
+                    (None, Some(max_width), _) => {
+                        let mut w = MaxWidthWriter {
+                            remaining: max_width,
+                            w: w,
+                        };
+                        chunk.encode(&mut w, level, target, location, args)
+                    }
+                    (Some(min_width), None, Alignment::Left) => {
                         let mut w = LeftAlignWriter {
-                            width: params.width,
+                            to_fill: min_width,
                             fill: params.fill,
                             w: w,
                         };
                         try!(chunk.encode(&mut w, level, target, location, args));
                         w.finish()
                     }
-                    Alignment::Right => {
+                    (Some(min_width), None, Alignment::Right) => {
                         let mut w = RightAlignWriter {
-                            width: params.width,
+                            to_fill: min_width,
                             fill: params.fill,
                             w: w,
+                            buf: vec![],
+                        };
+                        try!(chunk.encode(&mut w, level, target, location, args));
+                        w.finish()
+                    }
+                    (Some(min_width), Some(max_width), Alignment::Left) => {
+                        let mut w = LeftAlignWriter {
+                            to_fill: min_width,
+                            fill: params.fill,
+                            w: MaxWidthWriter {
+                                remaining: max_width,
+                                w: w,
+                            },
+                        };
+                        try!(chunk.encode(&mut w, level, target, location, args));
+                        w.finish()
+                    }
+                    (Some(min_width), Some(max_width), Alignment::Right) => {
+                        let mut w = RightAlignWriter {
+                            to_fill: min_width,
+                            fill: params.fill,
+                            w: MaxWidthWriter {
+                                remaining: max_width,
+                                w: w,
+                            },
                             buf: vec![],
                         };
                         try!(chunk.encode(&mut w, level, target, location, args));
@@ -248,6 +371,14 @@ impl<'a> From<Piece<'a>> for Chunk {
                         }
                         Chunk::Formatted {
                             chunk: FormattedChunk::Time(format),
+                            params: parameters,
+                        }
+                    }
+                    "h" |
+                    "highlight" => {
+                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        Chunk::Formatted {
+                            chunk: FormattedChunk::Highlight(chunks),
                             params: parameters,
                         }
                     }
@@ -292,6 +423,7 @@ enum FormattedChunk {
     Target,
     Newline,
     Align(Vec<Chunk>),
+    Highlight(Vec<Chunk>),
 }
 
 impl FormattedChunk {
@@ -317,6 +449,26 @@ impl FormattedChunk {
             FormattedChunk::Align(ref chunks) => {
                 for chunk in chunks {
                     try!(chunk.encode(w, level, target, location, args));
+                }
+                Ok(())
+            }
+            FormattedChunk::Highlight(ref chunks) => {
+                match level {
+                    LogLevel::Error => {
+                        try!(w.set_style(Style::new().text(Color::Red).intense(true)));
+                    }
+                    LogLevel::Warn => try!(w.set_style(Style::new().text(Color::Red))),
+                    LogLevel::Info => try!(w.set_style(Style::new().text(Color::Blue))),
+                    _ => {}
+                }
+                for chunk in chunks {
+                    try!(chunk.encode(w, level, target, location, args));
+                }
+                match level {
+                    LogLevel::Error |
+                    LogLevel::Warn |
+                    LogLevel::Info => try!(w.set_style(&Style::new())),
+                    _ => {}
                 }
                 Ok(())
             }
@@ -423,31 +575,16 @@ impl Deserialize for PatternEncoderDeserializer {
 mod tests {
     use std::default::Default;
     use std::thread;
-    use std::io::{self, Write};
     use log::LogLevel;
 
     use super::{PatternEncoder, Location, Chunk};
-    use encode;
+    use encode::writer::SimpleWriter;
 
     static LOCATION: Location<'static> = Location {
         module_path: "path",
         file: "file",
         line: 132,
     };
-
-    struct SimpleWriter<W>(W);
-
-    impl<W: Write> io::Write for SimpleWriter<W> {
-        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.0.write(buf)
-        }
-
-        fn flush(&mut self) -> io::Result<()> {
-            self.0.flush()
-        }
-    }
-
-    impl<W: Write> encode::Write for SimpleWriter<W> {}
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| {
@@ -471,29 +608,29 @@ mod tests {
     #[test]
     fn log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "target",
                         &LOCATION,
                         &format_args!("the message"))
           .unwrap();
 
-        assert_eq!(buf.0, &b"DEBUG the message at path in file:132"[..]);
+        assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
 
     #[test]
     fn unnamed_thread() {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{T}");
-            let mut buf = SimpleWriter(vec![]);
-            pw.append_inner(&mut buf,
+            let mut buf = vec![];
+            pw.append_inner(&mut SimpleWriter(&mut buf),
                             LogLevel::Debug,
                             "target",
                             &LOCATION,
                             &format_args!("message"))
               .unwrap();
-            assert_eq!(buf.0, b"<unnamed>");
+            assert_eq!(buf, b"<unnamed>");
         })
             .join()
             .unwrap();
@@ -505,14 +642,14 @@ mod tests {
             .name("foobar".to_string())
             .spawn(|| {
                 let pw = PatternEncoder::new("{T}");
-                let mut buf = SimpleWriter(vec![]);
-                pw.append_inner(&mut buf,
+                let mut buf = vec![];
+                pw.append_inner(&mut SimpleWriter(&mut buf),
                                 LogLevel::Debug,
                                 "target",
                                 &LOCATION,
                                 &format_args!("message"))
                   .unwrap();
-                assert_eq!(buf.0, b"foobar");
+                assert_eq!(buf, b"foobar");
             })
             .unwrap()
             .join()
@@ -528,74 +665,74 @@ mod tests {
     fn left_align() {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foo"))
           .unwrap();
-        assert_eq!(buf.0, b"foo~~");
+        assert_eq!(buf, b"foo~~");
 
-        buf.0.clear();
-        pw.append_inner(&mut buf,
+        buf.clear();
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"foobar");
+        assert_eq!(buf, b"foobar");
     }
 
     #[test]
     fn right_align() {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foo"))
           .unwrap();
-        assert_eq!(buf.0, b"~~foo");
+        assert_eq!(buf, b"~~foo");
 
-        buf.0.clear();
-        pw.append_inner(&mut buf,
+        buf.clear();
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Debug,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"foobar");
+        assert_eq!(buf, b"foobar");
     }
 
     #[test]
     fn left_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"INFO foobar!   ");
+        assert_eq!(buf, b"INFO foobar!   ");
     }
 
     #[test]
     fn right_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
-        let mut buf = SimpleWriter(vec![]);
-        pw.append_inner(&mut buf,
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
           .unwrap();
-        assert_eq!(buf.0, b"   INFO foobar!");
+        assert_eq!(buf, b"   INFO foobar!");
     }
 
     #[test]

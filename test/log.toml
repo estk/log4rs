@@ -3,6 +3,9 @@ refresh_rate = 5
 [appenders.console]
 kind = "console"
 
+[appenders.console.encoder]
+pattern = "{d} [{t}] {h({l})} {M}:{m}{n}"
+
 [[appenders.console.filter]]
 kind = "threshold"
 level = "error"
