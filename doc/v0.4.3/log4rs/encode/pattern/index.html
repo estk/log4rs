@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `pattern` mod in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, pattern">
+
+    <title>log4rs::encode::pattern - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../../index.html'>log4rs</a>::<wbr><a href='../index.html'>encode</a></p><script>window.sidebarCurrent = {name: 'pattern', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>log4rs</a>::<wbr><a href='../index.html'>encode</a>::<wbr><a class='mod' href=''>pattern</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-1546' class='srclink' href='../../../src/log4rs/encode/pattern/mod.rs.html#1-742' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>A simple pattern-based encoder.</p>
+
+<p>The pattern syntax is similar to Rust&#39;s string formatting syntax. It
+consists of raw text interspersed with format arguments. The grammar is:</p>
+
+<pre><code class="language-not_rust">format_string := &lt;text&gt; [ format &lt;text&gt; ] *
+format := &#39;{&#39; formatter [ &#39;:&#39; format_spec ] &#39;}&#39;
+formatter := [ name ] [ &#39;(&#39; argument &#39;)&#39; ]
+name := identifier
+argument := format_string
+
+format_spec := [ [ fill ] align ] [ min_width ] [ &#39;.&#39; max_width ]
+fill := character
+align := &#39;&lt;&#39; | &#39;&gt;&#39;
+min_width := number
+max_width := number
+</code></pre>
+
+<h1 id='formatters' class='section-header'><a href='#formatters'>Formatters</a></h1>
+<p>A formatter inserts a dynamic portion of text into the pattern. It may be
+text derived from a log event or from some other context like the current
+time. Formatters may be passed an argument consisting of a parenthesized
+format string. If an argument is not provided, it is equivalent to an empty
+format string (i.e.  <code>{foo}</code> <code>{foo()}</code> are equivalent).</p>
+
+<p>The following formatters are currently supported. Unless otherwise stated,
+a formatter does not accept any argument.</p>
+
+<ul>
+<li><code>d</code>, <code>date</code> - The current time. By default, the ISO 8601 format is used.
+A custom format may be provided in the syntax accepted by <code>chrono</code>.
+
+<ul>
+<li><code>{d}</code> - <code>2016-03-20T22:22:20.644420340+00:00</code></li>
+<li><code>{d(%Y-%m-%d %H:%M:%S)}</code> - <code>2016-03-20 22:22:20</code></li>
+</ul></li>
+<li><code>f</code>, <code>file</code> - The source file that the log message came from.</li>
+<li><code>h</code>, <code>highlight</code> - Styles its argument according to the log level. The
+style is intense red for errors, red for warnings, blue for info, and
+the default style for all other levels.
+
+<ul>
+<li><code>{h(the level is {l})}</code> - <code style="color: red; font-weight: bold">the level is ERROR</code></li>
+</ul></li>
+<li><code>l</code><code>, level</code> - The log level.</li>
+<li><code>L</code>, <code>line</code> - The line that the log message came from.</li>
+<li><code>m</code>, <code>message</code> - The log message.</li>
+<li><code>M</code>, <code>module</code> - The module that the log message came from.</li>
+<li><code>t</code>, <code>target</code> - The target of the log message.</li>
+<li><code>T</code>, <code>thread</code> - The name of the current thread.</li>
+<li><code>n</code> - A platform-specific newline.</li>
+<li>An &quot;unnamed&quot; formatter simply formats its argument, applying the format
+specification.
+
+<ul>
+<li><code>{({l} {m})}</code> - <code>INFO hello</code></li>
+</ul></li>
+</ul>
+
+<h1 id='format-specification' class='section-header'><a href='#format-specification'>Format Specification</a></h1>
+<p>The format specification determines how the output of a formatter is
+adjusted before being returned.</p>
+
+<h2 id='fillalignment' class='section-header'><a href='#fillalignment'>Fill/Alignment</a></h2>
+<p>The fill and alignment values are used in conjunction with a minimum width
+value (see below) to control the behavior when a formatter&#39;s output is less
+than the minimum. While the default behavior is to pad the output to the
+right with space characters (i.e. left align it), the fill value specifies
+the character used, and the alignment value is one of:</p>
+
+<ul>
+<li><code>&lt;</code> - Left align by appending the fill character to the formatter output</li>
+<li><code>&gt;</code> - Right align by prepending the fill character to the formatter
+output.</li>
+</ul>
+
+<h2 id='width' class='section-header'><a href='#width'>Width</a></h2>
+<p>By default, the full contents of a formatter&#39;s output will be inserted into
+the pattern output, but both the minimum and maximum lengths can be
+configured. Any output over the maximum length will be truncated, and
+output under the minimum length will be padded (see above).</p>
+
+<h1 id='examples' class='section-header'><a href='#examples'>Examples</a></h1>
+<p>The default pattern is <code>{d} {l} {t} - {m}{n}</code> which produces output like
+<code>2016-03-20T22:22:20.644420340+00:00 INFO module::path - this is a log message</code>.</p>
+
+<p>The pattern <code>{m:&gt;10.15}</code> will right-align the log message to a minimum of
+10 bytes, filling in with space characters, and truncate output after 15
+bytes. The message <code>hello</code> will therefore be displayed as
+<code>     hello</code>, while the message <code>hello there, world!</code> will be
+displayed as <code>hello there, wo</code>.</p>
+
+<p>The pattern <code>{({l} {m}):15.15}</code> will output the log level and message
+limited to exactly 15 bytes, padding with space characters on the right if
+necessary. The message <code>hello</code> and log level <code>INFO</code> will be displayed as
+<code>INFO hello     </code>, while the message <code>hello, world!</code> and log
+level <code>DEBUG</code> will be truncated to <code>DEBUG hello, wo</code>.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.PatternEncoder.html'
+                               title='log4rs::encode::pattern::PatternEncoder'>PatternEncoder</a></td>
+                        <td class='docblock short'>
+                             <p>An <code>Encode</code>r configured via a format string.</p>
+
+                        </td>
+                    </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.PatternEncoderDeserializer.html'
+                               title='log4rs::encode::pattern::PatternEncoderDeserializer'>PatternEncoderDeserializer</a></td>
+                        <td class='docblock short'>
+                             <p>A deserializer for the <code>PatternEncoder</code>.</p>
+
+                        </td>
+                    </tr>
+                </table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "log4rs";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script defer src="../../../search-index.js"></script>
+</body>
+</html>
