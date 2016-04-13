@@ -5,7 +5,7 @@ and log4j libraries.
 
 [![Build Status](https://travis-ci.org/sfackler/log4rs.svg?branch=master)](https://travis-ci.org/sfackler/log4rs)
 
-[Documentation](https://sfackler.github.io/log4rs/doc/v0.4.2/log4rs)
+[Documentation](https://sfackler.github.io/log4rs/doc/v0.4.3/log4rs)
 
 log4rs.yaml:
 ```yaml
