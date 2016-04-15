@@ -20,7 +20,7 @@
 //!   foo:
 //!
 //!     # All appenders must specify a "kind", which will be used to look up the
-//!     # logic to construct the appender in the `Builder` passed to the
+//!     # logic to construct the appender in the `Deserializers` passed to the
 //!     # deserialization function.
 //!     kind: console
 //!
