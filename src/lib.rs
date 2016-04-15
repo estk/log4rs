@@ -56,7 +56,7 @@
 //!
 //! The more common configuration method, however, is via a separate config
 //! file. The `init_file` function takes the path to a config file as
-//! well as a `Builder` object which is responsible for instantiating the
+//! well as a `Deserializers` object which is responsible for instantiating the
 //! various objects specified by the config file. The `file` module
 //! documentation covers the exact configuration syntax, but an example in the
 //! YAML format is provided below.
