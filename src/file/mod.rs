@@ -152,7 +152,7 @@ impl Deserializers {
 
     /// Adds a mapping from the specified `kind` to a deserializer.
     pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Deserialize<Trait = T>>) {
-        self.0.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind, builder);
+        self.0.entry::<KeyAdaptor<T>>().or_insert_with(|| HashMap::new()).insert(kind, builder);
     }
 
     /// Retrieves the deserializer of the specified `kind`.
