@@ -6,7 +6,9 @@ use serde_value::Value;
 
 use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
-use priv_serde::DeLogLevelFilter;
+use filter::threshold::serde::ThresholdFilterConfig;
+
+mod serde;
 
 /// A filter that rejects all events at a level below a provided threshold.
 #[derive(Debug)]
@@ -44,5 +46,3 @@ impl Deserialize for ThresholdFilterDeserializer {
         Ok(Box::new(ThresholdFilter::new(config.level.0)))
     }
 }
-
-include!("threshold_serde.rs");

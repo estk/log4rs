@@ -1,4 +1,0 @@
-#[derive(Deserialize)]
-struct ThresholdFilterConfig {
-    level: DeLogLevelFilter,
-}

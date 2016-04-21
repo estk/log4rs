@@ -1,5 +1,7 @@
-struct ThresholdFilterConfig {
-    level: DeLogLevelFilter,
+use priv_serde::DeLogLevelFilter;
+
+pub struct ThresholdFilterConfig {
+    pub level: DeLogLevelFilter,
 }
 impl ::serde::de::Deserialize for ThresholdFilterConfig {
     fn deserialize<__D>(deserializer: &mut __D)
