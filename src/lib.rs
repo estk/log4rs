@@ -364,7 +364,7 @@ pub struct Handle {
 
 impl Handle {
     /// Sets the logging configuration.
-    pub fn set(&self, config: Config) {
+    pub fn set_config(&self, config: Config) {
         let shared = SharedLogger::new(config);
         self.max_log_level.set(shared.root.max_log_level());
         self.shared.set(Arc::new(shared));
@@ -545,7 +545,7 @@ impl ConfigReloader {
             let refresh_rate = config.refresh_rate();
             let config = config.into_config();
 
-            self.handle.set(config);
+            self.handle.set_config(config);
 
             match refresh_rate {
                 Some(rate) => self.rate = rate,
