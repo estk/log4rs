@@ -304,17 +304,15 @@ impl SharedLogger {
     }
 }
 
-struct Logger {
-    inner: Arc<ArcCell<SharedLogger>>,
-}
+struct Logger(Arc<ArcCell<SharedLogger>>);
 
 impl Logger {
     fn new(config: config::Config) -> Logger {
-        Logger { inner: Arc::new(ArcCell::new(Arc::new(SharedLogger::new(config)))) }
+        Logger(Arc::new(ArcCell::new(Arc::new(SharedLogger::new(config)))))
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
-        self.inner.get().root.max_log_level()
+        self.0.get().root.max_log_level()
     }
 }
 
@@ -324,14 +322,14 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &log::LogRecord) {
-        let shared = self.inner.get();
+        let shared = self.0.get();
         shared.root.find(record.target()).log(record, &shared.appenders);
     }
 }
 
 impl Logger {
     fn enabled_inner(&self, level: LogLevel, target: &str) -> bool {
-        self.inner.get().root.find(target).enabled(level)
+        self.0.get().root.find(target).enabled(level)
     }
 }
 
@@ -351,7 +349,7 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
         handle = Some(Handle {
-            shared: logger.inner.clone(),
+            shared: logger.0.clone(),
             max_log_level: max_log_level,
         });
         Box::new(logger)
