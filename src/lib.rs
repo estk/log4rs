@@ -133,6 +133,7 @@ use std::time::Duration;
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use append::Append;
+use config::Config;
 use filter::Filter;
 use file::{Format, Deserializers};
 
@@ -341,12 +342,35 @@ fn handle_error<E: error::Error + ?Sized>(e: &E) {
 }
 
 /// Initializes the global logger as a log4rs logger with the provided config.
-pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
+///
+/// A `Handle` object is returned which can be used to adjust the logging
+/// configuration.
+pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
+    let mut handle = None;
     log::set_logger(|max_log_level| {
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
+        handle = Some(Handle {
+            shared: logger.inner.clone(),
+            max_log_level: max_log_level,
+        });
         Box::new(logger)
-    })
+    }).map(|()| handle.unwrap())
+}
+
+/// A handle to the active logger.
+pub struct Handle {
+    shared: Arc<ArcCell<SharedLogger>>,
+    max_log_level: MaxLogLevelFilter,
+}
+
+impl Handle {
+    /// Sets the logging configuration.
+    pub fn set(&self, config: Config) {
+        let shared = SharedLogger::new(config);
+        self.max_log_level.set(shared.root.max_log_level());
+        self.shared.set(Arc::new(shared));
+    }
 }
 
 /// Initializes the global logger as a log4rs logger configured via a file.
@@ -362,24 +386,23 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
     let source = try!(read_config(&path));
     let config = try!(parse_config(&source, format, &deserializers));
 
-    log::set_logger(move |max_log_level| {
-        let refresh_rate = config.refresh_rate();
-        let config = config.into_config();
-        let logger = Logger::new(config);
+    let refresh_rate = config.refresh_rate();
+    let config = config.into_config();
 
-        max_log_level.set(logger.max_log_level());
-        if let Some(refresh_rate) = refresh_rate {
-            ConfigReloader::start(path,
-                                  format,
-                                  refresh_rate,
-                                  source,
-                                  deserializers,
-                                  &logger,
-                                  max_log_level);
+    match init_config(config) {
+        Ok(handle) => {
+            if let Some(refresh_rate) = refresh_rate {
+                ConfigReloader::start(path,
+                                      format,
+                                      refresh_rate,
+                                      source,
+                                      deserializers,
+                                      handle);
+            }
+            Ok(())
         }
-        Box::new(logger)
-    })
-        .map_err(Into::into)
+        Err(e) => Err(e.into())
+    }
 }
 
 /// An error initializing the logging framework from a file.
@@ -471,8 +494,7 @@ struct ConfigReloader {
     rate: Duration,
     source: String,
     deserializers: Deserializers,
-    shared: Arc<ArcCell<SharedLogger>>,
-    max_log_level: MaxLogLevelFilter,
+    handle: Handle,
 }
 
 impl ConfigReloader {
@@ -481,16 +503,14 @@ impl ConfigReloader {
              rate: Duration,
              source: String,
              deserializers: Deserializers,
-             logger: &Logger,
-             max_log_level: MaxLogLevelFilter) {
+             handle: Handle) {
         let mut reloader = ConfigReloader {
             path: path,
             format: format,
             rate: rate,
             source: source,
             deserializers: deserializers,
-            shared: logger.inner.clone(),
-            max_log_level: max_log_level,
+            handle: handle,
         };
 
         thread::Builder::new()
@@ -527,9 +547,7 @@ impl ConfigReloader {
             let refresh_rate = config.refresh_rate();
             let config = config.into_config();
 
-            let shared = SharedLogger::new(config);
-            self.max_log_level.set(shared.root.max_log_level());
-            self.shared.set(Arc::new(shared));
+            self.handle.set(config);
 
             match refresh_rate {
                 Some(rate) => self.rate = rate,
