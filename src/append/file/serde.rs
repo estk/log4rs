@@ -5,174 +5,204 @@ pub struct FileAppenderConfig {
     pub encoder: Option<Encoder>,
     pub append: Option<bool>,
 }
-impl ::serde::de::Deserialize for FileAppenderConfig {
-    fn deserialize<__D>(deserializer: &mut __D)
-     -> ::std::result::Result<FileAppenderConfig, __D::Error> where
-     __D: ::serde::de::Deserializer {
-        {
-            #[allow(non_camel_case_types)]
-            enum __Field { __field0, __field1, __field2, }
-            impl ::serde::de::Deserialize for __Field {
-                #[inline]
-                fn deserialize<D>(deserializer: &mut D)
-                 -> ::std::result::Result<__Field, D::Error> where
-                 D: ::serde::de::Deserializer {
-                    use std::marker::PhantomData;
-                    struct __FieldVisitor<D> {
-                        phantom: PhantomData<D>,
+#[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
+    {
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl _serde::de::Deserialize for FileAppenderConfig {
+            fn deserialize<__D>(deserializer: &mut __D)
+             -> ::std::result::Result<FileAppenderConfig, __D::Error> where
+             __D: _serde::de::Deserializer {
+                {
+                    #[allow(non_camel_case_types)]
+                    enum __Field { __field0, __field1, __field2, }
+                    impl _serde::de::Deserialize for __Field {
+                        #[inline]
+                        fn deserialize<__D>(deserializer: &mut __D)
+                         -> ::std::result::Result<__Field, __D::Error> where
+                         __D: _serde::de::Deserializer {
+                            struct __FieldVisitor<__D> {
+                                phantom: ::std::marker::PhantomData<__D>,
+                            }
+                            impl <__D> _serde::de::Visitor for
+                             __FieldVisitor<__D> where
+                             __D: _serde::de::Deserializer {
+                                type
+                                Value
+                                =
+                                __Field;
+                                fn visit_usize<__E>(&mut self, value: usize)
+                                 -> ::std::result::Result<__Field, __E> where
+                                 __E: _serde::de::Error {
+                                    match value {
+                                        0usize => { Ok(__Field::__field0) }
+                                        1usize => { Ok(__Field::__field1) }
+                                        2usize => { Ok(__Field::__field2) }
+                                        _ => {
+                                            Err(_serde::de::Error::invalid_value("expected a field"))
+                                        }
+                                    }
+                                }
+                                fn visit_str<__E>(&mut self, value: &str)
+                                 -> ::std::result::Result<__Field, __E> where
+                                 __E: _serde::de::Error {
+                                    match value {
+                                        "path" => { Ok(__Field::__field0) }
+                                        "encoder" => { Ok(__Field::__field1) }
+                                        "append" => { Ok(__Field::__field2) }
+                                        _ =>
+                                        Err(_serde::de::Error::unknown_field(value)),
+                                    }
+                                }
+                                fn visit_bytes<__E>(&mut self, value: &[u8])
+                                 -> ::std::result::Result<__Field, __E> where
+                                 __E: _serde::de::Error {
+                                    match value {
+                                        b"path" => { Ok(__Field::__field0) }
+                                        b"encoder" => {
+                                            Ok(__Field::__field1)
+                                        }
+                                        b"append" => { Ok(__Field::__field2) }
+                                        _ => {
+                                            let value =
+                                                ::std::string::String::from_utf8_lossy(value);
+                                            Err(_serde::de::Error::unknown_field(&value))
+                                        }
+                                    }
+                                }
+                            }
+                            deserializer.deserialize_struct_field(__FieldVisitor::<__D>{phantom:
+                                                                                            ::std::marker::PhantomData,})
+                        }
                     }
-                    impl <__D> ::serde::de::Visitor for __FieldVisitor<__D>
-                     where __D: ::serde::de::Deserializer {
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
+                    impl <__D: _serde::de::Deserializer> _serde::de::Visitor
+                     for __Visitor<__D> {
                         type
                         Value
                         =
-                        __Field;
-                        fn visit_usize<E>(&mut self, value: usize)
-                         -> ::std::result::Result<__Field, E> where
-                         E: ::serde::de::Error {
-                            match value {
-                                0usize => { Ok(__Field::__field0) }
-                                1usize => { Ok(__Field::__field1) }
-                                2usize => { Ok(__Field::__field2) }
-                                _ => {
-                                    Err(::serde::de::Error::invalid_value("expected a field"))
-                                }
+                        FileAppenderConfig;
+                        #[inline]
+                        fn visit_seq<__V>(&mut self, mut visitor: __V)
+                         ->
+                             ::std::result::Result<FileAppenderConfig,
+                                                   __V::Error> where
+                         __V: _serde::de::SeqVisitor {
+                            {
+                                let __field0 =
+                                    match try!(visitor . visit :: < String > (
+                                                )) {
+                                        Some(value) => { value }
+                                        None => {
+                                            return Err(_serde::de::Error::end_of_stream());
+                                        }
+                                    };
+                                let __field1 =
+                                    match try!(visitor . visit :: <
+                                               Option<Encoder> > (  )) {
+                                        Some(value) => { value }
+                                        None => {
+                                            return Err(_serde::de::Error::end_of_stream());
+                                        }
+                                    };
+                                let __field2 =
+                                    match try!(visitor . visit :: <
+                                               Option<bool> > (  )) {
+                                        Some(value) => { value }
+                                        None => {
+                                            return Err(_serde::de::Error::end_of_stream());
+                                        }
+                                    };
+                                try!(visitor . end (  ));
+                                Ok(FileAppenderConfig{path: __field0,
+                                                      encoder: __field1,
+                                                      append: __field2,})
                             }
                         }
-                        fn visit_str<E>(&mut self, value: &str)
-                         -> ::std::result::Result<__Field, E> where
-                         E: ::serde::de::Error {
-                            match value {
-                                "path" => { Ok(__Field::__field0) }
-                                "encoder" => { Ok(__Field::__field1) }
-                                "append" => { Ok(__Field::__field2) }
-                                _ =>
-                                Err(::serde::de::Error::unknown_field(value)),
-                            }
-                        }
-                        fn visit_bytes<E>(&mut self, value: &[u8])
-                         -> ::std::result::Result<__Field, E> where
-                         E: ::serde::de::Error {
-                            match value {
-                                b"path" => { Ok(__Field::__field0) }
-                                b"encoder" => { Ok(__Field::__field1) }
-                                b"append" => { Ok(__Field::__field2) }
-                                _ => {
-                                    let value =
-                                        ::std::string::String::from_utf8_lossy(value);
-                                    Err(::serde::de::Error::unknown_field(&value))
+                        #[inline]
+                        fn visit_map<__V>(&mut self, mut visitor: __V)
+                         ->
+                             ::std::result::Result<FileAppenderConfig,
+                                                   __V::Error> where
+                         __V: _serde::de::MapVisitor {
+                            {
+                                let mut __field0: Option<String> = None;
+                                let mut __field1: Option<Option<Encoder>> =
+                                    None;
+                                let mut __field2: Option<Option<bool>> = None;
+                                while let Some(key) =
+                                          try!(visitor . visit_key :: <
+                                               __Field > (  )) {
+                                    match key {
+                                        __Field::__field0 => {
+                                            if __field0.is_some() {
+                                                return Err(<__V::Error as
+                                                               _serde::de::Error>::duplicate_field("path"));
+                                            }
+                                            __field0 =
+                                                Some(try!(visitor .
+                                                          visit_value :: <
+                                                          String > (  )));
+                                        }
+                                        __Field::__field1 => {
+                                            if __field1.is_some() {
+                                                return Err(<__V::Error as
+                                                               _serde::de::Error>::duplicate_field("encoder"));
+                                            }
+                                            __field1 =
+                                                Some(try!(visitor .
+                                                          visit_value :: <
+                                                          Option<Encoder> > (
+                                                          )));
+                                        }
+                                        __Field::__field2 => {
+                                            if __field2.is_some() {
+                                                return Err(<__V::Error as
+                                                               _serde::de::Error>::duplicate_field("append"));
+                                            }
+                                            __field2 =
+                                                Some(try!(visitor .
+                                                          visit_value :: <
+                                                          Option<bool> > (
+                                                          )));
+                                        }
+                                    }
                                 }
+                                let __field0 =
+                                    match __field0 {
+                                        Some(__field0) => __field0,
+                                        None =>
+                                        try!(visitor . missing_field ( "path"
+                                             )),
+                                    };
+                                let __field1 =
+                                    match __field1 {
+                                        Some(__field1) => __field1,
+                                        None =>
+                                        try!(visitor . missing_field (
+                                             "encoder" )),
+                                    };
+                                let __field2 =
+                                    match __field2 {
+                                        Some(__field2) => __field2,
+                                        None =>
+                                        try!(visitor . missing_field (
+                                             "append" )),
+                                    };
+                                try!(visitor . end (  ));
+                                Ok(FileAppenderConfig{path: __field0,
+                                                      encoder: __field1,
+                                                      append: __field2,})
                             }
                         }
                     }
-                    deserializer.deserialize_struct_field(__FieldVisitor::<D>{phantom:
-                                                                                  PhantomData,})
+                    const FIELDS: &'static [&'static str] =
+                        &["path", "encoder", "append"];
+                    deserializer.deserialize_struct("FileAppenderConfig",
+                                                    FIELDS,
+                                                    __Visitor::<__D>(::std::marker::PhantomData))
                 }
             }
-            struct __Visitor<__D: ::serde::de::Deserializer>(::std::marker::PhantomData<__D>);
-            impl <__D: ::serde::de::Deserializer> ::serde::de::Visitor for
-             __Visitor<__D> {
-                type
-                Value
-                =
-                FileAppenderConfig;
-                #[inline]
-                fn visit_seq<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<FileAppenderConfig, __V::Error>
-                 where __V: ::serde::de::SeqVisitor {
-                    {
-                        let __field0 =
-                            match try!(visitor . visit (  )) {
-                                Some(value) => { value }
-                                None => {
-                                    return Err(::serde::de::Error::end_of_stream());
-                                }
-                            };
-                        let __field1 =
-                            match try!(visitor . visit (  )) {
-                                Some(value) => { value }
-                                None => {
-                                    return Err(::serde::de::Error::end_of_stream());
-                                }
-                            };
-                        let __field2 =
-                            match try!(visitor . visit (  )) {
-                                Some(value) => { value }
-                                None => {
-                                    return Err(::serde::de::Error::end_of_stream());
-                                }
-                            };
-                        try!(visitor . end (  ));
-                        Ok(FileAppenderConfig{path: __field0,
-                                              encoder: __field1,
-                                              append: __field2,})
-                    }
-                }
-                #[inline]
-                fn visit_map<__V>(&mut self, mut visitor: __V)
-                 -> ::std::result::Result<FileAppenderConfig, __V::Error>
-                 where __V: ::serde::de::MapVisitor {
-                    {
-                        let mut __field0 = None;
-                        let mut __field1 = None;
-                        let mut __field2 = None;
-                        while let Some(key) = try!(visitor . visit_key (  )) {
-                            match key {
-                                __Field::__field0 => {
-                                    __field0 =
-                                        Some(try!(visitor.visit_value()));
-                                }
-                                __Field::__field1 => {
-                                    __field1 =
-                                        Some(try!(visitor.visit_value()));
-                                }
-                                __Field::__field2 => {
-                                    __field2 =
-                                        Some(try!(visitor.visit_value()));
-                                }
-                            }
-                        }
-                        let __field0 =
-                            match __field0 {
-                                Some(__field0) => __field0,
-                                None =>
-                                match visitor.missing_field("path") {
-                                    ::std::result::Result::Ok(value) => value,
-                                    ::std::result::Result::Err(value) =>
-                                    return ::std::result::Result::Err(value),
-                                },
-                            };
-                        let __field1 =
-                            match __field1 {
-                                Some(__field1) => __field1,
-                                None =>
-                                match visitor.missing_field("encoder") {
-                                    ::std::result::Result::Ok(value) => value,
-                                    ::std::result::Result::Err(value) =>
-                                    return ::std::result::Result::Err(value),
-                                },
-                            };
-                        let __field2 =
-                            match __field2 {
-                                Some(__field2) => __field2,
-                                None =>
-                                match visitor.missing_field("append") {
-                                    ::std::result::Result::Ok(value) => value,
-                                    ::std::result::Result::Err(value) =>
-                                    return ::std::result::Result::Err(value),
-                                },
-                            };
-                        try!(visitor . end (  ));
-                        Ok(FileAppenderConfig{path: __field0,
-                                              encoder: __field1,
-                                              append: __field2,})
-                    }
-                }
-            }
-            const FIELDS: &'static [&'static str] =
-                &["path", "encoder", "append"];
-            deserializer.deserialize_struct("FileAppenderConfig", FIELDS,
-                                            __Visitor::<__D>(::std::marker::PhantomData))
         }
-    }
-}
+    };
