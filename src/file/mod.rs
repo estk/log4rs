@@ -10,9 +10,10 @@
 //! of the YAML format, but JSON and TOML should follow.
 //!
 //! ```yaml
-//! # If set, log4rs will scan the file at the specified rate in seconds for
-//! # changes and automatically reconfigure the logger.
-//! refresh_rate: 30
+//! # If set, log4rs will scan the file at the specified rate for changes and
+//! # automatically reconfigure the logger. The input string is parsed by the
+//! # humantime crate.
+//! refresh_rate: 30 seconds
 //!
 //! # The "appenders" map contains the set of appenders, indexed by their names.
 //! appenders:
@@ -344,7 +345,7 @@ mod test {
     #[cfg(feature = "yaml")]
     fn full_deserialize() {
         let cfg = r#"
-refresh_rate: 60
+refresh_rate: 60 seconds
 
 appenders:
   console:
@@ -377,8 +378,35 @@ loggers:
     #[test]
     #[cfg(feature = "yaml")]
     fn empty() {
+        let config = Config::parse("refresh_rate: 60 seconds",
+                                   Format::Yaml,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "yaml")]
+    fn integer_refresh_yaml() {
         let config = Config::parse("refresh_rate: 60",
                                    Format::Yaml,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "json")]
+    fn integer_refresh_json() {
+        let config = Config::parse(r#"{"refresh_rate": 60}"#,
+                                   Format::Json,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "toml")]
+    fn integer_refresh_toml() {
+        let config = Config::parse("refresh_rate = 60",
+                                   Format::Toml,
                                    &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
     }

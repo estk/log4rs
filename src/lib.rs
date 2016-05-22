@@ -65,7 +65,7 @@
 //!
 //! ```yaml
 //! # Scan this file for changes every 30 seconds
-//! refresh_rate: 30
+//! refresh_rate: 30 seconds
 //!
 //! appenders:
 //!   # An appender named "stdout" that writes to stdout
@@ -104,6 +104,7 @@
 extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
+extern crate humantime;
 extern crate kernel32;
 extern crate libc;
 extern crate log;
