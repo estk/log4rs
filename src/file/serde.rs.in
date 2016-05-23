@@ -3,7 +3,9 @@
 struct PrivConfig {
     refresh_rate: Option<DeDuration>,
     root: Option<Root>,
+    #[serde(default)]
     appenders: HashMap<String, Appender>,
+    #[serde(default)]
     loggers: HashMap<String, Logger>,
 }
 

@@ -7,12 +7,14 @@
 //! # Syntax
 //!
 //! All file formats currently share the same structure. The example below is
-//! of the YAML format, but JSON and TOML should follow.
+//! of the YAML format, but the JSON and TOML formats consist of the same
+//! structure.
 //!
 //! ```yaml
-//! # If set, log4rs will scan the file at the specified rate in seconds for
-//! # changes and automatically reconfigure the logger.
-//! refresh_rate: 30
+//! # If set, log4rs will scan the file at the specified rate for changes and
+//! # automatically reconfigure the logger. The input string is parsed by the
+//! # humantime crate.
+//! refresh_rate: 30 seconds
 //!
 //! # The "appenders" map contains the set of appenders, indexed by their names.
 //! appenders:
@@ -20,7 +22,7 @@
 //!   foo:
 //!
 //!     # All appenders must specify a "kind", which will be used to look up the
-//!     # logic to construct the appender in the `Builder` passed to the
+//!     # logic to construct the appender in the `Deserializers` passed to the
 //!     # deserialization function.
 //!     kind: console
 //!
@@ -152,7 +154,7 @@ impl Deserializers {
 
     /// Adds a mapping from the specified `kind` to a deserializer.
     pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Deserialize<Trait = T>>) {
-        self.0.entry::<KeyAdaptor<T>>().or_insert(HashMap::new()).insert(kind, builder);
+        self.0.entry::<KeyAdaptor<T>>().or_insert_with(|| HashMap::new()).insert(kind, builder);
     }
 
     /// Retrieves the deserializer of the specified `kind`.
@@ -344,7 +346,7 @@ mod test {
     #[cfg(feature = "yaml")]
     fn full_deserialize() {
         let cfg = r#"
-refresh_rate: 60
+refresh_rate: 60 seconds
 
 appenders:
   console:
@@ -374,4 +376,39 @@ loggers:
         assert!(config.errors().is_empty());
     }
 
+    #[test]
+    #[cfg(feature = "yaml")]
+    fn empty() {
+        let config = Config::parse("{}",
+                                   Format::Yaml,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "yaml")]
+    fn integer_refresh_yaml() {
+        let config = Config::parse("refresh_rate: 60",
+                                   Format::Yaml,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "json")]
+    fn integer_refresh_json() {
+        let config = Config::parse(r#"{"refresh_rate": 60}"#,
+                                   Format::Json,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "toml")]
+    fn integer_refresh_toml() {
+        let config = Config::parse("refresh_rate = 60",
+                                   Format::Toml,
+                                   &Deserializers::default()).unwrap();
+        assert!(config.errors().is_empty());
+    }
 }

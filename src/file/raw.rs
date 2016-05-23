@@ -228,7 +228,7 @@ mod test {
     #[cfg(feature = "yaml")]
     fn basic_yaml() {
         let cfg = r#"
-refresh_rate: 60
+refresh_rate: 60 seconds
 
 appenders:
   console:
@@ -263,7 +263,7 @@ loggers:
     fn basic_json() {
         let cfg = r#"
 {
-    "refresh_rate": 60,
+    "refresh_rate": "60 seconds",
     "appenders": {
         "console": {
             "kind": "console",
@@ -301,7 +301,7 @@ loggers:
     #[cfg(feature = "toml")]
     fn basic_toml() {
         let cfg = r#"
-refresh_rate = 60
+refresh_rate = "60 seconds"
 
 [appenders.console]
 kind = "console"

@@ -5,5 +5,5 @@ authors = ["Steven Fackler <sfackler@gmail.com>"]
 
 [dependencies]
 serde_codegen = "0.7"
-syntex = "0.30"
+syntex = "0.32"
 walkdir = "0.1"

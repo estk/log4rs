@@ -80,7 +80,8 @@ impl FileAppenderBuilder {
         let path = path.as_ref().to_owned();
         let file = try!(OpenOptions::new()
                             .write(true)
-                            .append(self.append)
+                            .append(true)
+                            .truncate(!self.append)
                             .create(true)
                             .open(&path));
 
