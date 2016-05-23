@@ -379,7 +379,7 @@ loggers:
     #[test]
     #[cfg(feature = "yaml")]
     fn empty() {
-        let config = Config::parse("refresh_rate: 60 seconds",
+        let config = Config::parse("{}",
                                    Format::Yaml,
                                    &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
