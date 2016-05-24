@@ -119,6 +119,9 @@ extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
 
+#[cfg(test)]
+extern crate tempdir;
+
 use crossbeam::sync::ArcCell;
 use std::cmp;
 use std::collections::HashMap;

@@ -5,7 +5,7 @@ use log::LogRecord;
 use serde_value::Value;
 use std::error::Error;
 use std::fmt;
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 
@@ -78,6 +78,9 @@ impl FileAppenderBuilder {
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let path = path.as_ref().to_owned();
+        if let Some(parent) = path.parent() {
+            try!(fs::create_dir_all(parent));
+        }
         let file = try!(OpenOptions::new()
                             .write(true)
                             .append(true)
@@ -120,5 +123,21 @@ impl Deserialize for FileAppenderDeserializer {
                                                                        encoder.config)));
         }
         Ok(Box::new(try!(appender.build(&config.path))))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use tempdir::TempDir;
+
+    use super::*;
+
+    #[test]
+    fn create_directories() {
+        let tempdir = TempDir::new("create_directories").unwrap();
+
+        FileAppender::builder()
+            .build(tempdir.path().join("foo").join("bar").join("baz.log"))
+            .unwrap();
     }
 }
