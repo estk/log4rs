@@ -552,7 +552,15 @@ struct Location<'a> {
 
 /// A deserializer for the `PatternEncoder`.
 ///
-/// The `pattern` key is required and specifies the pattern for the encoder.
+/// # Configuration
+///
+/// ```yaml
+/// kind: pattern
+///
+/// # The pattern to follow when formatting logs. Defaults to
+/// # "{d} {l} {t} - {m}{n}".
+/// pattern: "{d} {l} {t} - {m}{n}"
+/// ```
 pub struct PatternEncoderDeserializer;
 
 impl Deserialize for PatternEncoderDeserializer {

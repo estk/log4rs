@@ -100,19 +100,19 @@ impl Append for ConsoleAppender {
 impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder { encoder: Box::new(PatternEncoder::default()) }
+        ConsoleAppenderBuilder { encoder: None }
     }
 }
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
-    encoder: Box<Encode>,
+    encoder: Option<Box<Encode>>,
 }
 
 impl ConsoleAppenderBuilder {
     /// Sets the output encoder for the `ConsoleAppender`.
     pub fn encoder(mut self, encoder: Box<Encode>) -> ConsoleAppenderBuilder {
-        self.encoder = encoder;
+        self.encoder = Some(encoder);
         self
     }
 
@@ -124,15 +124,22 @@ impl ConsoleAppenderBuilder {
         };
         ConsoleAppender {
             stdout: stdout,
-            encoder: self.encoder,
+            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
         }
     }
 }
 
 /// A deserializer for the `ConsoleAppender`.
 ///
-/// The `encoder` key is optional and specifies an `Encoder` to be used for
-/// output.
+/// # Configuration
+///
+/// ```yaml
+/// kind: console
+///
+/// # The encoder to use to format output. Defaults to `kind: pattern`.
+/// encoder:
+///   kind: pattern
+/// ```
 pub struct ConsoleAppenderDeserializer;
 
 impl Deserialize for ConsoleAppenderDeserializer {

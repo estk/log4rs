@@ -35,7 +35,14 @@ impl Filter for ThresholdFilter {
 
 /// A deserializer for the `ThresholdFilter`.
 ///
-/// The `level` key is required and specifies the threshold for the filter.
+/// # Configuration
+///
+/// ```yaml
+/// kind: threshold
+///
+/// # The threshold log level to filter at. Required
+/// level: warn
+/// ```
 pub struct ThresholdFilterDeserializer;
 
 impl Deserialize for ThresholdFilterDeserializer {

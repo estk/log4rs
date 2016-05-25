@@ -1,11 +1,11 @@
 [package]
 name = "log4rs"
-version = "0.4.4"
+version = "0.4.5"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://sfackler.github.io/log4rs/doc/v0.4.4/log4rs"
+documentation = "https://sfackler.github.io/log4rs/doc/v0.4.5/log4rs"
 
 [features]
 yaml = ["serde_yaml"]
@@ -26,3 +26,6 @@ winapi = "0.2"
 serde_json = { version = "0.7", optional = true }
 serde_yaml = { version = "0.2", optional = true }
 toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }
+
+[dev-dependencies]
+tempdir = "0.3"

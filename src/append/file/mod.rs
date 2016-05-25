@@ -5,7 +5,7 @@ use log::LogRecord;
 use serde_value::Value;
 use std::error::Error;
 use std::fmt;
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 
@@ -48,7 +48,7 @@ impl FileAppender {
     /// Creates a new `FileAppender` builder.
     pub fn builder() -> FileAppenderBuilder {
         FileAppenderBuilder {
-            encoder: Box::new(PatternEncoder::default()),
+            encoder: None,
             append: true,
         }
     }
@@ -56,14 +56,14 @@ impl FileAppender {
 
 /// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
-    encoder: Box<Encode>,
+    encoder: Option<Box<Encode>>,
     append: bool,
 }
 
 impl FileAppenderBuilder {
     /// Sets the output encoder for the `FileAppender`.
     pub fn encoder(mut self, encoder: Box<Encode>) -> FileAppenderBuilder {
-        self.encoder = encoder;
+        self.encoder = Some(encoder);
         self
     }
 
@@ -78,6 +78,9 @@ impl FileAppenderBuilder {
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let path = path.as_ref().to_owned();
+        if let Some(parent) = path.parent() {
+            try!(fs::create_dir_all(parent));
+        }
         let file = try!(OpenOptions::new()
                             .write(true)
                             .append(true)
@@ -88,7 +91,7 @@ impl FileAppenderBuilder {
         Ok(FileAppender {
             path: path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            encoder: self.encoder,
+            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
         })
     }
 }
@@ -96,10 +99,22 @@ impl FileAppenderBuilder {
 
 /// A deserializer for the `FileAppender`.
 ///
-/// The `path` key is required, and specifies the path to the log file. The
-/// `encoder` key is optional and specifies an `Encoder` to be used for output.
-/// The `append` key is optional and specifies whether the output file should be
-/// truncated or appended to.
+/// # Configuration
+///
+/// ```yaml
+/// kind: file
+///
+/// # The path of the log file. Required.
+/// path: log/foo.log
+///
+/// # Specifies if the appender should append to or truncate the log file if it
+/// # already exists. Defaults to `true`.
+/// append: true
+///
+/// # The encoder to use to format output. Defaults to `kind: pattern`.
+/// encoder:
+///   kind: pattern
+/// ```
 pub struct FileAppenderDeserializer;
 
 impl Deserialize for FileAppenderDeserializer {
@@ -120,5 +135,21 @@ impl Deserialize for FileAppenderDeserializer {
                                                                        encoder.config)));
         }
         Ok(Box::new(try!(appender.build(&config.path))))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use tempdir::TempDir;
+
+    use super::*;
+
+    #[test]
+    fn create_directories() {
+        let tempdir = TempDir::new("create_directories").unwrap();
+
+        FileAppender::builder()
+            .build(tempdir.path().join("foo").join("bar").join("baz.log"))
+            .unwrap();
     }
 }

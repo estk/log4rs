@@ -98,7 +98,7 @@
 //!       - requests
 //!     additive: false
 //! ```
-#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.4")]
+#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.5")]
 #![warn(missing_docs)]
 
 extern crate antidote;
@@ -118,6 +118,9 @@ extern crate serde_yaml;
 extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
+
+#[cfg(test)]
+extern crate tempdir;
 
 use crossbeam::sync::ArcCell;
 use std::cmp;
