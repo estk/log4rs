@@ -100,19 +100,19 @@ impl Append for ConsoleAppender {
 impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder { encoder: Box::new(PatternEncoder::default()) }
+        ConsoleAppenderBuilder { encoder: None }
     }
 }
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
-    encoder: Box<Encode>,
+    encoder: Option<Box<Encode>>,
 }
 
 impl ConsoleAppenderBuilder {
     /// Sets the output encoder for the `ConsoleAppender`.
     pub fn encoder(mut self, encoder: Box<Encode>) -> ConsoleAppenderBuilder {
-        self.encoder = encoder;
+        self.encoder = Some(encoder);
         self
     }
 
@@ -124,7 +124,7 @@ impl ConsoleAppenderBuilder {
         };
         ConsoleAppender {
             stdout: stdout,
-            encoder: self.encoder,
+            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
         }
     }
 }

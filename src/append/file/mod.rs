@@ -48,7 +48,7 @@ impl FileAppender {
     /// Creates a new `FileAppender` builder.
     pub fn builder() -> FileAppenderBuilder {
         FileAppenderBuilder {
-            encoder: Box::new(PatternEncoder::default()),
+            encoder: None,
             append: true,
         }
     }
@@ -56,14 +56,14 @@ impl FileAppender {
 
 /// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
-    encoder: Box<Encode>,
+    encoder: Option<Box<Encode>>,
     append: bool,
 }
 
 impl FileAppenderBuilder {
     /// Sets the output encoder for the `FileAppender`.
     pub fn encoder(mut self, encoder: Box<Encode>) -> FileAppenderBuilder {
-        self.encoder = encoder;
+        self.encoder = Some(encoder);
         self
     }
 
@@ -91,7 +91,7 @@ impl FileAppenderBuilder {
         Ok(FileAppender {
             path: path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            encoder: self.encoder,
+            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
         })
     }
 }
