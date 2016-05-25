@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["FileAppender","An appender which logs to a file."],["FileAppenderBuilder","A builder for `FileAppender`s."],["FileAppenderDeserializer","A deserializer for the `FileAppender`."]]});

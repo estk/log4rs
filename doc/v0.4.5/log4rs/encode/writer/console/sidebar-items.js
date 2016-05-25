@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ConsoleWriter","An `encode::Write`r that outputs to a console."],["ConsoleWriterLock","An RAII lock over a console."]]});
