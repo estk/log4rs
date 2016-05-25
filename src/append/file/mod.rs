@@ -99,10 +99,22 @@ impl FileAppenderBuilder {
 
 /// A deserializer for the `FileAppender`.
 ///
-/// The `path` key is required, and specifies the path to the log file. The
-/// `encoder` key is optional and specifies an `Encoder` to be used for output.
-/// The `append` key is optional and specifies whether the output file should be
-/// truncated or appended to.
+/// # Configuration
+///
+/// ```yaml
+/// kind: file
+///
+/// # The path of the log file. Required.
+/// path: log/foo.log
+///
+/// # Specifies if the appender should append to or truncate the log file if it
+/// # already exists. Defaults to `true`.
+/// append: true
+///
+/// # The encoder to use to format output. Defaults to `kind: pattern`.
+/// encoder:
+///   kind: pattern
+/// ```
 pub struct FileAppenderDeserializer;
 
 impl Deserialize for FileAppenderDeserializer {

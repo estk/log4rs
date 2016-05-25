@@ -131,8 +131,15 @@ impl ConsoleAppenderBuilder {
 
 /// A deserializer for the `ConsoleAppender`.
 ///
-/// The `encoder` key is optional and specifies an `Encoder` to be used for
-/// output.
+/// # Configuration
+///
+/// ```yaml
+/// kind: console
+///
+/// # The encoder to use to format output. Defaults to `kind: pattern`.
+/// encoder:
+///   kind: pattern
+/// ```
 pub struct ConsoleAppenderDeserializer;
 
 impl Deserialize for ConsoleAppenderDeserializer {
