@@ -98,7 +98,7 @@
 //!       - requests
 //!     additive: false
 //! ```
-#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.5")]
+#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.6")]
 #![warn(missing_docs)]
 
 extern crate antidote;

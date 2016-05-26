@@ -6,7 +6,7 @@
 //! ```not_rust
 //! format_string := <text> [ format <text> ] *
 //! format := '{' formatter [ ':' format_spec ] '}'
-//! formatter := [ name ] [ '(' argument ')' ]
+//! formatter := [ name ] [ '(' argument ')' ] *
 //! name := identifier
 //! argument := format_string
 //!
@@ -21,17 +21,19 @@
 //!
 //! A formatter inserts a dynamic portion of text into the pattern. It may be
 //! text derived from a log event or from some other context like the current
-//! time. Formatters may be passed an argument consisting of a parenthesized
-//! format string. If an argument is not provided, it is equivalent to an empty
-//! format string (i.e.  `{foo}` `{foo()}` are equivalent).
+//! time. Formatters may be passed arguments consisting of parenthesized format
+//! strings.
 //!
 //! The following formatters are currently supported. Unless otherwise stated,
 //! a formatter does not accept any argument.
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
 //!     A custom format may be provided in the syntax accepted by `chrono`.
+//!     The timezone defaults to UTC, but can be specified explicitly by passing
+//!     a second argument of `utc` for UTC or `local` for local time.
 //!     * `{d}` - `2016-03-20T22:22:20.644420340+00:00`
 //!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 22:22:20`
+//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(local)}` - `2016-03-20 14:22:20 PST`
 //! * `f`, `file` - The source file that the log message came from.
 //! * `h`, `highlight` - Styles its argument according to the log level. The
 //!     style is intense red for errors, red for warnings, blue for info, and
@@ -90,7 +92,7 @@
 //! <code>INFO hello     </code>, while the message `hello, world!` and log
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 
-use chrono::UTC;
+use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
 use serde_value::Value;
 use std::default::Default;
@@ -348,57 +350,104 @@ impl<'a> From<Piece<'a>> for Chunk {
     fn from(piece: Piece<'a>) -> Chunk {
         match piece {
             Piece::Text(text) => Chunk::Text(text.to_owned()),
-            Piece::Argument { formatter, parameters } => {
+            Piece::Argument { mut formatter, parameters } => {
                 match formatter.name {
                     "d" |
                     "date" => {
-                        let mut format = String::new();
-                        for piece in &formatter.arg {
-                            match *piece {
-                                Piece::Text(text) => format.push_str(text),
-                                Piece::Argument { .. } => {
-                                    format.push_str("{ERROR: unexpected formatter}");
+                        if formatter.args.len() > 2 {
+                            return Chunk::Error("expected at most two arguments".to_owned());
+                        }
+
+                        let format = match formatter.args.get(0) {
+                            Some(arg) => {
+                                let mut format = String::new();
+                                for piece in arg {
+                                    match *piece {
+                                        Piece::Text(text) => format.push_str(text),
+                                        Piece::Argument { .. } => {
+                                            format.push_str("{ERROR: unexpected formatter}");
+                                        }
+                                        Piece::Error(ref err) => {
+                                            format.push_str("{ERROR: ");
+                                            format.push_str(err);
+                                            format.push('}');
+                                        }
+                                    }
                                 }
-                                Piece::Error(ref err) => {
-                                    format.push_str("{ERROR: ");
-                                    format.push_str(err);
-                                    format.push('}');
+                                // FIXME remove in next breaking release
+                                if format.is_empty() {
+                                    format.push_str("%+");
+                                }
+                                format
+                            }
+                            None => "%+".to_owned(),
+                        };
+
+                        let timezone = match formatter.args.get(1) {
+                            Some(arg) => {
+                                if arg.len() != 1 {
+                                    return Chunk::Error("invalid timezone".to_owned());
+                                }
+                                match arg[0] {
+                                    Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
+                                    Piece::Text(ref z) if *z == "local" => Timezone::Local,
+                                    Piece::Text(ref z) => {
+                                        return Chunk::Error(format!("invalid timezone `{}`", z));
+                                    }
+                                    _ => return Chunk::Error("invalid timezone".to_owned()),
                                 }
                             }
-                        }
-                        if format.is_empty() {
-                            format.push_str("%+");
-                        }
+                            None => Timezone::Utc,
+                        };
+
                         Chunk::Formatted {
-                            chunk: FormattedChunk::Time(format),
+                            chunk: FormattedChunk::Time(format, timezone),
                             params: parameters,
                         }
                     }
                     "h" |
                     "highlight" => {
-                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        if formatter.args.len() != 1 {
+                            return Chunk::Error("expected exactly one argument".to_owned())
+                        }
+
+                        let chunks = formatter.args
+                                              .pop()
+                                              .unwrap()
+                                              .into_iter()
+                                              .map(From::from)
+                                              .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Highlight(chunks),
                             params: parameters,
                         }
                     }
                     "l" |
-                    "level" => no_args(&formatter.arg, parameters, FormattedChunk::Level),
+                    "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
                     "m" |
-                    "message" => no_args(&formatter.arg, parameters, FormattedChunk::Message),
+                    "message" => no_args(&formatter.args, parameters, FormattedChunk::Message),
                     "M" |
-                    "module" => no_args(&formatter.arg, parameters, FormattedChunk::Module),
+                    "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
                     "f" |
-                    "file" => no_args(&formatter.arg, parameters, FormattedChunk::File),
+                    "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
                     "L" |
-                    "line" => no_args(&formatter.arg, parameters, FormattedChunk::Line),
+                    "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                     "T" |
-                    "thread" => no_args(&formatter.arg, parameters, FormattedChunk::Thread),
+                    "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
                     "t" |
-                    "target" => no_args(&formatter.arg, parameters, FormattedChunk::Target),
-                    "n" => no_args(&formatter.arg, parameters, FormattedChunk::Newline),
+                    "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
+                    "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
                     "" => {
-                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        if formatter.args.len() != 1 {
+                            return Chunk::Error("expected exactly one argument".to_owned())
+                        }
+
+                        let chunks = formatter.args
+                                              .pop()
+                                              .unwrap()
+                                              .into_iter()
+                                              .map(From::from)
+                                              .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Align(chunks),
                             params: parameters,
@@ -412,8 +461,24 @@ impl<'a> From<Piece<'a>> for Chunk {
     }
 }
 
+fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chunk {
+    if arg.is_empty() {
+        Chunk::Formatted {
+            chunk: chunk,
+            params: params,
+        }
+    } else {
+        Chunk::Error("unexpected arguments".to_owned())
+    }
+}
+
+enum Timezone {
+    Utc,
+    Local,
+}
+
 enum FormattedChunk {
-    Time(String),
+    Time(String, Timezone),
     Level,
     Message,
     Module,
@@ -435,7 +500,10 @@ impl FormattedChunk {
               args: &fmt::Arguments)
               -> io::Result<()> {
         match *self {
-            FormattedChunk::Time(ref fmt) => write!(w, "{}", UTC::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", UTC::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Local) => {
+                write!(w, "{}", Local::now().format(fmt))
+            }
             FormattedChunk::Level => write!(w, "{}", level),
             FormattedChunk::Message => w.write_fmt(*args),
             FormattedChunk::Module => w.write_all(location.module_path.as_bytes()),
@@ -505,17 +573,6 @@ impl Encode for PatternEncoder {
             line: record.location().line(),
         };
         self.append_inner(w, record.level(), record.target(), &location, record.args())
-    }
-}
-
-fn no_args(arg: &[Piece], params: Parameters, chunk: FormattedChunk) -> Chunk {
-    if arg.is_empty() {
-        Chunk::Formatted {
-            chunk: chunk,
-            params: params,
-        }
-    } else {
-        Chunk::Error("unexpected arguments".to_owned())
     }
 }
 
@@ -746,5 +803,12 @@ mod tests {
     #[test]
     fn custom_date_format() {
         assert!(error_free(&PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {m}{n}")));
+    }
+
+    #[test]
+    fn timezones() {
+        assert!(error_free(&PatternEncoder::new("{d(%+)(utc)}")));
+        assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
+        assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
     }
 }

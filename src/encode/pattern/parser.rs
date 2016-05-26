@@ -13,7 +13,7 @@ pub enum Piece<'a> {
 
 pub struct Formatter<'a> {
     pub name: &'a str,
-    pub arg: Vec<Piece<'a>>,
+    pub args: Vec<Vec<Piece<'a>>>,
 }
 
 pub struct Parameters {
@@ -67,7 +67,7 @@ impl<'a> Parser<'a> {
     fn formatter(&mut self) -> Result<Formatter<'a>, String> {
         Ok(Formatter {
             name: self.name(),
-            arg: try!(self.arg()),
+            args: try!(self.args()),
         })
     }
 
@@ -89,6 +89,14 @@ impl<'a> Parser<'a> {
                 None => return &self.pattern[start..],
             }
         }
+    }
+
+    fn args(&mut self) -> Result<Vec<Vec<Piece<'a>>>, String> {
+        let mut args = vec![];
+        while let Some(&(_, '(')) = self.it.peek() {
+            args.push(try!(self.arg()));
+        }
+        Ok(args)
     }
 
     fn arg(&mut self) -> Result<Vec<Piece<'a>>, String> {
