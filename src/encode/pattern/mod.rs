@@ -6,7 +6,7 @@
 //! ```not_rust
 //! format_string := <text> [ format <text> ] *
 //! format := '{' formatter [ ':' format_spec ] '}'
-//! formatter := [ name ] [ '(' argument ')' ]
+//! formatter := [ name ] [ '(' argument ')' ] *
 //! name := identifier
 //! argument := format_string
 //!
@@ -21,17 +21,19 @@
 //!
 //! A formatter inserts a dynamic portion of text into the pattern. It may be
 //! text derived from a log event or from some other context like the current
-//! time. Formatters may be passed an argument consisting of a parenthesized
-//! format string. If an argument is not provided, it is equivalent to an empty
-//! format string (i.e.  `{foo}` `{foo()}` are equivalent).
+//! time. Formatters may be passed arguments consisting of parenthesized format
+//! strings.
 //!
 //! The following formatters are currently supported. Unless otherwise stated,
 //! a formatter does not accept any argument.
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
 //!     A custom format may be provided in the syntax accepted by `chrono`.
+//!     The timezone defaults to UTC, but can be specified explicitly by passing
+//!     a second argument of `utc` for UTC or `local` for local time.
 //!     * `{d}` - `2016-03-20T22:22:20.644420340+00:00`
 //!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 22:22:20`
+//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(local)}` - `2016-03-20 14:22:20 PST`
 //! * `f`, `file` - The source file that the log message came from.
 //! * `h`, `highlight` - Styles its argument according to the log level. The
 //!     style is intense red for errors, red for warnings, blue for info, and
@@ -352,11 +354,14 @@ impl<'a> From<Piece<'a>> for Chunk {
                 match formatter.name {
                     "d" |
                     "date" => {
-                        let format = match formatter.args.len() {
-                            0 => "%+".to_owned(),
-                            1 => {
+                        if formatter.args.len() > 2 {
+                            return Chunk::Error("expected at most two arguments".to_owned());
+                        }
+
+                        let format = match formatter.args.get(0) {
+                            Some(arg) => {
                                 let mut format = String::new();
-                                for piece in &formatter.args[0] {
+                                for piece in arg {
                                     match *piece {
                                         Piece::Text(text) => format.push_str(text),
                                         Piece::Argument { .. } => {
@@ -369,16 +374,34 @@ impl<'a> From<Piece<'a>> for Chunk {
                                         }
                                     }
                                 }
+                                // FIXME remove in next breaking release
                                 if format.is_empty() {
                                     format.push_str("%+");
                                 }
                                 format
                             }
-                            _ => return Chunk::Error("expected at most one argument".to_owned()),
+                            None => "%+".to_owned(),
+                        };
+
+                        let timezone = match formatter.args.get(1) {
+                            Some(arg) => {
+                                if arg.len() != 1 {
+                                    return Chunk::Error("invalid timezone".to_owned());
+                                }
+                                match arg[0] {
+                                    Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
+                                    Piece::Text(ref z) if *z == "local" => Timezone::Local,
+                                    Piece::Text(ref z) => {
+                                        return Chunk::Error(format!("invalid timezone `{}`", z));
+                                    }
+                                    _ => return Chunk::Error("invalid timezone".to_owned()),
+                                }
+                            }
+                            None => Timezone::Utc,
                         };
 
                         Chunk::Formatted {
-                            chunk: FormattedChunk::Time(format, Timezone::Utc),
+                            chunk: FormattedChunk::Time(format, timezone),
                             params: parameters,
                         }
                     }
@@ -780,5 +803,12 @@ mod tests {
     #[test]
     fn custom_date_format() {
         assert!(error_free(&PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {m}{n}")));
+    }
+
+    #[test]
+    fn timezones() {
+        assert!(error_free(&PatternEncoder::new("{d(%+)(utc)}")));
+        assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
+        assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
     }
 }
