@@ -348,27 +348,35 @@ impl<'a> From<Piece<'a>> for Chunk {
     fn from(piece: Piece<'a>) -> Chunk {
         match piece {
             Piece::Text(text) => Chunk::Text(text.to_owned()),
-            Piece::Argument { formatter, parameters } => {
+            Piece::Argument { mut formatter, parameters } => {
                 match formatter.name {
                     "d" |
                     "date" => {
-                        let mut format = String::new();
-                        for piece in &formatter.arg {
-                            match *piece {
-                                Piece::Text(text) => format.push_str(text),
-                                Piece::Argument { .. } => {
-                                    format.push_str("{ERROR: unexpected formatter}");
+                        let format = match formatter.args.len() {
+                            0 => "%+".to_owned(),
+                            1 => {
+                                let mut format = String::new();
+                                for piece in &formatter.args[0] {
+                                    match *piece {
+                                        Piece::Text(text) => format.push_str(text),
+                                        Piece::Argument { .. } => {
+                                            format.push_str("{ERROR: unexpected formatter}");
+                                        }
+                                        Piece::Error(ref err) => {
+                                            format.push_str("{ERROR: ");
+                                            format.push_str(err);
+                                            format.push('}');
+                                        }
+                                    }
                                 }
-                                Piece::Error(ref err) => {
-                                    format.push_str("{ERROR: ");
-                                    format.push_str(err);
-                                    format.push('}');
+                                if format.is_empty() {
+                                    format.push_str("%+");
                                 }
+                                format
                             }
-                        }
-                        if format.is_empty() {
-                            format.push_str("%+");
-                        }
+                            _ => return Chunk::Error("expected at most one argument".to_owned()),
+                        };
+
                         Chunk::Formatted {
                             chunk: FormattedChunk::Time(format),
                             params: parameters,
@@ -376,29 +384,47 @@ impl<'a> From<Piece<'a>> for Chunk {
                     }
                     "h" |
                     "highlight" => {
-                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        if formatter.args.len() != 1 {
+                            return Chunk::Error("expected exactly one argument".to_owned())
+                        }
+
+                        let chunks = formatter.args
+                                              .pop()
+                                              .unwrap()
+                                              .into_iter()
+                                              .map(From::from)
+                                              .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Highlight(chunks),
                             params: parameters,
                         }
                     }
                     "l" |
-                    "level" => no_args(&formatter.arg, parameters, FormattedChunk::Level),
+                    "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
                     "m" |
-                    "message" => no_args(&formatter.arg, parameters, FormattedChunk::Message),
+                    "message" => no_args(&formatter.args, parameters, FormattedChunk::Message),
                     "M" |
-                    "module" => no_args(&formatter.arg, parameters, FormattedChunk::Module),
+                    "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
                     "f" |
-                    "file" => no_args(&formatter.arg, parameters, FormattedChunk::File),
+                    "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
                     "L" |
-                    "line" => no_args(&formatter.arg, parameters, FormattedChunk::Line),
+                    "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                     "T" |
-                    "thread" => no_args(&formatter.arg, parameters, FormattedChunk::Thread),
+                    "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
                     "t" |
-                    "target" => no_args(&formatter.arg, parameters, FormattedChunk::Target),
-                    "n" => no_args(&formatter.arg, parameters, FormattedChunk::Newline),
+                    "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
+                    "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
                     "" => {
-                        let chunks = formatter.arg.into_iter().map(From::from).collect();
+                        if formatter.args.len() != 1 {
+                            return Chunk::Error("expected exactly one argument".to_owned())
+                        }
+
+                        let chunks = formatter.args
+                                              .pop()
+                                              .unwrap()
+                                              .into_iter()
+                                              .map(From::from)
+                                              .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Align(chunks),
                             params: parameters,
@@ -409,6 +435,17 @@ impl<'a> From<Piece<'a>> for Chunk {
             }
             Piece::Error(err) => Chunk::Error(err),
         }
+    }
+}
+
+fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chunk {
+    if arg.is_empty() {
+        Chunk::Formatted {
+            chunk: chunk,
+            params: params,
+        }
+    } else {
+        Chunk::Error("unexpected arguments".to_owned())
     }
 }
 
@@ -505,17 +542,6 @@ impl Encode for PatternEncoder {
             line: record.location().line(),
         };
         self.append_inner(w, record.level(), record.target(), &location, record.args())
-    }
-}
-
-fn no_args(arg: &[Piece], params: Parameters, chunk: FormattedChunk) -> Chunk {
-    if arg.is_empty() {
-        Chunk::Formatted {
-            chunk: chunk,
-            params: params,
-        }
-    } else {
-        Chunk::Error("unexpected arguments".to_owned())
     }
 }
 
