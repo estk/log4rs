@@ -90,7 +90,7 @@
 //! <code>INFO hello     </code>, while the message `hello, world!` and log
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 
-use chrono::UTC;
+use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
 use serde_value::Value;
 use std::default::Default;
@@ -378,7 +378,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                         };
 
                         Chunk::Formatted {
-                            chunk: FormattedChunk::Time(format),
+                            chunk: FormattedChunk::Time(format, Timezone::Utc),
                             params: parameters,
                         }
                     }
@@ -449,8 +449,13 @@ fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chu
     }
 }
 
+enum Timezone {
+    Utc,
+    Local,
+}
+
 enum FormattedChunk {
-    Time(String),
+    Time(String, Timezone),
     Level,
     Message,
     Module,
@@ -472,7 +477,10 @@ impl FormattedChunk {
               args: &fmt::Arguments)
               -> io::Result<()> {
         match *self {
-            FormattedChunk::Time(ref fmt) => write!(w, "{}", UTC::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", UTC::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Local) => {
+                write!(w, "{}", Local::now().format(fmt))
+            }
             FormattedChunk::Level => write!(w, "{}", level),
             FormattedChunk::Message => w.write_fmt(*args),
             FormattedChunk::Module => w.write_all(location.module_path.as_bytes()),
