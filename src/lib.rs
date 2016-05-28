@@ -105,19 +105,22 @@ extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
 extern crate humantime;
-extern crate kernel32;
 extern crate libc;
 extern crate log;
 extern crate serde;
 extern crate serde_value;
 extern crate typemap;
-extern crate winapi;
 #[cfg(feature = "yaml")]
 extern crate serde_yaml;
 #[cfg(feature = "json")]
 extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
+
+#[cfg(windows)]
+extern crate kernel32;
+#[cfg(windows)]
+extern crate winapi;
 
 #[cfg(test)]
 extern crate tempdir;
