@@ -7,9 +7,6 @@ use encode::{self, Color, Style};
 #[derive(Debug)]
 pub struct AnsiWriter<W>(pub W);
 
-impl<W: io::Write> AnsiWriter<W> {
-}
-
 impl<W: io::Write> io::Write for AnsiWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)
