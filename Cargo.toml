@@ -24,6 +24,8 @@ typemap = "0.3"
 serde_json = { version = "0.7", optional = true }
 serde_yaml = { version = "0.2", optional = true }
 toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }
+regex = "*"
+lazy_static = "*"
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
