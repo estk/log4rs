@@ -811,4 +811,18 @@ mod tests {
         assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
         assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
     }
+
+    #[test]
+    fn quote_braces_with_backslash() {
+        let pw = PatternEncoder::new(r"\{\({l}\)\}\/");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foo"))
+        .unwrap();
+        assert_eq!(buf, br"{(INFO)}\/");
+    }
 }
