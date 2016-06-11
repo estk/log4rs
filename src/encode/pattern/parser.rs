@@ -181,7 +181,7 @@ impl<'a> Parser<'a> {
     fn text(&mut self, start: usize) -> Piece<'a> {
         while let Some(&(pos, ch)) = self.it.peek() {
             match ch {
-                '{' | '}' | ')' => return Piece::Text(&self.pattern[start..pos]),
+                '{' | '}' | ')' | '\\' => return Piece::Text(&self.pattern[start..pos]),
                 _ => {
                     self.it.next();
                 }
@@ -189,6 +189,7 @@ impl<'a> Parser<'a> {
         }
         Piece::Text(&self.pattern[start..])
     }
+
 }
 
 impl<'a> Iterator for Parser<'a> {
@@ -196,6 +197,30 @@ impl<'a> Iterator for Parser<'a> {
 
     fn next(&mut self) -> Option<Piece<'a>> {
         match self.it.peek() {
+            Some(&(_, '\\')) => {
+                self.it.next();
+                match self.it.peek() {
+                    Some(&(_, '{')) => {
+                        self.it.next();
+                        Some(Piece::Text("{"))
+                    }
+                    Some(&(_, '}')) => {
+                        self.it.next();
+                        Some(Piece::Text("}"))
+                    }
+                    Some(&(_, '(')) => {
+                        self.it.next();
+                        Some(Piece::Text("("))
+                    }
+                    Some(&(_, ')')) => {
+                        self.it.next();
+                        Some(Piece::Text(")"))
+                    }
+                    _ => {
+                        Some(Piece::Text("\\"))
+                    }
+                }
+            }
             Some(&(_, '{')) => {
                 self.it.next();
                 if self.consume('{') {

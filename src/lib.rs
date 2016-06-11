@@ -110,6 +110,10 @@ extern crate log;
 extern crate serde;
 extern crate serde_value;
 extern crate typemap;
+extern crate regex;
+#[macro_use]
+extern crate lazy_static;
+
 #[cfg(feature = "yaml")]
 extern crate serde_yaml;
 #[cfg(feature = "json")]
@@ -143,6 +147,8 @@ use append::Append;
 use config::Config;
 use filter::Filter;
 use file::{Format, Deserializers};
+use std::env;
+use regex::{Captures, Regex};
 
 pub mod append;
 pub mod config;
@@ -360,7 +366,8 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
             max_log_level: max_log_level,
         });
         Box::new(logger)
-    }).map(|()| handle.unwrap())
+    })
+        .map(|()| handle.unwrap())
 }
 
 /// A handle to the active logger.
@@ -378,6 +385,20 @@ impl Handle {
     }
 }
 
+/// Replace env. variable in String
+fn replace_env_var(org: &String) -> String {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"\$([A-Z]|_)+").unwrap();
+        }
+    RE.replace_all(org, |caps: &Captures| {
+        let var_name = caps.at(0).unwrap_or("").replace("$", "");
+        let var_value = env::var(&var_name).unwrap_or("".to_string());
+        var_value
+    })
+}
+
+
+
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
 /// Configuration is read from a file located at the provided path on the
@@ -389,7 +410,8 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
     let path = path.as_ref().to_path_buf();
     let format = try!(get_format(&path));
     let source = try!(read_config(&path));
-    let config = try!(parse_config(&source, format, &deserializers));
+    let env_replaced = replace_env_var(&source);
+    let config = try!(parse_config(&env_replaced, format, &deserializers));
 
     let refresh_rate = config.refresh_rate();
     let config = config.into_config();
@@ -397,16 +419,11 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
     match init_config(config) {
         Ok(handle) => {
             if let Some(refresh_rate) = refresh_rate {
-                ConfigReloader::start(path,
-                                      format,
-                                      refresh_rate,
-                                      source,
-                                      deserializers,
-                                      handle);
+                ConfigReloader::start(path, format, refresh_rate, source, deserializers, handle);
             }
             Ok(())
         }
-        Err(e) => Err(e.into())
+        Err(e) => Err(e.into()),
     }
 }
 
