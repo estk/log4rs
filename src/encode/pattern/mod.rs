@@ -811,4 +811,23 @@ mod tests {
         assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
         assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
     }
+
+    #[test]
+    fn unescaped_parens() {
+        assert!(!error_free(&PatternEncoder::new("(hi)")));
+    }
+
+    #[test]
+    fn escaped_chars() {
+        let pw = PatternEncoder::new("{{{m}(())}}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+          .unwrap();
+        assert_eq!(buf, b"{foobar!()}");
+    }
 }

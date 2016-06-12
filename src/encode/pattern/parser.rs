@@ -181,7 +181,7 @@ impl<'a> Parser<'a> {
     fn text(&mut self, start: usize) -> Piece<'a> {
         while let Some(&(pos, ch)) = self.it.peek() {
             match ch {
-                '{' | '}' | ')' => return Piece::Text(&self.pattern[start..pos]),
+                '{' | '}' | '(' | ')' => return Piece::Text(&self.pattern[start..pos]),
                 _ => {
                     self.it.next();
                 }
@@ -216,6 +216,22 @@ impl<'a> Iterator for Parser<'a> {
                     Some(Piece::Text("}"))
                 } else {
                     Some(Piece::Error("unmatched '}'".to_owned()))
+                }
+            }
+            Some(&(_, '(')) => {
+                self.it.next();
+                if self.consume('(') {
+                    Some(Piece::Text("("))
+                } else {
+                    Some(Piece::Error("unexpected '('".to_owned()))
+                }
+            }
+            Some(&(_, ')')) => {
+                self.it.next();
+                if self.consume(')') {
+                    Some(Piece::Text(")"))
+                } else {
+                    Some(Piece::Error("unexpected ')'".to_owned()))
                 }
             }
             Some(&(pos, _)) => Some(self.text(pos)),
