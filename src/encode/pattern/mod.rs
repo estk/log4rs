@@ -17,6 +17,13 @@
 //! max_width := number
 //! ```
 //!
+//! # Special characters
+//!
+//! The `{`, `}`, `(`, and `)` characters are part of the pattern syntax; they
+//! must be escaped to appear in output. Like with Rust's string formatting
+//! syntax, type the character twice to escape it. That is, `{{` will be
+//! rendered as `{` in output and `))` will be rendered as `)`.
+//!
 //! # Formatters
 //!
 //! A formatter inserts a dynamic portion of text into the pattern. It may be
@@ -810,5 +817,24 @@ mod tests {
         assert!(error_free(&PatternEncoder::new("{d(%+)(utc)}")));
         assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
         assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
+    }
+
+    #[test]
+    fn unescaped_parens() {
+        assert!(!error_free(&PatternEncoder::new("(hi)")));
+    }
+
+    #[test]
+    fn escaped_chars() {
+        let pw = PatternEncoder::new("{{{m}(())}}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+          .unwrap();
+        assert_eq!(buf, b"{foobar!()}");
     }
 }
