@@ -17,6 +17,13 @@
 //! max_width := number
 //! ```
 //!
+//! # Special characters
+//!
+//! The `{`, `}`, `(`, and `)` characters are part of the pattern syntax; they
+//! must be escaped to appear in output. Like with Rust's string formatting
+//! syntax, type the character twice to escape it. That is, `{{` will be
+//! rendered as `{` in output and `))` will be rendered as `)`.
+//!
 //! # Formatters
 //!
 //! A formatter inserts a dynamic portion of text into the pattern. It may be
