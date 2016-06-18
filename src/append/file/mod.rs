@@ -83,7 +83,7 @@ impl FileAppenderBuilder {
         }
         let file = try!(OpenOptions::new()
                             .write(true)
-                            .append(true)
+                            .append(self.append)
                             .truncate(!self.append)
                             .create(true)
                             .open(&path));
@@ -150,6 +150,15 @@ mod test {
 
         FileAppender::builder()
             .build(tempdir.path().join("foo").join("bar").join("baz.log"))
+            .unwrap();
+    }
+
+    #[test]
+    fn append_false() {
+        let tempdir = TempDir::new("create_directories").unwrap();
+        FileAppender::builder()
+            .append(false)
+            .build(tempdir.path().join("foo.log"))
             .unwrap();
     }
 }
