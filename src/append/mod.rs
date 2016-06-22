@@ -6,6 +6,7 @@ use log::LogRecord;
 
 pub mod file;
 pub mod console;
+pub mod syslog;
 
 /// A trait implemented by log4rs appenders.
 ///
