@@ -142,8 +142,7 @@ impl Default for Deserializers {
         deserializers.insert("file".to_owned(), Box::new(FileAppenderDeserializer));
         deserializers.insert("console".to_owned(), Box::new(ConsoleAppenderDeserializer));
         deserializers.insert("syslog".to_owned(), Box::new(SyslogAppenderDeserializer));
-        deserializers.insert("threshold".to_owned(),
-                             Box::new(ThresholdFilterDeserializer));
+        deserializers.insert("threshold".to_owned(), Box::new(ThresholdFilterDeserializer));
         deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
         deserializers
     }

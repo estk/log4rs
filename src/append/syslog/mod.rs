@@ -2,8 +2,9 @@
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
+mod rfc5424;
 
-use log::LogRecord;
+use log::{LogLevel, LogRecord};
 use serde_value::Value;
 use std::error::Error;
 use std::io::{self, Write};
@@ -11,36 +12,26 @@ use std::net::{ToSocketAddrs, SocketAddr, TcpStream, UdpSocket};
 use std::sync::Mutex;
 
 use append::Append;
-use file::{Deserialize, Deserializers};
 use append::syslog::serde::SyslogAppenderConfig;
+use file::{Deserialize, Deserializers};
 
-const DEFAULT_PROTOCOL: Protocol = Protocol::Udp;
-const DEFAULT_ADDRESS: &'static str = "localhost:514";
+const DEFAULT_PROTOCOL: &'static str = "udp";
+const DEFAULT_FORMAT: &'static str = "plain";
 const DEFAULT_PORT: u16 = 514;
-const DEFAULT_HEADER: Header = Header::None;
-
-/// Supported protocols.
-pub enum Protocol {
-	/// UDP
-	Udp,
-	/// TCP
-	Tcp
-}
-
-/// Log messages header types.
-#[derive(Debug)]
-pub enum Header {
-	/// No header will be added to messages.
-	None,
-	/// RFC 5424 headers.
-	RFC5424
-}
+const DEFAULT_ADDRESS: &'static str = "localhost:514";
+const DEFAULT_MAX_LENGTH: u16 = 2048; // bytes
 
 /// Writers to syslog that utilize different protocols.
 #[derive(Debug)]
 enum SyslogWriter {
 	Udp(Box<UdpSocket>, SocketAddr),
 	Tcp(Mutex<TcpStream>)
+}
+
+#[derive(Debug)]
+enum Format {
+    Plain,
+    RFC_5424(rfc5424::Format)
 }
 
 /// Writer to UDP socket
@@ -74,68 +65,87 @@ impl<'a> io::Write for UdpWriter<'a> {
 #[derive(Debug)]
 pub struct SyslogAppender {
 	writer: SyslogWriter,
-	header: Header
+	format: Format,
+	max_len: u16
 	// encoder: Box<Encode>
 }
 
 impl Append for SyslogAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
-		let hdr = match self.header {
-			Header::None => "".to_string(),
-			Header::RFC5424 => SyslogAppender::header_rfc_5424()
+		let message: String = match self.format {
+		    Format::Plain            => format!("{}\n", record.args()),
+		    Format::RFC_5424(ref fmt) => fmt.apply(&record)
 		};
-		println!("{}", hdr);
+		let bytes = message.as_bytes();
 		match self.writer {
 			SyslogWriter::Udp(ref socket, ref addrs) => {
-				let message = &(format!("{}{}", hdr, record.args()));
-				let bytes = message.as_bytes();
 				try!(socket.send_to(&bytes, addrs));
-				//let mut w = SimpleWriter(BufWriter::with_capacity(1024, UdpWriter::new(socket, addrs)));
-				//try!(self.encoder.encode(&mut w, record))
+				// let mut w = SimpleWriter(BufWriter::with_capacity(1024, UdpWriter::new(socket, addrs)));
+				// try!(self.encoder.encode(&mut w, record))
 			},
 			SyslogWriter::Tcp(ref stream_w) => {
-				let message = &(format!("{}{}\n", "tcp", record.args()));
-				let bytes = message.as_bytes();
 				let mut stream = stream_w.lock().unwrap();
 				try!(stream.write(bytes));
-				//try!(self.encoder.encode(&mut *s, record))
-				//try!(s.flush())
+				// TODO: broken pipe recovery: Broken pipe (os error 32)
+				// try!(self.encoder.encode(&mut *s, record))
+				// try!(s.flush())
 			}
 		};
 		Ok(())
     }
 }
 
-impl SyslogAppender {
-	fn header_rfc_5424() -> String {
-		"RFC 5424 ".to_string()
-	}
-}
-
 /// Builder for `SyslogAppender`.
 pub struct SyslogAppenderBuilder {
-	protocol: Protocol,
-	header: Header,
-	// encoder: Option<Box<Encode>>,
-	addrs: String
+	protocol: String,
+	addrs: String,
+	max_len: u16,
+	format: String
+	// encoder: Option<Box<Encode>>
 }
 
 impl SyslogAppenderBuilder {
 	/// Creates a `SyslogAppenderBuilder` for constructing new `SyslogAppender`.
 	pub fn new() -> SyslogAppenderBuilder {
 		SyslogAppenderBuilder {
-			protocol: DEFAULT_PROTOCOL,
+			protocol: DEFAULT_PROTOCOL.to_string(),
 			addrs: DEFAULT_ADDRESS.to_string(),
-			header: DEFAULT_HEADER,
+			max_len: DEFAULT_MAX_LENGTH,
+			format: DEFAULT_FORMAT.to_string()
 			// encoder: None
 		}
 	}
 
 	/// Sets network protocol for accessing syslog.
 	/// 
-	/// Defaults to UDP.
-	pub fn protocol(&mut self, p: Protocol) -> &mut SyslogAppenderBuilder {
-		self.protocol = p;
+	/// Defaults to "udp".
+	pub fn protocol(& mut self, p: String) -> &mut SyslogAppenderBuilder {
+		self.protocol = p.to_lowercase();
+		self
+	}
+
+	/// Sets network address of syslog server.
+	///
+	/// Defaults to "localhost:514".
+	pub fn address(&mut self, addrs: String) -> &mut SyslogAppenderBuilder {
+		self.addrs = addrs;
+		self
+	}
+
+	/// Sets type of log message formatter.
+	///
+	/// Defaults to `plain`.
+	pub fn format(&mut self, f: String) -> &mut SyslogAppenderBuilder {
+		self.format = f.to_lowercase();
+		self
+	}
+
+    /// Sets the maximum length of a message in bytes. If a log message exceedes
+    /// this size, it's truncated with not respect to UTF char boundaries.
+    ///
+    /// Defaults to 2048.
+    pub fn max_len(&mut self, ml: u16) -> &mut SyslogAppenderBuilder {
+		self.max_len = ml;
 		self
 	}
 
@@ -145,56 +155,52 @@ impl SyslogAppenderBuilder {
     //    self
     //}
 
-	/// Sets network address of syslog server.
-	///
-	/// Defaults to "localhost:514".
-	pub fn addrs(&mut self, addrs: String) -> &mut SyslogAppenderBuilder {
-		self.addrs = addrs;
-		self
-	}
-
-	/// Sets type of log message headers.
-	///
-	/// Defaults to `None`.
-	pub fn header(&mut self, h: Header) -> &mut SyslogAppenderBuilder {
-		self.header = h;
-		self
-	}
-
 	/// Produces a `SyslogAppender` with parameters, supplied to the builder.
 	pub fn finalize(mut self) -> io::Result<SyslogAppender> {
-		SyslogAppenderBuilder::norm_addrs(&mut self.addrs);
-		let writer = match self.protocol {
-			Protocol::Udp => SyslogAppenderBuilder::udp(self.addrs.as_str()),
-			Protocol::Tcp => SyslogAppenderBuilder::tcp(self.addrs.as_str())
-		};
-		Ok(SyslogAppender {
-			writer: writer,
-			header: self.header
-			// encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default()))
-		})
-	}
-
-	/// Creates writer for UDP protocol based on external host and port
-	fn udp<T: ToSocketAddrs>(rem: T) -> SyslogWriter {
-		let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-		let rem_addrs = rem.to_socket_addrs().unwrap().next().unwrap();
-		SyslogWriter::Udp(Box::new(socket), rem_addrs)
-	}
-
-	/// Creates writer for TCP protocol based on external host and port
-	fn tcp<T: ToSocketAddrs>(rem: T) -> SyslogWriter {
-		let stream = TcpStream::connect(rem).unwrap();
-		SyslogWriter::Tcp(Mutex::new(stream))
-	}
-	
-	/// Normalizes network address -- adds port if necessary 
-	fn norm_addrs(addrs: &mut String) {
-		if !addrs.find(':').is_some() {
-			addrs.push(':');
-			addrs.push_str(&DEFAULT_PORT.to_string())
+		norm_addrs(&mut self.addrs);
+		let writer;
+		if self.protocol == "tcp" {
+		    writer = tcp_writer(self.addrs.as_str());
+		} else {
+		    // TODO: Error if not udp
+		    writer = udp_writer(self.addrs.as_str());
 		}
+		let format;
+		if self.format == "rfc5424" {
+		    format = Format::RFC_5424(rfc5424::Format::default())
+		} else {
+		    // TODO: Error if not plain
+		    format = Format::Plain;
+		}
+		let appender = SyslogAppender {
+			writer: writer,
+			format: format,
+			max_len: self.max_len
+			// encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default()))
+		};
+		Ok(appender)
 	}
+}
+
+/// Normalizes network address -- adds port if necessary 
+fn norm_addrs(addrs: &mut String) {
+	if !addrs.find(':').is_some() {
+		addrs.push(':');
+		addrs.push_str(&DEFAULT_PORT.to_string())
+	}
+}
+
+/// Creates writer for UDP protocol based on external host and port
+fn udp_writer<T: ToSocketAddrs>(rem: T) -> SyslogWriter {
+	let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+	let rem_addrs = rem.to_socket_addrs().unwrap().next().unwrap();
+	SyslogWriter::Udp(Box::new(socket), rem_addrs)
+}
+
+/// Creates writer for TCP protocol based on external host and port
+fn tcp_writer<T: ToSocketAddrs>(rem: T) -> SyslogWriter {
+	let stream = TcpStream::connect(rem).unwrap();
+	SyslogWriter::Tcp(Mutex::new(stream))
 }
 
 /// Deserializer for `SyslogAppender`.
@@ -207,25 +213,16 @@ impl Deserialize for SyslogAppenderDeserializer {
         let config = try!(config.deserialize_into::<SyslogAppenderConfig>());
         let mut builder = SyslogAppenderBuilder::new();
         if let Some(prot) = config.protocol {
-        	if prot == "udp" {
-        		builder.protocol(Protocol::Udp);
-        	} else if prot == "tcp" {
-        		builder.protocol(Protocol::Tcp);
-        	} else {
-        		// TODO: Throw error
-        	}
-        }
-        if let Some(hdr) = config.header {
-        	if hdr == "none" {
-        		builder.header(Header::None);
-        	} else if hdr == "rfc5424" {
-        		builder.header(Header::RFC5424);
-        	} else {
-        		// TODO: Throw error
-        	}
+        	builder.protocol(prot);
         }
         if let Some(addrs) = config.address {
-        	builder.addrs(addrs);
+        	builder.address(addrs);
+        }
+        if let Some(fmt) = config.format {
+        	builder.format(fmt);
+        }
+        if let Some(ml) = config.max_len {
+            builder.max_len(ml);
         }
         // if let Some(encoder) = config.encoder {
         //   builder.encoder(try!(deserializers.deserialize("encoder",
@@ -239,20 +236,20 @@ impl Deserialize for SyslogAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
-	use super::SyslogAppenderBuilder;
+	use super::norm_addrs;
 
 	#[test]
 	fn norm_addrs_adds_default_port() {
 		let mut addr = "localhost".to_string();
-		SyslogAppenderBuilder::norm_addrs(&mut addr);
-		assert_eq!("localhost:514", addr.as_str());
+		norm_addrs(&mut addr);
+		assert_eq!(addr.as_str(), "localhost:514");
 	}
 
 	#[test]
 	fn norm_addrs_doesnt_add_port_if_already_set() {
 		let mut addr = "localhost:5124".to_string();
-		SyslogAppenderBuilder::norm_addrs(&mut addr);
-		assert_eq!("localhost:5124", addr.as_str());
+		norm_addrs(&mut addr);
+		assert_eq!(addr.as_str(), "localhost:5124");
 	}
 }
 
