@@ -19,10 +19,13 @@
 //!
 //! # Special characters
 //!
-//! The `{`, `}`, `(`, and `)` characters are part of the pattern syntax; they
-//! must be escaped to appear in output. Like with Rust's string formatting
-//! syntax, type the character twice to escape it. That is, `{{` will be
-//! rendered as `{` in output and `))` will be rendered as `)`.
+//! The `{`, `}`, `(`, `)`, and `\` characters are part of the pattern syntax;
+//! they must be escaped to appear in output. Like with Rust's string
+//! formatting syntax, type the character twice to escape it. That is, `{{`
+//! will be rendered as `{` in output and `))` will be rendered as `)`.
+//!
+//! In addition, these characters may also be escaped by prefixing them with a
+//! `\` character. That is, `\{` will be rendered as `{`.
 //!
 //! # Formatters
 //!
@@ -836,5 +839,19 @@ mod tests {
                         &format_args!("foobar!"))
           .unwrap();
         assert_eq!(buf, b"{foobar!()}");
+    }
+
+    #[test]
+    fn quote_braces_with_backslash() {
+        let pw = PatternEncoder::new(r"\{\({l}\)\}\\");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foo"))
+        .unwrap();
+        assert_eq!(buf, br"{(INFO)}\");
     }
 }
