@@ -1,11 +1,11 @@
 [package]
 name = "log4rs"
-version = "0.4.7"
+version = "0.4.8"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://sfackler.github.io/log4rs/doc/v0.4.7/log4rs"
+documentation = "https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs"
 
 [features]
 yaml = ["serde_yaml"]
