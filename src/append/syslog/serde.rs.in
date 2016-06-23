@@ -5,6 +5,7 @@
 pub struct SyslogAppenderConfig {
     pub protocol: Option<String>,
     pub address: Option<String>,
-    pub header: Option<String>,
+    pub format: Option<String>,
+    pub max_len: Option<u16>
     // pub encoder: Option<Encoder>
 }
