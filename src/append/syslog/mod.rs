@@ -2,10 +2,9 @@
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
-mod rfc5424;
+pub mod rfc5424;
 
 use log::{LogLevel, LogRecord};
-use serde_value::Value;
 use std::error::Error;
 use std::io::{self, Write};
 use std::net::{ToSocketAddrs, SocketAddr, TcpStream, UdpSocket};
@@ -14,9 +13,10 @@ use std::sync::Mutex;
 use append::Append;
 use append::syslog::serde::SyslogAppenderConfig;
 use file::{Deserialize, Deserializers};
+use serde_value::Value;
 
 const DEFAULT_PROTOCOL: &'static str = "udp";
-const DEFAULT_FORMAT: &'static str = "plain";
+const DEFAULT_FORMAT: Format = Format::Plain;
 const DEFAULT_PORT: u16 = 514;
 const DEFAULT_ADDRESS: &'static str = "localhost:514";
 const DEFAULT_MAX_LENGTH: u16 = 2048; // bytes
@@ -29,7 +29,7 @@ enum SyslogWriter {
 }
 
 #[derive(Debug)]
-enum Format {
+pub enum Format {
     Plain,
     RFC_5424(rfc5424::Format)
 }
@@ -73,7 +73,7 @@ pub struct SyslogAppender {
 impl Append for SyslogAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
 		let message: String = match self.format {
-		    Format::Plain            => format!("{}\n", record.args()),
+		    Format::Plain             => format!("{}\n", record.args()),
 		    Format::RFC_5424(ref fmt) => fmt.apply(&record)
 		};
 		let bytes = message.as_bytes();
@@ -100,7 +100,7 @@ pub struct SyslogAppenderBuilder {
 	protocol: String,
 	addrs: String,
 	max_len: u16,
-	format: String
+	format: Format
 	// encoder: Option<Box<Encode>>
 }
 
@@ -111,7 +111,7 @@ impl SyslogAppenderBuilder {
 			protocol: DEFAULT_PROTOCOL.to_string(),
 			addrs: DEFAULT_ADDRESS.to_string(),
 			max_len: DEFAULT_MAX_LENGTH,
-			format: DEFAULT_FORMAT.to_string()
+			format: DEFAULT_FORMAT
 			// encoder: None
 		}
 	}
@@ -135,8 +135,8 @@ impl SyslogAppenderBuilder {
 	/// Sets type of log message formatter.
 	///
 	/// Defaults to `plain`.
-	pub fn format(&mut self, f: String) -> &mut SyslogAppenderBuilder {
-		self.format = f.to_lowercase();
+	pub fn format(&mut self, f: Format) -> &mut SyslogAppenderBuilder {
+		self.format = f;
 		self
 	}
 
@@ -165,16 +165,9 @@ impl SyslogAppenderBuilder {
 		    // TODO: Error if not udp
 		    writer = udp_writer(self.addrs.as_str());
 		}
-		let format;
-		if self.format == "rfc5424" {
-		    format = Format::RFC_5424(rfc5424::Format::default())
-		} else {
-		    // TODO: Error if not plain
-		    format = Format::Plain;
-		}
 		let appender = SyslogAppender {
 			writer: writer,
-			format: format,
+			format: self.format,
 			max_len: self.max_len
 			// encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default()))
 		};
@@ -209,7 +202,7 @@ pub struct SyslogAppenderDeserializer;
 impl Deserialize for SyslogAppenderDeserializer {
     type Trait = Append;
 
-    fn deserialize(&self, config: Value, _: &Deserializers) -> Result<Box<Append>, Box<Error>> {
+    fn deserialize(&self, config: Value, deserializers: &Deserializers) -> Result<Box<Append>, Box<Error>> {
         let config = try!(config.deserialize_into::<SyslogAppenderConfig>());
         let mut builder = SyslogAppenderBuilder::new();
         if let Some(prot) = config.protocol {
@@ -218,11 +211,12 @@ impl Deserialize for SyslogAppenderDeserializer {
         if let Some(addrs) = config.address {
         	builder.address(addrs);
         }
-        if let Some(fmt) = config.format {
-        	builder.format(fmt);
-        }
         if let Some(ml) = config.max_len {
             builder.max_len(ml);
+        }
+        if let Some(rfc5424) = config.rfc5424 {
+            builder.format(Format::RFC_5424(rfc5424::Format::default()));
+            //try!(deserializers.deserialize("rfc5424", "rfc5424", rfc5424.config));
         }
         // if let Some(encoder) = config.encoder {
         //   builder.encoder(try!(deserializers.deserialize("encoder",

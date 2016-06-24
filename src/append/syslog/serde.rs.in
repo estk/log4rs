@@ -1,4 +1,5 @@
 // use file::raw::Encoder;
+use append::syslog::rfc5424;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -6,6 +7,7 @@ pub struct SyslogAppenderConfig {
     pub protocol: Option<String>,
     pub address: Option<String>,
     pub format: Option<String>,
-    pub max_len: Option<u16>
-    // pub encoder: Option<Encoder>
+    pub max_len: Option<u16>,
+    // pub encoder: Option<Encoder>,
+    pub rfc5424: Option<rfc5424::Format>
 }
