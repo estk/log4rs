@@ -2,12 +2,16 @@
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
+pub mod plain;
 pub mod rfc5424;
+pub mod severity;
 
 use log::{LogLevel, LogRecord};
+use serde::de;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
-use std::io::{self, Write};
-use std::net::{ToSocketAddrs, SocketAddr, TcpStream, UdpSocket};
+use std::io::{self, ErrorKind, Write};
+use std::net::{SocketAddr, TcpStream, ToSocketAddrs, UdpSocket};
 use std::sync::Mutex;
 
 use append::Append;
@@ -16,7 +20,6 @@ use file::{Deserialize, Deserializers};
 use serde_value::Value;
 
 const DEFAULT_PROTOCOL: &'static str = "udp";
-const DEFAULT_FORMAT: Format = Format::Plain;
 const DEFAULT_PORT: u16 = 514;
 const DEFAULT_ADDRESS: &'static str = "localhost:514";
 const DEFAULT_MAX_LENGTH: u16 = 2048; // bytes
@@ -28,10 +31,13 @@ enum SyslogWriter {
 	Tcp(Mutex<TcpStream>)
 }
 
+/// Syslog message format.
 #[derive(Debug)]
-pub enum Format {
-    Plain,
-    RFC_5424(rfc5424::Format)
+pub enum MsgFormat {
+    /// No formatting is applied.
+    Plain(plain::Format),
+    /// RFC 5424 format.
+    RFC_5424(Box<rfc5424::Format>)
 }
 
 /// Writer to UDP socket
@@ -65,16 +71,16 @@ impl<'a> io::Write for UdpWriter<'a> {
 #[derive(Debug)]
 pub struct SyslogAppender {
 	writer: SyslogWriter,
-	format: Format,
+	msg_format: MsgFormat,
 	max_len: u16
 	// encoder: Box<Encode>
 }
 
 impl Append for SyslogAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
-		let message: String = match self.format {
-		    Format::Plain             => format!("{}\n", record.args()),
-		    Format::RFC_5424(ref fmt) => fmt.apply(&record)
+		let message: String = match self.msg_format {
+		    MsgFormat::Plain(ref fmt)    => fmt.apply(&record),
+		    MsgFormat::RFC_5424(ref fmt) => fmt.apply(&record)
 		};
 		let bytes = message.as_bytes();
 		match self.writer {
@@ -100,7 +106,7 @@ pub struct SyslogAppenderBuilder {
 	protocol: String,
 	addrs: String,
 	max_len: u16,
-	format: Format
+	msg_format: Option<MsgFormat>
 	// encoder: Option<Box<Encode>>
 }
 
@@ -111,7 +117,7 @@ impl SyslogAppenderBuilder {
 			protocol: DEFAULT_PROTOCOL.to_string(),
 			addrs: DEFAULT_ADDRESS.to_string(),
 			max_len: DEFAULT_MAX_LENGTH,
-			format: DEFAULT_FORMAT
+			msg_format: None
 			// encoder: None
 		}
 	}
@@ -134,9 +140,9 @@ impl SyslogAppenderBuilder {
 
 	/// Sets type of log message formatter.
 	///
-	/// Defaults to `plain`.
-	pub fn format(&mut self, f: Format) -> &mut SyslogAppenderBuilder {
-		self.format = f;
+	/// Defaults to `Plain`.
+	pub fn format(&mut self, mf: MsgFormat) -> &mut SyslogAppenderBuilder {
+		self.msg_format = Some(mf);
 		self
 	}
 
@@ -161,13 +167,14 @@ impl SyslogAppenderBuilder {
 		let writer;
 		if self.protocol == "tcp" {
 		    writer = tcp_writer(self.addrs.as_str());
-		} else {
-		    // TODO: Error if not udp
+		} else if self.protocol == "udp" {
 		    writer = udp_writer(self.addrs.as_str());
+		} else {
+		   return Err(io::Error::new(ErrorKind::Other, format!("Unsupported syslog transport protocol {}", self.protocol).as_str()));
 		}
 		let appender = SyslogAppender {
 			writer: writer,
-			format: self.format,
+			msg_format: self.msg_format.unwrap_or(MsgFormat::Plain(plain::Format::new())),
 			max_len: self.max_len
 			// encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default()))
 		};
@@ -196,6 +203,30 @@ fn tcp_writer<T: ToSocketAddrs>(rem: T) -> SyslogWriter {
 	SyslogWriter::Tcp(Mutex::new(stream))
 }
 
+/// Stores information on format kind and its config parameters.
+pub struct FormatConf {
+    pub kind: String,
+    pub config: Value,
+}
+
+impl de::Deserialize for FormatConf {
+    fn deserialize<D>(d: &mut D) -> Result<FormatConf, D::Error>
+        where D: de::Deserializer
+    {
+        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+
+        let kind = match map.remove(&Value::String("kind".to_owned())) {
+            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            None => return Err(de::Error::missing_field("kind")),
+        };
+
+        Ok(FormatConf {
+            kind: kind,
+            config: Value::Map(map),
+        })
+    }
+}
+
 /// Deserializer for `SyslogAppender`.
 pub struct SyslogAppenderDeserializer;
 
@@ -214,9 +245,14 @@ impl Deserialize for SyslogAppenderDeserializer {
         if let Some(ml) = config.max_len {
             builder.max_len(ml);
         }
-        if let Some(rfc5424) = config.rfc5424 {
-            builder.format(Format::RFC_5424(rfc5424::Format::default()));
-            //try!(deserializers.deserialize("rfc5424", "rfc5424", rfc5424.config));
+        if let Some(format) = config.format {
+            if format.kind == "rfc5424" {
+                builder.format(MsgFormat::RFC_5424(try!(deserializers.deserialize("format", &format.kind, format.config))));
+            } else if format.kind == "plain" {
+                builder.format(MsgFormat::Plain(plain::Format::new()));
+            } else {
+    		    return Err(Box::new(io::Error::new(ErrorKind::Other, format!("Unsupported syslog message format {}", format.kind).as_str())));
+            }
         }
         // if let Some(encoder) = config.encoder {
         //   builder.encoder(try!(deserializers.deserialize("encoder",

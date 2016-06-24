@@ -137,6 +137,8 @@ pub struct Deserializers(ShareMap);
 ///     * "threshold" -> `ThresholdFilterDeserializer`
 /// * Encoders
 ///     * "pattern" -> `PatternEncoderDeserializer`
+/// * Formats
+///     * "rfc5424" -> `rfc5424::FormatDeserializer`
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
