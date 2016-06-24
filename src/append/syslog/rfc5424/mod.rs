@@ -1,4 +1,4 @@
-//! Implementation of RFC 5424 log messages format.
+//! Adaptation of RFC 5424 log messages format to the standard Rust log facade.
 
 extern crate time;
 
@@ -11,6 +11,8 @@ use std::error::Error;
 use std::str;
 use std::env;
 
+use append::syslog::rfc5424::serde::FormatConfig;
+use append::syslog::severity;
 use file;
 use serde_value::Value;
 
@@ -71,27 +73,6 @@ pub enum Facility {
 	LOCAL7   = 23 << 3
 }
 
-/// Severities according to RFC 5424
-#[derive(Debug)]
-pub enum Severity {
-	/// Emergency: system is unusable
-	EMERGENCY = 0,
-	/// Alert: action must be taken immediately
-	ALERT     = 1,
-	/// Critical: critical conditions
-	CRITICAL  = 2,
-	/// Error: error conditions
-	ERROR     = 3,
-	/// Warning: warning conditions
-	WARNING   = 4,
-	/// Notice: normal but significant condition
-	NOTICE    = 5,
-	/// Informational: informational messages
-	INFO      = 6,
-	/// Debug: debug-level messages
-	DEBUG     = 7
-}
-
 /// RFC 5424 formatter.
 #[derive(Debug)]
 pub struct Format {
@@ -114,9 +95,21 @@ impl Format {
         }
     }
 
+    pub fn hostname(&mut self, h: String) {
+        self.hostname = h;
+    }
+
+    pub fn app_name(&mut self, a: String) {
+        self.app_name = a;
+    }
+
+    pub fn bom(&mut self, b: bool) {
+        self.bom = b;
+    }
+
     /// Creates RFC 5424 message for the given log record
     pub fn apply(&self, rec: &LogRecord) -> String {
-    	let priority = self.facility as u8 | severity(rec.level());
+    	let priority = self.facility as u8 | severity::level_to_severity(rec.level());
     	let msg_id = 0;
     	let struct_data = NILVALUE;
     	let bom_str;
@@ -140,18 +133,6 @@ impl Format {
     }
 }
 
-/// Converts log level to RFC 5424 severity
-fn severity(lvl: LogLevel) -> u8 {
-	match lvl {
-		LogLevel::Error => Severity::ERROR as u8,
-		LogLevel::Warn  => Severity::WARNING as u8,
-		LogLevel::Info  => Severity::INFO as u8,
-		LogLevel::Debug => Severity::DEBUG as u8,
-		LogLevel::Trace => Severity::DEBUG as u8
-	}
-}
-
-
 /// Deserializer for `rfc5424::Format`.
 pub struct FormatDeserializer;
 
@@ -159,8 +140,22 @@ impl file::Deserialize for FormatDeserializer {
     type Trait = Format;
 
     fn deserialize(&self, config: Value, _: &file::Deserializers) -> Result<Box<Format>, Box<Error>> {
-println!("1Deserializing rfc5424 format");
-        Ok(Box::new(Format::default()))
+        let cfg = try!(config.deserialize_into::<FormatConfig>());
+        let mut fmt = Format::default();
+        if let Some(host) = cfg.hostname {
+            fmt.hostname(host);
+        }
+        if let Some(app) = cfg.app_name {
+            fmt.app_name(app);
+        }
+        if let Some(b) = cfg.bom {
+            fmt.bom(b);
+        }
+        if let Some(f) = cfg.facility {
+            // TODO: ...
+        }
+
+        Ok(Box::new(fmt))
     }
 }
 
@@ -168,7 +163,6 @@ impl de::Deserialize for Format {
     fn deserialize<D>(d: &mut D) -> Result<Format, D::Error>
         where D: de::Deserializer
     {
-println!("2Deserializing rfc5424 format");
         Ok(Format::default())
     }
 }

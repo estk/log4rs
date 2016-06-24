@@ -1,13 +1,12 @@
 // use file::raw::Encoder;
-use append::syslog::rfc5424;
+use append::syslog::FormatConf;
 
 pub struct SyslogAppenderConfig {
     pub protocol: Option<String>,
     pub address: Option<String>,
-    pub format: Option<String>,
     pub max_len: Option<u16>,
     // pub encoder: Option<Encoder>,
-    pub rfc5424: Option<rfc5424::Format>,
+    pub format: Option<FormatConf>,
 }
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
 const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
@@ -20,13 +19,7 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
              __D: _serde::de::Deserializer {
                 {
                     #[allow(non_camel_case_types)]
-                    enum __Field {
-                        __field0,
-                        __field1,
-                        __field2,
-                        __field3,
-                        __field4,
-                    }
+                    enum __Field { __field0, __field1, __field2, __field3, }
                     impl _serde::de::Deserialize for __Field {
                         #[inline]
                         fn deserialize<__D>(deserializer: &mut __D)
@@ -50,7 +43,6 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                         1usize => { Ok(__Field::__field1) }
                                         2usize => { Ok(__Field::__field2) }
                                         3usize => { Ok(__Field::__field3) }
-                                        4usize => { Ok(__Field::__field4) }
                                         _ => {
                                             Err(_serde::de::Error::invalid_value("expected a field"))
                                         }
@@ -64,9 +56,8 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                             Ok(__Field::__field0)
                                         }
                                         "address" => { Ok(__Field::__field1) }
-                                        "format" => { Ok(__Field::__field2) }
-                                        "max_len" => { Ok(__Field::__field3) }
-                                        "rfc5424" => { Ok(__Field::__field4) }
+                                        "max_len" => { Ok(__Field::__field2) }
+                                        "format" => { Ok(__Field::__field3) }
                                         _ =>
                                         Err(_serde::de::Error::unknown_field(value)),
                                     }
@@ -81,13 +72,10 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                         b"address" => {
                                             Ok(__Field::__field1)
                                         }
-                                        b"format" => { Ok(__Field::__field2) }
                                         b"max_len" => {
-                                            Ok(__Field::__field3)
+                                            Ok(__Field::__field2)
                                         }
-                                        b"rfc5424" => {
-                                            Ok(__Field::__field4)
-                                        }
+                                        b"format" => { Ok(__Field::__field3) }
                                         _ => {
                                             let value =
                                                 ::std::string::String::from_utf8_lossy(value);
@@ -132,7 +120,7 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                     };
                                 let __field2 =
                                     match try!(visitor . visit :: <
-                                               Option<String> > (  )) {
+                                               Option<u16> > (  )) {
                                         Some(value) => { value }
                                         None => {
                                             return Err(_serde::de::Error::end_of_stream());
@@ -140,16 +128,7 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                     };
                                 let __field3 =
                                     match try!(visitor . visit :: <
-                                               Option<u16> > (  )) {
-                                        Some(value) => { value }
-                                        None => {
-                                            return Err(_serde::de::Error::end_of_stream());
-                                        }
-                                    };
-                                let __field4 =
-                                    match try!(visitor . visit :: <
-                                               Option<rfc5424::Format> > (  ))
-                                        {
+                                               Option<FormatConf> > (  )) {
                                         Some(value) => { value }
                                         None => {
                                             return Err(_serde::de::Error::end_of_stream());
@@ -158,9 +137,8 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                 try!(visitor . end (  ));
                                 Ok(SyslogAppenderConfig{protocol: __field0,
                                                         address: __field1,
-                                                        format: __field2,
-                                                        max_len: __field3,
-                                                        rfc5424: __field4,})
+                                                        max_len: __field2,
+                                                        format: __field3,})
                             }
                         }
                         #[inline]
@@ -174,11 +152,8 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                     None;
                                 let mut __field1: Option<Option<String>> =
                                     None;
-                                let mut __field2: Option<Option<String>> =
-                                    None;
-                                let mut __field3: Option<Option<u16>> = None;
-                                let mut __field4:
-                                        Option<Option<rfc5424::Format>> =
+                                let mut __field2: Option<Option<u16>> = None;
+                                let mut __field3: Option<Option<FormatConf>> =
                                     None;
                                 while let Some(key) =
                                           try!(visitor . visit_key :: <
@@ -209,35 +184,24 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                         __Field::__field2 => {
                                             if __field2.is_some() {
                                                 return Err(<__V::Error as
-                                                               _serde::de::Error>::duplicate_field("format"));
-                                            }
-                                            __field2 =
-                                                Some(try!(visitor .
-                                                          visit_value :: <
-                                                          Option<String> > (
-                                                          )));
-                                        }
-                                        __Field::__field3 => {
-                                            if __field3.is_some() {
-                                                return Err(<__V::Error as
                                                                _serde::de::Error>::duplicate_field("max_len"));
                                             }
-                                            __field3 =
+                                            __field2 =
                                                 Some(try!(visitor .
                                                           visit_value :: <
                                                           Option<u16> > (
                                                           )));
                                         }
-                                        __Field::__field4 => {
-                                            if __field4.is_some() {
+                                        __Field::__field3 => {
+                                            if __field3.is_some() {
                                                 return Err(<__V::Error as
-                                                               _serde::de::Error>::duplicate_field("rfc5424"));
+                                                               _serde::de::Error>::duplicate_field("format"));
                                             }
-                                            __field4 =
+                                            __field3 =
                                                 Some(try!(visitor .
                                                           visit_value :: <
-                                                          Option<rfc5424::Format>
-                                                          > (  )));
+                                                          Option<FormatConf> >
+                                                          (  )));
                                         }
                                     }
                                 }
@@ -260,34 +224,25 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                         Some(__field2) => __field2,
                                         None =>
                                         try!(visitor . missing_field (
-                                             "format" )),
+                                             "max_len" )),
                                     };
                                 let __field3 =
                                     match __field3 {
                                         Some(__field3) => __field3,
                                         None =>
                                         try!(visitor . missing_field (
-                                             "max_len" )),
-                                    };
-                                let __field4 =
-                                    match __field4 {
-                                        Some(__field4) => __field4,
-                                        None =>
-                                        try!(visitor . missing_field (
-                                             "rfc5424" )),
+                                             "format" )),
                                     };
                                 try!(visitor . end (  ));
                                 Ok(SyslogAppenderConfig{protocol: __field0,
                                                         address: __field1,
-                                                        format: __field2,
-                                                        max_len: __field3,
-                                                        rfc5424: __field4,})
+                                                        max_len: __field2,
+                                                        format: __field3,})
                             }
                         }
                     }
                     const FIELDS: &'static [&'static str] =
-                        &["protocol", "address", "format", "max_len",
-                          "rfc5424"];
+                        &["protocol", "address", "max_len", "format"];
                     deserializer.deserialize_struct("SyslogAppenderConfig",
                                                     FIELDS,
                                                     __Visitor::<__D>(::std::marker::PhantomData))
