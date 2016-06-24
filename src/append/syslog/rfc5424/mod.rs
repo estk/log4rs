@@ -2,9 +2,17 @@
 
 extern crate time;
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
+mod serde;
+
 use log::{LogLevel, LogRecord};
+use serde::de;
+use std::error::Error;
 use std::str;
 use std::env;
+
+use file;
+use serde_value::Value;
 
 const VERSION: u8 = 1; // Format version
 const NILVALUE: &'static str = "-";
@@ -63,25 +71,25 @@ pub enum Facility {
 	LOCAL7   = 23 << 3
 }
 
-/// Serverities according to RFC 5424
+/// Severities according to RFC 5424
 #[derive(Debug)]
 pub enum Severity {
 	/// Emergency: system is unusable
-	EMERGENCY   = 0,
+	EMERGENCY = 0,
 	/// Alert: action must be taken immediately
-	ALERT		= 1,
+	ALERT     = 1,
 	/// Critical: critical conditions
-	CRITICAL	= 2,
+	CRITICAL  = 2,
 	/// Error: error conditions
-	ERROR		= 3,
+	ERROR     = 3,
 	/// Warning: warning conditions
-	WARNING		= 4,
+	WARNING   = 4,
 	/// Notice: normal but significant condition
-	NOTICE		= 5,
+	NOTICE    = 5,
 	/// Informational: informational messages
-	INFO		= 6,
+	INFO      = 6,
 	/// Debug: debug-level messages
-	DEBUG		= 7
+	DEBUG     = 7
 }
 
 /// RFC 5424 formatter.
@@ -102,7 +110,7 @@ impl Format {
             hostname: String::from(NILVALUE),
             app_name: String::from(NILVALUE),
             procid: String::from(NILVALUE),
-            bom: false
+            bom: true
         }
     }
 
@@ -141,4 +149,26 @@ fn severity(lvl: LogLevel) -> u8 {
 		LogLevel::Debug => Severity::DEBUG as u8,
 		LogLevel::Trace => Severity::DEBUG as u8
 	}
+}
+
+
+/// Deserializer for `rfc5424::Format`.
+pub struct FormatDeserializer;
+
+impl file::Deserialize for FormatDeserializer {
+    type Trait = Format;
+
+    fn deserialize(&self, config: Value, _: &file::Deserializers) -> Result<Box<Format>, Box<Error>> {
+println!("1Deserializing rfc5424 format");
+        Ok(Box::new(Format::default()))
+    }
+}
+
+impl de::Deserialize for Format {
+    fn deserialize<D>(d: &mut D) -> Result<Format, D::Error>
+        where D: de::Deserializer
+    {
+println!("2Deserializing rfc5424 format");
+        Ok(Format::default())
+    }
 }

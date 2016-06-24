@@ -97,6 +97,7 @@ use serde::Deserialize as SerdeDeserialize;
 use append::file::FileAppenderDeserializer;
 use append::console::ConsoleAppenderDeserializer;
 use append::syslog::SyslogAppenderDeserializer;
+use append::syslog::rfc5424;
 use filter::Filter;
 use filter::threshold::ThresholdFilterDeserializer;
 use config;
@@ -144,6 +145,7 @@ impl Default for Deserializers {
         deserializers.insert("syslog".to_owned(), Box::new(SyslogAppenderDeserializer));
         deserializers.insert("threshold".to_owned(), Box::new(ThresholdFilterDeserializer));
         deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
+        deserializers.insert("rfc5424".to_owned(), Box::new(rfc5424::FormatDeserializer));
         deserializers
     }
 }
