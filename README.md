@@ -21,7 +21,7 @@ appenders:
   audit:
     kind: syslog
     protocol: udp
-    address: 192.168.1.12:514
+    address: logserver:514
     format:
       kind: rfc5424
       hostname: appserver

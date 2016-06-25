@@ -14,11 +14,12 @@ impl Format {
         Format{}
     }
     /// Creates a plain syslog message for the given log record.
-    pub fn apply(&self, rec: &LogRecord) -> String {
+    pub fn apply(&self, rec: &LogRecord) -> (String, u32) {
     	let priority = Facility::USER as u8 | level_to_severity(rec.level());
-    	format!("<{}> {}\n",
+    	let msg = format!("<{}> {}\n",
     	    priority,
     	    rec.args()
-    	)
+    	);
+        (msg, u32::max_value())
     }
 }

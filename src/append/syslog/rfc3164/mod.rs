@@ -1,4 +1,4 @@
-//! Adaptation of RFC 5424 log messages format to the standard Rust log facade.
+//! Adaptation of RFC 3164 log messages format to the standard Rust log facade.
 
 extern crate time;
 
@@ -8,33 +8,30 @@ mod serde;
 use log::LogRecord;
 use serde::de;
 use std::error;
+use std::str;
 
 use append::syslog::consts::{Facility, NILVALUE, level_to_severity, parse_facility};
-use append::syslog::rfc5424::serde::FormatConfig;
+use append::syslog::rfc3164::serde::FormatConfig;
 use file;
 use serde_value::Value;
 
-const VERSION: u8 = 1; // Format version
+const MAX_MSG_LEN: u32 = 1024;	// Max message length allowed by RFC 3164
 
-/// RFC 5424 formatter.
+/// RFC 3164 formatter.
 #[derive(Debug)]
 pub struct Format {
 	facility: Facility,
 	hostname: String,
-	app_name: String,
-	procid: String,
-	bom: bool
+	app_name: String
 }
 
 impl Format {
-    /// Creates default RFC 5424 format.
+    /// Creates default RFC 3164 format.
     pub fn default() -> Format {
         Format {
             facility: Facility::USER,
             hostname: String::from(NILVALUE),
-            app_name: String::from(NILVALUE),
-            procid: String::from(NILVALUE),
-            bom: true
+			app_name: String::from(NILVALUE)
         }
     }
 
@@ -53,39 +50,21 @@ impl Format {
         self.app_name = a;
     }
 
-    /// Defines if the `BOM` marker should be used in log messages.
-    pub fn bom(&mut self, b: bool) {
-        self.bom = b;
-    }
-
-    /// Creates RFC 5424 message for the given log record
+    /// Creates RFC 3164 message for the given log record
     pub fn apply(&self, rec: &LogRecord) -> (String, u32) {
     	let priority = self.facility as u8 | level_to_severity(rec.level());
-    	let msg_id = 0;
-    	let struct_data = NILVALUE;
-    	let bom_str;
-    	if self.bom {
-    	    bom_str = "\u{EF}\u{BB}\u{BF}";
-    	} else {
-    	    bom_str = "";
-    	}
-    	let msg = format!("<{}>{} {} {} {} {} {} {} {}{}\n",
+    	let msg = format!("<{}>{} {} {}: {}\n",
     	    priority,
-    	    VERSION,
-    	    time::now_utc().rfc3339(),
+    	    time::now().strftime("%b %d %T").unwrap(),
     	    self.hostname,
-    	    self.app_name,
-    	    self.procid,
-    	    msg_id,
-    	    struct_data,
-    	    bom_str,
+			self.app_name,
     	    rec.args()
     	);
-		(msg, u32::max_value())
+		(msg, MAX_MSG_LEN)
     }
 }
 
-/// Deserializer for `rfc5424::Format`.
+/// Deserializer for `rfc3164::Format`.
 pub struct FormatDeserializer;
 
 impl file::Deserialize for FormatDeserializer {
@@ -106,9 +85,6 @@ impl file::Deserialize for FormatDeserializer {
         }
         if let Some(app) = cfg.app_name {
             fmt.app_name(app);
-        }
-        if let Some(b) = cfg.bom {
-            fmt.bom(b);
         }
         Ok(Box::new(fmt))
     }

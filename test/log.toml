@@ -15,9 +15,21 @@ kind = "file"
 path = "error.log"
 pattern = "{d} [{t}] {l} {M}:{m}{n}"
 
+#[appenders.syslog]
+#kind = "syslog"
+#protocol = "udp"
+#address = "192.168.1.17:514"
+
+#[appenders.syslog.format]
+#kind = "rfc3164"
+#hostname = "my_host"
+#app_name = "MyApp"
+#bom = false
+#facility = "user"
+
 [root]
 level = "warn"
-appenders = ["console"]
+appenders = ["console"] #, "syslog"
 
 [loggers."test::a"]
 level = "info"

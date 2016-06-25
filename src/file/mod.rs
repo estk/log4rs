@@ -97,6 +97,7 @@ use serde::Deserialize as SerdeDeserialize;
 use append::file::FileAppenderDeserializer;
 use append::console::ConsoleAppenderDeserializer;
 use append::syslog::SyslogAppenderDeserializer;
+use append::syslog::rfc3164;
 use append::syslog::rfc5424;
 use filter::Filter;
 use filter::threshold::ThresholdFilterDeserializer;
@@ -139,6 +140,7 @@ pub struct Deserializers(ShareMap);
 ///     * "pattern" -> `PatternEncoderDeserializer`
 /// * Formats
 ///     * "rfc5424" -> `rfc5424::FormatDeserializer`
+///     * "rfc3164" -> `rfc3164::FormatDeserializer`
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
@@ -147,6 +149,7 @@ impl Default for Deserializers {
         deserializers.insert("syslog".to_owned(), Box::new(SyslogAppenderDeserializer));
         deserializers.insert("threshold".to_owned(), Box::new(ThresholdFilterDeserializer));
         deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
+        deserializers.insert("rfc3164".to_owned(), Box::new(rfc3164::FormatDeserializer));
         deserializers.insert("rfc5424".to_owned(), Box::new(rfc5424::FormatDeserializer));
         deserializers
     }
