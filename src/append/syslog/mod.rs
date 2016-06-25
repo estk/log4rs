@@ -1,5 +1,5 @@
 //! The syslog appender.
-//! 
+//!
 //! # Features
 //!
 //! - TCP and UDP are supported as transport protocols.
@@ -17,7 +17,7 @@
 //! is also not supported for now.
 //!
 //! # Configuration
-//! 
+//!
 //! The syslog appender has default values for all its parameters so in the mimimal configuration you
 //! can just drop an appender with `kind = syslog` into your config file. That will make the appender
 //! send messages to the syslog on the same host via UDP in plain format.
@@ -46,9 +46,9 @@
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
+pub mod consts;
 pub mod plain;
 pub mod rfc5424;
-pub mod severity;
 
 use log::LogRecord;
 use serde::de;
@@ -170,7 +170,7 @@ impl SyslogAppenderBuilder {
 	}
 
 	/// Sets network protocol for accessing syslog.
-	/// 
+	///
 	/// Defaults to "udp".
 	pub fn protocol(& mut self, p: String) -> &mut SyslogAppenderBuilder {
 		self.protocol = p.to_lowercase();
@@ -229,7 +229,7 @@ impl SyslogAppenderBuilder {
 	}
 }
 
-/// Normalizes network address -- adds port if necessary 
+/// Normalizes network address -- adds port if necessary
 fn norm_addrs(addrs: &mut String) {
 	if !addrs.find(':').is_some() {
 		addrs.push(':');
@@ -332,6 +332,3 @@ mod test {
 		assert_eq!(addr.as_str(), "localhost:5124");
 	}
 }
-
-
-
