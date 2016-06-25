@@ -1,4 +1,4 @@
-//! Encoders
+//! Encoders.
 
 use std::fmt;
 use std::io;

@@ -1,4 +1,4 @@
-//! Filters
+//! Filters.
 
 use std::fmt;
 use log::LogRecord;

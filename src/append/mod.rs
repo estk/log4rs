@@ -1,4 +1,4 @@
-//! Appenders
+//! Appenders.
 
 use std::error::Error;
 use std::fmt;

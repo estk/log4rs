@@ -1,6 +1,6 @@
 //! Definitions of syslog severities and their adaptation to the Rust log facade.
 
-use log::{LogLevel, LogRecord};
+use log::LogLevel;
 
 /// Severities as defined in RFC 3164/5424
 #[derive(Debug)]
@@ -24,6 +24,7 @@ pub enum Severity {
 }
 
 /// Converts log level to syslog severity
+#[doc(hidden)]
 pub fn level_to_severity(lvl: LogLevel) -> u8 {
 	match lvl {
 		LogLevel::Error => Severity::ERROR as u8,
