@@ -5,11 +5,11 @@ extern crate time;
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
 
-use log::{LogLevel, LogRecord};
+use log::LogRecord;
 use serde::de;
-use std::error::Error;
+use std::error;
+use std::io;
 use std::str;
-use std::env;
 
 use append::syslog::rfc5424::serde::FormatConfig;
 use append::syslog::severity;
@@ -44,7 +44,7 @@ pub enum Facility {
 	/// Clock daemon
 	CRON     = 9  << 3,
 	/// Security/authorization messages
-	SECURITY = 10 << 3,
+	AUTHPRIV = 10 << 3,
 	/// FTP daemon
 	FTP      = 11 << 3,
 	/// NTP subsystem
@@ -52,7 +52,7 @@ pub enum Facility {
 	/// Log audit
 	LOGAU    = 13 << 3,
 	/// Log alert
-	LOGAL    = 14 << 3,
+	LOGALT   = 14 << 3,
 	/// Clock daemon (note 2)
 	CRON2    = 15 << 3,
 	/// Local use 0  (local0)
@@ -95,14 +95,22 @@ impl Format {
         }
     }
 
+    /// Sets the facility for to log messages.
+    pub fn facility(&mut self, f: Facility) {
+        self.facility = f;
+    }
+
+    /// Sets the `HOSTNAME` value to put to log messages.
     pub fn hostname(&mut self, h: String) {
         self.hostname = h;
     }
 
+    /// Sets the `APP-NAME` value to put to log messages.
     pub fn app_name(&mut self, a: String) {
         self.app_name = a;
     }
 
+    /// Defines if the `BOM` marker should be used in log messages.
     pub fn bom(&mut self, b: bool) {
         self.bom = b;
     }
@@ -139,9 +147,16 @@ pub struct FormatDeserializer;
 impl file::Deserialize for FormatDeserializer {
     type Trait = Format;
 
-    fn deserialize(&self, config: Value, _: &file::Deserializers) -> Result<Box<Format>, Box<Error>> {
+    fn deserialize(&self, config: Value, _: &file::Deserializers) -> Result<Box<Format>, Box<error::Error>> {
         let cfg = try!(config.deserialize_into::<FormatConfig>());
         let mut fmt = Format::default();
+        if let Some(fcl) = cfg.facility {
+            let fcl = parse_facility(&fcl);
+            match fcl {
+                Ok(f)    => fmt.facility(f),
+                Err(err) => return Err(Box::new(err))
+            }
+        }
         if let Some(host) = cfg.hostname {
             fmt.hostname(host);
         }
@@ -151,18 +166,45 @@ impl file::Deserialize for FormatDeserializer {
         if let Some(b) = cfg.bom {
             fmt.bom(b);
         }
-        if let Some(f) = cfg.facility {
-            // TODO: ...
-        }
-
         Ok(Box::new(fmt))
     }
 }
 
 impl de::Deserialize for Format {
-    fn deserialize<D>(d: &mut D) -> Result<Format, D::Error>
+    fn deserialize<D>(_: &mut D) -> Result<Format, D::Error>
         where D: de::Deserializer
     {
         Ok(Format::default())
     }
+}
+
+fn parse_facility(f: &String) -> Result<Facility, io::Error> {
+    let res = match f.to_lowercase().as_str() {
+        "kern"       => Facility::KERN,
+        "user"       => Facility::USER,
+        "mail"       => Facility::MAIL,
+        "daemon"     => Facility::DAEMON,
+        "auth"       => Facility::AUTH,
+        "syslog"     => Facility::SYSLOG,
+        "lpr"        => Facility::LPR,
+        "news"       => Facility::NEWS,
+        "uucp"       => Facility::UUCP,
+        "cron"       => Facility::CRON,
+        "authpriv"   => Facility::AUTHPRIV,
+        "ftp"        => Facility::FTP,
+        "ntp"        => Facility::NTP,
+        "logau"      => Facility::LOGAU,
+        "logalt"     => Facility::LOGALT,
+        "cron2"      => Facility::CRON2,
+        "local0"     => Facility::LOCAL0,
+        "local1"     => Facility::LOCAL1,
+        "local2"     => Facility::LOCAL2,
+        "local3"     => Facility::LOCAL3,
+        "local4"     => Facility::LOCAL4,
+        "local5"     => Facility::LOCAL5,
+        "local6"     => Facility::LOCAL6,
+        "local7"     => Facility::LOCAL7,
+        _ => return Err(io::Error::new(io::ErrorKind::Other, format!("Unsupported facility {}", f).as_str()))
+    };
+    Ok(res)
 }

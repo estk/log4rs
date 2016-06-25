@@ -6,7 +6,7 @@ use append::syslog::FormatConf;
 pub struct SyslogAppenderConfig {
     pub protocol: Option<String>,
     pub address: Option<String>,
-    pub max_len: Option<u16>,
+    pub max_len: Option<usize>,
     // pub encoder: Option<Encoder>,
     pub format: Option<FormatConf>
 }

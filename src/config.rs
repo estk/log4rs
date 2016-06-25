@@ -1,4 +1,4 @@
-//! log4rs configuration
+//! log4rs configuration.
 
 use std::collections::HashSet;
 use std::fmt;

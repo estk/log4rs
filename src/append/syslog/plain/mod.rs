@@ -1,6 +1,6 @@
-//! Implementation of syslog messages format with only a simple header.
+//! Implementation of syslog messages format with only a PRI part.
 
-use log::{LogLevel, LogRecord};
+use log::LogRecord;
 
 use append::syslog::severity;
 
@@ -11,6 +11,7 @@ const FACILITY: u8 = 1 << 3; // USER facility
 pub struct Format;
 
 impl Format {
+    /// Creates new `Format` object. 
     pub fn new() -> Format {
         Format{}
     }

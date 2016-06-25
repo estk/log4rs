@@ -4,7 +4,7 @@ use append::syslog::FormatConf;
 pub struct SyslogAppenderConfig {
     pub protocol: Option<String>,
     pub address: Option<String>,
-    pub max_len: Option<u16>,
+    pub max_len: Option<usize>,
     // pub encoder: Option<Encoder>,
     pub format: Option<FormatConf>,
 }
@@ -120,7 +120,7 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                     };
                                 let __field2 =
                                     match try!(visitor . visit :: <
-                                               Option<u16> > (  )) {
+                                               Option<usize> > (  )) {
                                         Some(value) => { value }
                                         None => {
                                             return Err(_serde::de::Error::end_of_stream());
@@ -152,7 +152,8 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                     None;
                                 let mut __field1: Option<Option<String>> =
                                     None;
-                                let mut __field2: Option<Option<u16>> = None;
+                                let mut __field2: Option<Option<usize>> =
+                                    None;
                                 let mut __field3: Option<Option<FormatConf>> =
                                     None;
                                 while let Some(key) =
@@ -189,7 +190,7 @@ const _IMPL_DESERIALIZE_FOR_SyslogAppenderConfig: () =
                                             __field2 =
                                                 Some(try!(visitor .
                                                           visit_value :: <
-                                                          Option<u16> > (
+                                                          Option<usize> > (
                                                           )));
                                         }
                                         __Field::__field3 => {
