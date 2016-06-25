@@ -18,6 +18,15 @@ appenders:
     path: "log/requests.log"
     encoder:
       pattern: "{d} - {m}{n}"
+   audit:
+     kind: syslog
+     protocol: udp
+     address: 192.168.1.12:514
+     format:
+       kind: rfc5424
+       hostname: appserver
+       app_name: MyService
+    
 root:
   level: warn
   appenders:
@@ -29,6 +38,7 @@ loggers:
     level: info
     appenders:
       - requests
+      - audit
     additive: false
 ```
 
