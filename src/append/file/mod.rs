@@ -155,7 +155,7 @@ mod test {
 
     #[test]
     fn append_false() {
-        let tempdir = TempDir::new("create_directories").unwrap();
+        let tempdir = TempDir::new("append_false").unwrap();
         FileAppender::builder()
             .append(false)
             .build(tempdir.path().join("foo.log"))
