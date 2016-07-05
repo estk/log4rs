@@ -170,7 +170,9 @@ impl Deserializers {
                                         -> Result<Box<T>, Box<error::Error>> {
         match self.get(kind) {
             Some(b) => b.deserialize(config, self),
-            None => Err(format!("no {} builder for kind `{}` registered", trait_, kind).into()),
+            None => {
+                Err(format!("no {} deserializer for kind `{}` registered", trait_, kind).into())
+            }
         }
     }
 }
