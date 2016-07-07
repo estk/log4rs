@@ -1,0 +1,8 @@
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormatConfig {
+	pub facility: Option<String>,
+	pub hostname: Option<String>,
+	pub app_name: Option<String>,
+	pub bom: Option<bool>
+}

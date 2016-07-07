@@ -1,0 +1,12 @@
+// use file::raw::Encoder;
+use append::syslog::FormatConf;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SyslogAppenderConfig {
+    pub protocol: Option<String>,
+    pub address: Option<String>,
+    pub max_len: Option<usize>,
+    // pub encoder: Option<Encoder>,
+    pub format: Option<FormatConf>
+}

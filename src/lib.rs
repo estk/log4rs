@@ -79,6 +79,16 @@
 //!     encoder:
 //!       pattern: "{d} - {m}{n}"
 //!
+//!   # An appender named "audit" that writes to a syslog server using RFC 5424 format
+//!   audit:
+//!     kind: syslog
+//!     protocol: udp
+//!     address: logserver:514
+//!     format:
+//!       kind: rfc5424
+//!       hostname: appserver
+//!       app_name: MyService
+//!
 //! # Set the default logging level to "warn" and attach the "stdout" appender to the root
 //! root:
 //!   level: warn
@@ -97,6 +107,14 @@
 //!     appenders:
 //!       - requests
 //!     additive: false
+//!
+//!   # Route log events sent to the "app::audit" logger to the "audit" appender,
+//!   # along with the normal appenders installed at the root
+//!   app::audit:
+//!     level: info
+//!     appenders:
+//!       - audit
+//!     additive: true
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.8")]
 #![warn(missing_docs)]
