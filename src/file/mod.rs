@@ -327,6 +327,8 @@ fn parse(format: Format, _config: &str) -> Result<raw::Config, Box<error::Error>
         Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
         #[cfg(feature = "toml")]
         Format::Toml => {
+            use serde::de::Deserialize;
+
             let mut parser = ::toml::Parser::new(_config);
             let table = match parser.parse() {
                 Some(table) => ::toml::Value::Table(table),
