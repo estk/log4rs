@@ -108,17 +108,13 @@ use serde_value::Value;
 use std::default::Default;
 use std::error;
 use std::fmt;
-use std::fmt::Write as FmtWrite;
 use std::io;
-use std::io::Write;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
 use encode::pattern::serde::PatternEncoderConfig;
 use encode::{self, Encode, Style, Color};
-use encode::Write as EncodeWrite;
 use file::{Deserialize, Deserializers};
-use ErrorInternals;
 
 mod parser;
 #[cfg_attr(rustfmt, rustfmt_skip)]

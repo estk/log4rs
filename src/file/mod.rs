@@ -92,11 +92,9 @@ use std::fmt;
 use std::time::Duration;
 use typemap::{Key, ShareMap};
 use serde_value::Value;
-use serde::Deserialize as SerdeDeserialize;
 
 use append::file::FileAppenderDeserializer;
 use append::console::ConsoleAppenderDeserializer;
-use filter::Filter;
 use filter::threshold::ThresholdFilterDeserializer;
 use config;
 use encode::pattern::PatternEncoderDeserializer;
