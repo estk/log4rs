@@ -8,7 +8,7 @@ use serde::de::{self, Deserialize, Deserializer};
 use serde_value::Value;
 use log::LogLevelFilter;
 
-use priv_serde::{DeLogLevelFilter, DeDuration};
+use priv_serde::DeDuration;
 
 include!("serde.rs");
 
@@ -52,7 +52,7 @@ impl de::Deserialize for Root {
         let PrivRoot { level, appenders } = try!(PrivRoot::deserialize(d));
 
         Ok(Root {
-            level: level.0,
+            level: level,
             appenders: appenders,
             _p: (),
         })
@@ -74,7 +74,7 @@ impl de::Deserialize for Logger {
         let PrivLogger { level, appenders, additive } = try!(PrivLogger::deserialize(d));
 
         Ok(Logger {
-            level: level.0,
+            level: level,
             appenders: appenders,
             additive: additive,
             _p: (),

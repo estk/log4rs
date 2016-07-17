@@ -6,7 +6,8 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for PatternEncoderConfig {
+        impl _serde::de::Deserialize for PatternEncoderConfig where
+         Option<String>: _serde::de::Deserialize {
             fn deserialize<__D>(deserializer: &mut __D)
              -> ::std::result::Result<PatternEncoderConfig, __D::Error> where
              __D: _serde::de::Deserializer {
@@ -66,9 +67,11 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                                                                             ::std::marker::PhantomData,})
                         }
                     }
-                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
+                           where Option<String>: _serde::de::Deserialize;
                     impl <__D: _serde::de::Deserializer> _serde::de::Visitor
-                     for __Visitor<__D> {
+                     for __Visitor<__D> where
+                     Option<String>: _serde::de::Deserialize {
                         type
                         Value
                         =
@@ -85,7 +88,8 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                                Option<String> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(0usize));
                                         }
                                     };
                                 try!(visitor . end (  ));
@@ -118,6 +122,7 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                         }
                                     }
                                 }
+                                try!(visitor . end (  ));
                                 let __field0 =
                                     match __field0 {
                                         Some(__field0) => __field0,
@@ -125,7 +130,6 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                         try!(visitor . missing_field (
                                              "pattern" )),
                                     };
-                                try!(visitor . end (  ));
                                 Ok(PatternEncoderConfig{pattern: __field0,})
                             }
                         }

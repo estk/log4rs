@@ -12,7 +12,8 @@ struct PrivConfig {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PrivRoot {
-    level: DeLogLevelFilter,
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    level: LogLevelFilter,
     #[serde(default)]
     appenders: Vec<String>,
 }
@@ -20,7 +21,8 @@ struct PrivRoot {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PrivLogger {
-    level: DeLogLevelFilter,
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    level: LogLevelFilter,
     #[serde(default)]
     appenders: Vec<String>,
     additive: Option<bool>,

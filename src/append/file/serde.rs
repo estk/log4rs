@@ -10,7 +10,10 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for FileAppenderConfig {
+        impl _serde::de::Deserialize for FileAppenderConfig where
+         String: _serde::de::Deserialize,
+         Option<Encoder>: _serde::de::Deserialize,
+         Option<bool>: _serde::de::Deserialize {
             fn deserialize<__D>(deserializer: &mut __D)
              -> ::std::result::Result<FileAppenderConfig, __D::Error> where
              __D: _serde::de::Deserializer {
@@ -76,9 +79,14 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                                                                             ::std::marker::PhantomData,})
                         }
                     }
-                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
+                           where String: _serde::de::Deserialize,
+                           Option<Encoder>: _serde::de::Deserialize,
+                           Option<bool>: _serde::de::Deserialize;
                     impl <__D: _serde::de::Deserializer> _serde::de::Visitor
-                     for __Visitor<__D> {
+                     for __Visitor<__D> where String: _serde::de::Deserialize,
+                     Option<Encoder>: _serde::de::Deserialize,
+                     Option<bool>: _serde::de::Deserialize {
                         type
                         Value
                         =
@@ -95,7 +103,8 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                                 )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(0usize));
                                         }
                                     };
                                 let __field1 =
@@ -103,7 +112,8 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                                Option<Encoder> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(1usize));
                                         }
                                     };
                                 let __field2 =
@@ -111,7 +121,8 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                                Option<bool> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(2usize));
                                         }
                                     };
                                 try!(visitor . end (  ));
@@ -169,6 +180,7 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                         }
                                     }
                                 }
+                                try!(visitor . end (  ));
                                 let __field0 =
                                     match __field0 {
                                         Some(__field0) => __field0,
@@ -190,7 +202,6 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                         try!(visitor . missing_field (
                                              "append" )),
                                     };
-                                try!(visitor . end (  ));
                                 Ok(FileAppenderConfig{path: __field0,
                                                       encoder: __field1,
                                                       append: __field2,})

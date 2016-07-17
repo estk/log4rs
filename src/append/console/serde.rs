@@ -8,7 +8,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for ConsoleAppenderConfig {
+        impl _serde::de::Deserialize for ConsoleAppenderConfig where
+         Option<Encoder>: _serde::de::Deserialize {
             fn deserialize<__D>(deserializer: &mut __D)
              -> ::std::result::Result<ConsoleAppenderConfig, __D::Error> where
              __D: _serde::de::Deserializer {
@@ -68,10 +69,11 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                                                                             ::std::marker::PhantomData,})
                         }
                     }
-                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
-                    impl <__D: 
-                          _serde::de::Deserializer> _serde::de::Visitor for
-                     __Visitor<__D> {
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
+                           where Option<Encoder>: _serde::de::Deserialize;
+                    impl <__D: _serde::de::Deserializer> _serde::de::Visitor
+                     for __Visitor<__D> where
+                     Option<Encoder>: _serde::de::Deserialize {
                         type
                         Value
                         =
@@ -88,7 +90,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                                Option<Encoder> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(0usize));
                                         }
                                     };
                                 try!(visitor . end (  ));
@@ -121,6 +124,7 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                         }
                                     }
                                 }
+                                try!(visitor . end (  ));
                                 let __field0 =
                                     match __field0 {
                                         Some(__field0) => __field0,
@@ -128,7 +132,6 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                         try!(visitor . missing_field (
                                              "encoder" )),
                                     };
-                                try!(visitor . end (  ));
                                 Ok(ConsoleAppenderConfig{encoder: __field0,})
                             }
                         }

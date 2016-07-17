@@ -51,6 +51,6 @@ impl Deserialize for ThresholdFilterDeserializer {
 
     fn deserialize(&self, config: Value, _: &Deserializers) -> Result<Box<Filter>, Box<Error>> {
         let config = try!(config.deserialize_into::<ThresholdFilterConfig>());
-        Ok(Box::new(ThresholdFilter::new(config.level.0)))
+        Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

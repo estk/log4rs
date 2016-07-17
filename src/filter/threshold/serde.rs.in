@@ -1,6 +1,7 @@
-use priv_serde::DeLogLevelFilter;
+use log::LogLevelFilter;
 
 #[derive(Deserialize)]
 pub struct ThresholdFilterConfig {
-    pub level: DeLogLevelFilter,
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    pub level: LogLevelFilter,
 }

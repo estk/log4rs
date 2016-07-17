@@ -9,7 +9,14 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for PrivConfig {
+        impl _serde::de::Deserialize for PrivConfig where
+
+         Option<DeDuration>: _serde::de::Deserialize,
+         Option<Root>: _serde::de::Deserialize,
+         HashMap<String, Appender>: _serde::de::Deserialize,
+         HashMap<String, Logger>: _serde::de::Deserialize,
+         HashMap<String, Appender>: ::std::default::Default,
+         HashMap<String, Logger>: ::std::default::Default {
             fn deserialize<__D>(deserializer: &mut __D)
              -> ::std::result::Result<PrivConfig, __D::Error> where
              __D: _serde::de::Deserializer {
@@ -86,11 +93,21 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                                                                             ::std::marker::PhantomData,})
                         }
                     }
-                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
-                    impl <__D: 
-
-                          _serde::de::Deserializer> _serde::de::Visitor for
-                     __Visitor<__D> {
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
+                           where Option<DeDuration>: _serde::de::Deserialize,
+                           Option<Root>: _serde::de::Deserialize,
+                           HashMap<String, Appender>: _serde::de::Deserialize,
+                           HashMap<String, Logger>: _serde::de::Deserialize,
+                           HashMap<String, Appender>: ::std::default::Default,
+                           HashMap<String, Logger>: ::std::default::Default;
+                    impl <__D: _serde::de::Deserializer> _serde::de::Visitor
+                     for __Visitor<__D> where
+                     Option<DeDuration>: _serde::de::Deserialize,
+                     Option<Root>: _serde::de::Deserialize,
+                     HashMap<String, Appender>: _serde::de::Deserialize,
+                     HashMap<String, Logger>: _serde::de::Deserialize,
+                     HashMap<String, Appender>: ::std::default::Default,
+                     HashMap<String, Logger>: ::std::default::Default {
                         type
                         Value
                         =
@@ -105,7 +122,8 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                                Option<DeDuration> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(0usize));
                                         }
                                     };
                                 let __field1 =
@@ -113,7 +131,8 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                                Option<Root> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(1usize));
                                         }
                                     };
                                 let __field2 =
@@ -122,7 +141,8 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                                )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(2usize));
                                         }
                                     };
                                 let __field3 =
@@ -131,7 +151,8 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                         {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(3usize));
                                         }
                                     };
                                 try!(visitor . end (  ));
@@ -205,6 +226,7 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                         }
                                     }
                                 }
+                                try!(visitor . end (  ));
                                 let __field0 =
                                     match __field0 {
                                         Some(__field0) => __field0,
@@ -231,7 +253,6 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                         None =>
                                         ::std::default::Default::default(),
                                     };
-                                try!(visitor . end (  ));
                                 Ok(PrivConfig{refresh_rate: __field0,
                                               root: __field1,
                                               appenders: __field2,
@@ -248,7 +269,7 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
         }
     };
 struct PrivRoot {
-    level: DeLogLevelFilter,
+    level: LogLevelFilter,
     appenders: Vec<String>,
 }
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -256,7 +277,9 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for PrivRoot {
+        impl _serde::de::Deserialize for PrivRoot where
+         Vec<String>: _serde::de::Deserialize,
+         Vec<String>: ::std::default::Default {
             fn deserialize<__D>(deserializer: &mut __D)
              -> ::std::result::Result<PrivRoot, __D::Error> where
              __D: _serde::de::Deserializer {
@@ -321,9 +344,13 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                                                                                             ::std::marker::PhantomData,})
                         }
                     }
-                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
+                           where Vec<String>: _serde::de::Deserialize,
+                           Vec<String>: ::std::default::Default;
                     impl <__D: _serde::de::Deserializer> _serde::de::Visitor
-                     for __Visitor<__D> {
+                     for __Visitor<__D> where
+                     Vec<String>: _serde::de::Deserialize,
+                     Vec<String>: ::std::default::Default {
                         type
                         Value
                         =
@@ -334,11 +361,45 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                          __V: _serde::de::SeqVisitor {
                             {
                                 let __field0 =
-                                    match try!(visitor . visit :: <
-                                               DeLogLevelFilter > (  )) {
+                                    match {
+                                              struct __SerdeDeserializeWithStruct
+                                                     where
+                                                     Vec<String>: _serde::de::Deserialize,
+                                                     Vec<String>: ::std::default::Default {
+                                                  value: LogLevelFilter,
+                                                  phantom: ::std::marker::PhantomData<PrivRoot>,
+                                              }
+                                              impl _serde::de::Deserialize for
+                                               __SerdeDeserializeWithStruct
+                                               where
+                                               Vec<String>: _serde::de::Deserialize,
+                                               Vec<String>: ::std::default::Default
+                                               {
+                                                  fn deserialize<__D>(__d:
+                                                                          &mut __D)
+                                                   ->
+                                                       ::std::result::Result<Self,
+                                                                             __D::Error>
+                                                   where
+                                                   __D: _serde::de::Deserializer {
+                                                      let value =
+                                                          try!(::priv_serde::de_filter
+                                                               ( __d ));
+                                                      Ok(__SerdeDeserializeWithStruct{value:
+                                                                                          value,
+                                                                                      phantom:
+                                                                                          ::std::marker::PhantomData,})
+                                                  }
+                                              }
+                                              try!(visitor . visit :: <
+                                                   __SerdeDeserializeWithStruct
+                                                   > (
+                                                   )).map(|wrap| wrap.value)
+                                          } {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(0usize));
                                         }
                                     };
                                 let __field1 =
@@ -346,7 +407,8 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                                                Vec<String> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(1usize));
                                         }
                                     };
                                 try!(visitor . end (  ));
@@ -359,7 +421,7 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                          -> ::std::result::Result<PrivRoot, __V::Error> where
                          __V: _serde::de::MapVisitor {
                             {
-                                let mut __field0: Option<DeLogLevelFilter> =
+                                let mut __field0: Option<LogLevelFilter> =
                                     None;
                                 let mut __field1: Option<Vec<String>> = None;
                                 while let Some(key) =
@@ -372,10 +434,45 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                                                                _serde::de::Error>::duplicate_field("level"));
                                             }
                                             __field0 =
-                                                Some(try!(visitor .
-                                                          visit_value :: <
-                                                          DeLogLevelFilter > (
-                                                           )));
+                                                Some(({
+                                                          struct __SerdeDeserializeWithStruct
+                                                                 where
+                                                                 Vec<String>: _serde::de::Deserialize,
+                                                                 Vec<String>: ::std::default::Default {
+                                                              value: LogLevelFilter,
+                                                              phantom: ::std::marker::PhantomData<PrivRoot>,
+                                                          }
+                                                          impl _serde::de::Deserialize
+                                                           for
+                                                           __SerdeDeserializeWithStruct
+                                                           where
+                                                           Vec<String>: _serde::de::Deserialize,
+                                                           Vec<String>: ::std::default::Default
+                                                           {
+                                                              fn deserialize<__D>(__d:
+                                                                                      &mut __D)
+                                                               ->
+                                                                   ::std::result::Result<Self,
+                                                                                         __D::Error>
+                                                               where
+                                                               __D: _serde::de::Deserializer {
+                                                                  let value =
+                                                                      try!(::priv_serde::de_filter
+                                                                           (
+                                                                           __d
+                                                                           ));
+                                                                  Ok(__SerdeDeserializeWithStruct{value:
+                                                                                                      value,
+                                                                                                  phantom:
+                                                                                                      ::std::marker::PhantomData,})
+                                                              }
+                                                          }
+                                                          try!(visitor .
+                                                               visit_value ::
+                                                               <
+                                                               __SerdeDeserializeWithStruct
+                                                               > (  )).value
+                                                      }));
                                         }
                                         __Field::__field1 => {
                                             if __field1.is_some() {
@@ -390,12 +487,13 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                                         }
                                     }
                                 }
+                                try!(visitor . end (  ));
                                 let __field0 =
                                     match __field0 {
                                         Some(__field0) => __field0,
                                         None =>
-                                        try!(visitor . missing_field ( "level"
-                                             )),
+                                        return Err(<__V::Error as
+                                                       _serde::de::Error>::missing_field("level")),
                                     };
                                 let __field1 =
                                     match __field1 {
@@ -403,7 +501,6 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
                                         None =>
                                         ::std::default::Default::default(),
                                     };
-                                try!(visitor . end (  ));
                                 Ok(PrivRoot{level: __field0,
                                             appenders: __field1,})
                             }
@@ -418,7 +515,7 @@ const _IMPL_DESERIALIZE_FOR_PrivRoot: () =
         }
     };
 struct PrivLogger {
-    level: DeLogLevelFilter,
+    level: LogLevelFilter,
     appenders: Vec<String>,
     additive: Option<bool>,
 }
@@ -427,7 +524,10 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for PrivLogger {
+        impl _serde::de::Deserialize for PrivLogger where
+         Vec<String>: _serde::de::Deserialize,
+         Option<bool>: _serde::de::Deserialize,
+         Vec<String>: ::std::default::Default {
             fn deserialize<__D>(deserializer: &mut __D)
              -> ::std::result::Result<PrivLogger, __D::Error> where
              __D: _serde::de::Deserializer {
@@ -499,9 +599,15 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                                                                                             ::std::marker::PhantomData,})
                         }
                     }
-                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>);
+                    struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
+                           where Vec<String>: _serde::de::Deserialize,
+                           Option<bool>: _serde::de::Deserialize,
+                           Vec<String>: ::std::default::Default;
                     impl <__D: _serde::de::Deserializer> _serde::de::Visitor
-                     for __Visitor<__D> {
+                     for __Visitor<__D> where
+                     Vec<String>: _serde::de::Deserialize,
+                     Option<bool>: _serde::de::Deserialize,
+                     Vec<String>: ::std::default::Default {
                         type
                         Value
                         =
@@ -512,11 +618,47 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                          where __V: _serde::de::SeqVisitor {
                             {
                                 let __field0 =
-                                    match try!(visitor . visit :: <
-                                               DeLogLevelFilter > (  )) {
+                                    match {
+                                              struct __SerdeDeserializeWithStruct
+                                                     where
+                                                     Vec<String>: _serde::de::Deserialize,
+                                                     Option<bool>: _serde::de::Deserialize,
+                                                     Vec<String>: ::std::default::Default {
+                                                  value: LogLevelFilter,
+                                                  phantom: ::std::marker::PhantomData<PrivLogger>,
+                                              }
+                                              impl _serde::de::Deserialize for
+                                               __SerdeDeserializeWithStruct
+                                               where
+                                               Vec<String>: _serde::de::Deserialize,
+                                               Option<bool>: _serde::de::Deserialize,
+                                               Vec<String>: ::std::default::Default
+                                               {
+                                                  fn deserialize<__D>(__d:
+                                                                          &mut __D)
+                                                   ->
+                                                       ::std::result::Result<Self,
+                                                                             __D::Error>
+                                                   where
+                                                   __D: _serde::de::Deserializer {
+                                                      let value =
+                                                          try!(::priv_serde::de_filter
+                                                               ( __d ));
+                                                      Ok(__SerdeDeserializeWithStruct{value:
+                                                                                          value,
+                                                                                      phantom:
+                                                                                          ::std::marker::PhantomData,})
+                                                  }
+                                              }
+                                              try!(visitor . visit :: <
+                                                   __SerdeDeserializeWithStruct
+                                                   > (
+                                                   )).map(|wrap| wrap.value)
+                                          } {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(0usize));
                                         }
                                     };
                                 let __field1 =
@@ -524,7 +666,8 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                                                Vec<String> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(1usize));
                                         }
                                     };
                                 let __field2 =
@@ -532,7 +675,8 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                                                Option<bool> > (  )) {
                                         Some(value) => { value }
                                         None => {
-                                            return Err(_serde::de::Error::end_of_stream());
+                                            try!(visitor . end (  ));
+                                            return Err(_serde::de::Error::invalid_length(2usize));
                                         }
                                     };
                                 try!(visitor . end (  ));
@@ -546,7 +690,7 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                          -> ::std::result::Result<PrivLogger, __V::Error>
                          where __V: _serde::de::MapVisitor {
                             {
-                                let mut __field0: Option<DeLogLevelFilter> =
+                                let mut __field0: Option<LogLevelFilter> =
                                     None;
                                 let mut __field1: Option<Vec<String>> = None;
                                 let mut __field2: Option<Option<bool>> = None;
@@ -560,10 +704,47 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                                                                _serde::de::Error>::duplicate_field("level"));
                                             }
                                             __field0 =
-                                                Some(try!(visitor .
-                                                          visit_value :: <
-                                                          DeLogLevelFilter > (
-                                                           )));
+                                                Some(({
+                                                          struct __SerdeDeserializeWithStruct
+                                                                 where
+                                                                 Vec<String>: _serde::de::Deserialize,
+                                                                 Option<bool>: _serde::de::Deserialize,
+                                                                 Vec<String>: ::std::default::Default {
+                                                              value: LogLevelFilter,
+                                                              phantom: ::std::marker::PhantomData<PrivLogger>,
+                                                          }
+                                                          impl _serde::de::Deserialize
+                                                           for
+                                                           __SerdeDeserializeWithStruct
+                                                           where
+                                                           Vec<String>: _serde::de::Deserialize,
+                                                           Option<bool>: _serde::de::Deserialize,
+                                                           Vec<String>: ::std::default::Default
+                                                           {
+                                                              fn deserialize<__D>(__d:
+                                                                                      &mut __D)
+                                                               ->
+                                                                   ::std::result::Result<Self,
+                                                                                         __D::Error>
+                                                               where
+                                                               __D: _serde::de::Deserializer {
+                                                                  let value =
+                                                                      try!(::priv_serde::de_filter
+                                                                           (
+                                                                           __d
+                                                                           ));
+                                                                  Ok(__SerdeDeserializeWithStruct{value:
+                                                                                                      value,
+                                                                                                  phantom:
+                                                                                                      ::std::marker::PhantomData,})
+                                                              }
+                                                          }
+                                                          try!(visitor .
+                                                               visit_value ::
+                                                               <
+                                                               __SerdeDeserializeWithStruct
+                                                               > (  )).value
+                                                      }));
                                         }
                                         __Field::__field1 => {
                                             if __field1.is_some() {
@@ -589,12 +770,13 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                                         }
                                     }
                                 }
+                                try!(visitor . end (  ));
                                 let __field0 =
                                     match __field0 {
                                         Some(__field0) => __field0,
                                         None =>
-                                        try!(visitor . missing_field ( "level"
-                                             )),
+                                        return Err(<__V::Error as
+                                                       _serde::de::Error>::missing_field("level")),
                                     };
                                 let __field1 =
                                     match __field1 {
@@ -609,7 +791,6 @@ const _IMPL_DESERIALIZE_FOR_PrivLogger: () =
                                         try!(visitor . missing_field (
                                              "additive" )),
                                     };
-                                try!(visitor . end (  ));
                                 Ok(PrivLogger{level: __field0,
                                               appenders: __field1,
                                               additive: __field2,})
