@@ -8,6 +8,7 @@ use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
 use filter::threshold::serde::ThresholdFilterConfig;
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 mod serde;
 
 /// A filter that rejects all events at a level below a provided threshold.
