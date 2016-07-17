@@ -1,30 +1,39 @@
+#[derive(PartialEq, Eq, Debug)]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct PrivConfig {
+pub struct Config {
     #[serde(deserialize_with = "de_duration")]
-    refresh_rate: Option<Duration>,
-    root: Option<Root>,
+    pub refresh_rate: Option<Duration>,
+    pub root: Option<Root>,
     #[serde(default)]
-    appenders: HashMap<String, Appender>,
+    pub appenders: HashMap<String, Appender>,
     #[serde(default)]
-    loggers: HashMap<String, Logger>,
+    pub loggers: HashMap<String, Logger>,
+    #[serde(skip_deserializing)]
+    _p: (),
 }
 
+#[derive(PartialEq, Eq, Debug)]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct PrivRoot {
+pub struct Root {
     #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LogLevelFilter,
+    pub level: LogLevelFilter,
     #[serde(default)]
-    appenders: Vec<String>,
+    pub appenders: Vec<String>,
+    #[serde(skip_deserializing)]
+    _p: (),
 }
 
+#[derive(PartialEq, Eq, Debug)]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct PrivLogger {
+pub struct Logger {
     #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LogLevelFilter,
+    pub level: LogLevelFilter,
     #[serde(default)]
-    appenders: Vec<String>,
-    additive: Option<bool>,
+    pub appenders: Vec<String>,
+    pub additive: Option<bool>,
+    #[serde(skip_deserializing)]
+    _p: (),
 }
