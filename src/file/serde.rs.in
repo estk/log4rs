@@ -1,5 +1,4 @@
-#[derive(PartialEq, Eq, Debug)]
-#[derive(Deserialize)]
+#[derive(PartialEq, Eq, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(deserialize_with = "de_duration", default)]
@@ -13,8 +12,7 @@ pub struct Config {
     _p: (),
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[derive(Deserialize)]
+#[derive(PartialEq, Eq, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Root {
     #[serde(deserialize_with = "::priv_serde::de_filter")]
@@ -25,8 +23,7 @@ pub struct Root {
     _p: (),
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[derive(Deserialize)]
+#[derive(PartialEq, Eq, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Logger {
     #[serde(deserialize_with = "::priv_serde::de_filter")]
