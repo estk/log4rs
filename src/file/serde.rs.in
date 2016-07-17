@@ -2,7 +2,7 @@
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    #[serde(deserialize_with = "de_duration")]
+    #[serde(deserialize_with = "de_duration", default)]
     pub refresh_rate: Option<Duration>,
     pub root: Option<Root>,
     #[serde(default)]

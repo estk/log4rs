@@ -16,6 +16,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
          Option<Root>: _serde::de::Deserialize,
          HashMap<String, Appender>: _serde::de::Deserialize,
          HashMap<String, Logger>: _serde::de::Deserialize,
+         Option<Duration>: ::std::default::Default,
          HashMap<String, Appender>: ::std::default::Default,
          HashMap<String, Logger>: ::std::default::Default,
          (): ::std::default::Default {
@@ -108,6 +109,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                            where Option<Root>: _serde::de::Deserialize,
                            HashMap<String, Appender>: _serde::de::Deserialize,
                            HashMap<String, Logger>: _serde::de::Deserialize,
+                           Option<Duration>: ::std::default::Default,
                            HashMap<String, Appender>: ::std::default::Default,
                            HashMap<String, Logger>: ::std::default::Default,
                            (): ::std::default::Default;
@@ -116,6 +118,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                      Option<Root>: _serde::de::Deserialize,
                      HashMap<String, Appender>: _serde::de::Deserialize,
                      HashMap<String, Logger>: _serde::de::Deserialize,
+                     Option<Duration>: ::std::default::Default,
                      HashMap<String, Appender>: ::std::default::Default,
                      HashMap<String, Logger>: ::std::default::Default,
                      (): ::std::default::Default {
@@ -137,6 +140,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                                              Appender>: _serde::de::Deserialize,
                                                      HashMap<String,
                                                              Logger>: _serde::de::Deserialize,
+                                                     Option<Duration>: ::std::default::Default,
                                                      HashMap<String,
                                                              Appender>: ::std::default::Default,
                                                      HashMap<String,
@@ -153,6 +157,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                                        Appender>: _serde::de::Deserialize,
                                                HashMap<String,
                                                        Logger>: _serde::de::Deserialize,
+                                               Option<Duration>: ::std::default::Default,
                                                HashMap<String,
                                                        Appender>: ::std::default::Default,
                                                HashMap<String,
@@ -256,6 +261,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                                                          Appender>: _serde::de::Deserialize,
                                                                  HashMap<String,
                                                                          Logger>: _serde::de::Deserialize,
+                                                                 Option<Duration>: ::std::default::Default,
                                                                  HashMap<String,
                                                                          Appender>: ::std::default::Default,
                                                                  HashMap<String,
@@ -273,6 +279,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                                                    Appender>: _serde::de::Deserialize,
                                                            HashMap<String,
                                                                    Logger>: _serde::de::Deserialize,
+                                                           Option<Duration>: ::std::default::Default,
                                                            HashMap<String,
                                                                    Appender>: ::std::default::Default,
                                                            HashMap<String,
@@ -349,8 +356,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                     match __field0 {
                                         Some(__field0) => __field0,
                                         None =>
-                                        return Err(<__V::Error as
-                                                       _serde::de::Error>::missing_field("refresh_rate")),
+                                        ::std::default::Default::default(),
                                     };
                                 let __field1 =
                                     match __field1 {
