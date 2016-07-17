@@ -1,7 +1,8 @@
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PrivConfig {
-    refresh_rate: Option<DeDuration>,
+    #[serde(deserialize_with = "de_duration")]
+    refresh_rate: Option<Duration>,
     root: Option<Root>,
     #[serde(default)]
     appenders: HashMap<String, Appender>,

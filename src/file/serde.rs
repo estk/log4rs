@@ -1,5 +1,5 @@
 struct PrivConfig {
-    refresh_rate: Option<DeDuration>,
+    refresh_rate: Option<Duration>,
     root: Option<Root>,
     appenders: HashMap<String, Appender>,
     loggers: HashMap<String, Logger>,
@@ -11,7 +11,6 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
         #[automatically_derived]
         impl _serde::de::Deserialize for PrivConfig where
 
-         Option<DeDuration>: _serde::de::Deserialize,
          Option<Root>: _serde::de::Deserialize,
          HashMap<String, Appender>: _serde::de::Deserialize,
          HashMap<String, Logger>: _serde::de::Deserialize,
@@ -94,15 +93,13 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                         }
                     }
                     struct __Visitor<__D: _serde::de::Deserializer>(::std::marker::PhantomData<__D>)
-                           where Option<DeDuration>: _serde::de::Deserialize,
-                           Option<Root>: _serde::de::Deserialize,
+                           where Option<Root>: _serde::de::Deserialize,
                            HashMap<String, Appender>: _serde::de::Deserialize,
                            HashMap<String, Logger>: _serde::de::Deserialize,
                            HashMap<String, Appender>: ::std::default::Default,
                            HashMap<String, Logger>: ::std::default::Default;
                     impl <__D: _serde::de::Deserializer> _serde::de::Visitor
                      for __Visitor<__D> where
-                     Option<DeDuration>: _serde::de::Deserialize,
                      Option<Root>: _serde::de::Deserialize,
                      HashMap<String, Appender>: _serde::de::Deserialize,
                      HashMap<String, Logger>: _serde::de::Deserialize,
@@ -118,8 +115,55 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                          where __V: _serde::de::SeqVisitor {
                             {
                                 let __field0 =
-                                    match try!(visitor . visit :: <
-                                               Option<DeDuration> > (  )) {
+                                    match {
+                                              struct __SerdeDeserializeWithStruct
+                                                     where
+                                                     Option<Root>: _serde::de::Deserialize,
+                                                     HashMap<String,
+                                                             Appender>: _serde::de::Deserialize,
+                                                     HashMap<String,
+                                                             Logger>: _serde::de::Deserialize,
+                                                     HashMap<String,
+                                                             Appender>: ::std::default::Default,
+                                                     HashMap<String,
+                                                             Logger>: ::std::default::Default {
+                                                  value: Option<Duration>,
+                                                  phantom: ::std::marker::PhantomData<PrivConfig>,
+                                              }
+                                              impl _serde::de::Deserialize for
+                                               __SerdeDeserializeWithStruct
+                                               where
+                                               Option<Root>: _serde::de::Deserialize,
+                                               HashMap<String,
+                                                       Appender>: _serde::de::Deserialize,
+                                               HashMap<String,
+                                                       Logger>: _serde::de::Deserialize,
+                                               HashMap<String,
+                                                       Appender>: ::std::default::Default,
+                                               HashMap<String,
+                                                       Logger>: ::std::default::Default
+                                               {
+                                                  fn deserialize<__D>(__d:
+                                                                          &mut __D)
+                                                   ->
+                                                       ::std::result::Result<Self,
+                                                                             __D::Error>
+                                                   where
+                                                   __D: _serde::de::Deserializer {
+                                                      let value =
+                                                          try!(de_duration (
+                                                               __d ));
+                                                      Ok(__SerdeDeserializeWithStruct{value:
+                                                                                          value,
+                                                                                      phantom:
+                                                                                          ::std::marker::PhantomData,})
+                                                  }
+                                              }
+                                              try!(visitor . visit :: <
+                                                   __SerdeDeserializeWithStruct
+                                                   > (
+                                                   )).map(|wrap| wrap.value)
+                                          } {
                                         Some(value) => { value }
                                         None => {
                                             try!(visitor . end (  ));
@@ -167,7 +211,7 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                          -> ::std::result::Result<PrivConfig, __V::Error>
                          where __V: _serde::de::MapVisitor {
                             {
-                                let mut __field0: Option<Option<DeDuration>> =
+                                let mut __field0: Option<Option<Duration>> =
                                     None;
                                 let mut __field1: Option<Option<Root>> = None;
                                 let mut __field2:
@@ -186,10 +230,59 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                                                _serde::de::Error>::duplicate_field("refresh_rate"));
                                             }
                                             __field0 =
-                                                Some(try!(visitor .
-                                                          visit_value :: <
-                                                          Option<DeDuration> >
-                                                          (  )));
+                                                Some(({
+                                                          struct __SerdeDeserializeWithStruct
+                                                                 where
+                                                                 Option<Root>: _serde::de::Deserialize,
+                                                                 HashMap<String,
+                                                                         Appender>: _serde::de::Deserialize,
+                                                                 HashMap<String,
+                                                                         Logger>: _serde::de::Deserialize,
+                                                                 HashMap<String,
+                                                                         Appender>: ::std::default::Default,
+                                                                 HashMap<String,
+                                                                         Logger>: ::std::default::Default {
+                                                              value: Option<Duration>,
+                                                              phantom: ::std::marker::PhantomData<PrivConfig>,
+                                                          }
+                                                          impl _serde::de::Deserialize
+                                                           for
+                                                           __SerdeDeserializeWithStruct
+                                                           where
+                                                           Option<Root>: _serde::de::Deserialize,
+                                                           HashMap<String,
+                                                                   Appender>: _serde::de::Deserialize,
+                                                           HashMap<String,
+                                                                   Logger>: _serde::de::Deserialize,
+                                                           HashMap<String,
+                                                                   Appender>: ::std::default::Default,
+                                                           HashMap<String,
+                                                                   Logger>: ::std::default::Default
+                                                           {
+                                                              fn deserialize<__D>(__d:
+                                                                                      &mut __D)
+                                                               ->
+                                                                   ::std::result::Result<Self,
+                                                                                         __D::Error>
+                                                               where
+                                                               __D: _serde::de::Deserializer {
+                                                                  let value =
+                                                                      try!(de_duration
+                                                                           (
+                                                                           __d
+                                                                           ));
+                                                                  Ok(__SerdeDeserializeWithStruct{value:
+                                                                                                      value,
+                                                                                                  phantom:
+                                                                                                      ::std::marker::PhantomData,})
+                                                              }
+                                                          }
+                                                          try!(visitor .
+                                                               visit_value ::
+                                                               <
+                                                               __SerdeDeserializeWithStruct
+                                                               > (  )).value
+                                                      }));
                                         }
                                         __Field::__field1 => {
                                             if __field1.is_some() {
@@ -231,8 +324,8 @@ const _IMPL_DESERIALIZE_FOR_PrivConfig: () =
                                     match __field0 {
                                         Some(__field0) => __field0,
                                         None =>
-                                        try!(visitor . missing_field (
-                                             "refresh_rate" )),
+                                        return Err(<__V::Error as
+                                                       _serde::de::Error>::missing_field("refresh_rate")),
                                     };
                                 let __field1 =
                                     match __field1 {

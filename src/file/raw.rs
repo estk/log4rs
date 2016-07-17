@@ -1,16 +1,62 @@
 //! Types used to deserialize config files.
 #![allow(missing_docs)]
 
+use humantime;
+use log::LogLevelFilter;
+use serde::de::{self, Deserialize, Deserializer};
+use serde_value::Value;
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
-use serde::de::{self, Deserialize, Deserializer};
-use serde_value::Value;
-use log::LogLevelFilter;
-
-use priv_serde::DeDuration;
 
 include!("serde.rs");
+
+fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
+    where D: de::Deserializer
+{
+    struct S(Duration);
+
+    impl de::Deserialize for S {
+        fn deserialize<D>(d: &mut D) -> Result<S, D::Error>
+            where D: de::Deserializer
+        {
+            struct V;
+
+            impl de::Visitor for V {
+                type Value = S;
+
+                fn visit_str<E>(&mut self, v: &str) -> Result<S, E>
+                    where E: de::Error
+                {
+                    humantime::parse_duration(v)
+                        .map(S)
+                        .map_err(|e| E::invalid_value(&e.to_string()))
+                }
+
+                // for back-compat
+                fn visit_i64<E>(&mut self, v: i64) -> Result<S, E>
+                    where E: de::Error
+                {
+                    if v < 0 {
+                        return Err(E::invalid_value("Duration cannot be negative"));
+                    }
+                    Ok(S(Duration::from_secs(v as u64)))
+                }
+
+                fn visit_u64<E>(&mut self, v: u64) -> Result<S, E>
+                    where E: de::Error
+                {
+                    // for back-compat
+                    Ok(S(Duration::from_secs(v)))
+                }
+            }
+
+            d.deserialize(V)
+        }
+    }
+
+    Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
+}
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Config {
@@ -29,7 +75,7 @@ impl de::Deserialize for Config {
             try!(PrivConfig::deserialize(d));
 
         Ok(Config {
-            refresh_rate: refresh_rate.map(|r| r.0),
+            refresh_rate: refresh_rate,
             root: root,
             appenders: appenders,
             loggers: loggers,
