@@ -105,8 +105,9 @@ pub mod raw;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: Any {
-    /// Returns a name for objects implementing the trait suitable for display in error messages
-    /// (e.g. "appender").
+    /// Returns a name for objects implementing the trait suitable for display in error messages.
+    ///
+    /// For example, the `Deserializable` implementation for the `Append` trait returns "appender".
     fn name() -> &'static str;
 }
 
