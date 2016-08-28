@@ -4,5 +4,7 @@ use file::raw::Encoder;
 #[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     pub encoder: Option<Encoder>,
+    #[serde(skip_deserializing)]
+    _p: (),
 }
 

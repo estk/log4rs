@@ -4,4 +4,6 @@ use log::LogLevelFilter;
 pub struct ThresholdFilterConfig {
     #[serde(deserialize_with = "::priv_serde::de_filter")]
     pub level: LogLevelFilter,
+    #[serde(skip_deserializing)]
+    _p: (),
 }

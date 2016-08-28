@@ -6,4 +6,6 @@ pub struct FileAppenderConfig {
     pub path: String,
     pub encoder: Option<Encoder>,
     pub append: Option<bool>,
+    #[serde(skip_deserializing)]
+    _p: (),
 }
