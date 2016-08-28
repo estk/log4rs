@@ -51,7 +51,8 @@
 //!       # encoder's builder, and will vary based on the kind of encoder.
 //!       pattern: "{d} [{t}] {m}{n}"
 //!
-//! # The root logger is configured by the "root" map. It is optional.
+//! # The root logger is configured by the "root" map. Defaults to a level of
+//! # "debug" and no appenders if not provided.
 //! root:
 //!
 //!   # The maximum log level for the root logger.
@@ -78,7 +79,7 @@
 //!       - foo
 //!
 //!     # The additivity of the logger. If true, appenders attached to the
-//!     # logger's parent will also be attached to this logger. Defauts to true
+//!     # logger's parent will also be attached to this logger. Defaults to true
 //!     # if not specified.
 //!     additive: false
 //! ```
