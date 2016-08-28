@@ -130,13 +130,13 @@ use std::cmp;
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
 
 use append::Append;
@@ -389,6 +389,8 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
     let path = path.as_ref().to_path_buf();
     let format = try!(get_format(&path));
     let source = try!(read_config(&path));
+    // An Err here could come because mtime isn't available, so don't bail
+    let modified = fs::metadata(&path).and_then(|m| m.modified()).ok();
     let config = try!(parse_config(&source, format, &deserializers));
 
     let refresh_rate = config.refresh_rate();
@@ -401,6 +403,7 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
                                       format,
                                       refresh_rate,
                                       source,
+                                      modified,
                                       deserializers,
                                       handle);
             }
@@ -498,6 +501,7 @@ struct ConfigReloader {
     format: Format,
     rate: Duration,
     source: String,
+    modified: Option<SystemTime>,
     deserializers: Deserializers,
     handle: Handle,
 }
@@ -507,6 +511,7 @@ impl ConfigReloader {
              format: Format,
              rate: Duration,
              source: String,
+             modified: Option<SystemTime>,
              deserializers: Deserializers,
              handle: Handle) {
         let mut reloader = ConfigReloader {
@@ -514,6 +519,7 @@ impl ConfigReloader {
             format: format,
             rate: rate,
             source: source,
+            modified: modified,
             deserializers: deserializers,
             handle: handle,
         };
@@ -527,6 +533,17 @@ impl ConfigReloader {
     fn run(&mut self) {
         loop {
             thread::sleep(self.rate);
+
+            if let Some(modified) = self.modified {
+                match fs::metadata(&self.path).and_then(|m| m.modified()) {
+                    Ok(new_modified) if modified == new_modified => continue,
+                    Ok(new_modified) => self.modified = Some(new_modified),
+                    Err(err) => {
+                        handle_error(&err);
+                        continue;
+                    }
+                }
+            }
 
             let source = match read_config(&self.path) {
                 Ok(source) => source,
