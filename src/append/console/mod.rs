@@ -4,17 +4,15 @@ use std::io::{self, Write, Stdout, StdoutLock};
 use std::fmt;
 use std::error::Error;
 use log::LogRecord;
-use serde_value::Value;
 
 use append::Append;
-use append::console::serde::ConsoleAppenderConfig;
 use encode::{self, Encode, Style};
 use encode::pattern::PatternEncoder;
 use encode::writer::{SimpleWriter, ConsoleWriter, ConsoleWriterLock};
 use file::{Deserialize, Deserializers};
+use file::raw::Encoder;
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
+include!("serde.rs");
 
 enum Writer {
     Tty(ConsoleWriter),
@@ -145,11 +143,12 @@ pub struct ConsoleAppenderDeserializer;
 impl Deserialize for ConsoleAppenderDeserializer {
     type Trait = Append;
 
+    type Config = ConsoleAppenderConfig;
+
     fn deserialize(&self,
-                   config: Value,
+                   config: ConsoleAppenderConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
-        let config = try!(config.deserialize_into::<ConsoleAppenderConfig>());
         let mut appender = ConsoleAppender::builder();
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(try!(deserializers.deserialize("encoder",

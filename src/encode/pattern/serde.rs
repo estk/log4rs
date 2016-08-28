@@ -8,7 +8,7 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
              -> ::std::result::Result<PatternEncoderConfig, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
-                enum __Field { __field0, __field1, }
+                enum __Field { __field0, }
                 impl _serde::de::Deserialize for __Field {
                     #[inline]
                     fn deserialize<__D>(deserializer: &mut __D)
@@ -25,7 +25,6 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                              __E: _serde::de::Error {
                                 match value {
                                     0usize => { Ok(__Field::__field0) }
-                                    1usize => { Ok(__Field::__field1) }
                                     _ =>
                                     Err(_serde::de::Error::invalid_value("expected a field")),
                                 }
@@ -35,7 +34,6 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                              __E: _serde::de::Error {
                                 match value {
                                     "pattern" => { Ok(__Field::__field0) }
-                                    "_p" => { Ok(__Field::__field1) }
                                     _ =>
                                     Err(_serde::de::Error::unknown_field(value)),
                                 }
@@ -45,7 +43,6 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                              __E: _serde::de::Error {
                                 match value {
                                     b"pattern" => { Ok(__Field::__field0) }
-                                    b"_p" => { Ok(__Field::__field1) }
                                     _ => {
                                         let value =
                                             ::std::string::String::from_utf8_lossy(value);
@@ -78,10 +75,8 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                     return Err(_serde::de::Error::invalid_length(0usize));
                                 }
                             };
-                        let __field1 = ::std::default::Default::default();
                         try!(visitor . end (  ));
-                        Ok(PatternEncoderConfig{pattern: __field0,
-                                                _p: __field1,})
+                        Ok(PatternEncoderConfig{pattern: __field0,})
                     }
                     #[inline]
                     fn visit_map<__V>(&mut self, mut visitor: __V)
@@ -103,10 +98,6 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                         Some(try!(visitor . visit_value :: <
                                                   Option<String> > (  )));
                                 }
-                                __Field::__field1 => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
-                                }
                             }
                         }
                         try!(visitor . end (  ));
@@ -116,18 +107,16 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                 None =>
                                 try!(visitor . missing_field ( "pattern" )),
                             };
-                        Ok(PatternEncoderConfig{pattern: __field0,
-                                                _p:
-                                                    ::std::default::Default::default(),})
+                        Ok(PatternEncoderConfig{pattern: __field0,})
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["pattern", "_p"];
+                const FIELDS: &'static [&'static str] = &["pattern"];
                 deserializer.deserialize_struct("PatternEncoderConfig",
                                                 FIELDS, __Visitor)
             }
         }
     };
+/// The pattern encoder's configuration.
 pub struct PatternEncoderConfig {
-    pub pattern: Option<String>,
-    _p: (),
+    pattern: Option<String>,
 }

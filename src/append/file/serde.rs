@@ -1,5 +1,3 @@
-use file::raw::Encoder;
-
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
 const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
     {
@@ -10,7 +8,7 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
              -> ::std::result::Result<FileAppenderConfig, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
-                enum __Field { __field0, __field1, __field2, __field3, }
+                enum __Field { __field0, __field1, __field2, }
                 impl _serde::de::Deserialize for __Field {
                     #[inline]
                     fn deserialize<__D>(deserializer: &mut __D)
@@ -29,7 +27,6 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                     0usize => { Ok(__Field::__field0) }
                                     1usize => { Ok(__Field::__field1) }
                                     2usize => { Ok(__Field::__field2) }
-                                    3usize => { Ok(__Field::__field3) }
                                     _ =>
                                     Err(_serde::de::Error::invalid_value("expected a field")),
                                 }
@@ -41,7 +38,6 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                     "path" => { Ok(__Field::__field0) }
                                     "encoder" => { Ok(__Field::__field1) }
                                     "append" => { Ok(__Field::__field2) }
-                                    "_p" => { Ok(__Field::__field3) }
                                     _ =>
                                     Err(_serde::de::Error::unknown_field(value)),
                                 }
@@ -53,7 +49,6 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                     b"path" => { Ok(__Field::__field0) }
                                     b"encoder" => { Ok(__Field::__field1) }
                                     b"append" => { Ok(__Field::__field2) }
-                                    b"_p" => { Ok(__Field::__field3) }
                                     _ => {
                                         let value =
                                             ::std::string::String::from_utf8_lossy(value);
@@ -101,12 +96,10 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                     return Err(_serde::de::Error::invalid_length(2usize));
                                 }
                             };
-                        let __field3 = ::std::default::Default::default();
                         try!(visitor . end (  ));
                         Ok(FileAppenderConfig{path: __field0,
                                               encoder: __field1,
-                                              append: __field2,
-                                              _p: __field3,})
+                                              append: __field2,})
                     }
                     #[inline]
                     fn visit_map<__V>(&mut self, mut visitor: __V)
@@ -146,10 +139,6 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                         Some(try!(visitor . visit_value :: <
                                                   Option<bool> > (  )));
                                 }
-                                __Field::__field3 => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
-                                }
                             }
                         }
                         try!(visitor . end (  ));
@@ -173,21 +162,19 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                             };
                         Ok(FileAppenderConfig{path: __field0,
                                               encoder: __field1,
-                                              append: __field2,
-                                              _p:
-                                                  ::std::default::Default::default(),})
+                                              append: __field2,})
                     }
                 }
                 const FIELDS: &'static [&'static str] =
-                    &["path", "encoder", "append", "_p"];
+                    &["path", "encoder", "append"];
                 deserializer.deserialize_struct("FileAppenderConfig", FIELDS,
                                                 __Visitor)
             }
         }
     };
+/// The file appender's configuration.
 pub struct FileAppenderConfig {
-    pub path: String,
-    pub encoder: Option<Encoder>,
-    pub append: Option<bool>,
-    _p: (),
+    path: String,
+    encoder: Option<Encoder>,
+    append: Option<bool>,
 }

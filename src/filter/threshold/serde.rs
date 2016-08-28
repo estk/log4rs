@@ -1,5 +1,3 @@
-use log::LogLevelFilter;
-
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
 const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
     {
@@ -10,7 +8,7 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
              -> ::std::result::Result<ThresholdFilterConfig, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
-                enum __Field { __field0, __field1, __ignore, }
+                enum __Field { __field0, __ignore, }
                 impl _serde::de::Deserialize for __Field {
                     #[inline]
                     fn deserialize<__D>(deserializer: &mut __D)
@@ -27,7 +25,6 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                              __E: _serde::de::Error {
                                 match value {
                                     0usize => { Ok(__Field::__field0) }
-                                    1usize => { Ok(__Field::__field1) }
                                     _ => Ok(__Field::__ignore),
                                 }
                             }
@@ -36,7 +33,6 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                              __E: _serde::de::Error {
                                 match value {
                                     "level" => { Ok(__Field::__field0) }
-                                    "_p" => { Ok(__Field::__field1) }
                                     _ => Ok(__Field::__ignore),
                                 }
                             }
@@ -45,7 +41,6 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                              __E: _serde::de::Error {
                                 match value {
                                     b"level" => { Ok(__Field::__field0) }
-                                    b"_p" => { Ok(__Field::__field1) }
                                     _ => Ok(__Field::__ignore),
                                 }
                             }
@@ -98,10 +93,8 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                                     return Err(_serde::de::Error::invalid_length(0usize));
                                 }
                             };
-                        let __field1 = ::std::default::Default::default();
                         try!(visitor . end (  ));
-                        Ok(ThresholdFilterConfig{level: __field0,
-                                                 _p: __field1,})
+                        Ok(ThresholdFilterConfig{level: __field0,})
                     }
                     #[inline]
                     fn visit_map<__V>(&mut self, mut visitor: __V)
@@ -151,10 +144,6 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                                                        > (  )).value
                                               }));
                                 }
-                                __Field::__field1 => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
-                                }
                                 _ => {
                                     try!(visitor . visit_value :: < _serde ::
                                          de :: impls :: IgnoredAny > (  ));
@@ -169,18 +158,16 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                                 return Err(<__V::Error as
                                                _serde::de::Error>::missing_field("level")),
                             };
-                        Ok(ThresholdFilterConfig{level: __field0,
-                                                 _p:
-                                                     ::std::default::Default::default(),})
+                        Ok(ThresholdFilterConfig{level: __field0,})
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["level", "_p"];
+                const FIELDS: &'static [&'static str] = &["level"];
                 deserializer.deserialize_struct("ThresholdFilterConfig",
                                                 FIELDS, __Visitor)
             }
         }
     };
+/// The threshold filter's configuration.
 pub struct ThresholdFilterConfig {
-    pub level: LogLevelFilter,
-    _p: (),
+    level: LogLevelFilter,
 }

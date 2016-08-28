@@ -2,14 +2,11 @@
 
 use log::{LogLevelFilter, LogRecord};
 use std::error::Error;
-use serde_value::Value;
 
 use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
-use filter::threshold::serde::ThresholdFilterConfig;
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
+include!("serde.rs");
 
 /// A filter that rejects all events at a level below a provided threshold.
 #[derive(Debug)]
@@ -49,8 +46,12 @@ pub struct ThresholdFilterDeserializer;
 impl Deserialize for ThresholdFilterDeserializer {
     type Trait = Filter;
 
-    fn deserialize(&self, config: Value, _: &Deserializers) -> Result<Box<Filter>, Box<Error>> {
-        let config = try!(config.deserialize_into::<ThresholdFilterConfig>());
+    type Config = ThresholdFilterConfig;
+
+    fn deserialize(&self,
+                   config: ThresholdFilterConfig,
+                   _: &Deserializers)
+                   -> Result<Box<Filter>, Box<Error>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

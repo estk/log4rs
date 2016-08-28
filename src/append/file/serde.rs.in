@@ -1,11 +1,8 @@
-use file::raw::Encoder;
-
+/// The file appender's configuration.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FileAppenderConfig {
-    pub path: String,
-    pub encoder: Option<Encoder>,
-    pub append: Option<bool>,
-    #[serde(skip_deserializing)]
-    _p: (),
+    path: String,
+    encoder: Option<Encoder>,
+    append: Option<bool>,
 }

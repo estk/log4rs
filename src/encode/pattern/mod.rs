@@ -104,7 +104,6 @@
 
 use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
-use serde_value::Value;
 use std::default::Default;
 use std::error;
 use std::fmt;
@@ -112,13 +111,12 @@ use std::io;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::pattern::serde::PatternEncoderConfig;
 use encode::{self, Encode, Style, Color};
 use file::{Deserialize, Deserializers};
 
 mod parser;
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
+
+include!("serde.rs");
 
 #[cfg(windows)]
 const NEWLINE: &'static str = "\r\n";
@@ -629,11 +627,12 @@ pub struct PatternEncoderDeserializer;
 impl Deserialize for PatternEncoderDeserializer {
     type Trait = Encode;
 
+    type Config = PatternEncoderConfig;
+
     fn deserialize(&self,
-                   config: Value,
+                   config: PatternEncoderConfig,
                    _: &Deserializers)
                    -> Result<Box<Encode>, Box<error::Error>> {
-        let config = try!(config.deserialize_into::<PatternEncoderConfig>());
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),

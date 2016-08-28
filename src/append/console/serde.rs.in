@@ -1,10 +1,7 @@
-use file::raw::Encoder;
-
+/// The console appender's configuration.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
-    pub encoder: Option<Encoder>,
-    #[serde(skip_deserializing)]
-    _p: (),
+    encoder: Option<Encoder>,
 }
 

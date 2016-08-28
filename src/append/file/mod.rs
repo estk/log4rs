@@ -2,7 +2,6 @@
 
 use antidote::Mutex;
 use log::LogRecord;
-use serde_value::Value;
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
@@ -10,14 +9,13 @@ use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 
 use append::Append;
-use append::file::serde::FileAppenderConfig;
 use encode::Encode;
 use encode::pattern::PatternEncoder;
 use encode::writer::SimpleWriter;
 use file::{Deserialize, Deserializers};
+use file::raw::Encoder;
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
+include!("serde.rs");
 
 /// An appender which logs to a file.
 pub struct FileAppender {
@@ -120,11 +118,12 @@ pub struct FileAppenderDeserializer;
 impl Deserialize for FileAppenderDeserializer {
     type Trait = Append;
 
+    type Config = FileAppenderConfig;
+
     fn deserialize(&self,
-                   config: Value,
+                   config: FileAppenderConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
-        let config = try!(config.deserialize_into::<FileAppenderConfig>());
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);

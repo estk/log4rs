@@ -91,6 +91,7 @@ use std::error;
 use std::fmt;
 use std::time::Duration;
 use typemap::{Key, ShareMap};
+use serde;
 use serde_value::Value;
 
 use append::file::FileAppenderDeserializer;
@@ -102,22 +103,48 @@ use PrivateConfigErrorsExt;
 
 pub mod raw;
 
-struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
-
-impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Box<Deserialize<Trait = T>>>;
-}
-
 /// A trait for objects that can deserialize log4rs components out of a config.
 pub trait Deserialize: Send + Sync + 'static {
-    /// The trait that this builder will create.
+    /// The trait that this deserializer will create.
     type Trait: ?Sized;
 
+    /// This deserializer's configuration.
+    type Config: serde::Deserialize;
+
     /// Create a new trait object based on the provided config.
+    fn deserialize(&self,
+                   config: Self::Config,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Self::Trait>, Box<error::Error>>;
+}
+
+trait ErasedDeserialize: Send + Sync + 'static {
+    type Trait: ?Sized;
+
     fn deserialize(&self,
                    config: Value,
                    deserializers: &Deserializers)
                    -> Result<Box<Self::Trait>, Box<error::Error>>;
+}
+
+struct DeserializeEraser<T>(T);
+
+impl<T> ErasedDeserialize for DeserializeEraser<T> where T: Deserialize {
+    type Trait = T::Trait;
+
+    fn deserialize(&self,
+                   config: Value,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Self::Trait>, Box<error::Error>> {
+        let config = try!(config.deserialize_into());
+        self.0.deserialize(config, deserializers)
+    }
+}
+
+struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
+
+impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
+    type Value = HashMap<String, Box<ErasedDeserialize<Trait = T>>>;
 }
 
 /// A container of `Deserialize`rs.
@@ -135,11 +162,10 @@ pub struct Deserializers(ShareMap);
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
-        deserializers.insert("file".to_owned(), Box::new(FileAppenderDeserializer));
-        deserializers.insert("console".to_owned(), Box::new(ConsoleAppenderDeserializer));
-        deserializers.insert("threshold".to_owned(),
-                             Box::new(ThresholdFilterDeserializer));
-        deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
+        deserializers.insert("file", FileAppenderDeserializer);
+        deserializers.insert("console", ConsoleAppenderDeserializer);
+        deserializers.insert("threshold", ThresholdFilterDeserializer);
+        deserializers.insert("pattern", PatternEncoderDeserializer);
         deserializers
     }
 }
@@ -151,13 +177,13 @@ impl Deserializers {
     }
 
     /// Adds a mapping from the specified `kind` to a deserializer.
-    pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Deserialize<Trait = T>>) {
-        self.0.entry::<KeyAdaptor<T>>().or_insert_with(|| HashMap::new()).insert(kind, builder);
-    }
-
-    /// Retrieves the deserializer of the specified `kind`.
-    pub fn get<T: ?Sized + Any>(&self, kind: &str) -> Option<&Deserialize<Trait = T>> {
-        self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b)
+    pub fn insert<T>(&mut self, kind: &str, deserializer: T)
+        where T: Deserialize,
+              T::Trait: Any
+    {
+        self.0.entry::<KeyAdaptor<T::Trait>>()
+            .or_insert_with(|| HashMap::new())
+            .insert(kind.to_owned(), Box::new(DeserializeEraser(deserializer)));
     }
 
     /// A utility method that deserializes a value.
@@ -166,7 +192,7 @@ impl Deserializers {
                                         kind: &str,
                                         config: Value)
                                         -> Result<Box<T>, Box<error::Error>> {
-        match self.get(kind) {
+        match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b) {
             Some(b) => b.deserialize(config, self),
             None => {
                 Err(format!("no {} deserializer for kind `{}` registered", trait_, kind).into())
