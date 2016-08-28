@@ -151,8 +151,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
                    -> Result<Box<Append>, Box<Error>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(deserializers.deserialize("encoder",
-                                                                       &encoder.kind,
+            appender = appender.encoder(try!(deserializers.deserialize(&encoder.kind,
                                                                        encoder.config)));
         }
         Ok(Box::new(appender.build()))

@@ -4,6 +4,8 @@ use std::fmt;
 use std::io;
 use log::LogRecord;
 
+use file::Deserializable;
+
 pub mod pattern;
 pub mod writer;
 
@@ -15,6 +17,12 @@ pub mod writer;
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `LogRecord` into bytes and writes them.
     fn encode(&self, w: &mut Write, record: &LogRecord) -> io::Result<()>;
+}
+
+impl Deserializable for Encode {
+    fn name() -> &'static str {
+        "encoder"
+    }
 }
 
 /// A text or background color.

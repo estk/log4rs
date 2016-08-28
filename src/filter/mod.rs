@@ -3,6 +3,8 @@
 use std::fmt;
 use log::LogRecord;
 
+use file::Deserializable;
+
 pub mod threshold;
 
 /// The trait implemented by log4rs filters.
@@ -12,6 +14,12 @@ pub mod threshold;
 pub trait Filter: fmt::Debug + Send + Sync + 'static {
     /// Filters a log event.
     fn filter(&self, record: &LogRecord) -> Response;
+}
+
+impl Deserializable for Filter {
+    fn name() -> &'static str {
+        "filter"
+    }
 }
 
 /// The response returned by a filter.

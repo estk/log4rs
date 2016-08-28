@@ -4,6 +4,8 @@ use std::error::Error;
 use std::fmt;
 use log::LogRecord;
 
+use file::Deserializable;
+
 pub mod file;
 pub mod console;
 
@@ -14,4 +16,10 @@ pub mod console;
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `LogRecord`.
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>>;
+}
+
+impl Deserializable for Append {
+    fn name() -> &'static str {
+        "appender"
+    }
 }

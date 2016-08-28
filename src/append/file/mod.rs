@@ -129,8 +129,7 @@ impl Deserialize for FileAppenderDeserializer {
             appender = appender.append(append);
         }
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(deserializers.deserialize("encoder",
-                                                                       &encoder.kind,
+            appender = appender.encoder(try!(deserializers.deserialize(&encoder.kind,
                                                                        encoder.config)));
         }
         Ok(Box::new(try!(appender.build(&config.path))))

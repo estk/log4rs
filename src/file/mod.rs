@@ -103,6 +103,13 @@ use PrivateConfigErrorsExt;
 
 pub mod raw;
 
+/// A trait implemented by traits which are deserializable.
+pub trait Deserializable: Any {
+    /// Returns a name for objects implementing the trait suitable for display in error messages
+    /// (e.g. "appender").
+    fn name() -> &'static str;
+}
+
 /// A trait for objects that can deserialize log4rs components out of a config.
 pub trait Deserialize: Send + Sync + 'static {
     /// The trait that this deserializer will create.
@@ -179,29 +186,30 @@ impl Deserializers {
     /// Adds a mapping from the specified `kind` to a deserializer.
     pub fn insert<T>(&mut self, kind: &str, deserializer: T)
         where T: Deserialize,
-              T::Trait: Any
+              T::Trait: Deserializable
     {
         self.0.entry::<KeyAdaptor<T::Trait>>()
             .or_insert_with(|| HashMap::new())
             .insert(kind.to_owned(), Box::new(DeserializeEraser(deserializer)));
     }
 
-    /// A utility method that deserializes a value.
-    pub fn deserialize<T: ?Sized + Any>(&self,
-                                        trait_: &str,
-                                        kind: &str,
-                                        config: Value)
-                                        -> Result<Box<T>, Box<error::Error>> {
+    /// Deserializes a value of a specific type and kind.
+    pub fn deserialize<T: ?Sized>(&self,
+                                  kind: &str,
+                                  config: Value)
+                                  -> Result<Box<T>, Box<error::Error>>
+        where T: Deserializable
+    {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b) {
             Some(b) => b.deserialize(config, self),
             None => {
-                Err(format!("no {} deserializer for kind `{}` registered", trait_, kind).into())
+                Err(format!("no {} deserializer for kind `{}` registered", T::name(), kind).into())
             }
         }
     }
 }
 
-/// An error returned when deserializing a TOML configuration into a log4rs `Config`.
+/// An error returned when deserializing a configuration into a log4rs `Config`.
 #[derive(Debug)]
 pub enum Error {
     /// An error deserializing a component.
@@ -241,12 +249,14 @@ pub enum Format {
     ///
     /// Requires the `yaml` feature.
     #[cfg(feature = "yaml")]
+
     Yaml,
     /// JSON.
     ///
     /// Requires the `json` feature.
     #[cfg(feature = "json")]
     Json,
+
     /// TOML.
     ///
     /// Requires the `toml` feature.
@@ -289,11 +299,11 @@ impl Config {
         let mut config = config::Config::builder();
 
         for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
-            match deserializers.deserialize("appender", &kind, raw_config) {
+            match deserializers.deserialize(&kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder();
                     for raw::Filter { kind, config } in filters {
-                        match deserializers.deserialize("filter", &kind, config) {
+                        match deserializers.deserialize(&kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::Deserialization(err)),
                         }
