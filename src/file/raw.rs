@@ -32,23 +32,6 @@ fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
                         .map(S)
                         .map_err(|e| E::invalid_value(&e.to_string()))
                 }
-
-                // for back-compat
-                fn visit_i64<E>(&mut self, v: i64) -> Result<S, E>
-                    where E: de::Error
-                {
-                    if v < 0 {
-                        return Err(E::invalid_value("Duration cannot be negative"));
-                    }
-                    Ok(S(Duration::from_secs(v as u64)))
-                }
-
-                fn visit_u64<E>(&mut self, v: u64) -> Result<S, E>
-                    where E: de::Error
-                {
-                    // for back-compat
-                    Ok(S(Duration::from_secs(v)))
-                }
             }
 
             d.deserialize(V)

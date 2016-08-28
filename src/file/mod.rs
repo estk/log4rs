@@ -423,31 +423,4 @@ loggers:
                                    &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
     }
-
-    #[test]
-    #[cfg(feature = "yaml")]
-    fn integer_refresh_yaml() {
-        let config = Config::parse("refresh_rate: 60",
-                                   Format::Yaml,
-                                   &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "json")]
-    fn integer_refresh_json() {
-        let config = Config::parse(r#"{"refresh_rate": 60}"#,
-                                   Format::Json,
-                                   &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "toml")]
-    fn integer_refresh_toml() {
-        let config = Config::parse("refresh_rate = 60",
-                                   Format::Toml,
-                                   &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
 }
