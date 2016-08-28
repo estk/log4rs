@@ -18,12 +18,12 @@ crossbeam = "0.2.9"
 humantime = "0.1"
 libc = "0.2"
 log = "0.3"
-serde = "0.7.5"
-serde-value = "0.2"
+serde = "0.8"
+serde-value = { git = "https://github.com/sfackler/serde-value" }
 typemap = "0.3"
-serde_json = { version = "0.7", optional = true }
-serde_yaml = { version = "0.2", optional = true }
-toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }
+serde_json = { version = "0.8", optional = true }
+serde_yaml = { version = "0.4", optional = true }
+toml = { version = "0.2", optional = true, default_features = false, features = ["serde"] }
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
