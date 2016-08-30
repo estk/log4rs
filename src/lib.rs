@@ -29,7 +29,7 @@
 //! of a log event to the one identified by the module containing the
 //! invocation location.
 //!
-//! Loggers form a heirarchy: logger names are divided into components by "::".
+//! Loggers form a hierarchy: logger names are divided into components by "::".
 //! One logger is the ancestor of another if the first logger's component list
 //! is a prefix of the second logger's component list.
 //!
