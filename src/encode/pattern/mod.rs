@@ -39,11 +39,11 @@
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
 //!     A custom format may be provided in the syntax accepted by `chrono`.
-//!     The timezone defaults to UTC, but can be specified explicitly by passing
+//!     The timezone defaults to local, but can be specified explicitly by passing
 //!     a second argument of `utc` for UTC or `local` for local time.
-//!     * `{d}` - `2016-03-20T22:22:20.644420340+00:00`
-//!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 22:22:20`
-//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(local)}` - `2016-03-20 14:22:20 PST`
+//!     * `{d}` - `2016-03-20T14:22:20.644420340-08:00`
+//!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 14:22:20`
+//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(utc)}` - `2016-03-20 22:22:20 UTC`
 //! * `f`, `file` - The source file that the log message came from.
 //! * `h`, `highlight` - Styles its argument according to the log level. The
 //!     style is intense red for errors, red for warnings, blue for info, and
@@ -401,7 +401,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                                     _ => return Chunk::Error("invalid timezone".to_owned()),
                                 }
                             }
-                            None => Timezone::Utc,
+                            None => Timezone::Local,
                         };
 
                         Chunk::Formatted {

@@ -279,8 +279,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
             builder = builder.encoder(encoder);
         }
 
-        let policy =
-            try!(deserializers.deserialize(&config.policy.kind, config.policy.config));
+        let policy = try!(deserializers.deserialize(&config.policy.kind, config.policy.config));
         Ok(Box::new(builder.build(config.path, policy)))
     }
 }
