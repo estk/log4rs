@@ -1,0 +1,7 @@
+/// Configuration for the size trigger.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SizeTriggerConfig {
+    #[serde(deserialize_with = "deserialize_limit")]
+    limit: u64,
+}

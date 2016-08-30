@@ -95,12 +95,17 @@ use typemap::{Key, ShareMap};
 use serde;
 use serde_value::Value;
 
-use append::file::FileAppenderDeserializer;
+use PrivateConfigErrorsExt;
 use append::console::ConsoleAppenderDeserializer;
-use filter::threshold::ThresholdFilterDeserializer;
+use append::file::FileAppenderDeserializer;
+use append::rolling_file::RollingFileAppenderDeserializer;
+use append::rolling_file::policy::compound::CompoundPolicyDeserializer;
+use append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer;
+use append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer;
+use append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer;
 use config;
 use encode::pattern::PatternEncoderDeserializer;
-use PrivateConfigErrorsExt;
+use filter::threshold::ThresholdFilterDeserializer;
 
 pub mod raw;
 
@@ -162,19 +167,32 @@ pub struct Deserializers(ShareMap);
 /// Creates a `Deserializers` with the following mappings:
 ///
 /// * Appenders
-///     * "file" -> `FileAppenderDeserializer`
 ///     * "console" -> `ConsoleAppenderDeserializer`
-/// * Filters
-///     * "threshold" -> `ThresholdFilterDeserializer`
+///     * "file" -> `FileAppenderDeserializer`
+///     * "rolling_file" -> `RollingFileAppenderDeserializer`
 /// * Encoders
 ///     * "pattern" -> `PatternEncoderDeserializer`
+/// * Filters
+///     * "threshold" -> `ThresholdFilterDeserializer`
+/// * Policies
+///   *  "compound" -> `CompoundPolicyDeserializer`
+/// * Rollers
+///   * "delete" -> `DeleteRollerDeserializer`
+///   * "fixed_window" -> `FixedWindowRollerDeserializer`
+/// * Triggers
+///   * "size" -> `SizeTriggerDeserializer`
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
-        deserializers.insert("file", FileAppenderDeserializer);
         deserializers.insert("console", ConsoleAppenderDeserializer);
-        deserializers.insert("threshold", ThresholdFilterDeserializer);
+        deserializers.insert("file", FileAppenderDeserializer);
+        deserializers.insert("rolling_file", RollingFileAppenderDeserializer);
         deserializers.insert("pattern", PatternEncoderDeserializer);
+        deserializers.insert("threshold", ThresholdFilterDeserializer);
+        deserializers.insert("compound", CompoundPolicyDeserializer);
+        deserializers.insert("delete", DeleteRollerDeserializer);
+        deserializers.insert("fixed_window", FixedWindowRollerDeserializer);
+        deserializers.insert("size", SizeTriggerDeserializer);
         deserializers
     }
 }

@@ -116,6 +116,8 @@ extern crate serde_yaml;
 extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
+#[cfg(feature = "gzip")]
+extern crate flate2;
 
 #[cfg(windows)]
 extern crate kernel32;

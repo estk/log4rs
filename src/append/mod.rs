@@ -8,6 +8,7 @@ use file::Deserializable;
 
 pub mod file;
 pub mod console;
+pub mod rolling_file;
 
 /// A trait implemented by log4rs appenders.
 ///

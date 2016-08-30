@@ -4,4 +4,4 @@ rust:
 - 1.10.0
 script:
 - cargo test
-- cargo test --features "yaml json toml"
+- cargo test --features "yaml json toml gzip"

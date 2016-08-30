@@ -10,11 +10,13 @@ documentation = "https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs"
 [features]
 yaml = ["serde_yaml"]
 json = ["serde_json"]
+gzip = ["flate2"]
 
 [dependencies]
 antidote = "1.0"
 chrono = "0.2"
 crossbeam = "0.2.9"
+flate2 = { version = "0.2", optional = true }
 humantime = "0.1"
 libc = "0.2"
 log = "0.3"
