@@ -63,6 +63,8 @@
 //!
 //! # Examples
 //!
+//! Configuration via a YAML file:
+//!
 //! ```yaml
 //! # Scan this file for changes every 30 seconds
 //! refresh_rate: 30 seconds
@@ -97,6 +99,47 @@
 //!     appenders:
 //!       - requests
 //!     additive: false
+//! ```
+//!
+//! ```no_run
+//! log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+//! ```
+//!
+//! Programmatically constructing a configuration:
+//!
+//! ```no_run
+//! extern crate log;
+//! extern crate log4rs;
+//!
+//! use log::LogLevelFilter;
+//! use log4rs::append::console::ConsoleAppender;
+//! use log4rs::append::file::FileAppender;
+//! use log4rs::encode::pattern::PatternEncoder;
+//! use log4rs::config::{Appender, Config, Logger, Root};
+//!
+//! fn main() {
+//!     let stdout = ConsoleAppender::builder().build();
+//!
+//!     let requests = FileAppender::builder()
+//!         .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
+//!         .build("log/requests.log")
+//!         .unwrap();
+//!
+//!     let config = Config::builder()
+//!         .appender(Appender::builder().build("stdout".into(), Box::new(stdout)))
+//!         .appender(Appender::builder().build("requests".into(), Box::new(requests)))
+//!         .logger(Logger::builder().build("app::backend::db".into(), LogLevelFilter::Info))
+//!         .logger(Logger::builder()
+//!             .appender("requests".into())
+//!             .additive(false)
+//!             .build("app::requests".into(), LogLevelFilter::Info))
+//!         .build(Root::builder().appender("stdout".into()).build(LogLevelFilter::Warn))
+//!         .unwrap();
+//!
+//!     let handle = log4rs::init_config(config).unwrap();
+//!
+//!     // use handle to change logger configuration at runtime
+//! }
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.8")]
 #![warn(missing_docs)]
