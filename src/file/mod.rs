@@ -241,16 +241,16 @@ impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::Deserialization(ref err) => {
-                write!(fmt, "Error deserializing component: {}", err)
+                write!(fmt, "error deserializing component: {}", err)
             }
-            Error::Config(ref err) => write!(fmt, "Error creating config: {}", err),
+            Error::Config(ref err) => write!(fmt, "error creating config: {}", err),
         }
     }
 }
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        "An error encountered when deserializing a configuration file into a log4rs `Config`"
+        "an error deserializing a configuration file into a log4rs `Config`"
     }
 
     fn cause(&self) -> Option<&error::Error> {
