@@ -126,14 +126,14 @@
 //!         .unwrap();
 //!
 //!     let config = Config::builder()
-//!         .appender(Appender::builder().build("stdout".into(), Box::new(stdout)))
-//!         .appender(Appender::builder().build("requests".into(), Box::new(requests)))
-//!         .logger(Logger::builder().build("app::backend::db".into(), LogLevelFilter::Info))
+//!         .appender(Appender::builder().build("stdout", Box::new(stdout)))
+//!         .appender(Appender::builder().build("requests", Box::new(requests)))
+//!         .logger(Logger::builder().build("app::backend::db", LogLevelFilter::Info))
 //!         .logger(Logger::builder()
-//!             .appender("requests".into())
+//!             .appender("requests")
 //!             .additive(false)
-//!             .build("app::requests".into(), LogLevelFilter::Info))
-//!         .build(Root::builder().appender("stdout".into()).build(LogLevelFilter::Warn))
+//!             .build("app::requests", LogLevelFilter::Info))
+//!         .build(Root::builder().appender("stdout").build(LogLevelFilter::Warn))
 //!         .unwrap();
 //!
 //!     let handle = log4rs::init_config(config).unwrap();

@@ -141,11 +141,11 @@ mod test {
                              kind: "console".to_owned(),
                              config: Value::Map(BTreeMap::new()),
                              filters: vec![Filter {
-                                               kind: "threshold".to_string(),
+                                               kind: "threshold".to_owned(),
                                                config: {
                                                    let mut m = BTreeMap::new();
-                                                   m.insert(Value::String("level".to_string()),
-                                                            Value::String("debug".to_string()));
+                                                   m.insert(Value::String("level".to_owned()),
+                                                            Value::String("debug".to_owned()));
                                                    Value::Map(m)
                                                },
                                            }],

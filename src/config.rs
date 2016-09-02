@@ -42,14 +42,19 @@ pub struct RootBuilder {
 
 impl RootBuilder {
     /// Adds an appender.
-    pub fn appender(mut self, appender: String) -> RootBuilder {
-        self.appenders.push(appender);
+    pub fn appender<T>(mut self, appender: T) -> RootBuilder
+        where T: Into<String>
+    {
+        self.appenders.push(appender.into());
         self
     }
 
     /// Adds appenders.
-    pub fn appenders<I: IntoIterator<Item = String>>(mut self, appenders: I) -> RootBuilder {
-        self.appenders.extend(appenders);
+    pub fn appenders<T, I>(mut self, appenders: I) -> RootBuilder
+        where T: Into<String>,
+              I: IntoIterator<Item = T>
+    {
+        self.appenders.extend(appenders.into_iter().map(Into::into));
         self
     }
 
@@ -113,15 +118,19 @@ impl AppenderBuilder {
     }
 
     /// Adds filters.
-    pub fn filters<I: IntoIterator<Item = Box<Filter>>>(mut self, filters: I) -> AppenderBuilder {
+    pub fn filters<I>(mut self, filters: I) -> AppenderBuilder
+        where I: IntoIterator<Item = Box<Filter>>
+    {
         self.filters.extend(filters);
         self
     }
 
     /// Consumes the `AppenderBuilder`, returning the `Appender`.
-    pub fn build(self, name: String, appender: Box<Append>) -> Appender {
+    pub fn build<T>(self, name: T, appender: Box<Append>) -> Appender
+        where T: Into<String>
+    {
         Appender {
-            name: name,
+            name: name.into(),
             appender: appender,
             filters: self.filters,
         }
@@ -178,14 +187,19 @@ pub struct LoggerBuilder {
 
 impl LoggerBuilder {
     /// Adds an appender.
-    pub fn appender(mut self, appender: String) -> LoggerBuilder {
-        self.appenders.push(appender);
+    pub fn appender<T>(mut self, appender: T) -> LoggerBuilder
+        where T: Into<String>
+    {
+        self.appenders.push(appender.into());
         self
     }
 
     /// Adds appenders.
-    pub fn appenders<I: IntoIterator<Item = String>>(mut self, appenders: I) -> LoggerBuilder {
-        self.appenders.extend(appenders);
+    pub fn appenders<T, I>(mut self, appenders: I) -> LoggerBuilder
+        where T: Into<String>,
+              I: IntoIterator<Item = T>
+    {
+        self.appenders.extend(appenders.into_iter().map(Into::into));
         self
     }
 
@@ -196,9 +210,11 @@ impl LoggerBuilder {
     }
 
     /// Consumes the `LoggerBuilder`, returning the `Logger`.
-    pub fn build(self, name: String, level: LogLevelFilter) -> Logger {
+    pub fn build<T>(self, name: T, level: LogLevelFilter) -> Logger
+        where T: Into<String>
+    {
         Logger {
-            name: name,
+            name: name.into(),
             level: level,
             appenders: self.appenders,
             additive: self.additive,
@@ -253,7 +269,9 @@ impl ConfigBuilder {
     }
 
     /// Adds appenders.
-    pub fn appenders<I: IntoIterator<Item = Appender>>(mut self, appenders: I) -> ConfigBuilder {
+    pub fn appenders<I>(mut self, appenders: I) -> ConfigBuilder
+        where I: IntoIterator<Item = Appender>
+    {
         self.appenders.extend(appenders);
         self
     }
@@ -265,7 +283,9 @@ impl ConfigBuilder {
     }
 
     /// Adds loggers.
-    pub fn loggers<I: IntoIterator<Item = Logger>>(mut self, loggers: I) -> ConfigBuilder {
+    pub fn loggers<I>(mut self, loggers: I) -> ConfigBuilder
+        where I: IntoIterator<Item = Logger>
+    {
         self.loggers.extend(loggers);
         self
     }
