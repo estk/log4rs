@@ -268,8 +268,8 @@ pub enum Format {
     ///
     /// Requires the `yaml` feature.
     #[cfg(feature = "yaml")]
-
     Yaml,
+
     /// JSON.
     ///
     /// Requires the `json` feature.
