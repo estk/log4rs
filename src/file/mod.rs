@@ -120,7 +120,7 @@ pub trait Deserializable: Any {
 /// A trait for objects that can deserialize log4rs components out of a config.
 pub trait Deserialize: Send + Sync + 'static {
     /// The trait that this deserializer will create.
-    type Trait: ?Sized;
+    type Trait: ?Sized + Deserializable;
 
     /// This deserializer's configuration.
     type Config: serde::Deserialize;
@@ -205,8 +205,7 @@ impl Deserializers {
 
     /// Adds a mapping from the specified `kind` to a deserializer.
     pub fn insert<T>(&mut self, kind: &str, deserializer: T)
-        where T: Deserialize,
-              T::Trait: Deserializable
+        where T: Deserialize
     {
         self.0.entry::<KeyAdaptor<T::Trait>>()
             .or_insert_with(|| HashMap::new())
