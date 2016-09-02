@@ -386,9 +386,7 @@ impl Logger {
 }
 
 fn handle_error<E: error::Error + ?Sized>(e: &E) {
-    let stderr = io::stderr();
-    let mut stderr = stderr.lock();
-    let _ = writeln!(&mut stderr, "log4rs: {}", e);
+    let _ = writeln!(io::stderr(), "log4rs: {}", e);
 }
 
 /// Initializes the global logger as a log4rs logger with the provided config.
@@ -628,17 +626,14 @@ trait ErrorInternals {
     fn new(message: String) -> Self;
 }
 
-#[doc(hidden)]
 trait ConfigPrivateExt {
     fn unpack(self) -> (Vec<config::Appender>, config::Root, Vec<config::Logger>);
 }
 
-#[doc(hidden)]
 trait PrivateConfigErrorsExt {
     fn unpack(self) -> Vec<config::Error>;
 }
 
-#[doc(hidden)]
 trait PrivateConfigAppenderExt {
     fn unpack(self) -> (String, Box<Append>, Vec<Box<Filter>>);
 }
@@ -653,13 +648,11 @@ mod test {
     fn enabled() {
         let root = config::Root::builder().build(LogLevelFilter::Debug);
         let mut config = config::Config::builder();
-        let logger = config::Logger::builder().build("foo::bar".to_string(), LogLevelFilter::Trace);
+        let logger = config::Logger::builder().build("foo::bar", LogLevelFilter::Trace);
         config = config.logger(logger);
-        let logger = config::Logger::builder()
-                         .build("foo::bar::baz".to_string(), LogLevelFilter::Off);
+        let logger = config::Logger::builder().build("foo::bar::baz", LogLevelFilter::Off);
         config = config.logger(logger);
-        let logger = config::Logger::builder()
-                         .build("foo::baz::buz".to_string(), LogLevelFilter::Error);
+        let logger = config::Logger::builder().build("foo::baz::buz", LogLevelFilter::Error);
         config = config.logger(logger);
         let config = config.build(root).unwrap();
 
