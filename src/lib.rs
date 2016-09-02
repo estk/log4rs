@@ -424,7 +424,7 @@ impl Handle {
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
 /// Configuration is read from a file located at the provided path on the
-/// filesystem and appenders are created from the provided `Deserializers`.
+/// filesystem and components are created from the provided `Deserializers`.
 ///
 /// Any nonfatal errors encountered when processing the configuration are
 /// reported to stderr.
