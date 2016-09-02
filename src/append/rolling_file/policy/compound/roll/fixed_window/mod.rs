@@ -45,7 +45,7 @@ impl Compression {
 /// A roller which maintains a fixed window of archived log files.
 ///
 /// A `FixedWindowRoller` is configured with a filename pattern, a base index,
-/// and a maximum file count. Each achived log file is associated with a numeric
+/// and a maximum file count. Each archived log file is associated with a numeric
 /// index ordering it by age, starting at the base index. Archived log files are
 /// named by substituting all instances of `{}` with the file's index in the
 /// filename pattern.
@@ -74,7 +74,7 @@ pub struct FixedWindowRoller {
 }
 
 impl FixedWindowRoller {
-    /// Constructs a new `FixedWindowRollerBuilder`.
+    /// Returns a new builder for the `FixedWindowRoller`.
     pub fn builder() -> FixedWindowRollerBuilder {
         FixedWindowRollerBuilder { base: 0 }
     }
@@ -112,7 +112,7 @@ impl Roll for FixedWindowRoller {
             try!(move_file(&src, &dst));
         }
 
-        self.compression.compress(file, &self.pattern.replace("{}", "0")).map_err(Into::into)
+        self.compression.compress(file, &dst_0).map_err(Into::into)
     }
 }
 

@@ -42,7 +42,8 @@ impl Deserialize for DeleteRollerDeserializer {
 
     fn deserialize(&self,
                    _: DeleteRollerConfig,
-                   _: &Deserializers) -> Result<Box<Roll>, Box<Error>> {
+                   _: &Deserializers)
+                   -> Result<Box<Roll>, Box<Error>> {
         Ok(Box::new(DeleteRoller::new()))
     }
 }

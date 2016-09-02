@@ -35,8 +35,7 @@ pub mod policy;
 
 include!("config.rs");
 
-/// Configuration for rolling file policies.
-pub struct Policy {
+struct Policy {
     kind: String,
     config: Value,
 }
@@ -108,8 +107,8 @@ impl<'a> LogFile<'a> {
     /// appender's handle to the file will be closed, which is necessary to
     /// move or delete the file on Windows.
     ///
-    /// If this method is called, the log file must no longer be present when
-    /// the policy returns.
+    /// If this method is called, the log file must no longer be present on
+    /// disk when the policy returns.
     pub fn roll(&mut self) {
         *self.writer = None;
     }
@@ -151,7 +150,7 @@ impl Append for RollingFileAppender {
                 .create(true)
                 .open(&self.path));
             let len = if self.append {
-                try!(self.path.metadata()).len()
+                try!(file.metadata()).len()
             } else {
                 0
             };

@@ -128,10 +128,8 @@ impl Deserialize for CompoundPolicyDeserializer {
                    config: CompoundPolicyConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Policy>, Box<Error>> {
-        let trigger =
-            try!(deserializers.deserialize(&config.trigger.kind, config.trigger.config));
-        let roller =
-            try!(deserializers.deserialize(&config.roller.kind, config.roller.config));
+        let trigger = try!(deserializers.deserialize(&config.trigger.kind, config.trigger.config));
+        let roller = try!(deserializers.deserialize(&config.roller.kind, config.roller.config));
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))
     }
 }
