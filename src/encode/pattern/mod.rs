@@ -378,10 +378,6 @@ impl<'a> From<Piece<'a>> for Chunk {
                                         }
                                     }
                                 }
-                                // FIXME remove in next breaking release
-                                if format.is_empty() {
-                                    format.push_str("%+");
-                                }
                                 format
                             }
                             None => "%+".to_owned(),
