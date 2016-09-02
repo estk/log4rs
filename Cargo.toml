@@ -21,7 +21,7 @@ humantime = "0.1"
 libc = "0.2"
 log = "0.3"
 serde = "0.8"
-serde-value = { git = "https://github.com/sfackler/serde-value" }
+serde-value = "0.3"
 typemap = "0.3"
 serde_json = { version = "0.8", optional = true }
 serde_yaml = { version = "0.4", optional = true }
