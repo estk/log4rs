@@ -219,7 +219,7 @@ impl Deserializers {
                                   -> Result<Box<T>, Box<error::Error>>
         where T: Deserializable
     {
-        match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b) {
+        match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
             None => {
                 Err(format!("no {} deserializer for kind `{}` registered", T::name(), kind).into())
