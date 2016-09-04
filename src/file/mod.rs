@@ -176,12 +176,12 @@ pub struct Deserializers(ShareMap);
 /// * Filters
 ///     * "threshold" -> `ThresholdFilterDeserializer`
 /// * Policies
-///   *  "compound" -> `CompoundPolicyDeserializer`
+///     *  "compound" -> `CompoundPolicyDeserializer`
 /// * Rollers
-///   * "delete" -> `DeleteRollerDeserializer`
-///   * "fixed_window" -> `FixedWindowRollerDeserializer`
+///     * "delete" -> `DeleteRollerDeserializer`
+///     * "fixed_window" -> `FixedWindowRollerDeserializer`
 /// * Triggers
-///   * "size" -> `SizeTriggerDeserializer`
+///     * "size" -> `SizeTriggerDeserializer`
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
