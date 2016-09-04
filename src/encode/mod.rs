@@ -1,8 +1,11 @@
 //! Encoders.
 
+use log::LogRecord;
+use serde::de;
+use serde_value::Value;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::io;
-use log::LogRecord;
 
 use file::Deserializable;
 
@@ -22,6 +25,33 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
 impl Deserializable for Encode {
     fn name() -> &'static str {
         "encoder"
+    }
+}
+
+/// Configuration for an encoder.
+pub struct EncoderConfig {
+    /// The encoder's kind.
+    pub kind: String,
+
+    /// The encoder's configuration.
+    pub config: Value,
+}
+
+impl de::Deserialize for EncoderConfig {
+    fn deserialize<D>(d: &mut D) -> Result<EncoderConfig, D::Error>
+        where D: de::Deserializer
+    {
+        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+
+        let kind = match map.remove(&Value::String("kind".to_owned())) {
+            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            None => "pattern".to_owned(),
+        };
+
+        Ok(EncoderConfig {
+            kind: kind,
+            config: Value::Map(map),
+        })
     }
 }
 

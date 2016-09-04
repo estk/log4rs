@@ -67,8 +67,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                                __V::Error> where
                      __V: _serde::de::SeqVisitor {
                         let __field0 =
-                            match try!(visitor . visit :: < Option<Encoder> >
-                                       (  )) {
+                            match try!(visitor . visit :: <
+                                       Option<EncoderConfig> > (  )) {
                                 Some(value) => { value }
                                 None => {
                                     try!(visitor . end (  ));
@@ -84,7 +84,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                          ::std::result::Result<ConsoleAppenderConfig,
                                                __V::Error> where
                      __V: _serde::de::MapVisitor {
-                        let mut __field0: Option<Option<Encoder>> = None;
+                        let mut __field0: Option<Option<EncoderConfig>> =
+                            None;
                         while let Some(key) =
                                   try!(visitor . visit_key :: < __Field > (
                                        )) {
@@ -96,7 +97,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                     }
                                     __field0 =
                                         Some(try!(visitor . visit_value :: <
-                                                  Option<Encoder> > (  )));
+                                                  Option<EncoderConfig> > (
+                                                  )));
                                 }
                             }
                         }
@@ -118,6 +120,6 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
     };
 /// The console appender's configuration.
 pub struct ConsoleAppenderConfig {
-    encoder: Option<Encoder>,
+    encoder: Option<EncoderConfig>,
 }
 

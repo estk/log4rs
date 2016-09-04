@@ -93,8 +93,8 @@ const _IMPL_DESERIALIZE_FOR_RollingFileAppenderConfig: () =
                                 }
                             };
                         let __field2 =
-                            match try!(visitor . visit :: < Option<Encoder> >
-                                       (  )) {
+                            match try!(visitor . visit :: <
+                                       Option<EncoderConfig> > (  )) {
                                 Some(value) => { value }
                                 None => {
                                     try!(visitor . end (  ));
@@ -123,7 +123,8 @@ const _IMPL_DESERIALIZE_FOR_RollingFileAppenderConfig: () =
                      __V: _serde::de::MapVisitor {
                         let mut __field0: Option<String> = None;
                         let mut __field1: Option<Option<bool>> = None;
-                        let mut __field2: Option<Option<Encoder>> = None;
+                        let mut __field2: Option<Option<EncoderConfig>> =
+                            None;
                         let mut __field3: Option<Policy> = None;
                         while let Some(key) =
                                   try!(visitor . visit_key :: < __Field > (
@@ -154,7 +155,8 @@ const _IMPL_DESERIALIZE_FOR_RollingFileAppenderConfig: () =
                                     }
                                     __field2 =
                                         Some(try!(visitor . visit_value :: <
-                                                  Option<Encoder> > (  )));
+                                                  Option<EncoderConfig> > (
+                                                  )));
                                 }
                                 __Field::__field3 => {
                                     if __field3.is_some() {
@@ -209,6 +211,6 @@ const _IMPL_DESERIALIZE_FOR_RollingFileAppenderConfig: () =
 pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
-    encoder: Option<Encoder>,
+    encoder: Option<EncoderConfig>,
     policy: Policy,
 }

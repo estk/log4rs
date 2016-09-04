@@ -26,10 +26,9 @@ use std::path::{Path, PathBuf};
 use serde_value::Value;
 
 use append::Append;
-use encode::{self, Encode};
+use encode::{self, Encode, EncoderConfig};
 use encode::pattern::PatternEncoder;
 use file::{Deserialize, Deserializers};
-use file::raw::Encoder;
 
 pub mod policy;
 

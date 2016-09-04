@@ -79,8 +79,8 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                 }
                             };
                         let __field1 =
-                            match try!(visitor . visit :: < Option<Encoder> >
-                                       (  )) {
+                            match try!(visitor . visit :: <
+                                       Option<EncoderConfig> > (  )) {
                                 Some(value) => { value }
                                 None => {
                                     try!(visitor . end (  ));
@@ -106,7 +106,8 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                      -> ::std::result::Result<FileAppenderConfig, __V::Error>
                      where __V: _serde::de::MapVisitor {
                         let mut __field0: Option<String> = None;
-                        let mut __field1: Option<Option<Encoder>> = None;
+                        let mut __field1: Option<Option<EncoderConfig>> =
+                            None;
                         let mut __field2: Option<Option<bool>> = None;
                         while let Some(key) =
                                   try!(visitor . visit_key :: < __Field > (
@@ -128,7 +129,8 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
                                     }
                                     __field1 =
                                         Some(try!(visitor . visit_value :: <
-                                                  Option<Encoder> > (  )));
+                                                  Option<EncoderConfig> > (
+                                                  )));
                                 }
                                 __Field::__field2 => {
                                     if __field2.is_some() {
@@ -175,6 +177,6 @@ const _IMPL_DESERIALIZE_FOR_FileAppenderConfig: () =
 /// The file appender's configuration.
 pub struct FileAppenderConfig {
     path: String,
-    encoder: Option<Encoder>,
+    encoder: Option<EncoderConfig>,
     append: Option<bool>,
 }

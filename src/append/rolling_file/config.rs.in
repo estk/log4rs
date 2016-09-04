@@ -4,6 +4,6 @@
 pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
-    encoder: Option<Encoder>,
+    encoder: Option<EncoderConfig>,
     policy: Policy,
 }

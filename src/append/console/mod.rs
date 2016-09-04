@@ -6,11 +6,10 @@ use std::error::Error;
 use log::LogRecord;
 
 use append::Append;
-use encode::{self, Encode, Style};
+use encode::{self, Encode, EncoderConfig, Style};
 use encode::pattern::PatternEncoder;
 use encode::writer::{SimpleWriter, ConsoleWriter, ConsoleWriterLock};
 use file::{Deserialize, Deserializers};
-use file::raw::Encoder;
 
 include!("serde.rs");
 
