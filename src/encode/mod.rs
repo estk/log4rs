@@ -1,4 +1,4 @@
-//! Encoders.
+//! Encoders
 
 use log::LogRecord;
 use serde::de;
