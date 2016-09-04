@@ -2,6 +2,9 @@
 
 use std::fmt;
 use log::LogRecord;
+use serde_value::Value;
+use serde::de;
+use std::collections::BTreeMap;
 
 use file::Deserializable;
 
@@ -38,4 +41,31 @@ pub enum Response {
 
     /// Reject the log event.
     Reject,
+}
+
+/// Configuration for a filter.
+#[derive(PartialEq, Eq, Debug)]
+pub struct FilterConfig {
+    /// The filter kind.
+    pub kind: String,
+    /// The filter configuration.
+    pub config: Value,
+}
+
+impl de::Deserialize for FilterConfig {
+    fn deserialize<D>(d: &mut D) -> Result<FilterConfig, D::Error>
+        where D: de::Deserializer
+    {
+        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+
+        let kind = match map.remove(&Value::String("kind".to_owned())) {
+            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            None => return Err(de::Error::missing_field("kind")),
+        };
+
+        Ok(FilterConfig {
+            kind: kind,
+            config: Value::Map(map),
+        })
+    }
 }

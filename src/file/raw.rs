@@ -9,6 +9,8 @@ use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 
+use filter::FilterConfig;
+
 include!("serde.rs");
 
 fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
@@ -44,7 +46,7 @@ fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
 #[derive(PartialEq, Eq, Debug)]
 pub struct Appender {
     pub kind: String,
-    pub filters: Vec<Filter>,
+    pub filters: Vec<FilterConfig>,
     pub config: Value,
 }
 
@@ -67,30 +69,6 @@ impl Deserialize for Appender {
         Ok(Appender {
             kind: kind,
             filters: filters,
-            config: Value::Map(map),
-        })
-    }
-}
-
-#[derive(PartialEq, Eq, Debug)]
-pub struct Filter {
-    pub kind: String,
-    pub config: Value,
-}
-
-impl Deserialize for Filter {
-    fn deserialize<D>(d: &mut D) -> Result<Filter, D::Error>
-        where D: Deserializer
-    {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
-
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
-            None => return Err(de::Error::missing_field("kind")),
-        };
-
-        Ok(Filter {
-            kind: kind,
             config: Value::Map(map),
         })
     }
@@ -127,6 +105,8 @@ mod test {
     use serde_value::Value;
 
     use super::*;
+    use filter::FilterConfig;
+
     #[allow(unused_imports)]
     use file::{Format, parse};
 
@@ -140,7 +120,7 @@ mod test {
                          Appender {
                              kind: "console".to_owned(),
                              config: Value::Map(BTreeMap::new()),
-                             filters: vec![Filter {
+                             filters: vec![FilterConfig {
                                                kind: "threshold".to_owned(),
                                                config: {
                                                    let mut m = BTreeMap::new();

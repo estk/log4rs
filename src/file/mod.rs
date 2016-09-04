@@ -105,6 +105,7 @@ use append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRolle
 use append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer;
 use config;
 use encode::pattern::PatternEncoderDeserializer;
+use filter::FilterConfig;
 use filter::threshold::ThresholdFilterDeserializer;
 
 pub mod raw;
@@ -321,7 +322,7 @@ impl Config {
             match deserializers.deserialize(&kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder();
-                    for raw::Filter { kind, config } in filters {
+                    for FilterConfig { kind, config } in filters {
                         match deserializers.deserialize(&kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::Deserialization(err)),
