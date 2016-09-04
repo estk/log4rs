@@ -8,13 +8,7 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
              -> ::std::result::Result<Config, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
-                enum __Field {
-                    __field0,
-                    __field1,
-                    __field2,
-                    __field3,
-                    __field4,
-                }
+                enum __Field { __field0, __field1, __field2, __field3, }
                 impl _serde::de::Deserialize for __Field {
                     #[inline]
                     fn deserialize<__D>(deserializer: &mut __D)
@@ -34,7 +28,6 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                     1usize => { Ok(__Field::__field1) }
                                     2usize => { Ok(__Field::__field2) }
                                     3usize => { Ok(__Field::__field3) }
-                                    4usize => { Ok(__Field::__field4) }
                                     _ =>
                                     Err(_serde::de::Error::invalid_value("expected a field")),
                                 }
@@ -49,7 +42,6 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                     "root" => { Ok(__Field::__field1) }
                                     "appenders" => { Ok(__Field::__field2) }
                                     "loggers" => { Ok(__Field::__field3) }
-                                    "_p" => { Ok(__Field::__field4) }
                                     _ =>
                                     Err(_serde::de::Error::unknown_field(value)),
                                 }
@@ -64,7 +56,6 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                     b"root" => { Ok(__Field::__field1) }
                                     b"appenders" => { Ok(__Field::__field2) }
                                     b"loggers" => { Ok(__Field::__field3) }
-                                    b"_p" => { Ok(__Field::__field4) }
                                     _ => {
                                         let value =
                                             ::std::string::String::from_utf8_lossy(value);
@@ -145,13 +136,11 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                     return Err(_serde::de::Error::invalid_length(3usize));
                                 }
                             };
-                        let __field4 = ::std::default::Default::default();
                         try!(visitor . end (  ));
                         Ok(Config{refresh_rate: __field0,
                                   root: __field1,
                                   appenders: __field2,
-                                  loggers: __field3,
-                                  _p: __field4,})
+                                  loggers: __field3,})
                     }
                     #[inline]
                     fn visit_map<__V>(&mut self, mut visitor: __V)
@@ -233,10 +222,6 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                                                   HashMap<String, Logger> > (
                                                   )));
                                 }
-                                __Field::__field4 => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
-                                }
                             }
                         }
                         try!(visitor . end (  ));
@@ -264,12 +249,11 @@ const _IMPL_DESERIALIZE_FOR_Config: () =
                         Ok(Config{refresh_rate: __field0,
                                   root: __field1,
                                   appenders: __field2,
-                                  loggers: __field3,
-                                  _p: ::std::default::Default::default(),})
+                                  loggers: __field3,})
                     }
                 }
                 const FIELDS: &'static [&'static str] =
-                    &["refresh_rate", "root", "appenders", "loggers", "_p"];
+                    &["refresh_rate", "root", "appenders", "loggers"];
                 deserializer.deserialize_struct("Config", FIELDS, __Visitor)
             }
         }
@@ -280,7 +264,6 @@ pub struct Config {
     pub root: Option<Root>,
     pub appenders: HashMap<String, Appender>,
     pub loggers: HashMap<String, Logger>,
-    _p: (),
 }
 
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -293,7 +276,7 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
              -> ::std::result::Result<Root, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
-                enum __Field { __field0, __field1, __field2, }
+                enum __Field { __field0, __field1, }
                 impl _serde::de::Deserialize for __Field {
                     #[inline]
                     fn deserialize<__D>(deserializer: &mut __D)
@@ -311,7 +294,6 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
                                 match value {
                                     0usize => { Ok(__Field::__field0) }
                                     1usize => { Ok(__Field::__field1) }
-                                    2usize => { Ok(__Field::__field2) }
                                     _ =>
                                     Err(_serde::de::Error::invalid_value("expected a field")),
                                 }
@@ -322,7 +304,6 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
                                 match value {
                                     "level" => { Ok(__Field::__field0) }
                                     "appenders" => { Ok(__Field::__field1) }
-                                    "_p" => { Ok(__Field::__field2) }
                                     _ =>
                                     Err(_serde::de::Error::unknown_field(value)),
                                 }
@@ -333,7 +314,6 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
                                 match value {
                                     b"level" => { Ok(__Field::__field0) }
                                     b"appenders" => { Ok(__Field::__field1) }
-                                    b"_p" => { Ok(__Field::__field2) }
                                     _ => {
                                         let value =
                                             ::std::string::String::from_utf8_lossy(value);
@@ -397,11 +377,8 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
                                     return Err(_serde::de::Error::invalid_length(1usize));
                                 }
                             };
-                        let __field2 = ::std::default::Default::default();
                         try!(visitor . end (  ));
-                        Ok(Root{level: __field0,
-                                appenders: __field1,
-                                _p: __field2,})
+                        Ok(Root{level: __field0, appenders: __field1,})
                     }
                     #[inline]
                     fn visit_map<__V>(&mut self, mut visitor: __V)
@@ -459,10 +436,6 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
                                         Some(try!(visitor . visit_value :: <
                                                   Vec<String> > (  )));
                                 }
-                                __Field::__field2 => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
-                                }
                             }
                         }
                         try!(visitor . end (  ));
@@ -478,13 +451,11 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
                                 Some(__field1) => __field1,
                                 None => ::std::default::Default::default(),
                             };
-                        Ok(Root{level: __field0,
-                                appenders: __field1,
-                                _p: ::std::default::Default::default(),})
+                        Ok(Root{level: __field0, appenders: __field1,})
                     }
                 }
                 const FIELDS: &'static [&'static str] =
-                    &["level", "appenders", "_p"];
+                    &["level", "appenders"];
                 deserializer.deserialize_struct("Root", FIELDS, __Visitor)
             }
         }
@@ -493,7 +464,6 @@ const _IMPL_DESERIALIZE_FOR_Root: () =
 pub struct Root {
     pub level: LogLevelFilter,
     pub appenders: Vec<String>,
-    _p: (),
 }
 
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -506,7 +476,7 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
              -> ::std::result::Result<Logger, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
-                enum __Field { __field0, __field1, __field2, __field3, }
+                enum __Field { __field0, __field1, __field2, }
                 impl _serde::de::Deserialize for __Field {
                     #[inline]
                     fn deserialize<__D>(deserializer: &mut __D)
@@ -525,7 +495,6 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
                                     0usize => { Ok(__Field::__field0) }
                                     1usize => { Ok(__Field::__field1) }
                                     2usize => { Ok(__Field::__field2) }
-                                    3usize => { Ok(__Field::__field3) }
                                     _ =>
                                     Err(_serde::de::Error::invalid_value("expected a field")),
                                 }
@@ -537,7 +506,6 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
                                     "level" => { Ok(__Field::__field0) }
                                     "appenders" => { Ok(__Field::__field1) }
                                     "additive" => { Ok(__Field::__field2) }
-                                    "_p" => { Ok(__Field::__field3) }
                                     _ =>
                                     Err(_serde::de::Error::unknown_field(value)),
                                 }
@@ -549,7 +517,6 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
                                     b"level" => { Ok(__Field::__field0) }
                                     b"appenders" => { Ok(__Field::__field1) }
                                     b"additive" => { Ok(__Field::__field2) }
-                                    b"_p" => { Ok(__Field::__field3) }
                                     _ => {
                                         let value =
                                             ::std::string::String::from_utf8_lossy(value);
@@ -622,12 +589,10 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
                                     return Err(_serde::de::Error::invalid_length(2usize));
                                 }
                             };
-                        let __field3 = ::std::default::Default::default();
                         try!(visitor . end (  ));
                         Ok(Logger{level: __field0,
                                   appenders: __field1,
-                                  additive: __field2,
-                                  _p: __field3,})
+                                  additive: __field2,})
                     }
                     #[inline]
                     fn visit_map<__V>(&mut self, mut visitor: __V)
@@ -695,10 +660,6 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
                                         Some(try!(visitor . visit_value :: <
                                                   Option<bool> > (  )));
                                 }
-                                __Field::__field3 => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
-                                }
                             }
                         }
                         try!(visitor . end (  ));
@@ -722,12 +683,11 @@ const _IMPL_DESERIALIZE_FOR_Logger: () =
                             };
                         Ok(Logger{level: __field0,
                                   appenders: __field1,
-                                  additive: __field2,
-                                  _p: ::std::default::Default::default(),})
+                                  additive: __field2,})
                     }
                 }
                 const FIELDS: &'static [&'static str] =
-                    &["level", "appenders", "additive", "_p"];
+                    &["level", "appenders", "additive"];
                 deserializer.deserialize_struct("Logger", FIELDS, __Visitor)
             }
         }
@@ -737,5 +697,4 @@ pub struct Logger {
     pub level: LogLevelFilter,
     pub appenders: Vec<String>,
     pub additive: Option<bool>,
-    _p: (),
 }

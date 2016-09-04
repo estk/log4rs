@@ -108,7 +108,7 @@ use encode::pattern::PatternEncoderDeserializer;
 use filter::FilterConfig;
 use filter::threshold::ThresholdFilterDeserializer;
 
-pub mod raw;
+mod raw;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: Any {

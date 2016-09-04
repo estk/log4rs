@@ -1,6 +1,3 @@
-//! Types used to deserialize config files.
-#![allow(missing_docs)]
-
 use humantime;
 use log::LogLevelFilter;
 use serde::de::{self, Deserialize, Deserializer};
@@ -123,7 +120,6 @@ mod test {
             root: Some(Root {
                 level: LogLevelFilter::Info,
                 appenders: vec!["console".to_owned()],
-                _p: (),
             }),
             loggers: {
                 let mut m = HashMap::new();
@@ -132,11 +128,9 @@ mod test {
                              level: LogLevelFilter::Warn,
                              appenders: vec!["baz".to_owned()],
                              additive: Some(false),
-                             _p: (),
                          });
                 m
             },
-            _p: (),
         }
     }
 

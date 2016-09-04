@@ -8,8 +8,6 @@ pub struct Config {
     pub appenders: HashMap<String, Appender>,
     #[serde(default)]
     pub loggers: HashMap<String, Logger>,
-    #[serde(skip_deserializing)]
-    _p: (),
 }
 
 #[derive(PartialEq, Eq, Debug, Deserialize)]
@@ -19,8 +17,6 @@ pub struct Root {
     pub level: LogLevelFilter,
     #[serde(default)]
     pub appenders: Vec<String>,
-    #[serde(skip_deserializing)]
-    _p: (),
 }
 
 #[derive(PartialEq, Eq, Debug, Deserialize)]
@@ -31,6 +27,4 @@ pub struct Logger {
     #[serde(default)]
     pub appenders: Vec<String>,
     pub additive: Option<bool>,
-    #[serde(skip_deserializing)]
-    _p: (),
 }
