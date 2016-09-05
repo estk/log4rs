@@ -26,9 +26,9 @@ pub struct FileAppender {
 impl fmt::Debug for FileAppender {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("FileAppender")
-           .field("file", &self.path)
-           .field("encoder", &self.encoder)
-           .finish()
+            .field("file", &self.path)
+            .field("encoder", &self.encoder)
+            .finish()
     }
 }
 
@@ -79,11 +79,11 @@ impl FileAppenderBuilder {
             try!(fs::create_dir_all(parent));
         }
         let file = try!(OpenOptions::new()
-                            .write(true)
-                            .append(self.append)
-                            .truncate(!self.append)
-                            .create(true)
-                            .open(&path));
+            .write(true)
+            .append(self.append)
+            .truncate(!self.append)
+            .create(true)
+            .open(&path));
 
         Ok(FileAppender {
             path: path,
@@ -128,8 +128,8 @@ impl Deserialize for FileAppenderDeserializer {
             appender = appender.append(append);
         }
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(deserializers.deserialize(&encoder.kind,
-                                                                       encoder.config)));
+            appender =
+                appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
         }
         Ok(Box::new(try!(appender.build(&config.path))))
     }

@@ -52,19 +52,20 @@ fn deserialize_limit<D>(d: &mut D) -> Result<u64, D::Error>
                 None => return Ok(number),
             };
 
-            let number = if unit.eq_ignore_ascii_case("b") {
-                Some(number)
-            } else if unit.eq_ignore_ascii_case("kb") || unit.eq_ignore_ascii_case("kib") {
-                number.checked_mul(1024)
-            } else if unit.eq_ignore_ascii_case("mb") || unit.eq_ignore_ascii_case("mib") {
-                number.checked_mul(1024 * 1024)
-            } else if unit.eq_ignore_ascii_case("gb") || unit.eq_ignore_ascii_case("gib") {
-                number.checked_mul(1024 * 1024 * 1024)
-            } else if unit.eq_ignore_ascii_case("tb") || unit.eq_ignore_ascii_case("tib") {
-                number.checked_mul(1024 * 1024 * 1024 * 1024)
-            } else {
-                return Err(E::invalid_value(&format!("invalid unit `{}`", unit)));
-            };
+            let number =
+                if unit.eq_ignore_ascii_case("b") {
+                    Some(number)
+                } else if unit.eq_ignore_ascii_case("kb") || unit.eq_ignore_ascii_case("kib") {
+                    number.checked_mul(1024)
+                } else if unit.eq_ignore_ascii_case("mb") || unit.eq_ignore_ascii_case("mib") {
+                    number.checked_mul(1024 * 1024)
+                } else if unit.eq_ignore_ascii_case("gb") || unit.eq_ignore_ascii_case("gib") {
+                    number.checked_mul(1024 * 1024 * 1024)
+                } else if unit.eq_ignore_ascii_case("tb") || unit.eq_ignore_ascii_case("tib") {
+                    number.checked_mul(1024 * 1024 * 1024 * 1024)
+                } else {
+                    return Err(E::invalid_value(&format!("invalid unit `{}`", unit)));
+                };
 
             match number {
                 Some(n) => Ok(n),

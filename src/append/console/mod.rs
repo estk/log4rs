@@ -80,8 +80,8 @@ pub struct ConsoleAppender {
 impl fmt::Debug for ConsoleAppender {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("ConsoleAppender")
-           .field("encoder", &self.encoder)
-           .finish()
+            .field("encoder", &self.encoder)
+            .finish()
     }
 }
 
@@ -150,8 +150,8 @@ impl Deserialize for ConsoleAppenderDeserializer {
                    -> Result<Box<Append>, Box<Error>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(deserializers.deserialize(&encoder.kind,
-                                                                       encoder.config)));
+            appender =
+                appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
         }
         Ok(Box::new(appender.build()))
     }

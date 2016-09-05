@@ -356,8 +356,7 @@ impl<'a> From<Piece<'a>> for Chunk {
             Piece::Text(text) => Chunk::Text(text.to_owned()),
             Piece::Argument { mut formatter, parameters } => {
                 match formatter.name {
-                    "d" |
-                    "date" => {
+                    "d" | "date" => {
                         if formatter.args.len() > 2 {
                             return Chunk::Error("expected at most two arguments".to_owned());
                         }
@@ -405,49 +404,43 @@ impl<'a> From<Piece<'a>> for Chunk {
                             params: parameters,
                         }
                     }
-                    "h" |
-                    "highlight" => {
+                    "h" | "highlight" => {
                         if formatter.args.len() != 1 {
-                            return Chunk::Error("expected exactly one argument".to_owned())
+                            return Chunk::Error("expected exactly one argument".to_owned());
                         }
 
                         let chunks = formatter.args
-                                              .pop()
-                                              .unwrap()
-                                              .into_iter()
-                                              .map(From::from)
-                                              .collect();
+                            .pop()
+                            .unwrap()
+                            .into_iter()
+                            .map(From::from)
+                            .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Highlight(chunks),
                             params: parameters,
                         }
                     }
-                    "l" |
-                    "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
-                    "m" |
-                    "message" => no_args(&formatter.args, parameters, FormattedChunk::Message),
-                    "M" |
-                    "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
-                    "f" |
-                    "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
-                    "L" |
-                    "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
-                    "T" |
-                    "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
-                    "t" |
-                    "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
+                    "l" | "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
+                    "m" | "message" => {
+                        no_args(&formatter.args, parameters, FormattedChunk::Message)
+                    }
+                    "M" | "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
+                    "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
+                    "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
+                    "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
+                    "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
                     "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
                     "" => {
                         if formatter.args.len() != 1 {
-                            return Chunk::Error("expected exactly one argument".to_owned())
+                            return Chunk::Error("expected exactly one argument".to_owned());
                         }
 
                         let chunks = formatter.args
-                                              .pop()
-                                              .unwrap()
-                                              .into_iter()
-                                              .map(From::from)
-                                              .collect();
+                            .pop()
+                            .unwrap()
+                            .into_iter()
+                            .map(From::from)
+                            .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Align(chunks),
                             params: parameters,
@@ -533,9 +526,9 @@ impl FormattedChunk {
                     try!(chunk.encode(w, level, target, location, args));
                 }
                 match level {
-                    LogLevel::Error |
-                    LogLevel::Warn |
-                    LogLevel::Info => try!(w.set_style(&Style::new())),
+                    LogLevel::Error | LogLevel::Warn | LogLevel::Info => {
+                        try!(w.set_style(&Style::new()))
+                    }
                     _ => {}
                 }
                 Ok(())
@@ -553,8 +546,8 @@ pub struct PatternEncoder {
 impl fmt::Debug for PatternEncoder {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("PatternEncoder")
-           .field("pattern", &self.pattern)
-           .finish()
+            .field("pattern", &self.pattern)
+            .finish()
     }
 }
 
@@ -676,11 +669,11 @@ mod tests {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "target",
-                        &LOCATION,
-                        &format_args!("the message"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "target",
+                          &LOCATION,
+                          &format_args!("the message"))
+            .unwrap();
 
         assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
@@ -688,16 +681,16 @@ mod tests {
     #[test]
     fn unnamed_thread() {
         thread::spawn(|| {
-            let pw = PatternEncoder::new("{T}");
-            let mut buf = vec![];
-            pw.append_inner(&mut SimpleWriter(&mut buf),
-                            LogLevel::Debug,
-                            "target",
-                            &LOCATION,
-                            &format_args!("message"))
-              .unwrap();
-            assert_eq!(buf, b"<unnamed>");
-        })
+                let pw = PatternEncoder::new("{T}");
+                let mut buf = vec![];
+                pw.append_inner(&mut SimpleWriter(&mut buf),
+                                  LogLevel::Debug,
+                                  "target",
+                                  &LOCATION,
+                                  &format_args!("message"))
+                    .unwrap();
+                assert_eq!(buf, b"<unnamed>");
+            })
             .join()
             .unwrap();
     }
@@ -710,11 +703,11 @@ mod tests {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
                 pw.append_inner(&mut SimpleWriter(&mut buf),
-                                LogLevel::Debug,
-                                "target",
-                                &LOCATION,
-                                &format_args!("message"))
-                  .unwrap();
+                                  LogLevel::Debug,
+                                  "target",
+                                  &LOCATION,
+                                  &format_args!("message"))
+                    .unwrap();
                 assert_eq!(buf, b"foobar");
             })
             .unwrap()
@@ -733,20 +726,20 @@ mod tests {
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foo"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
         assert_eq!(buf, b"foo~~");
 
         buf.clear();
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"foobar");
     }
 
@@ -756,20 +749,20 @@ mod tests {
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foo"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
         assert_eq!(buf, b"~~foo");
 
         buf.clear();
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"foobar");
     }
 
@@ -779,11 +772,11 @@ mod tests {
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"INFO foobar!   ");
     }
 
@@ -793,11 +786,11 @@ mod tests {
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"   INFO foobar!");
     }
 
@@ -824,11 +817,11 @@ mod tests {
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"{foobar!()}");
     }
 
@@ -838,11 +831,11 @@ mod tests {
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foo"))
-        .unwrap();
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
         assert_eq!(buf, br"{(INFO)}\");
     }
 }

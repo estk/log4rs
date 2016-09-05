@@ -144,7 +144,9 @@ trait ErasedDeserialize: Send + Sync + 'static {
 
 struct DeserializeEraser<T>(T);
 
-impl<T> ErasedDeserialize for DeserializeEraser<T> where T: Deserialize {
+impl<T> ErasedDeserialize for DeserializeEraser<T>
+    where T: Deserialize
+{
     type Trait = T::Trait;
 
     fn deserialize(&self,
@@ -208,7 +210,8 @@ impl Deserializers {
     pub fn insert<T>(&mut self, kind: &str, deserializer: T)
         where T: Deserialize
     {
-        self.0.entry::<KeyAdaptor<T::Trait>>()
+        self.0
+            .entry::<KeyAdaptor<T::Trait>>()
             .or_insert_with(|| HashMap::new())
             .insert(kind.to_owned(), Box::new(DeserializeEraser(deserializer)));
     }
@@ -223,7 +226,10 @@ impl Deserializers {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
             None => {
-                Err(format!("no {} deserializer for kind `{}` registered", T::name(), kind).into())
+                Err(format!("no {} deserializer for kind `{}` registered",
+                            T::name(),
+                            kind)
+                    .into())
             }
         }
     }
@@ -437,9 +443,7 @@ loggers:
     #[test]
     #[cfg(feature = "yaml")]
     fn empty() {
-        let config = Config::parse("{}",
-                                   Format::Yaml,
-                                   &Deserializers::default()).unwrap();
+        let config = Config::parse("{}", Format::Yaml, &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
     }
 }

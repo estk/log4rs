@@ -311,16 +311,16 @@ impl SharedLogger {
 
         let root = {
             let appender_map = appenders.iter()
-                                        .enumerate()
-                                        .map(|(i, appender)| (appender.name(), i))
-                                        .collect::<HashMap<_, _>>();
+                .enumerate()
+                .map(|(i, appender)| (appender.name(), i))
+                .collect::<HashMap<_, _>>();
 
             let mut root = ConfiguredLogger {
                 level: root.level(),
                 appenders: root.appenders()
-                               .iter()
-                               .map(|appender| appender_map[&**appender])
-                               .collect(),
+                    .iter()
+                    .map(|appender| appender_map[&**appender])
+                    .collect(),
                 children: HashMap::default(),
             };
 
@@ -328,9 +328,9 @@ impl SharedLogger {
             loggers.sort_by_key(|l| l.name().len());
             for logger in loggers {
                 let appenders = logger.appenders()
-                                      .iter()
-                                      .map(|appender| appender_map[&**appender])
-                                      .collect();
+                    .iter()
+                    .map(|appender| appender_map[&**appender])
+                    .collect();
                 root.add(logger.name(), appenders, logger.additive(), logger.level());
             }
 
@@ -338,14 +338,14 @@ impl SharedLogger {
         };
 
         let appenders = appenders.into_iter()
-                                 .map(|appender| {
-                                     let (_, appender, filters) = appender.unpack();
-                                     Appender {
-                                         appender: appender,
-                                         filters: filters,
-                                     }
-                                 })
-                                 .collect();
+            .map(|appender| {
+                let (_, appender, filters) = appender.unpack();
+                Appender {
+                    appender: appender,
+                    filters: filters,
+                }
+            })
+            .collect();
 
         SharedLogger {
             root: root,
@@ -394,14 +394,15 @@ fn handle_error<E: error::Error + ?Sized>(e: &E) {
 pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
     let mut handle = None;
     log::set_logger(|max_log_level| {
-        let logger = Logger::new(config);
-        max_log_level.set(logger.max_log_level());
-        handle = Some(Handle {
-            shared: logger.0.clone(),
-            max_log_level: max_log_level,
-        });
-        Box::new(logger)
-    }).map(|()| handle.unwrap())
+            let logger = Logger::new(config);
+            max_log_level.set(logger.max_log_level());
+            handle = Some(Handle {
+                shared: logger.0.clone(),
+                max_log_level: max_log_level,
+            });
+            Box::new(logger)
+        })
+        .map(|()| handle.unwrap())
 }
 
 /// A handle to the active logger.
@@ -450,7 +451,7 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
             }
             Ok(())
         }
-        Err(e) => Err(e.into())
+        Err(e) => Err(e.into()),
     }
 }
 

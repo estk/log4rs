@@ -87,10 +87,10 @@ pub struct Style {
 impl fmt::Debug for Style {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("Style")
-           .field("text", &self.text)
-           .field("background", &self.background)
-           .field("intense", &self.intense)
-           .finish()
+            .field("text", &self.text)
+            .field("background", &self.background)
+            .field("intense", &self.intense)
+            .finish()
     }
 }
 
