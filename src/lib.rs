@@ -147,6 +147,7 @@
 extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
+extern crate fnv;
 extern crate humantime;
 extern crate libc;
 extern crate log;
@@ -171,11 +172,13 @@ extern crate winapi;
 extern crate tempdir;
 
 use crossbeam::sync::ArcCell;
+use fnv::FnvHasher;
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
 use std::fs::{self, File};
+use std::hash::BuildHasherDefault;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -199,7 +202,7 @@ mod priv_serde;
 struct ConfiguredLogger {
     level: LogLevelFilter,
     appenders: Vec<usize>,
-    children: Vec<(String, ConfiguredLogger)>,
+    children: HashMap<String, ConfiguredLogger, BuildHasherDefault<FnvHasher>>,
 }
 
 impl ConfiguredLogger {
@@ -213,11 +216,9 @@ impl ConfiguredLogger {
             None => (path, ""),
         };
 
-        for &mut (ref child_part, ref mut child) in &mut self.children {
-            if &child_part[..] == part {
-                child.add(rest, appenders, additive, level);
-                return;
-            }
+        if let Some(child) = self.children.get_mut(part) {
+            child.add(rest, appenders, additive, level);
+            return;
         }
 
         let child = if rest.is_empty() {
@@ -228,24 +229,24 @@ impl ConfiguredLogger {
             ConfiguredLogger {
                 level: level,
                 appenders: appenders,
-                children: vec![],
+                children: HashMap::default(),
             }
         } else {
             let mut child = ConfiguredLogger {
                 level: self.level,
                 appenders: self.appenders.clone(),
-                children: vec![],
+                children: HashMap::default(),
             };
             child.add(rest, appenders, additive, level);
             child
         };
 
-        self.children.push((part.to_owned(), child));
+        self.children.insert(part.to_owned(), child);
     }
 
     fn max_log_level(&self) -> LogLevelFilter {
         let mut max = self.level;
-        for &(_, ref child) in &self.children {
+        for child in self.children.values() {
             max = cmp::max(max, child.max_log_level());
         }
         max
@@ -254,15 +255,12 @@ impl ConfiguredLogger {
     fn find(&self, path: &str) -> &ConfiguredLogger {
         let mut node = self;
 
-        'parts: for part in path.split("::") {
-            for &(ref child_part, ref child) in &node.children {
-                if &child_part[..] == part {
-                    node = child;
-                    continue 'parts;
-                }
+        for part in path.split("::") {
+            if let Some(child) = node.children.get(part) {
+                node = child;
+            } else {
+                break;
             }
-
-            break;
         }
 
         node
@@ -323,7 +321,7 @@ impl SharedLogger {
                                .iter()
                                .map(|appender| appender_map[&**appender])
                                .collect(),
-                children: vec![],
+                children: HashMap::default(),
             };
 
             // sort loggers by name length to ensure that we initialize them top to bottom
