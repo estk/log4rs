@@ -541,7 +541,6 @@ fn parse_config(source: &str,
 struct ConfigReloader {
     path: PathBuf,
     format: Format,
-    rate: Duration,
     source: String,
     modified: Option<SystemTime>,
     deserializers: Deserializers,
@@ -559,7 +558,6 @@ impl ConfigReloader {
         let mut reloader = ConfigReloader {
             path: path,
             format: format,
-            rate: rate,
             source: source,
             modified: modified,
             deserializers: deserializers,
@@ -568,56 +566,44 @@ impl ConfigReloader {
 
         thread::Builder::new()
             .name("log4rs refresh".to_owned())
-            .spawn(move || reloader.run())
+            .spawn(move || reloader.run(rate))
             .unwrap();
     }
 
-    fn run(&mut self) {
+    fn run(&mut self, mut rate: Duration) {
         loop {
-            thread::sleep(self.rate);
+            thread::sleep(rate);
 
-            if let Some(modified) = self.modified {
-                match fs::metadata(&self.path).and_then(|m| m.modified()) {
-                    Ok(new_modified) if modified == new_modified => continue,
-                    Ok(new_modified) => self.modified = Some(new_modified),
-                    Err(err) => {
-                        handle_error(&err);
-                        continue;
-                    }
-                }
-            }
-
-            let source = match read_config(&self.path) {
-                Ok(source) => source,
-                Err(err) => {
-                    handle_error(&*err);
-                    continue;
-                }
-            };
-
-            if source == self.source {
-                continue;
-            }
-
-            self.source = source;
-
-            let config = match parse_config(&self.source, self.format, &self.deserializers) {
-                Ok(config) => config,
-                Err(err) => {
-                    handle_error(&*err);
-                    continue;
-                }
-            };
-            let refresh_rate = config.refresh_rate();
-            let config = config.into_config();
-
-            self.handle.set_config(config);
-
-            match refresh_rate {
-                Some(rate) => self.rate = rate,
-                None => return,
+            match self.run_once(rate) {
+                Ok(Some(r)) => rate = r,
+                Ok(None) => break,
+                Err(e) => handle_error(&*e),
             }
         }
+    }
+
+    fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, Box<error::Error>> {
+        if let Some(modified) = self.modified {
+            if try!(fs::metadata(&self.path).and_then(|m| m.modified())) == modified {
+                return Ok(Some(rate));
+            }
+        }
+
+        let source = try!(read_config(&self.path));
+
+        if source == self.source {
+            return Ok(Some(rate));
+        }
+
+        self.source = source;
+
+        let config = try!(parse_config(&self.source, self.format, &self.deserializers));
+        let rate = config.refresh_rate();
+        let config = config.into_config();
+
+        self.handle.set_config(config);
+
+        Ok(rate)
     }
 }
 
