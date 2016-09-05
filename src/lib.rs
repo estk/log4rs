@@ -154,11 +154,11 @@ extern crate log;
 extern crate serde;
 extern crate serde_value;
 extern crate typemap;
-#[cfg(feature = "yaml")]
+#[cfg(feature = "yaml_format")]
 extern crate serde_yaml;
-#[cfg(feature = "json")]
+#[cfg(feature = "json_format")]
 extern crate serde_json;
-#[cfg(feature = "toml")]
+#[cfg(feature = "toml_format")]
 extern crate toml;
 #[cfg(feature = "gzip")]
 extern crate flate2;
@@ -503,18 +503,20 @@ impl From<Box<error::Error>> for Error {
 
 fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
     match path.extension().and_then(|s| s.to_str()) {
-        #[cfg(feature = "yaml")]
+        #[cfg(feature = "yaml_format")]
         Some("yaml") | Some("yml") => Ok(Format::Yaml),
-        #[cfg(not(feature = "yaml"))]
-        Some("yaml") | Some("yml") => Err("the `yaml` feature is required for YAML support".into()),
-        #[cfg(feature = "json")]
+        #[cfg(not(feature = "yaml_format"))]
+        Some("yaml") | Some("yml") => {
+            Err("the `yaml_format` feature is required for YAML support".into())
+        }
+        #[cfg(feature = "json_format")]
         Some("json") => Ok(Format::Json),
-        #[cfg(not(feature = "json"))]
-        Some("json") => Err("the `json` feature is required for JSON support".into()),
-        #[cfg(feature = "toml")]
+        #[cfg(not(feature = "json_format"))]
+        Some("json") => Err("the `json_format` feature is required for JSON support".into()),
+        #[cfg(feature = "toml_format")]
         Some("toml") => Ok(Format::Toml),
-        #[cfg(not(feature = "toml"))]
-        Some("toml") => Err("the `toml` feature is required for TOML support".into()),
+        #[cfg(not(feature = "toml_format"))]
+        Some("toml") => Err("the `toml_format` feature is required for TOML support".into()),
         Some(f) => Err(format!("unsupported file format `{}`", f).into()),
         None => Err("unable to determine the file format".into()),
     }

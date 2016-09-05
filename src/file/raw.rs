@@ -135,7 +135,7 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "yaml")]
+    #[cfg(feature = "yaml_format")]
     fn basic_yaml() {
         let cfg = r#"
 refresh_rate: 60 seconds
@@ -169,7 +169,7 @@ loggers:
     }
 
     #[test]
-    #[cfg(feature = "json")]
+    #[cfg(feature = "json_format")]
     fn basic_json() {
         let cfg = r#"
 {
@@ -208,7 +208,7 @@ loggers:
     }
 
     #[test]
-    #[cfg(feature = "toml")]
+    #[cfg(feature = "toml_format")]
     fn basic_toml() {
         let cfg = r#"
 refresh_rate = "60 seconds"

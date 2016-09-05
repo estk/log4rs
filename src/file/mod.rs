@@ -273,20 +273,20 @@ impl error::Error for Error {
 pub enum Format {
     /// YAML.
     ///
-    /// Requires the `yaml` feature.
-    #[cfg(feature = "yaml")]
+    /// Requires the `yaml_format` feature.
+    #[cfg(feature = "yaml_format")]
     Yaml,
 
     /// JSON.
     ///
-    /// Requires the `json` feature.
-    #[cfg(feature = "json")]
+    /// Requires the `json_format` feature.
+    #[cfg(feature = "json_format")]
     Json,
 
     /// TOML.
     ///
-    /// Requires the `toml` feature.
-    #[cfg(feature = "toml")]
+    /// Requires the `toml_format` feature.
+    #[cfg(feature = "toml_format")]
     Toml,
 }
 
@@ -383,11 +383,11 @@ impl Config {
 
 fn parse(format: Format, _config: &str) -> Result<raw::Config, Box<error::Error>> {
     match format {
-        #[cfg(feature = "yaml")]
+        #[cfg(feature = "yaml_format")]
         Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "json")]
+        #[cfg(feature = "json_format")]
         Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "toml")]
+        #[cfg(feature = "toml_format")]
         Format::Toml => {
             use serde::de::Deserialize;
 
@@ -407,7 +407,7 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(feature = "yaml")]
+    #[cfg(feature = "yaml_format")]
     fn full_deserialize() {
         let cfg = r#"
 refresh_rate: 60 seconds
@@ -441,7 +441,7 @@ loggers:
     }
 
     #[test]
-    #[cfg(feature = "yaml")]
+    #[cfg(feature = "yaml_format")]
     fn empty() {
         let config = Config::parse("{}", Format::Yaml, &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
