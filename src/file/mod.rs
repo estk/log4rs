@@ -175,6 +175,8 @@ pub struct Deserializers(ShareMap);
 ///     * "rolling_file" -> `RollingFileAppenderDeserializer`
 /// * Encoders
 ///     * "pattern" -> `PatternEncoderDeserializer`
+///     * "json" -> `JsonEncoderDeserializer`
+///         * Requires the `json_encoder` feature.
 /// * Filters
 ///     * "threshold" -> `ThresholdFilterDeserializer`
 /// * Policies
@@ -196,6 +198,15 @@ impl Default for Deserializers {
         deserializers.insert("delete", DeleteRollerDeserializer);
         deserializers.insert("fixed_window", FixedWindowRollerDeserializer);
         deserializers.insert("size", SizeTriggerDeserializer);
+
+        #[cfg(feature = "json_encoder")]
+        fn add_json_encoder(d: &mut Deserializers) {
+            d.insert("json", ::encode::json::JsonEncoderDeserializer);
+        }
+        #[cfg(not(feature = "json_encoder"))]
+        fn add_json_encoder(_: &mut Deserializers) {}
+        add_json_encoder(&mut deserializers);
+
         deserializers
     }
 }

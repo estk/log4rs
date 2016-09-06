@@ -111,17 +111,12 @@ use std::io;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::{self, Encode, Style, Color};
+use encode::{self, Encode, Style, Color, NEWLINE};
 use file::{Deserialize, Deserializers};
 
 mod parser;
 
 include!("serde.rs");
-
-#[cfg(windows)]
-const NEWLINE: &'static str = "\r\n";
-#[cfg(not(windows))]
-const NEWLINE: &'static str = "\n";
 
 fn is_char_boundary(b: u8) -> bool {
     b as i8 >= -0x40

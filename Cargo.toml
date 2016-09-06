@@ -11,6 +11,7 @@ documentation = "https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs"
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
+json_encoder = ["serde_json"]
 gzip = ["flate2"]
 
 [dependencies]

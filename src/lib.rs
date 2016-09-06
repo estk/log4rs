@@ -154,13 +154,13 @@ extern crate log;
 extern crate serde;
 extern crate serde_value;
 extern crate typemap;
-#[cfg(feature = "yaml_format")]
+#[cfg(feature = "serde_yaml")]
 extern crate serde_yaml;
-#[cfg(feature = "json_format")]
+#[cfg(feature = "serde_json")]
 extern crate serde_json;
-#[cfg(feature = "toml_format")]
+#[cfg(feature = "toml")]
 extern crate toml;
-#[cfg(feature = "gzip")]
+#[cfg(feature = "flate2")]
 extern crate flate2;
 
 #[cfg(windows)]
@@ -429,7 +429,9 @@ impl Handle {
 ///
 /// Any nonfatal errors encountered when processing the configuration are
 /// reported to stderr.
-pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Result<(), Error> {
+pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
+    where P: AsRef<Path>
+{
     let path = path.as_ref().to_path_buf();
     let format = try!(get_format(&path));
     let source = try!(read_config(&path));

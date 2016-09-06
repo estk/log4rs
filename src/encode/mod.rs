@@ -9,8 +9,15 @@ use std::io;
 
 use file::Deserializable;
 
+#[cfg(feature = "json_encoder")]
+pub mod json;
 pub mod pattern;
 pub mod writer;
+
+#[cfg(windows)]
+const NEWLINE: &'static str = "\r\n";
+#[cfg(not(windows))]
+const NEWLINE: &'static str = "\n";
 
 /// A trait implemented by types that can serialize a `LogRecord` into a
 /// `Write`r.
