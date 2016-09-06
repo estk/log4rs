@@ -2,6 +2,8 @@
 //!
 //! Each log event will be written as a JSON object on its own line.
 //!
+//! Requires the `json_encoder` feature.
+//!
 //! # Contents
 //!
 //! An example object (note that real output will not be pretty-printed):
