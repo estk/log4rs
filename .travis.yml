@@ -5,4 +5,4 @@ rust:
 - 1.10.0
 script:
 - cargo test
-- cargo test --features "yaml_format json_format toml_format gzip"
+- cargo test --features "yaml_format json_format toml_format gzip json_encoder"
