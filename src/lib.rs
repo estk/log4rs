@@ -199,10 +199,12 @@ pub mod file;
 pub mod encode;
 mod priv_serde;
 
+type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
+
 struct ConfiguredLogger {
     level: LogLevelFilter,
     appenders: Vec<usize>,
-    children: HashMap<String, ConfiguredLogger, BuildHasherDefault<FnvHasher>>,
+    children: FnvHashMap<String, ConfiguredLogger>,
 }
 
 impl ConfiguredLogger {
@@ -229,13 +231,13 @@ impl ConfiguredLogger {
             ConfiguredLogger {
                 level: level,
                 appenders: appenders,
-                children: HashMap::default(),
+                children: FnvHashMap::default(),
             }
         } else {
             let mut child = ConfiguredLogger {
                 level: self.level,
                 appenders: self.appenders.clone(),
-                children: HashMap::default(),
+                children: FnvHashMap::default(),
             };
             child.add(rest, appenders, additive, level);
             child
@@ -321,7 +323,7 @@ impl SharedLogger {
                     .iter()
                     .map(|appender| appender_map[&**appender])
                     .collect(),
-                children: HashMap::default(),
+                children: FnvHashMap::default(),
             };
 
             // sort loggers by name length to ensure that we initialize them top to bottom
