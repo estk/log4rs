@@ -14,8 +14,10 @@ use append::Append;
 use encode::{Encode, EncoderConfig};
 use encode::pattern::PatternEncoder;
 use encode::writer::simple::SimpleWriter;
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+#[cfg(feature = "file")]
 include!("serde.rs");
 
 /// An appender which logs to a file.
@@ -114,8 +116,10 @@ impl FileAppenderBuilder {
 /// encoder:
 ///   kind: pattern
 /// ```
+#[cfg(feature = "file")]
 pub struct FileAppenderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for FileAppenderDeserializer {
     type Trait = Append;
 

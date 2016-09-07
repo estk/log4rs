@@ -7,8 +7,10 @@ use std::fs;
 use std::path::Path;
 
 use append::rolling_file::policy::compound::roll::Roll;
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+#[cfg(feature = "file")]
 include!("config.rs");
 
 /// A roller which deletes the log file.
@@ -35,8 +37,10 @@ impl DeleteRoller {
 /// ```yaml
 /// kind: delete
 /// ```
+#[cfg(feature = "file")]
 pub struct DeleteRollerDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for DeleteRollerDeserializer {
     type Trait = Roll;
 

@@ -2,16 +2,20 @@
 //!
 //! Requires the `size_trigger` feature.
 
+#[cfg(feature = "file")]
 use serde::de;
 use std::ascii::AsciiExt;
 use std::error::Error;
 
 use append::rolling_file::LogFile;
 use append::rolling_file::policy::compound::trigger::Trigger;
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+#[cfg(feature = "file")]
 include!("config.rs");
 
+#[cfg(feature = "file")]
 fn deserialize_limit<D>(d: &mut D) -> Result<u64, D::Error>
     where D: de::Deserializer
 {
@@ -111,8 +115,10 @@ impl Trigger for SizeTrigger {
 /// # bytes if not specified. Required.
 /// limit: 10 mb
 /// ```
+#[cfg(feature = "file")]
 pub struct SizeTriggerDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for SizeTriggerDeserializer {
     type Trait = Trigger;
 

@@ -1,26 +1,31 @@
 //! The compound rolling policy.
 //!
 //! Requires the `compound_policy` feature.
+#[cfg(feature = "file")]
 use serde::{self, de};
 use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;
 
 use append::rolling_file::LogFile;
-use file::{Deserialize, Deserializers};
 use append::rolling_file::policy::compound::roll::Roll;
 use append::rolling_file::policy::Policy;
+#[cfg(feature = "file")]
+use file::{Deserialize, Deserializers};
 
 pub mod roll;
 pub mod trigger;
 
+#[cfg(feature = "file")]
 include!("config.rs");
 
+#[cfg(feature = "file")]
 struct Trigger {
     kind: String,
     config: Value,
 }
 
+#[cfg(feature = "file")]
 impl serde::Deserialize for Trigger {
     fn deserialize<D>(d: &mut D) -> Result<Trigger, D::Error>
         where D: serde::Deserializer
@@ -39,11 +44,13 @@ impl serde::Deserialize for Trigger {
     }
 }
 
+#[cfg(feature = "file")]
 struct Roller {
     kind: String,
     config: Value,
 }
 
+#[cfg(feature = "file")]
 impl serde::Deserialize for Roller {
     fn deserialize<D>(d: &mut D) -> Result<Roller, D::Error>
         where D: serde::Deserializer
@@ -119,8 +126,10 @@ impl Policy for CompoundPolicy {
 ///   # The remainder of the configuration is passed to the roller's
 ///   # deserializer, and will vary based on the kind of roller.
 /// ```
+#[cfg(feature = "file")]
 pub struct CompoundPolicyDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for CompoundPolicyDeserializer {
     type Trait = Policy;
 

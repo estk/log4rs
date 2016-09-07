@@ -2,10 +2,13 @@
 
 use std::fmt;
 use log::LogRecord;
+#[cfg(feature = "file")]
 use serde_value::Value;
+#[cfg(feature = "file")]
 use serde::de;
 use std::collections::BTreeMap;
 
+#[cfg(feature = "file")]
 use file::Deserializable;
 
 #[cfg(feature = "threshold_filter")]
@@ -20,6 +23,7 @@ pub trait Filter: fmt::Debug + Send + Sync + 'static {
     fn filter(&self, record: &LogRecord) -> Response;
 }
 
+#[cfg(feature = "file")]
 impl Deserializable for Filter {
     fn name() -> &'static str {
         "filter"
@@ -46,6 +50,7 @@ pub enum Response {
 
 /// Configuration for a filter.
 #[derive(PartialEq, Eq, Debug)]
+#[cfg(feature = "file")]
 pub struct FilterConfig {
     /// The filter kind.
     pub kind: String,
@@ -53,6 +58,7 @@ pub struct FilterConfig {
     pub config: Value,
 }
 
+#[cfg(feature = "file")]
 impl de::Deserialize for FilterConfig {
     fn deserialize<D>(d: &mut D) -> Result<FilterConfig, D::Error>
         where D: de::Deserializer

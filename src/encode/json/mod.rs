@@ -31,6 +31,7 @@ use serde::ser::{self, Serialize};
 use serde_json;
 
 use encode::{Encode, Write, NEWLINE};
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
 include!("serde.rs");
@@ -146,8 +147,10 @@ fn level_str(level: LogLevel) -> &'static str {
 /// ```yaml
 /// kind: json
 /// ```
+#[cfg(feature = "file")]
 pub struct JsonEncoderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for JsonEncoderDeserializer {
     type Trait = Encode;
 

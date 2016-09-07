@@ -18,6 +18,7 @@
 
 use antidote::Mutex;
 use log::LogRecord;
+#[cfg(feature = "file")]
 use serde;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -30,17 +31,21 @@ use serde_value::Value;
 use append::Append;
 use encode::{self, Encode, EncoderConfig};
 use encode::pattern::PatternEncoder;
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
 pub mod policy;
 
+#[cfg(feature = "file")]
 include!("config.rs");
 
+#[cfg(feature = "file")]
 struct Policy {
     kind: String,
     config: Value,
 }
 
+#[cfg(feature = "file")]
 impl serde::Deserialize for Policy {
     fn deserialize<D>(d: &mut D) -> Result<Policy, D::Error>
         where D: serde::Deserializer
@@ -259,8 +264,10 @@ impl RollingFileAppenderBuilder {
 ///   roller:
 ///     kind: delete
 /// ```
+#[cfg(feature = "file")]
 pub struct RollingFileAppenderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for RollingFileAppenderDeserializer {
     type Trait = Append;
 

@@ -8,20 +8,21 @@ repository = "https://github.com/sfackler/log4rs"
 documentation = "https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs"
 
 [features]
-default = ["console_appender", "file_appender", "pattern_encoder"]
+default = ["console_appender", "file_appender", "pattern_encoder", "file", "yaml_format"]
 
+file = ["humantime", "serde", "serde-value", "typemap"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
 
 console_appender = ["console_writer", "simple_writer"]
-file_appender = ["simple_writer"]
-rolling_file_appender = ["simple_writer"]
+file_appender = ["antidote", "simple_writer"]
+rolling_file_appender = ["antidote", "simple_writer"]
 compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde_json", "chrono"]
+json_encoder = ["serde", "serde_json", "chrono"]
 pattern_encoder = ["chrono"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "kernel32-sys", "winapi"]
@@ -31,17 +32,17 @@ threshold_filter = []
 gzip = ["flate2"]
 
 [dependencies]
-antidote = "1.0"
+antidote = { version = "1.0", optional = true }
 chrono = { version = "0.2", optional = true }
 crossbeam = "0.2.9"
 flate2 = { version = "0.2", optional = true }
 fnv = "1.0"
-humantime = "1.0"
+humantime = { version = "1.0", optional = true }
 libc = { version = "0.2", optional = true }
 log = "0.3"
-serde = "0.8"
-serde-value = "0.3"
-typemap = "0.3"
+serde = { version = "0.8", optional = true }
+serde-value = { version = "0.3", optional = true }
+typemap = { version = "0.3", optional = true }
 serde_json = { version = "0.8", optional = true }
 serde_yaml = { version = "0.4", optional = true }
 toml = { version = "0.2", optional = true, default_features = false, features = ["serde"] }

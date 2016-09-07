@@ -12,8 +12,10 @@ use encode::{self, Encode, EncoderConfig, Style};
 use encode::pattern::PatternEncoder;
 use encode::writer::simple::SimpleWriter;
 use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+#[cfg(feature = "file")]
 include!("serde.rs");
 
 enum Writer {
@@ -140,8 +142,10 @@ impl ConsoleAppenderBuilder {
 /// encoder:
 ///   kind: pattern
 /// ```
+#[cfg(feature = "file")]
 pub struct ConsoleAppenderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for ConsoleAppenderDeserializer {
     type Trait = Append;
 

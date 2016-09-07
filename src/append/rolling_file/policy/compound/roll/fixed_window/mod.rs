@@ -8,8 +8,10 @@ use std::io;
 use std::path::Path;
 
 use append::rolling_file::policy::compound::roll::Roll;
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+#[cfg(feature = "file")]
 include!("config.rs");
 
 #[derive(Debug)]
@@ -196,8 +198,10 @@ impl FixedWindowRollerBuilder {
 /// # The base value for archived log indices. Defaults to 0.
 /// base: 1
 /// ```
+#[cfg(feature = "file")]
 pub struct FixedWindowRollerDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for FixedWindowRollerDeserializer {
     type Trait = Roll;
 

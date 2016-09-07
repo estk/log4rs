@@ -114,6 +114,7 @@ use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
 use encode::{self, Encode, Style, Color, NEWLINE};
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
 mod parser;
@@ -608,8 +609,10 @@ struct Location<'a> {
 /// # "{d} {l} {t} - {m}{n}".
 /// pattern: "{d} {l} {t} - {m}{n}"
 /// ```
+#[cfg(feature = "file")]
 pub struct PatternEncoderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for PatternEncoderDeserializer {
     type Trait = Encode;
 

@@ -485,7 +485,7 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(feature = "yaml_format")]
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
     fn full_deserialize() {
         let cfg = r#"
 refresh_rate: 60 seconds
@@ -515,6 +515,7 @@ loggers:
     additive: false
 "#;
         let config = Config::parse(cfg, Format::Yaml, &Deserializers::default()).unwrap();
+        println!("{:?}", config.errors());
         assert!(config.errors().is_empty());
     }
 

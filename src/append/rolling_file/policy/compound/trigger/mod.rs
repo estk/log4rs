@@ -4,6 +4,7 @@ use std::error::Error;
 use std::fmt;
 
 use append::rolling_file::LogFile;
+#[cfg(feature = "file")]
 use file::Deserializable;
 
 #[cfg(feature = "size_trigger")]
@@ -15,6 +16,7 @@ pub trait Trigger: fmt::Debug + Send + Sync + 'static {
     fn trigger(&self, file: &LogFile) -> Result<bool, Box<Error>>;
 }
 
+#[cfg(feature = "file")]
 impl Deserializable for Trigger {
     fn name() -> &'static str {
         "trigger"

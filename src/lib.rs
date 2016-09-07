@@ -102,7 +102,10 @@
 //! ```
 //!
 //! ```no_run
+//! # #[cfg(feature = "file")]
+//! # fn f() {
 //! log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+//! # }
 //! ```
 //!
 //! Programmatically constructing a configuration:
@@ -148,13 +151,12 @@
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.8")]
 #![warn(missing_docs)]
 
+#[cfg(feature = "antidote")]
 extern crate antidote;
 extern crate crossbeam;
 extern crate fnv;
 extern crate humantime;
 extern crate log;
-extern crate serde;
-extern crate serde_value;
 extern crate typemap;
 #[cfg(feature = "chrono")]
 extern crate chrono;
@@ -164,10 +166,14 @@ extern crate flate2;
 extern crate kernel32;
 #[cfg(feature = "libc")]
 extern crate libc;
+#[cfg(feature = "serde")]
+extern crate serde;
 #[cfg(feature = "serde_yaml")]
 extern crate serde_yaml;
 #[cfg(feature = "serde_json")]
 extern crate serde_json;
+#[cfg(feature = "serde-value")]
+extern crate serde_value;
 #[cfg(feature = "toml")]
 extern crate toml;
 #[cfg(all(windows, feature = "winapi"))]
@@ -195,13 +201,16 @@ use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxL
 use append::Append;
 use config::Config;
 use filter::Filter;
+#[cfg(feature = "file")]
 use file::{Format, Deserializers};
 
 pub mod append;
 pub mod config;
 pub mod filter;
+#[cfg(feature = "file")]
 pub mod file;
 pub mod encode;
+#[cfg(feature = "file")]
 mod priv_serde;
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
@@ -434,6 +443,9 @@ impl Handle {
 ///
 /// Any nonfatal errors encountered when processing the configuration are
 /// reported to stderr.
+///
+/// Requires the `file` feature (enabled by default).
+#[cfg(feature = "file")]
 pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
     where P: AsRef<Path>
 {
@@ -465,6 +477,7 @@ pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
 }
 
 /// An error initializing the logging framework from a file.
+#[cfg(feature = "file")]
 #[derive(Debug)]
 pub enum Error {
     /// An error from the log crate
@@ -473,6 +486,7 @@ pub enum Error {
     Log4rs(Box<error::Error>),
 }
 
+#[cfg(feature = "file")]
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -482,6 +496,7 @@ impl fmt::Display for Error {
     }
 }
 
+#[cfg(feature = "file")]
 impl error::Error for Error {
     fn description(&self) -> &str {
         match *self {
@@ -498,18 +513,21 @@ impl error::Error for Error {
     }
 }
 
+#[cfg(feature = "file")]
 impl From<SetLoggerError> for Error {
     fn from(t: SetLoggerError) -> Error {
         Error::Log(t)
     }
 }
 
+#[cfg(feature = "file")]
 impl From<Box<error::Error>> for Error {
     fn from(t: Box<error::Error>) -> Error {
         Error::Log4rs(t)
     }
 }
 
+#[cfg(feature = "file")]
 fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
     match path.extension().and_then(|s| s.to_str()) {
         #[cfg(feature = "yaml_format")]
@@ -531,6 +549,7 @@ fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
     }
 }
 
+#[cfg(feature = "file")]
 fn read_config(path: &Path) -> Result<String, Box<error::Error>> {
     let mut file = try!(File::open(path));
     let mut s = String::new();
@@ -538,6 +557,7 @@ fn read_config(path: &Path) -> Result<String, Box<error::Error>> {
     Ok(s)
 }
 
+#[cfg(feature = "file")]
 fn parse_config(source: &str,
                 format: Format,
                 deserializers: &Deserializers)
@@ -549,6 +569,7 @@ fn parse_config(source: &str,
     Ok(config)
 }
 
+#[cfg(feature = "file")]
 struct ConfigReloader {
     path: PathBuf,
     format: Format,
@@ -558,6 +579,7 @@ struct ConfigReloader {
     handle: Handle,
 }
 
+#[cfg(feature = "file")]
 impl ConfigReloader {
     fn start(path: PathBuf,
              format: Format,

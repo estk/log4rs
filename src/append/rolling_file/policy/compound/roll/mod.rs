@@ -4,6 +4,7 @@ use std::error::Error;
 use std::fmt;
 use std::path::Path;
 
+#[cfg(feature = "file")]
 use file::Deserializable;
 
 #[cfg(feature = "delete_roller")]
@@ -23,6 +24,7 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     fn roll(&self, file: &Path) -> Result<(), Box<Error>>;
 }
 
+#[cfg(feature = "file")]
 impl Deserializable for Roll {
     fn name() -> &'static str {
         "roller"

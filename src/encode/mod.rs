@@ -1,12 +1,15 @@
 //! Encoders
 
 use log::LogRecord;
+#[cfg(feature = "file")]
 use serde::de;
+#[cfg(feature = "file")]
 use serde_value::Value;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io;
 
+#[cfg(feature = "file")]
 use file::Deserializable;
 
 #[cfg(feature = "json_encoder")]
@@ -32,6 +35,7 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
     fn encode(&self, w: &mut Write, record: &LogRecord) -> io::Result<()>;
 }
 
+#[cfg(feature = "file")]
 impl Deserializable for Encode {
     fn name() -> &'static str {
         "encoder"
@@ -39,6 +43,7 @@ impl Deserializable for Encode {
 }
 
 /// Configuration for an encoder.
+#[cfg(feature = "file")]
 pub struct EncoderConfig {
     /// The encoder's kind.
     pub kind: String,
@@ -47,6 +52,7 @@ pub struct EncoderConfig {
     pub config: Value,
 }
 
+#[cfg(feature = "file")]
 impl de::Deserialize for EncoderConfig {
     fn deserialize<D>(d: &mut D) -> Result<EncoderConfig, D::Error>
         where D: de::Deserializer
