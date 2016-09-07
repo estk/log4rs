@@ -155,8 +155,10 @@
 extern crate antidote;
 extern crate crossbeam;
 extern crate fnv;
+#[cfg(feature = "humantime")]
 extern crate humantime;
 extern crate log;
+#[cfg(feature = "typemap")]
 extern crate typemap;
 #[cfg(feature = "chrono")]
 extern crate chrono;
