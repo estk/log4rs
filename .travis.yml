@@ -6,4 +6,4 @@ rust:
 script:
 - cargo test --no-default-features
 - cargo test
-- cargo test --features $(cargo read-manifest | jq -r '.features|keys|join(" ")')
+- cargo test --features "$(cargo read-manifest | jq -r '.features|keys|join(" ")')"
