@@ -149,27 +149,28 @@
 #![warn(missing_docs)]
 
 extern crate antidote;
-extern crate chrono;
 extern crate crossbeam;
 extern crate fnv;
 extern crate humantime;
-extern crate libc;
 extern crate log;
 extern crate serde;
 extern crate serde_value;
 extern crate typemap;
+#[cfg(feature = "chrono")]
+extern crate chrono;
+#[cfg(feature = "flate2")]
+extern crate flate2;
+#[cfg(all(windows, feature = "kernel32-sys"))]
+extern crate kernel32;
+#[cfg(feature = "libc")]
+extern crate libc;
 #[cfg(feature = "serde_yaml")]
 extern crate serde_yaml;
 #[cfg(feature = "serde_json")]
 extern crate serde_json;
 #[cfg(feature = "toml")]
 extern crate toml;
-#[cfg(feature = "flate2")]
-extern crate flate2;
-
-#[cfg(windows)]
-extern crate kernel32;
-#[cfg(windows)]
+#[cfg(all(windows, feature = "winapi"))]
 extern crate winapi;
 
 #[cfg(test)]

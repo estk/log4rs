@@ -14,15 +14,15 @@ yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
 
-console_appender = ["console_writer", "simple_writer"]
+console_appender = ["console_writer", "simple_writer", "libc", "kernel32-sys", "winapi"]
 file_appender = ["simple_writer"]
 rolling_file_appender = ["simple_writer"]
 compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde_json"]
-pattern_encoder = []
+json_encoder = ["serde_json", "chrono"]
+pattern_encoder = ["chrono"]
 ansi_writer = []
 console_writer = ["ansi_writer"]
 simple_writer = []
@@ -32,12 +32,12 @@ gzip = ["flate2"]
 
 [dependencies]
 antidote = "1.0"
-chrono = "0.2"
+chrono = { version = "0.2", optional = true }
 crossbeam = "0.2.9"
 flate2 = { version = "0.2", optional = true }
 fnv = "1.0"
 humantime = "1.0"
-libc = "0.2"
+libc = { version = "0.2", optional = true }
 log = "0.3"
 serde = "0.8"
 serde-value = "0.3"
@@ -47,8 +47,8 @@ serde_yaml = { version = "0.4", optional = true }
 toml = { version = "0.2", optional = true, default_features = false, features = ["serde"] }
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2"
-winapi = "0.2"
+kernel32-sys = { version = "0.2", optional = true }
+winapi = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempdir = "0.3"
