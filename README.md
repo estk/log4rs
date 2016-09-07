@@ -43,7 +43,7 @@ fn main() {
 
     info!("booting up");
 
-    ...
+    // ...
 }
 ```
 
