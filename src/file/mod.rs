@@ -351,7 +351,7 @@ impl error::Error for Error {
 pub enum Format {
     /// YAML.
     ///
-    /// Requires the `yaml_format` feature.
+    /// Requires the `yaml_format` feature (enabled by default).
     #[cfg(feature = "yaml_format")]
     Yaml,
 
