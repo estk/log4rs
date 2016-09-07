@@ -13,6 +13,8 @@
 //!
 //! For example, you may configure an appender to roll the log over once it
 //! reaches 50 megabytes, and to preserve the last 10 log files.
+//!
+//! Requires the `rolling_file_appender` feature.
 
 use antidote::Mutex;
 use log::LogRecord;

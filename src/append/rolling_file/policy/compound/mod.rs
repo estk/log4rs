@@ -1,4 +1,6 @@
 //! The compound rolling policy.
+//!
+//! Requires the `compound_policy` feature.
 use serde::{self, de};
 use serde_value::Value;
 use std::collections::BTreeMap;

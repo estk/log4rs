@@ -11,11 +11,14 @@ use file::Deserializable;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
+#[cfg(feature = "pattern_encoder")]
 pub mod pattern;
 pub mod writer;
 
+#[allow(dead_code)]
 #[cfg(windows)]
 const NEWLINE: &'static str = "\r\n";
+#[allow(dead_code)]
 #[cfg(not(windows))]
 const NEWLINE: &'static str = "\n";
 

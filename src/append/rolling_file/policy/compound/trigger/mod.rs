@@ -6,6 +6,7 @@ use std::fmt;
 use append::rolling_file::LogFile;
 use file::Deserializable;
 
+#[cfg(feature = "size_trigger")]
 pub mod size;
 
 /// A trait which identifies if the active log file should be rolled over.

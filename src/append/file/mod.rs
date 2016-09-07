@@ -1,4 +1,6 @@
 //! The file appender.
+//!
+//! Requires the `file_appender` feature.
 
 use antidote::Mutex;
 use log::LogRecord;
@@ -11,7 +13,7 @@ use std::path::{Path, PathBuf};
 use append::Append;
 use encode::{Encode, EncoderConfig};
 use encode::pattern::PatternEncoder;
-use encode::writer::SimpleWriter;
+use encode::writer::simple::SimpleWriter;
 use file::{Deserialize, Deserializers};
 
 include!("serde.rs");

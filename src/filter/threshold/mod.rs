@@ -1,4 +1,6 @@
 //! The threshold filter.
+//!
+//! Requires the `threshold_filter` feature.
 
 use log::{LogLevelFilter, LogRecord};
 use std::error::Error;

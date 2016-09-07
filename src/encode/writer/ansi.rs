@@ -1,3 +1,7 @@
+//! The ANSI writer.
+//!
+//! Requires the `ansi_writer` feature.
+
 use std::io;
 use std::fmt;
 use encode::{self, Color, Style};

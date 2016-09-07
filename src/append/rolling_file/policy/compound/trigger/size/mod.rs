@@ -1,4 +1,6 @@
 //! The size trigger.
+//!
+//! Requires the `size_trigger` feature.
 
 use serde::de;
 use std::ascii::AsciiExt;

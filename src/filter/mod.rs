@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 use file::Deserializable;
 
+#[cfg(feature = "threshold_filter")]
 pub mod threshold;
 
 /// The trait implemented by log4rs filters.

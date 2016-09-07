@@ -96,17 +96,8 @@ use serde;
 use serde_value::Value;
 
 use PrivateConfigErrorsExt;
-use append::console::ConsoleAppenderDeserializer;
-use append::file::FileAppenderDeserializer;
-use append::rolling_file::RollingFileAppenderDeserializer;
-use append::rolling_file::policy::compound::CompoundPolicyDeserializer;
-use append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer;
-use append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer;
-use append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer;
 use config;
-use encode::pattern::PatternEncoderDeserializer;
 use filter::FilterConfig;
-use filter::threshold::ThresholdFilterDeserializer;
 
 mod raw;
 
@@ -171,33 +162,93 @@ pub struct Deserializers(ShareMap);
 ///
 /// * Appenders
 ///     * "console" -> `ConsoleAppenderDeserializer`
+///         * Requires the `console_appender` feature (enabled by default).
 ///     * "file" -> `FileAppenderDeserializer`
+///         * Requires the `file_appender` feature (enabled by default).
 ///     * "rolling_file" -> `RollingFileAppenderDeserializer`
+///         * Requires the `rolling_file_appender` feature.
 /// * Encoders
 ///     * "pattern" -> `PatternEncoderDeserializer`
+///         * Requires the `pattern_encoder` feature (enabled by default).
 ///     * "json" -> `JsonEncoderDeserializer`
 ///         * Requires the `json_encoder` feature.
 /// * Filters
 ///     * "threshold" -> `ThresholdFilterDeserializer`
+///         * Requires the `threshold_filter` feature.
 /// * Policies
 ///     *  "compound" -> `CompoundPolicyDeserializer`
+///         * Requires the `compound_policy` feature.
 /// * Rollers
 ///     * "delete" -> `DeleteRollerDeserializer`
+///         * Requires the `delete_roller` feature.
 ///     * "fixed_window" -> `FixedWindowRollerDeserializer`
+///         * Requires the `fixed_window_roller` feature.
 /// * Triggers
 ///     * "size" -> `SizeTriggerDeserializer`
+///         * Requires the `size_trigger` feature.
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
-        deserializers.insert("console", ConsoleAppenderDeserializer);
-        deserializers.insert("file", FileAppenderDeserializer);
-        deserializers.insert("rolling_file", RollingFileAppenderDeserializer);
-        deserializers.insert("pattern", PatternEncoderDeserializer);
-        deserializers.insert("threshold", ThresholdFilterDeserializer);
-        deserializers.insert("compound", CompoundPolicyDeserializer);
-        deserializers.insert("delete", DeleteRollerDeserializer);
-        deserializers.insert("fixed_window", FixedWindowRollerDeserializer);
-        deserializers.insert("size", SizeTriggerDeserializer);
+
+        #[cfg(feature = "console_appender")]
+        fn add_console_appender(d: &mut Deserializers) {
+            d.insert("console", ::append::console::ConsoleAppenderDeserializer);
+        }
+        #[cfg(not(feature = "console_appender"))]
+        fn add_console_appender(_: &mut Deserializers) {}
+        add_console_appender(&mut deserializers);
+
+        #[cfg(feature = "file_appender")]
+        fn add_file_appender(d: &mut Deserializers) {
+            d.insert("file", ::append::file::FileAppenderDeserializer);
+        }
+        #[cfg(not(feature = "file_appender"))]
+        fn add_file_appender(_: &mut Deserializers) {}
+        add_file_appender(&mut deserializers);
+
+        #[cfg(feature = "rolling_file_appender")]
+        fn add_rolling_file_appender(d: &mut Deserializers) {
+            d.insert("rolling_file", ::append::rolling_file::RollingFileAppenderDeserializer);
+        }
+        #[cfg(not(feature = "rolling_file_appender"))]
+        fn add_rolling_file_appender(_: &mut Deserializers) {}
+        add_rolling_file_appender(&mut deserializers);
+
+        #[cfg(feature = "compound_policy")]
+        fn add_compound_policy(d: &mut Deserializers) {
+            d.insert("compound",
+                     ::append::rolling_file::policy::compound::CompoundPolicyDeserializer);
+        }
+        #[cfg(not(feature = "compound_policy"))]
+        fn add_compound_policy(_: &mut Deserializers) {}
+        add_compound_policy(&mut deserializers);
+
+        #[cfg(feature = "delete_roller")]
+        fn add_delete_roller(d: &mut Deserializers) {
+            d.insert("delete",
+                     ::append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer);
+        }
+        #[cfg(not(feature = "delete_roller"))]
+        fn add_delete_roller(_: &mut Deserializers) {}
+        add_delete_roller(&mut deserializers);
+
+        #[cfg(feature = "fixed_window_roller")]
+        fn add_fixed_window_roller(d: &mut Deserializers) {
+            d.insert("fixed_window",
+                     ::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer);
+        }
+        #[cfg(not(feature = "fixed_window_roller"))]
+        fn add_fixed_window_roller(_: &mut Deserializers) {}
+        add_fixed_window_roller(&mut deserializers);
+
+        #[cfg(feature = "size_trigger")]
+        fn add_size_trigger(d: &mut Deserializers) {
+            d.insert("size",
+                     ::append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer);
+        }
+        #[cfg(not(feature = "size_trigger"))]
+        fn add_size_trigger(_: &mut Deserializers) {}
+        add_size_trigger(&mut deserializers);
 
         #[cfg(feature = "json_encoder")]
         fn add_json_encoder(d: &mut Deserializers) {
@@ -206,6 +257,22 @@ impl Default for Deserializers {
         #[cfg(not(feature = "json_encoder"))]
         fn add_json_encoder(_: &mut Deserializers) {}
         add_json_encoder(&mut deserializers);
+
+        #[cfg(feature = "pattern_encoder")]
+        fn add_pattern_encoder(d: &mut Deserializers) {
+            d.insert("pattern", ::encode::pattern::PatternEncoderDeserializer);
+        }
+        #[cfg(not(feature = "pattern_encoder"))]
+        fn add_pattern_encoder(_: &mut Deserializers) {}
+        add_pattern_encoder(&mut deserializers);
+
+        #[cfg(feature = "threshold_filter")]
+        fn add_threshold_filter(d: &mut Deserializers) {
+            d.insert("threshold", ::filter::threshold::ThresholdFilterDeserializer);
+        }
+        #[cfg(not(feature = "threshold_filter"))]
+        fn add_threshold_filter(_: &mut Deserializers) {}
+        add_threshold_filter(&mut deserializers);
 
         deserializers
     }

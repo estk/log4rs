@@ -1,3 +1,7 @@
+//! The console writer
+//!
+//! Requires the `console_writer` feature.
+
 use std::io;
 use std::fmt;
 
@@ -79,7 +83,7 @@ mod imp {
     use libc;
 
     use encode::{self, Style};
-    use encode::writer::AnsiWriter;
+    use encode::writer::ansi::AnsiWriter;
 
     pub struct Writer(AnsiWriter<Stdout>);
 

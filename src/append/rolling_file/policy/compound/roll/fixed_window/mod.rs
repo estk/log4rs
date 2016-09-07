@@ -1,4 +1,6 @@
 //! The fixed-window roller.
+//!
+//! Requires the `fixed_window_roller` feature.
 
 use std::error::Error;
 use std::fs;

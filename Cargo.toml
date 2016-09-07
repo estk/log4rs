@@ -8,10 +8,26 @@ repository = "https://github.com/sfackler/log4rs"
 documentation = "https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs"
 
 [features]
+default = ["console_appender", "file_appender", "pattern_encoder"]
+
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
+
+console_appender = ["console_writer", "simple_writer"]
+file_appender = ["simple_writer"]
+rolling_file_appender = ["simple_writer"]
+compound_policy = []
+delete_roller = []
+fixed_window_roller = []
+size_trigger = []
 json_encoder = ["serde_json"]
+pattern_encoder = []
+ansi_writer = []
+console_writer = ["ansi_writer"]
+simple_writer = []
+threshold_filter = []
+
 gzip = ["flate2"]
 
 [dependencies]

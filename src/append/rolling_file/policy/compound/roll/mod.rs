@@ -6,7 +6,9 @@ use std::path::Path;
 
 use file::Deserializable;
 
+#[cfg(feature = "delete_roller")]
 pub mod delete;
+#[cfg(feature = "fixed_window_roller")]
 pub mod fixed_window;
 
 /// A trait which processes log files after they have been rolled over.

@@ -1,4 +1,6 @@
 //! The console appender.
+//!
+//! Requires the `console_appender` feature.
 
 use std::io::{self, Write, Stdout, StdoutLock};
 use std::fmt;
@@ -8,7 +10,8 @@ use log::LogRecord;
 use append::Append;
 use encode::{self, Encode, EncoderConfig, Style};
 use encode::pattern::PatternEncoder;
-use encode::writer::{SimpleWriter, ConsoleWriter, ConsoleWriterLock};
+use encode::writer::simple::SimpleWriter;
+use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
 use file::{Deserialize, Deserializers};
 
 include!("serde.rs");

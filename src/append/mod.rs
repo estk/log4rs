@@ -6,8 +6,11 @@ use log::LogRecord;
 
 use file::Deserializable;
 
+#[cfg(feature = "file_appender")]
 pub mod file;
+#[cfg(feature = "console_appender")]
 pub mod console;
+#[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
 
 /// A trait implemented by log4rs appenders.

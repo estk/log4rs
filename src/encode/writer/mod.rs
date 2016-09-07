@@ -1,9 +1,8 @@
 //! Implementations of the `encode::Write` trait.
 
-pub use self::ansi::AnsiWriter;
-pub use self::console::{ConsoleWriter, ConsoleWriterLock};
-pub use self::simple::SimpleWriter;
-
-mod ansi;
-mod console;
-mod simple;
+#[cfg(feature = "ansi_writer")]
+pub mod ansi;
+#[cfg(feature = "console_writer")]
+pub mod console;
+#[cfg(feature = "simple_writer")]
+pub mod simple;

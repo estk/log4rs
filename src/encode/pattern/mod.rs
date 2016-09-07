@@ -1,5 +1,7 @@
 //! A simple pattern-based encoder.
 //!
+//! Requires the `pattern_encoder` feature.
+//!
 //! The pattern syntax is similar to Rust's string formatting syntax. It
 //! consists of raw text interspersed with format arguments. The grammar is:
 //!
@@ -632,7 +634,7 @@ mod tests {
     use log::LogLevel;
 
     use super::{PatternEncoder, Location, Chunk};
-    use encode::writer::SimpleWriter;
+    use encode::writer::simple::SimpleWriter;
 
     static LOCATION: Location<'static> = Location {
         module_path: "path",

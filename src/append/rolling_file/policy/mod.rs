@@ -5,6 +5,7 @@ use std::fmt;
 use append::rolling_file::LogFile;
 use file::Deserializable;
 
+#[cfg(feature = "compound_policy")]
 pub mod compound;
 
 /// A trait implementing a rolling policy for a `RollingFileAppender`.

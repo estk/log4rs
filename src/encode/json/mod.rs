@@ -166,7 +166,7 @@ mod test {
     use chrono::{DateTime, Local};
     use log::LogLevel;
 
-    use encode::writer::SimpleWriter;
+    use encode::writer::simple::SimpleWriter;
     use super::*;
 
     #[test]

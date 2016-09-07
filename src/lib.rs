@@ -111,6 +111,8 @@
 //! extern crate log;
 //! extern crate log4rs;
 //!
+//! # #[cfg(all(feature = "console_appender", feature = "file_appender", feature = "pattern_encoder"))]
+//! # fn f() {
 //! use log::LogLevelFilter;
 //! use log4rs::append::console::ConsoleAppender;
 //! use log4rs::append::file::FileAppender;
@@ -140,6 +142,8 @@
 //!
 //!     // use handle to change logger configuration at runtime
 //! }
+//! # }
+//! # fn main() {}
 //! ```
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.8")]
 #![warn(missing_docs)]

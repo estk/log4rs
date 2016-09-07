@@ -4,5 +4,6 @@ rust:
 - nightly
 - 1.10.0
 script:
+- cargo test --no-default-features
 - cargo test
-- cargo test --features "yaml_format json_format toml_format gzip json_encoder"
+- cargo test --features $(cargo read-manifest | jq -r '.features|keys|join(" ")')

@@ -1,4 +1,6 @@
 //! The delete roller.
+//!
+//! Requires the `delete_roller` feature.
 
 use std::error::Error;
 use std::fs;
