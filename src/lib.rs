@@ -63,12 +63,15 @@
 //!
 //! log4rs makes heavy use of Cargo features to enable consumers to pick the
 //! functionality they wish to use. File-based configuration requires the `file`
-//! feature, and each file format requires its own feature as well (e.g. YAML
-//! requires the `yaml_format` feature). In addition, each component has its own
-//! feature (e.g. the console appender requires the `console_appender` feature).
+//! feature, and each file format requires its own feature as well. In addition,
+//! each component has its own feature. For example, YAML support requires the
+//! `yaml_format` feature and the console appender requires the
+//! `console_appender` feature.
 //!
 //! By default, the `console_appender`, `file_appender`, `pattern_encoder`,
 //! `file`, and `yaml_format` features are enabled.
+//!
+//! As a convenience, the `all_components` feature activates all logger components.
 //!
 //! # Examples
 //!
