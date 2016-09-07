@@ -9,7 +9,7 @@ and log4j libraries.
 
 log4rs.yaml:
 ```yaml
-refresh_rate: 30
+refresh_rate: 30 seconds
 appenders:
   stdout:
     kind: console
