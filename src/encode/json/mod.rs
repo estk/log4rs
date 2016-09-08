@@ -23,7 +23,6 @@
 
 use chrono::{DateTime, Local};
 use log::{LogLevel, LogRecord};
-#[cfg(feature = "file")]
 use std::error::Error;
 use std::fmt;
 use std::io;
@@ -58,7 +57,7 @@ impl JsonEncoder {
                     file: &str,
                     line: u32,
                     args: &fmt::Arguments)
-                    -> io::Result<()> {
+                    -> Result<(), Box<Error>> {
         let message = Message {
             time: time,
             level: level,
@@ -70,7 +69,8 @@ impl JsonEncoder {
         };
         try!(message.serialize(&mut serde_json::Serializer::new(&mut *w))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
-        w.write_all(NEWLINE.as_bytes())
+        try!(w.write_all(NEWLINE.as_bytes()));
+        Ok(())
     }
 }
 

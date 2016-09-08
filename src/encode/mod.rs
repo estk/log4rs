@@ -7,6 +7,7 @@ use serde::de;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
+use std::error::Error;
 use std::fmt;
 use std::io;
 
@@ -33,7 +34,7 @@ const NEWLINE: &'static str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `LogRecord` into bytes and writes them.
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> io::Result<()>;
+    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error>>;
 }
 
 #[cfg(feature = "file")]

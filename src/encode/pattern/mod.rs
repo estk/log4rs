@@ -107,8 +107,7 @@
 use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
 use std::default::Default;
-#[cfg(feature = "file")]
-use std::error;
+use std::error::Error;
 use std::fmt;
 use std::io;
 use std::thread;
@@ -559,7 +558,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> Result<(), Box<Error>> {
         let location = Location {
             module_path: record.location().module_path(),
             file: record.location().file(),
@@ -586,7 +585,7 @@ impl PatternEncoder {
                     target: &str,
                     location: &Location,
                     args: &fmt::Arguments)
-                    -> io::Result<()> {
+                    -> Result<(), Box<Error>> {
         for chunk in &self.chunks {
             try!(chunk.encode(w, level, target, location, args));
         }
@@ -623,7 +622,7 @@ impl Deserialize for PatternEncoderDeserializer {
     fn deserialize(&self,
                    config: PatternEncoderConfig,
                    _: &Deserializers)
-                   -> Result<Box<Encode>, Box<error::Error>> {
+                   -> Result<Box<Encode>, Box<Error>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),
