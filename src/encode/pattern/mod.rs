@@ -107,6 +107,7 @@
 use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
 use std::default::Default;
+#[cfg(feature = "file")]
 use std::error;
 use std::fmt;
 use std::io;
@@ -633,14 +634,18 @@ impl Deserialize for PatternEncoderDeserializer {
 
 #[cfg(test)]
 mod tests {
-    use std::default::Default;
+    #[cfg(feature = "simple_writer")]
     use std::thread;
+    #[cfg(feature = "simple_writer")]
     use log::LogLevel;
 
-    use super::{PatternEncoder, Location, Chunk};
+    use super::{PatternEncoder, Chunk};
+    #[cfg(feature = "simple_writer")]
+    use super::Location;
     #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
 
+    #[cfg(feature = "simple_writer")]
     static LOCATION: Location<'static> = Location {
         module_path: "path",
         file: "file",

@@ -20,6 +20,7 @@ use antidote::Mutex;
 use log::LogRecord;
 #[cfg(feature = "file")]
 use serde;
+#[cfg(feature = "file")]
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
@@ -308,7 +309,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
 mod test {
     use std::error::Error;
     use std::io::{Read, Write};
-    use std::fs::{self, File};
+    use std::fs::File;
     use tempdir::TempDir;
 
     use append::rolling_file::policy::Policy;

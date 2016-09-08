@@ -5,6 +5,7 @@
 use serde::{self, de};
 #[cfg(feature = "file")]
 use serde_value::Value;
+#[cfg(feature = "file")]
 use std::collections::BTreeMap;
 use std::error::Error;
 

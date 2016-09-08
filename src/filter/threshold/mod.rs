@@ -3,6 +3,7 @@
 //! Requires the `threshold_filter` feature.
 
 use log::{LogLevelFilter, LogRecord};
+#[cfg(feature = "file")]
 use std::error::Error;
 
 #[cfg(feature = "file")]

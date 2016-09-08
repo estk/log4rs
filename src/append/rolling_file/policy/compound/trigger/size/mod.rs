@@ -4,6 +4,7 @@
 
 #[cfg(feature = "file")]
 use serde::de;
+#[cfg(feature = "file")]
 use std::ascii::AsciiExt;
 use std::error::Error;
 

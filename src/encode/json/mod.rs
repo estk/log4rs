@@ -23,6 +23,7 @@
 
 use chrono::{DateTime, Local};
 use log::{LogLevel, LogRecord};
+#[cfg(feature = "file")]
 use std::error::Error;
 use std::fmt;
 use std::io;
@@ -165,16 +166,15 @@ impl Deserialize for JsonEncoderDeserializer {
 }
 
 #[cfg(test)]
+#[cfg(feature = "simple_writer")]
 mod test {
     use chrono::{DateTime, Local};
     use log::LogLevel;
 
-    #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
     use super::*;
 
     #[test]
-    #[cfg(feature = "simple_writer")]
     fn default() {
         let time = DateTime::parse_from_rfc3339("2016-03-20T14:22:20.644420340-08:00")
             .unwrap()
