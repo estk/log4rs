@@ -119,6 +119,7 @@ use file::{Deserialize, Deserializers};
 
 mod parser;
 
+#[cfg(feature = "file")]
 include!("serde.rs");
 
 fn is_char_boundary(b: u8) -> bool {

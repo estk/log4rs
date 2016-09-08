@@ -26,10 +26,13 @@ use std::fmt;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
+#[cfg(feature = "file")]
 use serde_value::Value;
 
 use append::Append;
-use encode::{self, Encode, EncoderConfig};
+use encode::{self, Encode};
+#[cfg(feature = "file")]
+use encode::EncoderConfig;
 use encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
@@ -144,31 +147,8 @@ impl Append for RollingFileAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
         let mut writer = self.writer.lock();
 
-        if writer.is_none() {
-            if let Some(parent) = self.path.parent() {
-                try!(fs::create_dir_all(parent));
-            }
-
-            let file = try!(OpenOptions::new()
-                .write(true)
-                .append(self.append)
-                .truncate(!self.append)
-                .create(true)
-                .open(&self.path));
-            let len = if self.append {
-                try!(file.metadata()).len()
-            } else {
-                0
-            };
-            *writer = Some(LogWriter {
-                file: BufWriter::with_capacity(1024, file),
-                len: len,
-            });
-        }
-
         let len = {
-            // :( unwrap
-            let writer = writer.as_mut().unwrap();
+            let writer = try!(self.get_writer(&mut writer));
             try!(self.encoder.encode(writer, record));
             try!(writer.flush());
             writer.len
@@ -191,6 +171,29 @@ impl RollingFileAppender {
             append: true,
             encoder: None,
         }
+    }
+
+    fn get_writer<'a>(&self, writer: &'a mut Option<LogWriter>) -> io::Result<&'a mut LogWriter> {
+        if writer.is_none() {
+            let file = try!(OpenOptions::new()
+                .write(true)
+                .append(self.append)
+                .truncate(!self.append)
+                .create(true)
+                .open(&self.path));
+            let len = if self.append {
+                try!(file.metadata()).len()
+            } else {
+                0
+            };
+            *writer = Some(LogWriter {
+                file: BufWriter::with_capacity(1024, file),
+                len: len,
+            });
+        }
+
+        // :( unwrap
+        Ok(writer.as_mut().unwrap())
     }
 }
 
@@ -218,16 +221,25 @@ impl RollingFileAppenderBuilder {
     }
 
     /// Constructs a `RollingFileAppender`.
-    pub fn build<P>(self, path: P, policy: Box<policy::Policy>) -> RollingFileAppender
+    pub fn build<P>(self, path: P, policy: Box<policy::Policy>) -> io::Result<RollingFileAppender>
         where P: AsRef<Path>
     {
-        RollingFileAppender {
+        let appender = RollingFileAppender {
             writer: Mutex::new(None),
             path: path.as_ref().to_owned(),
             append: self.append,
             encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
             policy: policy,
+        };
+
+        if let Some(parent) = appender.path.parent() {
+            try!(fs::create_dir_all(parent));
         }
+
+        // open the log file immediately
+        try!(appender.get_writer(&mut appender.writer.lock()));
+
+        Ok(appender)
     }
 }
 
@@ -287,17 +299,26 @@ impl Deserialize for RollingFileAppenderDeserializer {
         }
 
         let policy = try!(deserializers.deserialize(&config.policy.kind, config.policy.config));
-        Ok(Box::new(builder.build(config.path, policy)))
+        let appender = try!(builder.build(config.path, policy));
+        Ok(Box::new(appender))
     }
 }
 
 #[cfg(test)]
-#[cfg(feature = "yaml")]
 mod test {
-    use file::{Config, Deserializers, Format};
+    use std::error::Error;
+    use std::io::{Read, Write};
+    use std::fs::{self, File};
+    use tempdir::TempDir;
+
+    use append::rolling_file::policy::Policy;
+    use super::*;
 
     #[test]
+    #[cfg(feature = "yaml_format")]
     fn deserialize() {
+        use file::{Config, Deserializers, Format};
+
         let config = "
 appenders:
   foo:
@@ -327,5 +348,54 @@ appenders:
         let config = Config::parse(config, Format::Yaml, &Deserializers::default()).unwrap();
         println!("{:?}", config.errors());
         assert!(config.errors().is_empty());
+    }
+
+    #[derive(Debug)]
+    struct NopPolicy;
+
+    impl Policy for NopPolicy {
+        fn process(&self, _: &mut LogFile) -> Result<(), Box<Error>> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn append() {
+        let dir = TempDir::new("rolling-file-append").unwrap();
+        let path = dir.path().join("append.log");
+        RollingFileAppender::builder()
+            .append(true)
+            .build(&path, Box::new(NopPolicy))
+            .unwrap();
+        assert!(path.exists());
+        File::create(&path).unwrap().write_all(b"hello").unwrap();
+
+        RollingFileAppender::builder()
+            .append(true)
+            .build(&path, Box::new(NopPolicy))
+            .unwrap();
+        let mut contents = vec![];
+        File::open(&path).unwrap().read_to_end(&mut contents).unwrap();
+        assert_eq!(contents, b"hello");
+    }
+
+    #[test]
+    fn truncate() {
+        let dir = TempDir::new("rolling-file-truncate").unwrap();
+        let path = dir.path().join("truncate.log");
+        RollingFileAppender::builder()
+            .append(false)
+            .build(&path, Box::new(NopPolicy))
+            .unwrap();
+        assert!(path.exists());
+        File::create(&path).unwrap().write_all(b"hello").unwrap();
+
+        RollingFileAppender::builder()
+            .append(false)
+            .build(&path, Box::new(NopPolicy))
+            .unwrap();
+        let mut contents = vec![];
+        File::open(&path).unwrap().read_to_end(&mut contents).unwrap();
+        assert_eq!(contents, b"");
     }
 }
