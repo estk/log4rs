@@ -5,5 +5,5 @@ rust:
 - 1.10.0
 script:
 - cargo test --no-default-features
-- set -ex; for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do cargo test --no-default-features --features $feature; done
+- (for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do cargo test --no-default-features --features $feature || exit 1; done)
 - cargo test --features "$(cargo read-manifest | jq -r '.features|keys|join(" ")')"
