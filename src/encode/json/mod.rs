@@ -67,8 +67,7 @@ impl JsonEncoder {
             line: line,
             args: args,
         };
-        try!(message.serialize(&mut serde_json::Serializer::new(&mut *w))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
+        try!(message.serialize(&mut serde_json::Serializer::new(&mut *w)));
         try!(w.write_all(NEWLINE.as_bytes()));
         Ok(())
     }
