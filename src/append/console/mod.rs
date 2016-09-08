@@ -8,7 +8,9 @@ use std::error::Error;
 use log::LogRecord;
 
 use append::Append;
-use encode::{self, Encode, EncoderConfig, Style};
+use encode::{self, Encode, Style};
+#[cfg(feature = "file")]
+use encode::EncoderConfig;
 use encode::pattern::PatternEncoder;
 use encode::writer::simple::SimpleWriter;
 use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};

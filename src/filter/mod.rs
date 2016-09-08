@@ -6,6 +6,7 @@ use log::LogRecord;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use serde::de;
+#[cfg(feature = "file")]
 use std::collections::BTreeMap;
 
 #[cfg(feature = "file")]

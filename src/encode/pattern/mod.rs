@@ -638,6 +638,7 @@ mod tests {
     use log::LogLevel;
 
     use super::{PatternEncoder, Location, Chunk};
+    #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
 
     static LOCATION: Location<'static> = Location {
@@ -666,6 +667,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
         let mut buf = vec![];
@@ -680,6 +682,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn unnamed_thread() {
         thread::spawn(|| {
                 let pw = PatternEncoder::new("{T}");
@@ -697,6 +700,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn named_thread() {
         thread::Builder::new()
             .name("foobar".to_string())
@@ -717,11 +721,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn default_okay() {
         assert!(error_free(&PatternEncoder::default()));
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn left_align() {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
@@ -745,6 +751,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn right_align() {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
@@ -768,6 +775,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn left_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
@@ -782,6 +790,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn right_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
@@ -813,6 +822,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn escaped_chars() {
         let pw = PatternEncoder::new("{{{m}(())}}");
 
@@ -827,6 +837,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn quote_braces_with_backslash() {
         let pw = PatternEncoder::new(r"\{\({l}\)\}\\");
 

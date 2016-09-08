@@ -11,7 +11,9 @@ use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 
 use append::Append;
-use encode::{Encode, EncoderConfig};
+use encode::Encode;
+#[cfg(feature = "file")]
+use encode::EncoderConfig;
 use encode::pattern::PatternEncoder;
 use encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]

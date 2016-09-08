@@ -3,6 +3,7 @@
 //! Requires the `compound_policy` feature.
 #[cfg(feature = "file")]
 use serde::{self, de};
+#[cfg(feature = "file")]
 use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;

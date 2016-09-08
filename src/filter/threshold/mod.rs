@@ -5,9 +5,11 @@
 use log::{LogLevelFilter, LogRecord};
 use std::error::Error;
 
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
 
+#[cfg(feature = "file")]
 include!("serde.rs");
 
 /// A filter that rejects all events at a level below a provided threshold.
@@ -43,8 +45,10 @@ impl Filter for ThresholdFilter {
 /// # The threshold log level to filter at. Required
 /// level: warn
 /// ```
+#[cfg(feature = "file")]
 pub struct ThresholdFilterDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for ThresholdFilterDeserializer {
     type Trait = Filter;
 
