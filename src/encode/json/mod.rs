@@ -75,7 +75,7 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> io::Result<()> {
+    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error>> {
         self.encode_inner(w,
                           Local::now(),
                           record.level(),
