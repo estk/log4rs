@@ -202,4 +202,3 @@ impl ConfigReloader {
         Ok(rate)
     }
 }
-

@@ -208,7 +208,8 @@ impl Default for Deserializers {
 
         #[cfg(feature = "rolling_file_appender")]
         fn add_rolling_file_appender(d: &mut Deserializers) {
-            d.insert("rolling_file", ::append::rolling_file::RollingFileAppenderDeserializer);
+            d.insert("rolling_file",
+                     ::append::rolling_file::RollingFileAppenderDeserializer);
         }
         #[cfg(not(feature = "rolling_file_appender"))]
         fn add_rolling_file_appender(_: &mut Deserializers) {}
@@ -268,7 +269,8 @@ impl Default for Deserializers {
 
         #[cfg(feature = "threshold_filter")]
         fn add_threshold_filter(d: &mut Deserializers) {
-            d.insert("threshold", ::filter::threshold::ThresholdFilterDeserializer);
+            d.insert("threshold",
+                     ::filter::threshold::ThresholdFilterDeserializer);
         }
         #[cfg(not(feature = "threshold_filter"))]
         fn add_threshold_filter(_: &mut Deserializers) {}
