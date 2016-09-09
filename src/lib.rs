@@ -178,7 +178,7 @@ extern crate chrono;
 extern crate flate2;
 #[cfg(all(windows, feature = "kernel32-sys"))]
 extern crate kernel32;
-#[cfg(feature = "libc")]
+#[cfg(all(not(windows), feature = "libc"))]
 extern crate libc;
 #[cfg(feature = "serde")]
 extern crate serde;

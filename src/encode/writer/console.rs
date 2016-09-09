@@ -13,8 +13,8 @@ pub struct ConsoleWriter(imp::Writer);
 impl ConsoleWriter {
     /// Returns a new `ConsoleWriter` that will write to standard out.
     ///
-    /// Returns `None` if standard out is not a console buffer on Windows,
-    /// and if it is not a tty on Unix.
+    /// Returns `None` if standard out is not a console buffer on Windows, and
+    /// if it is not a TTY on Unix.
     pub fn stdout() -> Option<ConsoleWriter> {
         imp::Writer::stdout().map(ConsoleWriter)
     }

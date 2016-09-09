@@ -78,7 +78,10 @@ impl<'a> encode::Write for WriterLock<'a> {
     }
 }
 
-/// An appender which logs to stdout.
+/// An appender which logs to standard out.
+///
+/// It supports output styling if standard out is a console buffer on Windows
+/// or is a TTY on Unix.
 pub struct ConsoleAppender {
     stdout: Writer,
     encoder: Box<Encode>,
