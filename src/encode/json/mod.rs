@@ -25,7 +25,6 @@ use chrono::{DateTime, Local};
 use log::{LogLevel, LogRecord};
 use std::error::Error;
 use std::fmt;
-use std::io;
 use std::thread;
 use serde::ser::{self, Serialize};
 use serde_json;
