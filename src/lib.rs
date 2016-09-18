@@ -126,7 +126,9 @@
 //! extern crate log;
 //! extern crate log4rs;
 //!
-//! # #[cfg(all(feature = "console_appender", feature = "file_appender", feature = "pattern_encoder"))]
+//! # #[cfg(all(feature = "console_appender",
+//! #           feature = "file_appender",
+//! #           feature = "pattern_encoder"))]
 //! # fn f() {
 //! use log::LogLevelFilter;
 //! use log4rs::append::console::ConsoleAppender;
