@@ -226,8 +226,8 @@ impl Default for Deserializers {
 
         #[cfg(feature = "delete_roller")]
         fn add_delete_roller(d: &mut Deserializers) {
-            d.insert("delete",
-                     ::append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer);
+            use append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer;
+            d.insert("delete", DeleteRollerDeserializer);
         }
         #[cfg(not(feature = "delete_roller"))]
         fn add_delete_roller(_: &mut Deserializers) {}
@@ -235,8 +235,8 @@ impl Default for Deserializers {
 
         #[cfg(feature = "fixed_window_roller")]
         fn add_fixed_window_roller(d: &mut Deserializers) {
-            d.insert("fixed_window",
-                     ::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer);
+            use append::rolling_file::policy::compound::roll::fixed_window;
+            d.insert("fixed_window", fixed_window::FixedWindowRollerDeserializer);
         }
         #[cfg(not(feature = "fixed_window_roller"))]
         fn add_fixed_window_roller(_: &mut Deserializers) {}
@@ -244,8 +244,8 @@ impl Default for Deserializers {
 
         #[cfg(feature = "size_trigger")]
         fn add_size_trigger(d: &mut Deserializers) {
-            d.insert("size",
-                     ::append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer);
+            use append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer;
+            d.insert("size", SizeTriggerDeserializer);
         }
         #[cfg(not(feature = "size_trigger"))]
         fn add_size_trigger(_: &mut Deserializers) {}
