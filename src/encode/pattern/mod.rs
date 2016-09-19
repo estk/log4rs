@@ -50,7 +50,8 @@
 //! * `h`, `highlight` - Styles its argument according to the log level. The
 //!     style is intense red for errors, red for warnings, blue for info, and
 //!     the default style for all other levels.
-//!     * `{h(the level is {l})}` - <code style="color: red; font-weight: bold">the level is ERROR</code>
+//!     * `{h(the level is {l})}` -
+//!         <code style="color: red; font-weight: bold">the level is ERROR</code>
 //! * `l``, level` - The log level.
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
