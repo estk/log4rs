@@ -30,7 +30,18 @@ console_writer = ["ansi_writer", "libc", "kernel32-sys", "winapi"]
 simple_writer = []
 threshold_filter = []
 
-all_components = ["console_appender", "file_appender", "rolling_file_appender", "compound_policy", "delete_roller", "fixed_window_roller", "size_trigger", "json_encoder", "pattern_encoder", "threshold_filter"]
+all_components = [
+    "console_appender",
+    "file_appender",
+    "rolling_file_appender",
+    "compound_policy",
+    "delete_roller",
+    "fixed_window_roller",
+    "size_trigger",
+    "json_encoder",
+    "pattern_encoder",
+    "threshold_filter"
+]
 
 gzip = ["flate2"]
 
