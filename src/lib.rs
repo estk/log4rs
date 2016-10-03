@@ -172,6 +172,8 @@ extern crate fnv;
 #[cfg(feature = "humantime")]
 extern crate humantime;
 extern crate log;
+#[cfg(feature = "log-mdc")]
+extern crate log_mdc;
 #[cfg(feature = "typemap")]
 extern crate typemap;
 #[cfg(feature = "chrono")]

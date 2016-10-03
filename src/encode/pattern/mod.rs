@@ -56,9 +56,15 @@
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
 //! * `M`, `module` - The module that the log message came from.
+//! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
-//! * `n` - A platform-specific newline.
+//! * `X`, `mdc` - A value from the MDC. The first argument specifies the key,
+//!     and the second argument specifies the default value if the key is not
+//!     present in the MDC. The second argument is optional, and defaults to
+//!     the empty string.
+//!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -107,6 +113,7 @@
 
 use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
+use log_mdc;
 use std::default::Default;
 use std::error::Error;
 use std::fmt;
@@ -425,11 +432,49 @@ impl<'a> From<Piece<'a>> for Chunk {
                         no_args(&formatter.args, parameters, FormattedChunk::Message)
                     }
                     "M" | "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
+                    "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
                     "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
                     "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                     "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
                     "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
-                    "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
+                    "X" | "mdc" => {
+                        if formatter.args.len() > 2 {
+                            return Chunk::Error("expected at most two arguments".to_owned());
+                        }
+
+                        let key = match formatter.args.get(0) {
+                            Some(arg) => {
+                                if arg.len() != 1 {
+                                    return Chunk::Error("invalid MDC key".to_owned());
+                                }
+                                match arg[0] {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
+                                }
+                            }
+                            None => return Chunk::Error("missing MDC key".to_owned()),
+                        };
+
+                        let default = match formatter.args.get(1) {
+                            Some(arg) => {
+                                if arg.len() != 1 {
+                                    return Chunk::Error("invalid MDC default".to_owned());
+                                }
+                                match arg[0] {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
+                                }
+                            }
+                            None => "".to_owned(),
+                        };
+
+                        Chunk::Formatted {
+                            chunk: FormattedChunk::Mdc(key, default),
+                            params: parameters,
+                        }
+                    }
                     "" => {
                         if formatter.args.len() != 1 {
                             return Chunk::Error("expected exactly one argument".to_owned());
@@ -482,6 +527,7 @@ enum FormattedChunk {
     Newline,
     Align(Vec<Chunk>),
     Highlight(Vec<Chunk>),
+    Mdc(String, String),
 }
 
 impl FormattedChunk {
@@ -532,6 +578,9 @@ impl FormattedChunk {
                     _ => {}
                 }
                 Ok(())
+            }
+            FormattedChunk::Mdc(ref key, ref default) => {
+                log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
             }
         }
     }
@@ -638,6 +687,8 @@ mod tests {
     use std::thread;
     #[cfg(feature = "simple_writer")]
     use log::LogLevel;
+    #[cfg(feature = "simple_writer")]
+    use log_mdc;
 
     use super::{PatternEncoder, Chunk};
     #[cfg(feature = "simple_writer")]
@@ -854,5 +905,54 @@ mod tests {
                           &format_args!("foo"))
             .unwrap();
         assert_eq!(buf, br"{(INFO)}\");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn mdc() {
+        let pw = PatternEncoder::new("{X(user_id)}");
+        log_mdc::insert("user_id", "mdc value");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+            .unwrap();
+
+        assert_eq!(buf, b"mdc value");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn mdc_missing_default() {
+        let pw = PatternEncoder::new("{X(user_id)}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+            .unwrap();
+
+        assert_eq!(buf, b"");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn mdc_missing_custom() {
+        let pw = PatternEncoder::new("{X(user_id)(missing value)}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+            .unwrap();
+
+        assert_eq!(buf, b"missing value");
     }
 }

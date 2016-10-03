@@ -17,12 +17,16 @@
 //!     "line": 100,
 //!     "level": "INFO",
 //!     "target": "foo::bar",
-//!     "thread": "main"
+//!     "thread": "main",
+//!     "mdc": {
+//!         "request_id": "123e4567-e89b-12d3-a456-426655440000"
+//!     }
 //! }
 //! ```
 
 use chrono::{DateTime, Local};
 use log::{LogLevel, LogRecord};
+use log_mdc;
 use std::error::Error;
 use std::fmt;
 use std::thread;
@@ -125,6 +129,9 @@ impl<'a> ser::Serialize for Message<'a> {
         try!(serializer.serialize_map_key(&mut state, "thread"));
         try!(serializer.serialize_map_value(&mut state, thread::current().name()));
 
+        try!(serializer.serialize_map_key(&mut state, "mdc"));
+        try!(serializer.serialize_map_value(&mut state, MdcSerializer));
+
         serializer.serialize_map_end(state)
     }
 }
@@ -136,6 +143,27 @@ fn level_str(level: LogLevel) -> &'static str {
         LogLevel::Info => "INFO",
         LogLevel::Debug => "DEBUG",
         LogLevel::Trace => "TRACE",
+    }
+}
+
+struct MdcSerializer;
+
+impl ser::Serialize for MdcSerializer {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+        where S: ser::Serializer
+    {
+        let mut state = try!(serializer.serialize_map(None));
+
+        let mut err = Ok(());
+        log_mdc::iter(|k, v| {
+            if let Ok(()) = err {
+                err = serializer.serialize_map_key(&mut state, k)
+                    .and_then(|()| serializer.serialize_map_value(&mut state, v));
+            }
+        });
+        try!(err);
+
+        serializer.serialize_map_end(state)
     }
 }
 
@@ -168,6 +196,7 @@ impl Deserialize for JsonEncoderDeserializer {
 mod test {
     use chrono::{DateTime, Local};
     use log::LogLevel;
+    use log_mdc;
 
     use encode::writer::simple::SimpleWriter;
     use super::*;
@@ -184,6 +213,7 @@ mod test {
         let line = 100;
         let message = "message";
         let thread = "encode::json::test::default";
+        log_mdc::insert("foo", "bar");
 
         let encoder = JsonEncoder::new();
 
@@ -200,7 +230,7 @@ mod test {
 
         let expected = format!("{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
                                 \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
-                                \"thread\":\"{}\"}}\n",
+                                \"thread\":\"{}\",\"mdc\":{{\"foo\":\"bar\"}}}}\n",
                                time.to_rfc3339(),
                                message,
                                module_path,

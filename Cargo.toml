@@ -23,8 +23,8 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde", "serde_json", "chrono"]
-pattern_encoder = ["chrono"]
+json_encoder = ["serde", "serde_json", "chrono", "log-mdc"]
+pattern_encoder = ["chrono", "log-mdc"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "kernel32-sys", "winapi"]
 simple_writer = []
@@ -53,6 +53,7 @@ flate2 = { version = "0.2", optional = true }
 fnv = "1.0"
 humantime = { version = "1.0", optional = true }
 log = "0.3"
+log-mdc = { git = "https://github.com/sfackler/rust-log-mdc", optional = true }
 serde = { version = "0.8", optional = true }
 serde-value = { version = "0.3", optional = true }
 typemap = { version = "0.3", optional = true }
