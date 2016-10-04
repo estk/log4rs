@@ -59,10 +59,10 @@
 //! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
-//! * `X`, `mdc` - A value from the MDC. The first argument specifies the key,
-//!     and the second argument specifies the default value if the key is not
-//!     present in the MDC. The second argument is optional, and defaults to
-//!     the empty string.
+//! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
+//!     the key, and the second argument specifies the default value if the
+//!     key is not present in the MDC. The second argument is optional, and
+//!     defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
@@ -110,6 +110,8 @@
 //! necessary. The message `hello` and log level `INFO` will be displayed as
 //! <code>INFO hello     </code>, while the message `hello, world!` and log
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
+//!
+//! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
