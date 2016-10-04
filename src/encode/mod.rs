@@ -1,11 +1,31 @@
 //! Encoders
 
+use log::LogRecord;
+#[cfg(feature = "file")]
+use serde::de;
+#[cfg(feature = "file")]
+use serde_value::Value;
+#[cfg(feature = "file")]
+use std::collections::BTreeMap;
+use std::error::Error;
 use std::fmt;
 use std::io;
-use log::LogRecord;
 
+#[cfg(feature = "file")]
+use file::Deserializable;
+
+#[cfg(feature = "json_encoder")]
+pub mod json;
+#[cfg(feature = "pattern_encoder")]
 pub mod pattern;
 pub mod writer;
+
+#[allow(dead_code)]
+#[cfg(windows)]
+const NEWLINE: &'static str = "\r\n";
+#[allow(dead_code)]
+#[cfg(not(windows))]
+const NEWLINE: &'static str = "\n";
 
 /// A trait implemented by types that can serialize a `LogRecord` into a
 /// `Write`r.
@@ -14,7 +34,43 @@ pub mod writer;
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `LogRecord` into bytes and writes them.
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> io::Result<()>;
+    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error>>;
+}
+
+#[cfg(feature = "file")]
+impl Deserializable for Encode {
+    fn name() -> &'static str {
+        "encoder"
+    }
+}
+
+/// Configuration for an encoder.
+#[cfg(feature = "file")]
+pub struct EncoderConfig {
+    /// The encoder's kind.
+    pub kind: String,
+
+    /// The encoder's configuration.
+    pub config: Value,
+}
+
+#[cfg(feature = "file")]
+impl de::Deserialize for EncoderConfig {
+    fn deserialize<D>(d: &mut D) -> Result<EncoderConfig, D::Error>
+        where D: de::Deserializer
+    {
+        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+
+        let kind = match map.remove(&Value::String("kind".to_owned())) {
+            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            None => "pattern".to_owned(),
+        };
+
+        Ok(EncoderConfig {
+            kind: kind,
+            config: Value::Map(map),
+        })
+    }
 }
 
 /// A text or background color.
@@ -49,10 +105,10 @@ pub struct Style {
 impl fmt::Debug for Style {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("Style")
-           .field("text", &self.text)
-           .field("background", &self.background)
-           .field("intense", &self.intense)
-           .finish()
+            .field("text", &self.text)
+            .field("background", &self.background)
+            .field("intense", &self.intense)
+            .finish()
     }
 }
 

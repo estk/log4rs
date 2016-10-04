@@ -1,20 +1,24 @@
 //! The console appender.
+//!
+//! Requires the `console_appender` feature.
 
 use std::io::{self, Write, Stdout, StdoutLock};
 use std::fmt;
 use std::error::Error;
 use log::LogRecord;
-use serde_value::Value;
 
 use append::Append;
-use append::console::serde::ConsoleAppenderConfig;
 use encode::{self, Encode, Style};
+#[cfg(feature = "file")]
+use encode::EncoderConfig;
 use encode::pattern::PatternEncoder;
-use encode::writer::{SimpleWriter, ConsoleWriter, ConsoleWriterLock};
+use encode::writer::simple::SimpleWriter;
+use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
+#[cfg(feature = "file")]
+include!("serde.rs");
 
 enum Writer {
     Tty(ConsoleWriter),
@@ -74,7 +78,10 @@ impl<'a> encode::Write for WriterLock<'a> {
     }
 }
 
-/// An appender which logs to stdout.
+/// An appender which logs to standard out.
+///
+/// It supports output styling if standard out is a console buffer on Windows
+/// or is a TTY on Unix.
 pub struct ConsoleAppender {
     stdout: Writer,
     encoder: Box<Encode>,
@@ -83,8 +90,8 @@ pub struct ConsoleAppender {
 impl fmt::Debug for ConsoleAppender {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("ConsoleAppender")
-           .field("encoder", &self.encoder)
-           .finish()
+            .field("encoder", &self.encoder)
+            .finish()
     }
 }
 
@@ -140,21 +147,23 @@ impl ConsoleAppenderBuilder {
 /// encoder:
 ///   kind: pattern
 /// ```
+#[cfg(feature = "file")]
 pub struct ConsoleAppenderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for ConsoleAppenderDeserializer {
     type Trait = Append;
 
+    type Config = ConsoleAppenderConfig;
+
     fn deserialize(&self,
-                   config: Value,
+                   config: ConsoleAppenderConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
-        let config = try!(config.deserialize_into::<ConsoleAppenderConfig>());
         let mut appender = ConsoleAppender::builder();
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(deserializers.deserialize("encoder",
-                                                                       &encoder.kind,
-                                                                       encoder.config)));
+            appender =
+                appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
         }
         Ok(Box::new(appender.build()))
     }

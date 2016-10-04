@@ -1,8 +1,9 @@
 //! The file appender.
+//!
+//! Requires the `file_appender` feature.
 
 use antidote::Mutex;
 use log::LogRecord;
-use serde_value::Value;
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
@@ -10,14 +11,16 @@ use std::io::{self, Write, BufWriter};
 use std::path::{Path, PathBuf};
 
 use append::Append;
-use append::file::serde::FileAppenderConfig;
 use encode::Encode;
+#[cfg(feature = "file")]
+use encode::EncoderConfig;
 use encode::pattern::PatternEncoder;
-use encode::writer::SimpleWriter;
+use encode::writer::simple::SimpleWriter;
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
+#[cfg(feature = "file")]
+include!("serde.rs");
 
 /// An appender which logs to a file.
 pub struct FileAppender {
@@ -29,9 +32,9 @@ pub struct FileAppender {
 impl fmt::Debug for FileAppender {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("FileAppender")
-           .field("file", &self.path)
-           .field("encoder", &self.encoder)
-           .finish()
+            .field("file", &self.path)
+            .field("encoder", &self.encoder)
+            .finish()
     }
 }
 
@@ -82,11 +85,11 @@ impl FileAppenderBuilder {
             try!(fs::create_dir_all(parent));
         }
         let file = try!(OpenOptions::new()
-                            .write(true)
-                            .append(self.append)
-                            .truncate(!self.append)
-                            .create(true)
-                            .open(&path));
+            .write(true)
+            .append(self.append)
+            .truncate(!self.append)
+            .create(true)
+            .open(&path));
 
         Ok(FileAppender {
             path: path,
@@ -115,24 +118,26 @@ impl FileAppenderBuilder {
 /// encoder:
 ///   kind: pattern
 /// ```
+#[cfg(feature = "file")]
 pub struct FileAppenderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for FileAppenderDeserializer {
     type Trait = Append;
 
+    type Config = FileAppenderConfig;
+
     fn deserialize(&self,
-                   config: Value,
+                   config: FileAppenderConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
-        let config = try!(config.deserialize_into::<FileAppenderConfig>());
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);
         }
         if let Some(encoder) = config.encoder {
-            appender = appender.encoder(try!(deserializers.deserialize("encoder",
-                                                                       &encoder.kind,
-                                                                       encoder.config)));
+            appender =
+                appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
         }
         Ok(Box::new(try!(appender.build(&config.path))))
     }

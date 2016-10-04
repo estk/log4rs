@@ -5,11 +5,11 @@ and log4j libraries.
 
 [![Build Status](https://travis-ci.org/sfackler/log4rs.svg?branch=master)](https://travis-ci.org/sfackler/log4rs)
 
-[Documentation](https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs)
+[Documentation](https://sfackler.github.io/log4rs/doc/v0.5.0/log4rs)
 
 log4rs.yaml:
 ```yaml
-refresh_rate: 30
+refresh_rate: 30 seconds
 appenders:
   stdout:
     kind: console
@@ -43,7 +43,7 @@ fn main() {
 
     info!("booting up");
 
-    ...
+    // ...
 }
 ```
 

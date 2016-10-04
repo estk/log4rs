@@ -1,91 +1,49 @@
-//! Types used to deserialize config files.
-#![allow(missing_docs)]
-
+use humantime;
+use log::LogLevelFilter;
+use serde::de::{self, Deserialize, Deserializer};
+use serde_value::Value;
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
-use serde::de::{self, Deserialize, Deserializer};
-use serde_value::Value;
-use log::LogLevelFilter;
 
-use priv_serde::{DeLogLevelFilter, DeDuration};
+use filter::FilterConfig;
 
 include!("serde.rs");
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct Config {
-    pub refresh_rate: Option<Duration>,
-    pub root: Option<Root>,
-    pub appenders: HashMap<String, Appender>,
-    pub loggers: HashMap<String, Logger>,
-    _p: (),
-}
+fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
+    where D: de::Deserializer
+{
+    struct S(Duration);
 
-impl de::Deserialize for Config {
-    fn deserialize<D>(d: &mut D) -> Result<Config, D::Error>
-        where D: de::Deserializer
-    {
-        let PrivConfig { refresh_rate, root, appenders, loggers } =
-            try!(PrivConfig::deserialize(d));
+    impl de::Deserialize for S {
+        fn deserialize<D>(d: &mut D) -> Result<S, D::Error>
+            where D: de::Deserializer
+        {
+            struct V;
 
-        Ok(Config {
-            refresh_rate: refresh_rate.map(|r| r.0),
-            root: root,
-            appenders: appenders,
-            loggers: loggers,
-            _p: (),
-        })
+            impl de::Visitor for V {
+                type Value = S;
+
+                fn visit_str<E>(&mut self, v: &str) -> Result<S, E>
+                    where E: de::Error
+                {
+                    humantime::parse_duration(v)
+                        .map(S)
+                        .map_err(|e| E::invalid_value(&e.to_string()))
+                }
+            }
+
+            d.deserialize(V)
+        }
     }
-}
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct Root {
-    pub level: LogLevelFilter,
-    pub appenders: Vec<String>,
-    _p: (),
-}
-
-impl de::Deserialize for Root {
-    fn deserialize<D>(d: &mut D) -> Result<Root, D::Error>
-        where D: de::Deserializer
-    {
-        let PrivRoot { level, appenders } = try!(PrivRoot::deserialize(d));
-
-        Ok(Root {
-            level: level.0,
-            appenders: appenders,
-            _p: (),
-        })
-    }
-}
-
-#[derive(PartialEq, Eq, Debug)]
-pub struct Logger {
-    pub level: LogLevelFilter,
-    pub appenders: Vec<String>,
-    pub additive: Option<bool>,
-    _p: (),
-}
-
-impl de::Deserialize for Logger {
-    fn deserialize<D>(d: &mut D) -> Result<Logger, D::Error>
-        where D: de::Deserializer
-    {
-        let PrivLogger { level, appenders, additive } = try!(PrivLogger::deserialize(d));
-
-        Ok(Logger {
-            level: level.0,
-            appenders: appenders,
-            additive: additive,
-            _p: (),
-        })
-    }
+    Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Appender {
     pub kind: String,
-    pub filters: Vec<Filter>,
+    pub filters: Vec<FilterConfig>,
     pub config: Value,
 }
 
@@ -113,53 +71,6 @@ impl Deserialize for Appender {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct Filter {
-    pub kind: String,
-    pub config: Value,
-}
-
-impl Deserialize for Filter {
-    fn deserialize<D>(d: &mut D) -> Result<Filter, D::Error>
-        where D: Deserializer
-    {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
-
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
-            None => return Err(de::Error::missing_field("kind")),
-        };
-
-        Ok(Filter {
-            kind: kind,
-            config: Value::Map(map),
-        })
-    }
-}
-
-pub struct Encoder {
-    pub kind: String,
-    pub config: Value,
-}
-
-impl Deserialize for Encoder {
-    fn deserialize<D>(d: &mut D) -> Result<Encoder, D::Error>
-        where D: Deserializer
-    {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
-
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
-            None => "pattern".to_owned(),
-        };
-
-        Ok(Encoder {
-            kind: kind,
-            config: Value::Map(map),
-        })
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::collections::{BTreeMap, HashMap};
@@ -168,6 +79,8 @@ mod test {
     use serde_value::Value;
 
     use super::*;
+    use filter::FilterConfig;
+
     #[allow(unused_imports)]
     use file::{Format, parse};
 
@@ -181,12 +94,12 @@ mod test {
                          Appender {
                              kind: "console".to_owned(),
                              config: Value::Map(BTreeMap::new()),
-                             filters: vec![Filter {
-                                               kind: "threshold".to_string(),
+                             filters: vec![FilterConfig {
+                                               kind: "threshold".to_owned(),
                                                config: {
                                                    let mut m = BTreeMap::new();
-                                                   m.insert(Value::String("level".to_string()),
-                                                            Value::String("debug".to_string()));
+                                                   m.insert(Value::String("level".to_owned()),
+                                                            Value::String("debug".to_owned()));
                                                    Value::Map(m)
                                                },
                                            }],
@@ -207,7 +120,6 @@ mod test {
             root: Some(Root {
                 level: LogLevelFilter::Info,
                 appenders: vec!["console".to_owned()],
-                _p: (),
             }),
             loggers: {
                 let mut m = HashMap::new();
@@ -216,16 +128,14 @@ mod test {
                              level: LogLevelFilter::Warn,
                              appenders: vec!["baz".to_owned()],
                              additive: Some(false),
-                             _p: (),
                          });
                 m
             },
-            _p: (),
         }
     }
 
     #[test]
-    #[cfg(feature = "yaml")]
+    #[cfg(feature = "yaml_format")]
     fn basic_yaml() {
         let cfg = r#"
 refresh_rate: 60 seconds
@@ -259,7 +169,7 @@ loggers:
     }
 
     #[test]
-    #[cfg(feature = "json")]
+    #[cfg(feature = "json_format")]
     fn basic_json() {
         let cfg = r#"
 {
@@ -298,7 +208,7 @@ loggers:
     }
 
     #[test]
-    #[cfg(feature = "toml")]
+    #[cfg(feature = "toml_format")]
     fn basic_toml() {
         let cfg = r#"
 refresh_rate = "60 seconds"

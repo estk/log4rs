@@ -1,0 +1,9 @@
+/// Configuration for the rolling file appender.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RollingFileAppenderConfig {
+    path: String,
+    append: Option<bool>,
+    encoder: Option<EncoderConfig>,
+    policy: Policy,
+}

@@ -7,8 +7,7 @@
 //! # Syntax
 //!
 //! All file formats currently share the same structure. The example below is
-//! of the YAML format, but the JSON and TOML formats consist of the same
-//! structure.
+//! of the YAML format.
 //!
 //! ```yaml
 //! # If set, log4rs will scan the file at the specified rate for changes and
@@ -51,7 +50,8 @@
 //!       # encoder's builder, and will vary based on the kind of encoder.
 //!       pattern: "{d} [{t}] {m}{n}"
 //!
-//! # The root logger is configured by the "root" map. It is optional.
+//! # The root logger is configured by the "root" map. Defaults to a level of
+//! # "debug" and no appenders if not provided.
 //! root:
 //!
 //!   # The maximum log level for the root logger.
@@ -78,7 +78,7 @@
 //!       - foo
 //!
 //!     # The additivity of the logger. If true, appenders attached to the
-//!     # logger's parent will also be attached to this logger. Defauts to true
+//!     # logger's parent will also be attached to this logger. Defaults to true
 //!     # if not specified.
 //!     additive: false
 //! ```
@@ -91,35 +91,67 @@ use std::error;
 use std::fmt;
 use std::time::Duration;
 use typemap::{Key, ShareMap};
+use serde;
 use serde_value::Value;
-use serde::Deserialize as SerdeDeserialize;
 
-use append::file::FileAppenderDeserializer;
-use append::console::ConsoleAppenderDeserializer;
-use filter::Filter;
-use filter::threshold::ThresholdFilterDeserializer;
-use config;
-use encode::pattern::PatternEncoderDeserializer;
 use PrivateConfigErrorsExt;
+use config;
+use filter::FilterConfig;
 
-pub mod raw;
+mod raw;
 
-struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
-
-impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Box<Deserialize<Trait = T>>>;
+/// A trait implemented by traits which are deserializable.
+pub trait Deserializable: Any {
+    /// Returns a name for objects implementing the trait suitable for display in error messages.
+    ///
+    /// For example, the `Deserializable` implementation for the `Append` trait returns "appender".
+    fn name() -> &'static str;
 }
 
 /// A trait for objects that can deserialize log4rs components out of a config.
 pub trait Deserialize: Send + Sync + 'static {
-    /// The trait that this builder will create.
-    type Trait: ?Sized;
+    /// The trait that this deserializer will create.
+    type Trait: ?Sized + Deserializable;
+
+    /// This deserializer's configuration.
+    type Config: serde::Deserialize;
 
     /// Create a new trait object based on the provided config.
+    fn deserialize(&self,
+                   config: Self::Config,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Self::Trait>, Box<error::Error>>;
+}
+
+trait ErasedDeserialize: Send + Sync + 'static {
+    type Trait: ?Sized;
+
     fn deserialize(&self,
                    config: Value,
                    deserializers: &Deserializers)
                    -> Result<Box<Self::Trait>, Box<error::Error>>;
+}
+
+struct DeserializeEraser<T>(T);
+
+impl<T> ErasedDeserialize for DeserializeEraser<T>
+    where T: Deserialize
+{
+    type Trait = T::Trait;
+
+    fn deserialize(&self,
+                   config: Value,
+                   deserializers: &Deserializers)
+                   -> Result<Box<Self::Trait>, Box<error::Error>> {
+        let config = try!(config.deserialize_into());
+        self.0.deserialize(config, deserializers)
+    }
+}
+
+struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
+
+impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
+    type Value = HashMap<String, Box<ErasedDeserialize<Trait = T>>>;
 }
 
 /// A container of `Deserialize`rs.
@@ -128,20 +160,121 @@ pub struct Deserializers(ShareMap);
 /// Creates a `Deserializers` with the following mappings:
 ///
 /// * Appenders
-///     * "file" -> `FileAppenderDeserializer`
 ///     * "console" -> `ConsoleAppenderDeserializer`
-/// * Filters
-///     * "threshold" -> `ThresholdFilterDeserializer`
+///         * Requires the `console_appender` feature (enabled by default).
+///     * "file" -> `FileAppenderDeserializer`
+///         * Requires the `file_appender` feature (enabled by default).
+///     * "rolling_file" -> `RollingFileAppenderDeserializer`
+///         * Requires the `rolling_file_appender` feature.
 /// * Encoders
 ///     * "pattern" -> `PatternEncoderDeserializer`
+///         * Requires the `pattern_encoder` feature (enabled by default).
+///     * "json" -> `JsonEncoderDeserializer`
+///         * Requires the `json_encoder` feature.
+/// * Filters
+///     * "threshold" -> `ThresholdFilterDeserializer`
+///         * Requires the `threshold_filter` feature.
+/// * Policies
+///     *  "compound" -> `CompoundPolicyDeserializer`
+///         * Requires the `compound_policy` feature.
+/// * Rollers
+///     * "delete" -> `DeleteRollerDeserializer`
+///         * Requires the `delete_roller` feature.
+///     * "fixed_window" -> `FixedWindowRollerDeserializer`
+///         * Requires the `fixed_window_roller` feature.
+/// * Triggers
+///     * "size" -> `SizeTriggerDeserializer`
+///         * Requires the `size_trigger` feature.
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut deserializers = Deserializers::new();
-        deserializers.insert("file".to_owned(), Box::new(FileAppenderDeserializer));
-        deserializers.insert("console".to_owned(), Box::new(ConsoleAppenderDeserializer));
-        deserializers.insert("threshold".to_owned(),
-                             Box::new(ThresholdFilterDeserializer));
-        deserializers.insert("pattern".to_owned(), Box::new(PatternEncoderDeserializer));
+
+        #[cfg(feature = "console_appender")]
+        fn add_console_appender(d: &mut Deserializers) {
+            d.insert("console", ::append::console::ConsoleAppenderDeserializer);
+        }
+        #[cfg(not(feature = "console_appender"))]
+        fn add_console_appender(_: &mut Deserializers) {}
+        add_console_appender(&mut deserializers);
+
+        #[cfg(feature = "file_appender")]
+        fn add_file_appender(d: &mut Deserializers) {
+            d.insert("file", ::append::file::FileAppenderDeserializer);
+        }
+        #[cfg(not(feature = "file_appender"))]
+        fn add_file_appender(_: &mut Deserializers) {}
+        add_file_appender(&mut deserializers);
+
+        #[cfg(feature = "rolling_file_appender")]
+        fn add_rolling_file_appender(d: &mut Deserializers) {
+            d.insert("rolling_file",
+                     ::append::rolling_file::RollingFileAppenderDeserializer);
+        }
+        #[cfg(not(feature = "rolling_file_appender"))]
+        fn add_rolling_file_appender(_: &mut Deserializers) {}
+        add_rolling_file_appender(&mut deserializers);
+
+        #[cfg(feature = "compound_policy")]
+        fn add_compound_policy(d: &mut Deserializers) {
+            d.insert("compound",
+                     ::append::rolling_file::policy::compound::CompoundPolicyDeserializer);
+        }
+        #[cfg(not(feature = "compound_policy"))]
+        fn add_compound_policy(_: &mut Deserializers) {}
+        add_compound_policy(&mut deserializers);
+
+        #[cfg(feature = "delete_roller")]
+        fn add_delete_roller(d: &mut Deserializers) {
+            use append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer;
+            d.insert("delete", DeleteRollerDeserializer);
+        }
+        #[cfg(not(feature = "delete_roller"))]
+        fn add_delete_roller(_: &mut Deserializers) {}
+        add_delete_roller(&mut deserializers);
+
+        #[cfg(feature = "fixed_window_roller")]
+        fn add_fixed_window_roller(d: &mut Deserializers) {
+            use append::rolling_file::policy::compound::roll::fixed_window;
+            d.insert("fixed_window", fixed_window::FixedWindowRollerDeserializer);
+        }
+        #[cfg(not(feature = "fixed_window_roller"))]
+        fn add_fixed_window_roller(_: &mut Deserializers) {}
+        add_fixed_window_roller(&mut deserializers);
+
+        #[cfg(feature = "size_trigger")]
+        fn add_size_trigger(d: &mut Deserializers) {
+            use append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer;
+            d.insert("size", SizeTriggerDeserializer);
+        }
+        #[cfg(not(feature = "size_trigger"))]
+        fn add_size_trigger(_: &mut Deserializers) {}
+        add_size_trigger(&mut deserializers);
+
+        #[cfg(feature = "json_encoder")]
+        fn add_json_encoder(d: &mut Deserializers) {
+            d.insert("json", ::encode::json::JsonEncoderDeserializer);
+        }
+        #[cfg(not(feature = "json_encoder"))]
+        fn add_json_encoder(_: &mut Deserializers) {}
+        add_json_encoder(&mut deserializers);
+
+        #[cfg(feature = "pattern_encoder")]
+        fn add_pattern_encoder(d: &mut Deserializers) {
+            d.insert("pattern", ::encode::pattern::PatternEncoderDeserializer);
+        }
+        #[cfg(not(feature = "pattern_encoder"))]
+        fn add_pattern_encoder(_: &mut Deserializers) {}
+        add_pattern_encoder(&mut deserializers);
+
+        #[cfg(feature = "threshold_filter")]
+        fn add_threshold_filter(d: &mut Deserializers) {
+            d.insert("threshold",
+                     ::filter::threshold::ThresholdFilterDeserializer);
+        }
+        #[cfg(not(feature = "threshold_filter"))]
+        fn add_threshold_filter(_: &mut Deserializers) {}
+        add_threshold_filter(&mut deserializers);
+
         deserializers
     }
 }
@@ -153,29 +286,35 @@ impl Deserializers {
     }
 
     /// Adds a mapping from the specified `kind` to a deserializer.
-    pub fn insert<T: ?Sized + Any>(&mut self, kind: String, builder: Box<Deserialize<Trait = T>>) {
-        self.0.entry::<KeyAdaptor<T>>().or_insert_with(|| HashMap::new()).insert(kind, builder);
+    pub fn insert<T>(&mut self, kind: &str, deserializer: T)
+        where T: Deserialize
+    {
+        self.0
+            .entry::<KeyAdaptor<T::Trait>>()
+            .or_insert_with(|| HashMap::new())
+            .insert(kind.to_owned(), Box::new(DeserializeEraser(deserializer)));
     }
 
-    /// Retrieves the deserializer of the specified `kind`.
-    pub fn get<T: ?Sized + Any>(&self, kind: &str) -> Option<&Deserialize<Trait = T>> {
-        self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)).map(|b| &**b)
-    }
-
-    /// A utility method that deserializes a value.
-    pub fn deserialize<T: ?Sized + Any>(&self,
-                                        trait_: &str,
-                                        kind: &str,
-                                        config: Value)
-                                        -> Result<Box<T>, Box<error::Error>> {
-        match self.get(kind) {
+    /// Deserializes a value of a specific type and kind.
+    pub fn deserialize<T: ?Sized>(&self,
+                                  kind: &str,
+                                  config: Value)
+                                  -> Result<Box<T>, Box<error::Error>>
+        where T: Deserializable
+    {
+        match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
-            None => Err(format!("no {} builder for kind `{}` registered", trait_, kind).into()),
+            None => {
+                Err(format!("no {} deserializer for kind `{}` registered",
+                            T::name(),
+                            kind)
+                    .into())
+            }
         }
     }
 }
 
-/// An error returned when deserializing a TOML configuration into a log4rs `Config`.
+/// An error returned when deserializing a configuration into a log4rs `Config`.
 #[derive(Debug)]
 pub enum Error {
     /// An error deserializing a component.
@@ -188,16 +327,16 @@ impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::Deserialization(ref err) => {
-                write!(fmt, "Error deserializing component: {}", err)
+                write!(fmt, "error deserializing component: {}", err)
             }
-            Error::Config(ref err) => write!(fmt, "Error creating config: {}", err),
+            Error::Config(ref err) => write!(fmt, "error creating config: {}", err),
         }
     }
 }
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        "An error encountered when deserializing a configuration file into a log4rs `Config`"
+        "an error deserializing a configuration file into a log4rs `Config`"
     }
 
     fn cause(&self) -> Option<&error::Error> {
@@ -213,18 +352,20 @@ impl error::Error for Error {
 pub enum Format {
     /// YAML.
     ///
-    /// Requires the `yaml` feature.
-    #[cfg(feature = "yaml")]
+    /// Requires the `yaml_format` feature (enabled by default).
+    #[cfg(feature = "yaml_format")]
     Yaml,
+
     /// JSON.
     ///
-    /// Requires the `json` feature.
-    #[cfg(feature = "json")]
+    /// Requires the `json_format` feature.
+    #[cfg(feature = "json_format")]
     Json,
+
     /// TOML.
     ///
-    /// Requires the `toml` feature.
-    #[cfg(feature = "toml")]
+    /// Requires the `toml_format` feature.
+    #[cfg(feature = "toml_format")]
     Toml,
 }
 
@@ -263,11 +404,11 @@ impl Config {
         let mut config = config::Config::builder();
 
         for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
-            match deserializers.deserialize("appender", &kind, raw_config) {
+            match deserializers.deserialize(&kind, raw_config) {
                 Ok(appender_obj) => {
                     let mut builder = config::Appender::builder();
-                    for raw::Filter { kind, config } in filters {
-                        match deserializers.deserialize("filter", &kind, config) {
+                    for FilterConfig { kind, config } in filters {
+                        match deserializers.deserialize(&kind, config) {
                             Ok(filter) => builder = builder.filter(filter),
                             Err(err) => errors.push(Error::Deserialization(err)),
                         }
@@ -321,12 +462,14 @@ impl Config {
 
 fn parse(format: Format, _config: &str) -> Result<raw::Config, Box<error::Error>> {
     match format {
-        #[cfg(feature = "yaml")]
+        #[cfg(feature = "yaml_format")]
         Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "json")]
+        #[cfg(feature = "json_format")]
         Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "toml")]
+        #[cfg(feature = "toml_format")]
         Format::Toml => {
+            use serde::de::Deserialize;
+
             let mut parser = ::toml::Parser::new(_config);
             let table = match parser.parse() {
                 Some(table) => ::toml::Value::Table(table),
@@ -343,7 +486,7 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(feature = "yaml")]
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
     fn full_deserialize() {
         let cfg = r#"
 refresh_rate: 60 seconds
@@ -373,42 +516,14 @@ loggers:
     additive: false
 "#;
         let config = Config::parse(cfg, Format::Yaml, &Deserializers::default()).unwrap();
+        println!("{:?}", config.errors());
         assert!(config.errors().is_empty());
     }
 
     #[test]
-    #[cfg(feature = "yaml")]
+    #[cfg(feature = "yaml_format")]
     fn empty() {
-        let config = Config::parse("{}",
-                                   Format::Yaml,
-                                   &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "yaml")]
-    fn integer_refresh_yaml() {
-        let config = Config::parse("refresh_rate: 60",
-                                   Format::Yaml,
-                                   &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "json")]
-    fn integer_refresh_json() {
-        let config = Config::parse(r#"{"refresh_rate": 60}"#,
-                                   Format::Json,
-                                   &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "toml")]
-    fn integer_refresh_toml() {
-        let config = Config::parse("refresh_rate = 60",
-                                   Format::Toml,
-                                   &Deserializers::default()).unwrap();
+        let config = Config::parse("{}", Format::Yaml, &Deserializers::default()).unwrap();
         assert!(config.errors().is_empty());
     }
 }

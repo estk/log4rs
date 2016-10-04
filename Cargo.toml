@@ -1,33 +1,72 @@
 [package]
 name = "log4rs"
-version = "0.4.8"
+version = "0.5.0"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://sfackler.github.io/log4rs/doc/v0.4.8/log4rs"
+documentation = "https://sfackler.github.io/log4rs/doc/v0.5.0/log4rs"
+readme = "README.md"
 
 [features]
-yaml = ["serde_yaml"]
-json = ["serde_json"]
+default = ["console_appender", "file_appender", "pattern_encoder", "file", "yaml_format"]
+
+file = ["humantime", "serde", "serde-value", "typemap"]
+yaml_format = ["serde_yaml"]
+json_format = ["serde_json"]
+toml_format = ["toml"]
+
+console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
+file_appender = ["antidote", "simple_writer", "pattern_encoder"]
+rolling_file_appender = ["antidote", "simple_writer", "pattern_encoder"]
+compound_policy = []
+delete_roller = []
+fixed_window_roller = []
+size_trigger = []
+json_encoder = ["serde", "serde_json", "chrono", "log-mdc"]
+pattern_encoder = ["chrono", "log-mdc"]
+ansi_writer = []
+console_writer = ["ansi_writer", "libc", "kernel32-sys", "winapi"]
+simple_writer = []
+threshold_filter = []
+
+all_components = [
+    "console_appender",
+    "file_appender",
+    "rolling_file_appender",
+    "compound_policy",
+    "delete_roller",
+    "fixed_window_roller",
+    "size_trigger",
+    "json_encoder",
+    "pattern_encoder",
+    "threshold_filter"
+]
+
+gzip = ["flate2"]
 
 [dependencies]
-antidote = "1.0"
-chrono = "0.2"
+antidote = { version = "1.0", optional = true }
+chrono = { version = "0.2", optional = true }
 crossbeam = "0.2.9"
-humantime = "0.1"
-libc = "0.2"
+flate2 = { version = "0.2", optional = true }
+fnv = "1.0"
+humantime = { version = "1.0", optional = true }
 log = "0.3"
-serde = "0.7.5"
-serde-value = "0.2"
-typemap = "0.3"
-serde_json = { version = "0.7", optional = true }
-serde_yaml = { version = "0.2", optional = true }
-toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }
+log-mdc = { version = "0.1", optional = true }
+serde = { version = "0.8", optional = true }
+serde-value = { version = "0.3", optional = true }
+typemap = { version = "0.3", optional = true }
+serde_json = { version = "0.8", optional = true }
+serde_yaml = { version = "0.4", optional = true }
+toml = { version = "0.2", optional = true, default_features = false, features = ["serde"] }
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2"
-winapi = "0.2"
+kernel32-sys = { version = "0.2", optional = true }
+winapi = { version = "0.2", optional = true }
+
+[target.'cfg(not(windows))'.dependencies]
+libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempdir = "0.3"

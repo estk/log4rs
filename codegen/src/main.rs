@@ -1,4 +1,3 @@
-extern crate syntex;
 extern crate serde_codegen;
 extern crate walkdir;
 
@@ -14,10 +13,6 @@ fn main() {
 
         let src = entry.path();
         let dst = src.with_file_name(src.file_stem().unwrap());
-
-        let mut registry = syntex::Registry::new();
-        serde_codegen::register(&mut registry);
-
-        registry.expand("", src, &dst).unwrap();
+        serde_codegen::expand(src, dst).unwrap();
     }
 }

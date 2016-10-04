@@ -1,5 +1,7 @@
 //! A simple pattern-based encoder.
 //!
+//! Requires the `pattern_encoder` feature.
+//!
 //! The pattern syntax is similar to Rust's string formatting syntax. It
 //! consists of raw text interspersed with format arguments. The grammar is:
 //!
@@ -39,23 +41,30 @@
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
 //!     A custom format may be provided in the syntax accepted by `chrono`.
-//!     The timezone defaults to UTC, but can be specified explicitly by passing
+//!     The timezone defaults to local, but can be specified explicitly by passing
 //!     a second argument of `utc` for UTC or `local` for local time.
-//!     * `{d}` - `2016-03-20T22:22:20.644420340+00:00`
-//!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 22:22:20`
-//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(local)}` - `2016-03-20 14:22:20 PST`
+//!     * `{d}` - `2016-03-20T14:22:20.644420340-08:00`
+//!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 14:22:20`
+//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(utc)}` - `2016-03-20 22:22:20 UTC`
 //! * `f`, `file` - The source file that the log message came from.
 //! * `h`, `highlight` - Styles its argument according to the log level. The
 //!     style is intense red for errors, red for warnings, blue for info, and
 //!     the default style for all other levels.
-//!     * `{h(the level is {l})}` - <code style="color: red; font-weight: bold">the level is ERROR</code>
+//!     * `{h(the level is {l})}` -
+//!         <code style="color: red; font-weight: bold">the level is ERROR</code>
 //! * `l``, level` - The log level.
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
 //! * `M`, `module` - The module that the log message came from.
+//! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
-//! * `n` - A platform-specific newline.
+//! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
+//!     the key, and the second argument specifies the default value if the
+//!     key is not present in the MDC. The second argument is optional, and
+//!     defaults to the empty string.
+//!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -101,33 +110,27 @@
 //! necessary. The message `hello` and log level `INFO` will be displayed as
 //! <code>INFO hello     </code>, while the message `hello, world!` and log
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
+//!
+//! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{UTC, Local};
 use log::{LogRecord, LogLevel};
-use serde_value::Value;
+use log_mdc;
 use std::default::Default;
-use std::error;
+use std::error::Error;
 use std::fmt;
-use std::fmt::Write as FmtWrite;
 use std::io;
-use std::io::Write;
 use std::thread;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::pattern::serde::PatternEncoderConfig;
-use encode::{self, Encode, Style, Color};
-use encode::Write as EncodeWrite;
+use encode::{self, Encode, Style, Color, NEWLINE};
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
-use ErrorInternals;
 
 mod parser;
-#[cfg_attr(rustfmt, rustfmt_skip)]
-mod serde;
 
-#[cfg(windows)]
-const NEWLINE: &'static str = "\r\n";
-#[cfg(not(windows))]
-const NEWLINE: &'static str = "\n";
+#[cfg(feature = "file")]
+include!("serde.rs");
 
 fn is_char_boundary(b: u8) -> bool {
     b as i8 >= -0x40
@@ -362,8 +365,7 @@ impl<'a> From<Piece<'a>> for Chunk {
             Piece::Text(text) => Chunk::Text(text.to_owned()),
             Piece::Argument { mut formatter, parameters } => {
                 match formatter.name {
-                    "d" |
-                    "date" => {
+                    "d" | "date" => {
                         if formatter.args.len() > 2 {
                             return Chunk::Error("expected at most two arguments".to_owned());
                         }
@@ -384,10 +386,6 @@ impl<'a> From<Piece<'a>> for Chunk {
                                         }
                                     }
                                 }
-                                // FIXME remove in next breaking release
-                                if format.is_empty() {
-                                    format.push_str("%+");
-                                }
                                 format
                             }
                             None => "%+".to_owned(),
@@ -407,7 +405,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                                     _ => return Chunk::Error("invalid timezone".to_owned()),
                                 }
                             }
-                            None => Timezone::Utc,
+                            None => Timezone::Local,
                         };
 
                         Chunk::Formatted {
@@ -415,49 +413,81 @@ impl<'a> From<Piece<'a>> for Chunk {
                             params: parameters,
                         }
                     }
-                    "h" |
-                    "highlight" => {
+                    "h" | "highlight" => {
                         if formatter.args.len() != 1 {
-                            return Chunk::Error("expected exactly one argument".to_owned())
+                            return Chunk::Error("expected exactly one argument".to_owned());
                         }
 
                         let chunks = formatter.args
-                                              .pop()
-                                              .unwrap()
-                                              .into_iter()
-                                              .map(From::from)
-                                              .collect();
+                            .pop()
+                            .unwrap()
+                            .into_iter()
+                            .map(From::from)
+                            .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Highlight(chunks),
                             params: parameters,
                         }
                     }
-                    "l" |
-                    "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
-                    "m" |
-                    "message" => no_args(&formatter.args, parameters, FormattedChunk::Message),
-                    "M" |
-                    "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
-                    "f" |
-                    "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
-                    "L" |
-                    "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
-                    "T" |
-                    "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
-                    "t" |
-                    "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
+                    "l" | "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
+                    "m" | "message" => {
+                        no_args(&formatter.args, parameters, FormattedChunk::Message)
+                    }
+                    "M" | "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
                     "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
+                    "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
+                    "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
+                    "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
+                    "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
+                    "X" | "mdc" => {
+                        if formatter.args.len() > 2 {
+                            return Chunk::Error("expected at most two arguments".to_owned());
+                        }
+
+                        let key = match formatter.args.get(0) {
+                            Some(arg) => {
+                                if arg.len() != 1 {
+                                    return Chunk::Error("invalid MDC key".to_owned());
+                                }
+                                match arg[0] {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
+                                }
+                            }
+                            None => return Chunk::Error("missing MDC key".to_owned()),
+                        };
+
+                        let default = match formatter.args.get(1) {
+                            Some(arg) => {
+                                if arg.len() != 1 {
+                                    return Chunk::Error("invalid MDC default".to_owned());
+                                }
+                                match arg[0] {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
+                                }
+                            }
+                            None => "".to_owned(),
+                        };
+
+                        Chunk::Formatted {
+                            chunk: FormattedChunk::Mdc(key, default),
+                            params: parameters,
+                        }
+                    }
                     "" => {
                         if formatter.args.len() != 1 {
-                            return Chunk::Error("expected exactly one argument".to_owned())
+                            return Chunk::Error("expected exactly one argument".to_owned());
                         }
 
                         let chunks = formatter.args
-                                              .pop()
-                                              .unwrap()
-                                              .into_iter()
-                                              .map(From::from)
-                                              .collect();
+                            .pop()
+                            .unwrap()
+                            .into_iter()
+                            .map(From::from)
+                            .collect();
                         Chunk::Formatted {
                             chunk: FormattedChunk::Align(chunks),
                             params: parameters,
@@ -499,6 +529,7 @@ enum FormattedChunk {
     Newline,
     Align(Vec<Chunk>),
     Highlight(Vec<Chunk>),
+    Mdc(String, String),
 }
 
 impl FormattedChunk {
@@ -543,12 +574,15 @@ impl FormattedChunk {
                     try!(chunk.encode(w, level, target, location, args));
                 }
                 match level {
-                    LogLevel::Error |
-                    LogLevel::Warn |
-                    LogLevel::Info => try!(w.set_style(&Style::new())),
+                    LogLevel::Error | LogLevel::Warn | LogLevel::Info => {
+                        try!(w.set_style(&Style::new()))
+                    }
                     _ => {}
                 }
                 Ok(())
+            }
+            FormattedChunk::Mdc(ref key, ref default) => {
+                log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
             }
         }
     }
@@ -563,8 +597,8 @@ pub struct PatternEncoder {
 impl fmt::Debug for PatternEncoder {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("PatternEncoder")
-           .field("pattern", &self.pattern)
-           .finish()
+            .field("pattern", &self.pattern)
+            .finish()
     }
 }
 
@@ -576,7 +610,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> Result<(), Box<Error>> {
         let location = Location {
             module_path: record.location().module_path(),
             file: record.location().file(),
@@ -603,7 +637,7 @@ impl PatternEncoder {
                     target: &str,
                     location: &Location,
                     args: &fmt::Arguments)
-                    -> io::Result<()> {
+                    -> Result<(), Box<Error>> {
         for chunk in &self.chunks {
             try!(chunk.encode(w, level, target, location, args));
         }
@@ -628,16 +662,19 @@ struct Location<'a> {
 /// # "{d} {l} {t} - {m}{n}".
 /// pattern: "{d} {l} {t} - {m}{n}"
 /// ```
+#[cfg(feature = "file")]
 pub struct PatternEncoderDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for PatternEncoderDeserializer {
     type Trait = Encode;
 
+    type Config = PatternEncoderConfig;
+
     fn deserialize(&self,
-                   config: Value,
+                   config: PatternEncoderConfig,
                    _: &Deserializers)
-                   -> Result<Box<Encode>, Box<error::Error>> {
-        let config = try!(config.deserialize_into::<PatternEncoderConfig>());
+                   -> Result<Box<Encode>, Box<Error>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),
@@ -648,13 +685,20 @@ impl Deserialize for PatternEncoderDeserializer {
 
 #[cfg(test)]
 mod tests {
-    use std::default::Default;
+    #[cfg(feature = "simple_writer")]
     use std::thread;
+    #[cfg(feature = "simple_writer")]
     use log::LogLevel;
+    #[cfg(feature = "simple_writer")]
+    use log_mdc;
 
-    use super::{PatternEncoder, Location, Chunk};
-    use encode::writer::SimpleWriter;
+    use super::{PatternEncoder, Chunk};
+    #[cfg(feature = "simple_writer")]
+    use super::Location;
+    #[cfg(feature = "simple_writer")]
+    use encode::writer::simple::SimpleWriter;
 
+    #[cfg(feature = "simple_writer")]
     static LOCATION: Location<'static> = Location {
         module_path: "path",
         file: "file",
@@ -681,37 +725,40 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "target",
-                        &LOCATION,
-                        &format_args!("the message"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "target",
+                          &LOCATION,
+                          &format_args!("the message"))
+            .unwrap();
 
         assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn unnamed_thread() {
         thread::spawn(|| {
-            let pw = PatternEncoder::new("{T}");
-            let mut buf = vec![];
-            pw.append_inner(&mut SimpleWriter(&mut buf),
-                            LogLevel::Debug,
-                            "target",
-                            &LOCATION,
-                            &format_args!("message"))
-              .unwrap();
-            assert_eq!(buf, b"<unnamed>");
-        })
+                let pw = PatternEncoder::new("{T}");
+                let mut buf = vec![];
+                pw.append_inner(&mut SimpleWriter(&mut buf),
+                                  LogLevel::Debug,
+                                  "target",
+                                  &LOCATION,
+                                  &format_args!("message"))
+                    .unwrap();
+                assert_eq!(buf, b"<unnamed>");
+            })
             .join()
             .unwrap();
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn named_thread() {
         thread::Builder::new()
             .name("foobar".to_string())
@@ -719,11 +766,11 @@ mod tests {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
                 pw.append_inner(&mut SimpleWriter(&mut buf),
-                                LogLevel::Debug,
-                                "target",
-                                &LOCATION,
-                                &format_args!("message"))
-                  .unwrap();
+                                  LogLevel::Debug,
+                                  "target",
+                                  &LOCATION,
+                                  &format_args!("message"))
+                    .unwrap();
                 assert_eq!(buf, b"foobar");
             })
             .unwrap()
@@ -732,81 +779,86 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn default_okay() {
         assert!(error_free(&PatternEncoder::default()));
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn left_align() {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foo"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
         assert_eq!(buf, b"foo~~");
 
         buf.clear();
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"foobar");
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn right_align() {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foo"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
         assert_eq!(buf, b"~~foo");
 
         buf.clear();
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Debug,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Debug,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"foobar");
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn left_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"INFO foobar!   ");
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn right_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-          .unwrap();
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
         assert_eq!(buf, b"   INFO foobar!");
     }
 
@@ -828,8 +880,40 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn escaped_chars() {
         let pw = PatternEncoder::new("{{{m}(())}}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foobar!"))
+            .unwrap();
+        assert_eq!(buf, b"{foobar!()}");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn quote_braces_with_backslash() {
+        let pw = PatternEncoder::new(r"\{\({l}\)\}\\");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
+        assert_eq!(buf, br"{(INFO)}\");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn mdc() {
+        let pw = PatternEncoder::new("{X(user_id)}");
+        log_mdc::insert("user_id", "mdc value");
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
@@ -837,21 +921,40 @@ mod tests {
                         "",
                         &LOCATION,
                         &format_args!("foobar!"))
-          .unwrap();
-        assert_eq!(buf, b"{foobar!()}");
+            .unwrap();
+
+        assert_eq!(buf, b"mdc value");
     }
 
     #[test]
-    fn quote_braces_with_backslash() {
-        let pw = PatternEncoder::new(r"\{\({l}\)\}\\");
+    #[cfg(feature = "simple_writer")]
+    fn mdc_missing_default() {
+        let pw = PatternEncoder::new("{X(user_id)}");
 
         let mut buf = vec![];
         pw.append_inner(&mut SimpleWriter(&mut buf),
                         LogLevel::Info,
                         "",
                         &LOCATION,
-                        &format_args!("foo"))
-        .unwrap();
-        assert_eq!(buf, br"{(INFO)}\");
+                        &format_args!("foobar!"))
+            .unwrap();
+
+        assert_eq!(buf, b"");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn mdc_missing_custom() {
+        let pw = PatternEncoder::new("{X(user_id)(missing value)}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                        LogLevel::Info,
+                        "",
+                        &LOCATION,
+                        &format_args!("foobar!"))
+            .unwrap();
+
+        assert_eq!(buf, b"missing value");
     }
 }

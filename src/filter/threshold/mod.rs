@@ -1,14 +1,17 @@
 //! The threshold filter.
+//!
+//! Requires the `threshold_filter` feature.
 
 use log::{LogLevelFilter, LogRecord};
+#[cfg(feature = "file")]
 use std::error::Error;
-use serde_value::Value;
 
+#[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
-use filter::threshold::serde::ThresholdFilterConfig;
 
-mod serde;
+#[cfg(feature = "file")]
+include!("serde.rs");
 
 /// A filter that rejects all events at a level below a provided threshold.
 #[derive(Debug)]
@@ -43,13 +46,19 @@ impl Filter for ThresholdFilter {
 /// # The threshold log level to filter at. Required
 /// level: warn
 /// ```
+#[cfg(feature = "file")]
 pub struct ThresholdFilterDeserializer;
 
+#[cfg(feature = "file")]
 impl Deserialize for ThresholdFilterDeserializer {
     type Trait = Filter;
 
-    fn deserialize(&self, config: Value, _: &Deserializers) -> Result<Box<Filter>, Box<Error>> {
-        let config = try!(config.deserialize_into::<ThresholdFilterConfig>());
-        Ok(Box::new(ThresholdFilter::new(config.level.0)))
+    type Config = ThresholdFilterConfig;
+
+    fn deserialize(&self,
+                   config: ThresholdFilterConfig,
+                   _: &Deserializers)
+                   -> Result<Box<Filter>, Box<Error>> {
+        Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

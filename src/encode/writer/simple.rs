@@ -1,3 +1,7 @@
+//! The simple writer
+//!
+//! Requires the `simple_writer` feature.
+
 use std::io;
 use std::fmt;
 use encode;
