@@ -7,8 +7,7 @@
 //! # Syntax
 //!
 //! All file formats currently share the same structure. The example below is
-//! of the YAML format, but the JSON and TOML formats consist of the same
-//! structure.
+//! of the YAML format.
 //!
 //! ```yaml
 //! # If set, log4rs will scan the file at the specified rate for changes and
