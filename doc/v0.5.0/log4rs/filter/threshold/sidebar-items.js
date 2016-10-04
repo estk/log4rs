@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ThresholdFilter","A filter that rejects all events at a level below a provided threshold."],["ThresholdFilterConfig","The threshold filter's configuration."],["ThresholdFilterDeserializer","A deserializer for the `ThresholdFilter`."]]});
