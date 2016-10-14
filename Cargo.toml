@@ -58,7 +58,7 @@ serde = { version = "0.8", optional = true }
 serde-value = { version = "0.3", optional = true }
 typemap = { version = "0.3", optional = true }
 serde_json = { version = "0.8", optional = true }
-serde_yaml = { version = "0.4", optional = true }
+serde_yaml = { version = ">= 0.4, < 0.6", optional = true }
 toml = { version = "0.2", optional = true, default_features = false, features = ["serde"] }
 
 [target.'cfg(windows)'.dependencies]
