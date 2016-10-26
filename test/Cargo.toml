@@ -5,4 +5,4 @@ authors = ["Steven Fackler <sfackler@gmail.com>"]
 
 [dependencies]
 log = "0.3"
-log4rs = { path = "..", features = ["toml"] }
+log4rs = { path = "..", features = ["toml_format"] }
