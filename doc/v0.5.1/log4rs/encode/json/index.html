@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `json` mod in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, json">
+
+    <title>log4rs::encode::json - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../../index.html'>log4rs</a>::<wbr><a href='../index.html'>encode</a></p><script>window.sidebarCurrent = {name: 'json', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>log4rs</a>::<wbr><a href='../index.html'>encode</a>::<wbr><a class='mod' href=''>json</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-2460' class='srclink' href='../../../src/log4rs/src/encode/json/mod.rs.html#1-244' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>An encoder which writes a JSON object.</p>
+
+<p>Each log event will be written as a JSON object on its own line.</p>
+
+<p>Requires the <code>json_encoder</code> feature.</p>
+
+<h1 id='contents' class='section-header'><a href='#contents'>Contents</a></h1>
+<p>An example object (note that real output will not be pretty-printed):</p>
+
+<pre><code class="language-json">{
+    &quot;time&quot;: &quot;2016-03-20T14:22:20.644420340-08:00&quot;,
+    &quot;message&quot;: &quot;the log message&quot;,
+    &quot;module_path&quot;: &quot;foo::bar&quot;,
+    &quot;file&quot;: &quot;foo/bar/mod.rs&quot;,
+    &quot;line&quot;: 100,
+    &quot;level&quot;: &quot;INFO&quot;,
+    &quot;target&quot;: &quot;foo::bar&quot;,
+    &quot;thread&quot;: &quot;main&quot;,
+    &quot;mdc&quot;: {
+        &quot;request_id&quot;: &quot;123e4567-e89b-12d3-a456-426655440000&quot;
+    }
+}
+</code></pre>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.JsonEncoder.html'
+                                  title='log4rs::encode::json::JsonEncoder'>JsonEncoder</a></td>
+                           <td class='docblock-short'>
+                                <p>An <code>Encode</code>r which writes a JSON object.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.JsonEncoderConfig.html'
+                                  title='log4rs::encode::json::JsonEncoderConfig'>JsonEncoderConfig</a></td>
+                           <td class='docblock-short'>
+                                <p>The JSON encoder&#39;s configuration</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.JsonEncoderDeserializer.html'
+                                  title='log4rs::encode::json::JsonEncoderDeserializer'>JsonEncoderDeserializer</a></td>
+                           <td class='docblock-short'>
+                                <p>A deserializer for the <code>JsonEncoder</code>.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "log4rs";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script defer src="../../../search-index.js"></script>
+</body>
+</html>

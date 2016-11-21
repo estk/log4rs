@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `compound` mod in crate `log4rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, compound">
+
+    <title>log4rs::append::rolling_file::policy::compound - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../../../../index.html'>log4rs</a>::<wbr><a href='../../../index.html'>append</a>::<wbr><a href='../../index.html'>rolling_file</a>::<wbr><a href='../index.html'>policy</a></p><script>window.sidebarCurrent = {name: 'compound', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Module <a href='../../../../index.html'>log4rs</a>::<wbr><a href='../../../index.html'>append</a>::<wbr><a href='../../index.html'>rolling_file</a>::<wbr><a href='../index.html'>policy</a>::<wbr><a class='mod' href=''>compound</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-396' class='srclink' href='../../../../../src/log4rs/src/append/rolling_file/policy/compound/mod.rs.html#1-148' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>The compound rolling policy.</p>
+
+<p>Requires the <code>compound_policy</code> feature.</p>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='roll/index.html'
+                                  title='log4rs::append::rolling_file::policy::compound::roll'>roll</a></td>
+                           <td class='docblock-short'>
+                                <p>Rollers</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='trigger/index.html'
+                                  title='log4rs::append::rolling_file::policy::compound::trigger'>trigger</a></td>
+                           <td class='docblock-short'>
+                                <p>Triggers</p>
+                           </td>
+                       </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.CompoundPolicy.html'
+                                  title='log4rs::append::rolling_file::policy::compound::CompoundPolicy'>CompoundPolicy</a></td>
+                           <td class='docblock-short'>
+                                <p>A rolling policy which delegates to a &quot;trigger&quot; and &quot;roller&quot;.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.CompoundPolicyConfig.html'
+                                  title='log4rs::append::rolling_file::policy::compound::CompoundPolicyConfig'>CompoundPolicyConfig</a></td>
+                           <td class='docblock-short'>
+                                <p>Configuration for the compound policy.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.CompoundPolicyDeserializer.html'
+                                  title='log4rs::append::rolling_file::policy::compound::CompoundPolicyDeserializer'>CompoundPolicyDeserializer</a></td>
+                           <td class='docblock-short'>
+                                <p>A deserializer for the <code>CompoundPolicyDeserializer</code>.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../../../";
+        window.currentCrate = "log4rs";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../../../jquery.js"></script>
+    <script src="../../../../../main.js"></script>
+    
+    <script defer src="../../../../../search-index.js"></script>
+</body>
+</html>

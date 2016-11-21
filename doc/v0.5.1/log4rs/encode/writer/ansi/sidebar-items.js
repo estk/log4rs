@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["AnsiWriter","An `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes for text style."]]});
