@@ -179,10 +179,13 @@ impl ConfigReloader {
     }
 
     fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, Box<error::Error>> {
-        if let Some(modified) = self.modified {
-            if try!(fs::metadata(&self.path).and_then(|m| m.modified())) == modified {
+        if let Some(last_modified) = self.modified {
+            let modified = try!(fs::metadata(&self.path).and_then(|m| m.modified()));
+            if last_modified == modified {
                 return Ok(Some(rate));
             }
+
+            self.modified = Some(modified);
         }
 
         let source = try!(read_config(&self.path));
