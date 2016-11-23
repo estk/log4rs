@@ -90,7 +90,8 @@ use std::marker::PhantomData;
 use std::error;
 use std::fmt;
 use std::time::Duration;
-use typemap::{Key, ShareMap};
+use std::sync::Arc;
+use typemap::{Key, ShareCloneMap};
 use serde;
 use serde_value::Value;
 
@@ -151,11 +152,12 @@ impl<T> ErasedDeserialize for DeserializeEraser<T>
 struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
 
 impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Box<ErasedDeserialize<Trait = T>>>;
+    type Value = HashMap<String, Arc<ErasedDeserialize<Trait = T>>>;
 }
 
 /// A container of `Deserialize`rs.
-pub struct Deserializers(ShareMap);
+#[derive(Clone)]
+pub struct Deserializers(ShareCloneMap);
 
 /// Creates a `Deserializers` with the following mappings:
 ///
@@ -282,7 +284,7 @@ impl Default for Deserializers {
 impl Deserializers {
     /// Creates a new `Deserializers` with no mappings.
     pub fn new() -> Deserializers {
-        Deserializers(ShareMap::custom())
+        Deserializers(ShareCloneMap::custom())
     }
 
     /// Adds a mapping from the specified `kind` to a deserializer.
@@ -292,7 +294,7 @@ impl Deserializers {
         self.0
             .entry::<KeyAdaptor<T::Trait>>()
             .or_insert_with(|| HashMap::new())
-            .insert(kind.to_owned(), Box::new(DeserializeEraser(deserializer)));
+            .insert(kind.to_owned(), Arc::new(DeserializeEraser(deserializer)));
     }
 
     /// Deserializes a value of a specific type and kind.
