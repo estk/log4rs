@@ -288,10 +288,9 @@ impl ConfiguredLogger {
         let mut node = self;
 
         for part in path.split("::") {
-            if let Some(child) = node.children.get(part) {
-                node = child;
-            } else {
-                break;
+            match node.children.get(part) {
+                Some(child) => node = child,
+                None => break,
             }
         }
 
