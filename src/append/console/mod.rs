@@ -160,6 +160,14 @@ impl ConsoleAppenderBuilder {
     }
 }
 
+/// The stream to log to.
+pub enum Target {
+    /// Standard output.
+    Stdout,
+    /// Standard error.
+    Stderr,
+}
+
 /// A deserializer for the `ConsoleAppender`.
 ///
 /// # Configuration
@@ -189,6 +197,10 @@ impl Deserialize for ConsoleAppenderDeserializer {
                    -> Result<Box<Append>, Box<Error>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = config.target {
+            let target = match target {
+                ConfigTarget::Stdout => Target::Stdout,
+                ConfigTarget::Stderr => Target::Stderr,
+            };
             appender = appender.target(target);
         }
         if let Some(encoder) = config.encoder {

@@ -70,8 +70,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                                __V::Error> where
                      __V: _serde::de::SeqVisitor {
                         let __field0 =
-                            match try!(visitor . visit :: < Option<Target> > (
-                                        )) {
+                            match try!(visitor . visit :: <
+                                       Option<ConfigTarget> > (  )) {
                                 Some(value) => { value }
                                 None => {
                                     try!(visitor . end (  ));
@@ -97,7 +97,7 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                          ::std::result::Result<ConsoleAppenderConfig,
                                                __V::Error> where
                      __V: _serde::de::MapVisitor {
-                        let mut __field0: Option<Option<Target>> = None;
+                        let mut __field0: Option<Option<ConfigTarget>> = None;
                         let mut __field1: Option<Option<EncoderConfig>> =
                             None;
                         while let Some(key) =
@@ -111,7 +111,8 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
                                     }
                                     __field0 =
                                         Some(try!(visitor . visit_value :: <
-                                                  Option<Target> > (  )));
+                                                  Option<ConfigTarget> > (
+                                                  )));
                                 }
                                 __Field::__field1 => {
                                     if __field1.is_some() {
@@ -151,18 +152,18 @@ const _IMPL_DESERIALIZE_FOR_ConsoleAppenderConfig: () =
     };
 /// The console appender's configuration.
 pub struct ConsoleAppenderConfig {
-    target: Option<Target>,
+    target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
 }
 
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
-const _IMPL_DESERIALIZE_FOR_Target: () =
+const _IMPL_DESERIALIZE_FOR_ConfigTarget: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for Target {
+        impl _serde::de::Deserialize for ConfigTarget {
             fn deserialize<__D>(deserializer: &mut __D)
-             -> ::std::result::Result<Target, __D::Error> where
+             -> ::std::result::Result<ConfigTarget, __D::Error> where
              __D: _serde::de::Deserializer {
                 #[allow(non_camel_case_types)]
                 enum __Field { __field0, __field1, __ignore, }
@@ -191,8 +192,8 @@ const _IMPL_DESERIALIZE_FOR_Target: () =
                              -> ::std::result::Result<__Field, __E> where
                              __E: _serde::de::Error {
                                 match value {
-                                    "stdout" => { Ok(__Field::__field0) }
-                                    "stderr" => { Ok(__Field::__field1) }
+                                    "Stdout" => { Ok(__Field::__field0) }
+                                    "Stderr" => { Ok(__Field::__field1) }
                                     _ =>
                                     Err(_serde::de::Error::unknown_variant(value)),
                                 }
@@ -201,8 +202,8 @@ const _IMPL_DESERIALIZE_FOR_Target: () =
                              -> ::std::result::Result<__Field, __E> where
                              __E: _serde::de::Error {
                                 match value {
-                                    b"stdout" => { Ok(__Field::__field0) }
-                                    b"stderr" => { Ok(__Field::__field1) }
+                                    b"Stdout" => { Ok(__Field::__field0) }
+                                    b"Stderr" => { Ok(__Field::__field1) }
                                     _ => {
                                         let value =
                                             ::std::string::String::from_utf8_lossy(value);
@@ -219,18 +220,18 @@ const _IMPL_DESERIALIZE_FOR_Target: () =
                     type
                     Value
                     =
-                    Target;
+                    ConfigTarget;
                     fn visit<__V>(&mut self, mut visitor: __V)
-                     -> ::std::result::Result<Target, __V::Error> where
+                     -> ::std::result::Result<ConfigTarget, __V::Error> where
                      __V: _serde::de::VariantVisitor {
                         match try!(visitor . visit_variant (  )) {
                             __Field::__field0 => {
                                 try!(visitor . visit_unit (  ));
-                                Ok(Target::Stdout)
+                                Ok(ConfigTarget::Stdout)
                             }
                             __Field::__field1 => {
                                 try!(visitor . visit_unit (  ));
-                                Ok(Target::Stderr)
+                                Ok(ConfigTarget::Stderr)
                             }
                             __Field::__ignore => {
                                 Err(_serde::de::Error::end_of_stream())
@@ -240,16 +241,9 @@ const _IMPL_DESERIALIZE_FOR_Target: () =
                 }
                 const VARIANTS: &'static [&'static str] =
                     &["Stdout", "Stderr"];
-                deserializer.deserialize_enum("Target", VARIANTS, __Visitor)
+                deserializer.deserialize_enum("ConfigTarget", VARIANTS,
+                                              __Visitor)
             }
         }
     };
-/// The stream to log to.
-pub enum Target {
-
-    /// Standard output.
-    Stdout,
-
-    /// Standard error.
-    Stderr,
-}
+enum ConfigTarget { Stdout, Stderr, }
