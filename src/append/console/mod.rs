@@ -110,7 +110,7 @@ impl ConsoleAppender {
     pub fn builder() -> ConsoleAppenderBuilder {
         ConsoleAppenderBuilder{
             encoder: None,
-            stderr: false
+            target: Target::Stdout,
         }
     }
 }
@@ -118,7 +118,7 @@ impl ConsoleAppender {
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
     encoder: Option<Box<Encode>>,
-    stderr: bool,
+    target: Target,
 }
 
 impl ConsoleAppenderBuilder {
@@ -128,25 +128,28 @@ impl ConsoleAppenderBuilder {
         self
     }
 
-    /// Determines if the appender will write to standard error rather than standard out.
+    /// Sets the output stream to log to.
     ///
-    /// Defaults to `false`.
-    pub fn stderr(mut self, stderr: bool) -> ConsoleAppenderBuilder {
-        self.stderr = stderr;
+    /// Defaults to `Target::Stdout`.
+    pub fn target(mut self, target: Target) -> ConsoleAppenderBuilder {
+        self.target = target;
         self
     }
 
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
-        let writer = if self.stderr {
-            match ConsoleWriter::stderr() {
-                Some(writer) => Writer::Tty(writer),
-                None => Writer::Raw(StdWriter::stderr()),
+        let writer = match self.target {
+            Target::Stderr => {
+                match ConsoleWriter::stderr() {
+                    Some(writer) => Writer::Tty(writer),
+                    None => Writer::Raw(StdWriter::stderr()),
+                }
             }
-        } else {
-            match ConsoleWriter::stdout() {
-                Some(writer) => Writer::Tty(writer),
-                None => Writer::Raw(StdWriter::stderr()),
+            Target::Stdout => {
+                match ConsoleWriter::stdout() {
+                    Some(writer) => Writer::Tty(writer),
+                    None => Writer::Raw(StdWriter::stderr()),
+                }
             }
         };
 
@@ -164,8 +167,8 @@ impl ConsoleAppenderBuilder {
 /// ```yaml
 /// kind: console
 ///
-/// # If true, log to stderr rather than stdout. Defaults to false.
-/// stderr: false
+/// # The output to write to. One of `stdout` or `stderr`. Defaults to `stdout`.
+/// target: stdout
 ///
 /// # The encoder to use to format output. Defaults to `kind: pattern`.
 /// encoder:
@@ -184,8 +187,10 @@ impl Deserialize for ConsoleAppenderDeserializer {
                    config: ConsoleAppenderConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
-        let mut appender = ConsoleAppender::builder()
-            .stderr(config.stderr);
+        let mut appender = ConsoleAppender::builder();
+        if let Some(target) = config.target {
+            appender = appender.target(target);
+        }
         if let Some(encoder) = config.encoder {
             appender =
                 appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));

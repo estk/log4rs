@@ -2,8 +2,17 @@
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
-    #[serde(default)]
-    stderr: bool,
+    target: Option<Target>,
     encoder: Option<EncoderConfig>,
 }
 
+/// The stream to log to.
+#[derive(Deserialize)]
+pub enum Target {
+    /// Standard output.
+    #[serde(rename = "stdout")]
+    Stdout,
+    /// Standard error.
+    #[serde(rename = "stderr")]
+    Stderr,
+}
