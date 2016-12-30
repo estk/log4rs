@@ -19,6 +19,14 @@ impl ConsoleWriter {
         imp::Writer::stdout().map(ConsoleWriter)
     }
 
+    /// Returns a new `ConsoleWriter` that will write to standard error.
+    ///
+    /// Returns `None` if standard error is not a console buffer on Windows, and
+    /// if it is not a TTY on Unix.
+    pub fn stderr() -> Option<ConsoleWriter> {
+        imp::Writer::stderr().map(ConsoleWriter)
+    }
+
     /// Locks the console, preventing other threads from writing concurrently.
     pub fn lock<'a>(&'a self) -> ConsoleWriterLock<'a> {
         ConsoleWriterLock(self.0.lock())
@@ -78,14 +86,15 @@ impl<'a> encode::Write for ConsoleWriterLock<'a> {
 
 #[cfg(unix)]
 mod imp {
-    use std::io::{self, Stdout, StdoutLock};
+    use std::io;
     use std::fmt;
     use libc;
 
     use encode::{self, Style};
     use encode::writer::ansi::AnsiWriter;
+    use priv_io::{StdWriter, StdWriterLock};
 
-    pub struct Writer(AnsiWriter<Stdout>);
+    pub struct Writer(AnsiWriter<StdWriter>);
 
     impl Writer {
         pub fn stdout() -> Option<Writer> {
@@ -93,7 +102,15 @@ mod imp {
                 return None;
             }
 
-            Some(Writer(AnsiWriter(io::stdout())))
+            Some(Writer(AnsiWriter(StdWriter::stdout())))
+        }
+
+        pub fn stderr() -> Option<Writer> {
+            if unsafe { libc::isatty(libc::STDERR_FILENO) } != 1 {
+                return None;
+            }
+
+            Some(Writer(AnsiWriter(StdWriter::stderr())))
         }
 
         pub fn lock<'a>(&'a self) -> WriterLock<'a> {
@@ -125,7 +142,7 @@ mod imp {
         }
     }
 
-    pub struct WriterLock<'a>(AnsiWriter<StdoutLock<'a>>);
+    pub struct WriterLock<'a>(AnsiWriter<StdWriterLock<'a>>);
 
     impl<'a> io::Write for WriterLock<'a> {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
@@ -161,6 +178,7 @@ mod imp {
     use std::mem;
 
     use encode::{self, Style, Color};
+    use priv_io::{StdWriter, StdWriterLock};
 
     struct RawConsole {
         handle: winapi::HANDLE,
@@ -226,7 +244,7 @@ mod imp {
 
     pub struct Writer {
         console: RawConsole,
-        stdout: Stdout,
+        inner: StdWriter,
     }
 
     impl Writer {
@@ -247,7 +265,29 @@ mod imp {
                         handle: handle,
                         defaults: info.wAttributes,
                     },
-                    stdout: io::stdout(),
+                    inner: StdWriter::stdout(),
+                })
+            }
+        }
+
+        pub fn stderr() -> Option<Writer> {
+            unsafe {
+                let handle = kernel32::GetStdHandle(winapi::STD_ERROR_HANDLE);
+                if handle.is_null() || handle == winapi::INVALID_HANDLE_VALUE {
+                    return None;
+                }
+
+                let mut info = mem::zeroed();
+                if kernel32::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
+                    return None;
+                }
+
+                Some(Writer {
+                    console: RawConsole {
+                        handle: handle,
+                        defaults: info.wAttributes,
+                    },
+                    inner: StdWriter::stderr(),
                 })
             }
         }
@@ -255,62 +295,62 @@ mod imp {
         pub fn lock<'a>(&'a self) -> WriterLock<'a> {
             WriterLock {
                 console: &self.console,
-                stdout: self.stdout.lock(),
+                inner: self.inner.lock(),
             }
         }
     }
 
     impl io::Write for Writer {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.stdout.write(buf)
+            self.inner.write(buf)
         }
 
         fn flush(&mut self) -> io::Result<()> {
-            self.stdout.flush()
+            self.inner.flush()
         }
 
         fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-            self.stdout.write_all(buf)
+            self.inner.write_all(buf)
         }
 
         fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
-            self.stdout.write_fmt(fmt)
+            self.inner.write_fmt(fmt)
         }
     }
 
     impl encode::Write for Writer {
         fn set_style(&mut self, style: &Style) -> io::Result<()> {
-            try!(self.stdout.flush());
+            try!(self.inner.flush());
             self.console.set_style(style)
         }
     }
 
     pub struct WriterLock<'a> {
         console: &'a RawConsole,
-        stdout: StdoutLock<'a>,
+        inner: StdWriterLock<'a>,
     }
 
     impl<'a> io::Write for WriterLock<'a> {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.stdout.write(buf)
+            self.inner.write(buf)
         }
 
         fn flush(&mut self) -> io::Result<()> {
-            self.stdout.flush()
+            self.inner.flush()
         }
 
         fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-            self.stdout.write_all(buf)
+            self.inner.write_all(buf)
         }
 
         fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
-            self.stdout.write_fmt(fmt)
+            self.inner.write_fmt(fmt)
         }
     }
 
     impl<'a> encode::Write for WriterLock<'a> {
         fn set_style(&mut self, style: &Style) -> io::Result<()> {
-            try!(self.stdout.flush());
+            try!(self.inner.flush());
             self.console.set_style(style)
         }
     }

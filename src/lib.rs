@@ -228,6 +228,8 @@ pub mod encode;
 mod priv_serde;
 #[cfg(feature = "file")]
 mod priv_file;
+#[cfg(feature = "console_writer")]
+mod priv_io;
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 

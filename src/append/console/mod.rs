@@ -2,7 +2,7 @@
 //!
 //! Requires the `console_appender` feature.
 
-use std::io::{self, Write, Stdout, StdoutLock};
+use std::io::{self, Write};
 use std::fmt;
 use std::error::Error;
 use log::LogRecord;
@@ -16,13 +16,14 @@ use encode::writer::simple::SimpleWriter;
 use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
+use priv_io::{StdWriter, StdWriterLock};
 
 #[cfg(feature = "file")]
 include!("serde.rs");
 
 enum Writer {
     Tty(ConsoleWriter),
-    Raw(Stdout),
+    Raw(StdWriter),
 }
 
 impl Writer {
@@ -36,7 +37,7 @@ impl Writer {
 
 enum WriterLock<'a> {
     Tty(ConsoleWriterLock<'a>),
-    Raw(SimpleWriter<StdoutLock<'a>>),
+    Raw(SimpleWriter<StdWriterLock<'a>>),
 }
 
 impl<'a> io::Write for WriterLock<'a> {
@@ -83,7 +84,7 @@ impl<'a> encode::Write for WriterLock<'a> {
 /// It supports output styling if standard out is a console buffer on Windows
 /// or is a TTY on Unix.
 pub struct ConsoleAppender {
-    stdout: Writer,
+    writer: Writer,
     encoder: Box<Encode>,
 }
 
@@ -97,9 +98,9 @@ impl fmt::Debug for ConsoleAppender {
 
 impl Append for ConsoleAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
-        let mut stdout = self.stdout.lock();
-        try!(self.encoder.encode(&mut stdout, record));
-        try!(stdout.flush());
+        let mut writer = self.writer.lock();
+        try!(self.encoder.encode(&mut writer, record));
+        try!(writer.flush());
         Ok(())
     }
 }
@@ -107,13 +108,17 @@ impl Append for ConsoleAppender {
 impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder { encoder: None }
+        ConsoleAppenderBuilder{
+            encoder: None,
+            stderr: false
+        }
     }
 }
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
     encoder: Option<Box<Encode>>,
+    stderr: bool,
 }
 
 impl ConsoleAppenderBuilder {
@@ -123,14 +128,30 @@ impl ConsoleAppenderBuilder {
         self
     }
 
+    /// Determines if the appender will write to standard error rather than standard out.
+    ///
+    /// Defaults to `false`.
+    pub fn stderr(mut self, stderr: bool) -> ConsoleAppenderBuilder {
+        self.stderr = stderr;
+        self
+    }
+
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
-        let stdout = match ConsoleWriter::stdout() {
-            Some(stdout) => Writer::Tty(stdout),
-            None => Writer::Raw(io::stdout()),
+        let writer = if self.stderr {
+            match ConsoleWriter::stderr() {
+                Some(writer) => Writer::Tty(writer),
+                None => Writer::Raw(StdWriter::stderr()),
+            }
+        } else {
+            match ConsoleWriter::stdout() {
+                Some(writer) => Writer::Tty(writer),
+                None => Writer::Raw(StdWriter::stderr()),
+            }
         };
+
         ConsoleAppender {
-            stdout: stdout,
+            writer: writer,
             encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
         }
     }
@@ -142,6 +163,9 @@ impl ConsoleAppenderBuilder {
 ///
 /// ```yaml
 /// kind: console
+///
+/// # If true, log to stderr rather than stdout. Defaults to false.
+/// stderr: false
 ///
 /// # The encoder to use to format output. Defaults to `kind: pattern`.
 /// encoder:
@@ -160,7 +184,8 @@ impl Deserialize for ConsoleAppenderDeserializer {
                    config: ConsoleAppenderConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Append>, Box<Error>> {
-        let mut appender = ConsoleAppender::builder();
+        let mut appender = ConsoleAppender::builder()
+            .stderr(config.stderr);
         if let Some(encoder) = config.encoder {
             appender =
                 appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
