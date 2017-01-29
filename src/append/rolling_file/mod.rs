@@ -51,7 +51,7 @@ struct Policy {
 
 #[cfg(feature = "file")]
 impl serde::Deserialize for Policy {
-    fn deserialize<D>(d: &mut D) -> Result<Policy, D::Error>
+    fn deserialize<D>(d: D) -> Result<Policy, D::Error>
         where D: serde::Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));

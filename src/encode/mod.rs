@@ -56,7 +56,7 @@ pub struct EncoderConfig {
 
 #[cfg(feature = "file")]
 impl de::Deserialize for EncoderConfig {
-    fn deserialize<D>(d: &mut D) -> Result<EncoderConfig, D::Error>
+    fn deserialize<D>(d: D) -> Result<EncoderConfig, D::Error>
         where D: de::Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));

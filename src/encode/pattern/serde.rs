@@ -3,50 +3,49 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for PatternEncoderConfig {
-            fn deserialize<__D>(deserializer: &mut __D)
-             -> ::std::result::Result<PatternEncoderConfig, __D::Error> where
-             __D: _serde::de::Deserializer {
+        impl _serde::Deserialize for PatternEncoderConfig {
+            fn deserialize<__D>(deserializer: __D)
+             -> _serde::export::Result<PatternEncoderConfig, __D::Error> where
+             __D: _serde::Deserializer {
                 #[allow(non_camel_case_types)]
                 enum __Field { __field0, }
-                impl _serde::de::Deserialize for __Field {
+                impl _serde::Deserialize for __Field {
                     #[inline]
-                    fn deserialize<__D>(deserializer: &mut __D)
-                     -> ::std::result::Result<__Field, __D::Error> where
-                     __D: _serde::de::Deserializer {
+                    fn deserialize<__D>(deserializer: __D)
+                     -> _serde::export::Result<__Field, __D::Error> where
+                     __D: _serde::Deserializer {
                         struct __FieldVisitor;
                         impl _serde::de::Visitor for __FieldVisitor {
                             type
                             Value
                             =
                             __Field;
-                            fn visit_usize<__E>(&mut self, value: usize)
-                             -> ::std::result::Result<__Field, __E> where
+                            fn expecting(&self,
+                                         formatter:
+                                             &mut _serde::export::fmt::Formatter)
+                             -> _serde::export::fmt::Result {
+                                formatter.write_str("field name")
+                            }
+                            fn visit_str<__E>(self, value: &str)
+                             -> _serde::export::Result<__Field, __E> where
                              __E: _serde::de::Error {
                                 match value {
-                                    0usize => { Ok(__Field::__field0) }
+                                    "pattern" => Ok(__Field::__field0),
                                     _ =>
-                                    Err(_serde::de::Error::invalid_value("expected a field")),
+                                    Err(_serde::de::Error::unknown_field(value,
+                                                                         FIELDS)),
                                 }
                             }
-                            fn visit_str<__E>(&mut self, value: &str)
-                             -> ::std::result::Result<__Field, __E> where
+                            fn visit_bytes<__E>(self, value: &[u8])
+                             -> _serde::export::Result<__Field, __E> where
                              __E: _serde::de::Error {
                                 match value {
-                                    "pattern" => { Ok(__Field::__field0) }
-                                    _ =>
-                                    Err(_serde::de::Error::unknown_field(value)),
-                                }
-                            }
-                            fn visit_bytes<__E>(&mut self, value: &[u8])
-                             -> ::std::result::Result<__Field, __E> where
-                             __E: _serde::de::Error {
-                                match value {
-                                    b"pattern" => { Ok(__Field::__field0) }
+                                    b"pattern" => Ok(__Field::__field0),
                                     _ => {
                                         let value =
-                                            ::std::string::String::from_utf8_lossy(value);
-                                        Err(_serde::de::Error::unknown_field(&value))
+                                            &_serde::export::from_utf8_lossy(value);
+                                        Err(_serde::de::Error::unknown_field(value,
+                                                                             FIELDS))
                                     }
                                 }
                             }
@@ -60,29 +59,34 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                     Value
                     =
                     PatternEncoderConfig;
+                    fn expecting(&self,
+                                 formatter:
+                                     &mut _serde::export::fmt::Formatter)
+                     -> _serde::export::fmt::Result {
+                        formatter.write_str("struct PatternEncoderConfig")
+                    }
                     #[inline]
-                    fn visit_seq<__V>(&mut self, mut visitor: __V)
+                    fn visit_seq<__V>(self, mut visitor: __V)
                      ->
-                         ::std::result::Result<PatternEncoderConfig,
-                                               __V::Error> where
+                         _serde::export::Result<PatternEncoderConfig,
+                                                __V::Error> where
                      __V: _serde::de::SeqVisitor {
                         let __field0 =
-                            match try!(visitor . visit :: < Option<String> > (
-                                        )) {
+                            match try!(visitor . visit :: < Option < String >
+                                       > (  )) {
                                 Some(value) => { value }
                                 None => {
-                                    try!(visitor . end (  ));
-                                    return Err(_serde::de::Error::invalid_length(0usize));
+                                    return Err(_serde::de::Error::invalid_length(0usize,
+                                                                                 &"tuple of 1 elements"));
                                 }
                             };
-                        try!(visitor . end (  ));
                         Ok(PatternEncoderConfig{pattern: __field0,})
                     }
                     #[inline]
-                    fn visit_map<__V>(&mut self, mut visitor: __V)
+                    fn visit_map<__V>(self, mut visitor: __V)
                      ->
-                         ::std::result::Result<PatternEncoderConfig,
-                                               __V::Error> where
+                         _serde::export::Result<PatternEncoderConfig,
+                                                __V::Error> where
                      __V: _serde::de::MapVisitor {
                         let mut __field0: Option<Option<String>> = None;
                         while let Some(key) =
@@ -96,16 +100,16 @@ const _IMPL_DESERIALIZE_FOR_PatternEncoderConfig: () =
                                     }
                                     __field0 =
                                         Some(try!(visitor . visit_value :: <
-                                                  Option<String> > (  )));
+                                                  Option < String > > (  )));
                                 }
                             }
                         }
-                        try!(visitor . end (  ));
                         let __field0 =
                             match __field0 {
                                 Some(__field0) => __field0,
                                 None =>
-                                try!(visitor . missing_field ( "pattern" )),
+                                try!(_serde :: de :: private :: missing_field
+                                     ( "pattern" )),
                             };
                         Ok(PatternEncoderConfig{pattern: __field0,})
                     }

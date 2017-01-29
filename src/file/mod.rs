@@ -1,8 +1,8 @@
 //! Support for log4rs configuration from files.
 //!
 //! Multiple file formats are supported, each requiring a Cargo feature to be
-//! enabled. YAML support requires the `yaml` feature, JSON support requires
-//! the `JSON` feature, and TOML support requires the `toml` feature.
+//! enabled. YAML support requires the `yaml` feature, and JSON support requires
+//! the `JSON` feature.
 //!
 //! # Syntax
 //!
@@ -363,12 +363,6 @@ pub enum Format {
     /// Requires the `json_format` feature.
     #[cfg(feature = "json_format")]
     Json,
-
-    /// TOML.
-    ///
-    /// Requires the `toml_format` feature.
-    #[cfg(feature = "toml_format")]
-    Toml,
 }
 
 /// A deserialized log4rs configuration file.
@@ -468,17 +462,6 @@ fn parse(format: Format, _config: &str) -> Result<raw::Config, Box<error::Error>
         Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
         #[cfg(feature = "json_format")]
         Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "toml_format")]
-        Format::Toml => {
-            use serde::de::Deserialize;
-
-            let mut parser = ::toml::Parser::new(_config);
-            let table = match parser.parse() {
-                Some(table) => ::toml::Value::Table(table),
-                None => return Err(parser.errors.pop().unwrap().into()),
-            };
-            raw::Config::deserialize(&mut ::toml::Decoder::new(table)).map_err(Into::into)
-        }
     }
 }
 

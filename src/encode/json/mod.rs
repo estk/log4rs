@@ -30,7 +30,7 @@ use log_mdc;
 use std::error::Error;
 use std::fmt;
 use std::thread;
-use serde::ser::{self, Serialize};
+use serde::ser::{self, Serialize, SerializeMap};
 use serde_json;
 
 use encode::{Encode, Write, NEWLINE};
@@ -100,39 +100,39 @@ struct Message<'a> {
 }
 
 impl<'a> ser::Serialize for Message<'a> {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: ser::Serializer
     {
-        let mut state = try!(serializer.serialize_map(None));
+        let mut map = try!(serializer.serialize_map(None));
 
-        try!(serializer.serialize_map_key(&mut state, "time"));
-        try!(serializer.serialize_map_value(&mut state, self.time.to_rfc3339()));
+        try!(map.serialize_key("time"));
+        try!(map.serialize_value(&self.time.to_rfc3339()));
 
-        try!(serializer.serialize_map_key(&mut state, "message"));
-        try!(serializer.serialize_map_value(&mut state, format!("{}", self.args)));
+        try!(map.serialize_key("message"));
+        try!(map.serialize_value(&format!("{}", self.args)));
 
-        try!(serializer.serialize_map_key(&mut state, "module_path"));
-        try!(serializer.serialize_map_value(&mut state, self.module_path));
+        try!(map.serialize_key("module_path"));
+        try!(map.serialize_value(&self.module_path));
 
-        try!(serializer.serialize_map_key(&mut state, "file"));
-        try!(serializer.serialize_map_value(&mut state, self.file));
+        try!(map.serialize_key("file"));
+        try!(map.serialize_value(&self.file));
 
-        try!(serializer.serialize_map_key(&mut state, "line"));
-        try!(serializer.serialize_map_value(&mut state, self.line));
+        try!(map.serialize_key("line"));
+        try!(map.serialize_value(&self.line));
 
-        try!(serializer.serialize_map_key(&mut state, "level"));
-        try!(serializer.serialize_map_value(&mut state, level_str(self.level)));
+        try!(map.serialize_key("level"));
+        try!(map.serialize_value(&level_str(self.level)));
 
-        try!(serializer.serialize_map_key(&mut state, "target"));
-        try!(serializer.serialize_map_value(&mut state, self.target));
+        try!(map.serialize_key("target"));
+        try!(map.serialize_value(&self.target));
 
-        try!(serializer.serialize_map_key(&mut state, "thread"));
-        try!(serializer.serialize_map_value(&mut state, thread::current().name()));
+        try!(map.serialize_key("thread"));
+        try!(map.serialize_value(&thread::current().name()));
 
-        try!(serializer.serialize_map_key(&mut state, "mdc"));
-        try!(serializer.serialize_map_value(&mut state, MdcSerializer));
+        try!(map.serialize_key("mdc"));
+        try!(map.serialize_value(&MdcSerializer));
 
-        serializer.serialize_map_end(state)
+        map.end()
     }
 }
 
@@ -149,21 +149,21 @@ fn level_str(level: LogLevel) -> &'static str {
 struct MdcSerializer;
 
 impl ser::Serialize for MdcSerializer {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: ser::Serializer
     {
-        let mut state = try!(serializer.serialize_map(None));
+        let mut map = try!(serializer.serialize_map(None));
 
         let mut err = Ok(());
         log_mdc::iter(|k, v| {
             if let Ok(()) = err {
-                err = serializer.serialize_map_key(&mut state, k)
-                    .and_then(|()| serializer.serialize_map_value(&mut state, v));
+                err = map.serialize_key(k)
+                    .and_then(|()| map.serialize_value(v));
             }
         });
         try!(err);
 
-        serializer.serialize_map_end(state)
+        map.end()
     }
 }
 

@@ -14,7 +14,6 @@ default = ["console_appender", "file_appender", "pattern_encoder", "file", "yaml
 file = ["humantime", "serde", "serde-value", "typemap"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
-toml_format = ["toml"]
 
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
 file_appender = ["antidote", "simple_writer", "pattern_encoder"]
@@ -54,12 +53,11 @@ fnv = "1.0"
 humantime = { version = "1.0", optional = true }
 log = "0.3"
 log-mdc = { version = "0.1", optional = true }
-serde = { version = "0.8", optional = true }
+serde = { version = "0.9", optional = true }
 serde-value = { version = "0.3", optional = true }
 typemap = { version = "0.3", optional = true }
-serde_json = { version = "0.8", optional = true }
-serde_yaml = { version = ">= 0.4, < 0.6", optional = true }
-toml = { version = "0.2", optional = true, default_features = false, features = ["serde"] }
+serde_json = { version = "0.9", optional = true }
+serde_yaml = { version = "0.6.0-rc1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2", optional = true }
@@ -70,3 +68,6 @@ libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempdir = "0.3"
+
+[replace]
+"serde-value:0.3.1" = { git = "https://github.com/sfackler/serde-value", branch = "serde-0.9" }

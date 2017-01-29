@@ -1,0 +1,27 @@
+refresh_rate: 5 seconds
+
+appenders:
+  console:
+    kind: console
+    encoder:
+      pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
+    filter:
+    - kind: threshold
+      level: error
+  file:
+    kind: file
+    path: error.log
+    encoder:
+      pattern: "{d} [{t}] {l} {M}:{m}{n}"
+
+root:
+  level: warn
+  appenders:
+  - console
+
+loggers:
+  test::a:
+    level: info
+    appenders:
+    - file
+    additive: true

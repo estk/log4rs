@@ -7,7 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 fn main() {
-    log4rs::init_file("log.toml", Default::default()).unwrap();
+    log4rs::init_file("log.yml", Default::default()).unwrap();
 
     loop {
         thread::sleep(Duration::from_secs(1));

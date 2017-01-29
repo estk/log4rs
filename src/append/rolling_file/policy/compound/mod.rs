@@ -29,7 +29,7 @@ struct Trigger {
 
 #[cfg(feature = "file")]
 impl serde::Deserialize for Trigger {
-    fn deserialize<D>(d: &mut D) -> Result<Trigger, D::Error>
+    fn deserialize<D>(d: D) -> Result<Trigger, D::Error>
         where D: serde::Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
@@ -54,7 +54,7 @@ struct Roller {
 
 #[cfg(feature = "file")]
 impl serde::Deserialize for Roller {
-    fn deserialize<D>(d: &mut D) -> Result<Roller, D::Error>
+    fn deserialize<D>(d: D) -> Result<Roller, D::Error>
         where D: serde::Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));

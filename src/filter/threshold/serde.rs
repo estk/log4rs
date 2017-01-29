@@ -3,45 +3,43 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
     {
         extern crate serde as _serde;
         #[automatically_derived]
-        impl _serde::de::Deserialize for ThresholdFilterConfig {
-            fn deserialize<__D>(deserializer: &mut __D)
-             -> ::std::result::Result<ThresholdFilterConfig, __D::Error> where
-             __D: _serde::de::Deserializer {
+        impl _serde::Deserialize for ThresholdFilterConfig {
+            fn deserialize<__D>(deserializer: __D)
+             -> _serde::export::Result<ThresholdFilterConfig, __D::Error>
+             where __D: _serde::Deserializer {
                 #[allow(non_camel_case_types)]
                 enum __Field { __field0, __ignore, }
-                impl _serde::de::Deserialize for __Field {
+                impl _serde::Deserialize for __Field {
                     #[inline]
-                    fn deserialize<__D>(deserializer: &mut __D)
-                     -> ::std::result::Result<__Field, __D::Error> where
-                     __D: _serde::de::Deserializer {
+                    fn deserialize<__D>(deserializer: __D)
+                     -> _serde::export::Result<__Field, __D::Error> where
+                     __D: _serde::Deserializer {
                         struct __FieldVisitor;
                         impl _serde::de::Visitor for __FieldVisitor {
                             type
                             Value
                             =
                             __Field;
-                            fn visit_usize<__E>(&mut self, value: usize)
-                             -> ::std::result::Result<__Field, __E> where
+                            fn expecting(&self,
+                                         formatter:
+                                             &mut _serde::export::fmt::Formatter)
+                             -> _serde::export::fmt::Result {
+                                formatter.write_str("field name")
+                            }
+                            fn visit_str<__E>(self, value: &str)
+                             -> _serde::export::Result<__Field, __E> where
                              __E: _serde::de::Error {
                                 match value {
-                                    0usize => { Ok(__Field::__field0) }
+                                    "level" => Ok(__Field::__field0),
                                     _ => Ok(__Field::__ignore),
                                 }
                             }
-                            fn visit_str<__E>(&mut self, value: &str)
-                             -> ::std::result::Result<__Field, __E> where
+                            fn visit_bytes<__E>(self, value: &[u8])
+                             -> _serde::export::Result<__Field, __E> where
                              __E: _serde::de::Error {
                                 match value {
-                                    "level" => { Ok(__Field::__field0) }
-                                    _ => Ok(__Field::__ignore),
-                                }
-                            }
-                            fn visit_bytes<__E>(&mut self, value: &[u8])
-                             -> ::std::result::Result<__Field, __E> where
-                             __E: _serde::de::Error {
-                                match value {
-                                    b"level" => { Ok(__Field::__field0) }
-                                    _ => Ok(__Field::__ignore),
+                                    b"level" => Ok(__Field::__field0),
+                                    _ => { Ok(__Field::__ignore) }
                                 }
                             }
                         }
@@ -54,33 +52,38 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                     Value
                     =
                     ThresholdFilterConfig;
+                    fn expecting(&self,
+                                 formatter:
+                                     &mut _serde::export::fmt::Formatter)
+                     -> _serde::export::fmt::Result {
+                        formatter.write_str("struct ThresholdFilterConfig")
+                    }
                     #[inline]
-                    fn visit_seq<__V>(&mut self, mut visitor: __V)
+                    fn visit_seq<__V>(self, mut visitor: __V)
                      ->
-                         ::std::result::Result<ThresholdFilterConfig,
-                                               __V::Error> where
+                         _serde::export::Result<ThresholdFilterConfig,
+                                                __V::Error> where
                      __V: _serde::de::SeqVisitor {
                         let __field0 =
                             match {
                                       struct __SerdeDeserializeWithStruct {
                                           value: LogLevelFilter,
-                                          phantom: ::std::marker::PhantomData<ThresholdFilterConfig>,
+                                          phantom: _serde::export::PhantomData<ThresholdFilterConfig>,
                                       }
-                                      impl _serde::de::Deserialize for
+                                      impl _serde::Deserialize for
                                        __SerdeDeserializeWithStruct {
-                                          fn deserialize<__D>(__d: &mut __D)
+                                          fn deserialize<__D>(__d: __D)
                                            ->
-                                               ::std::result::Result<Self,
-                                                                     __D::Error>
-                                           where
-                                           __D: _serde::de::Deserializer {
+                                               _serde::export::Result<Self,
+                                                                      __D::Error>
+                                           where __D: _serde::Deserializer {
                                               let value =
-                                                  try!(::priv_serde::de_filter
-                                                       ( __d ));
+                                                  try!(:: priv_serde ::
+                                                       de_filter ( __d ));
                                               Ok(__SerdeDeserializeWithStruct{value:
                                                                                   value,
                                                                               phantom:
-                                                                                  ::std::marker::PhantomData,})
+                                                                                  _serde::export::PhantomData,})
                                           }
                                       }
                                       try!(visitor . visit :: <
@@ -89,18 +92,17 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                                   } {
                                 Some(value) => { value }
                                 None => {
-                                    try!(visitor . end (  ));
-                                    return Err(_serde::de::Error::invalid_length(0usize));
+                                    return Err(_serde::de::Error::invalid_length(0usize,
+                                                                                 &"tuple of 1 elements"));
                                 }
                             };
-                        try!(visitor . end (  ));
                         Ok(ThresholdFilterConfig{level: __field0,})
                     }
                     #[inline]
-                    fn visit_map<__V>(&mut self, mut visitor: __V)
+                    fn visit_map<__V>(self, mut visitor: __V)
                      ->
-                         ::std::result::Result<ThresholdFilterConfig,
-                                               __V::Error> where
+                         _serde::export::Result<ThresholdFilterConfig,
+                                                __V::Error> where
                      __V: _serde::de::MapVisitor {
                         let mut __field0: Option<LogLevelFilter> = None;
                         while let Some(key) =
@@ -113,44 +115,46 @@ const _IMPL_DESERIALIZE_FOR_ThresholdFilterConfig: () =
                                                        _serde::de::Error>::duplicate_field("level"));
                                     }
                                     __field0 =
-                                        Some(({
-                                                  struct __SerdeDeserializeWithStruct {
-                                                      value: LogLevelFilter,
-                                                      phantom: ::std::marker::PhantomData<ThresholdFilterConfig>,
-                                                  }
-                                                  impl _serde::de::Deserialize
-                                                   for
-                                                   __SerdeDeserializeWithStruct
-                                                   {
-                                                      fn deserialize<__D>(__d:
-                                                                              &mut __D)
-                                                       ->
-                                                           ::std::result::Result<Self,
+                                        Some({
+                                                 struct __SerdeDeserializeWithStruct {
+                                                     value: LogLevelFilter,
+                                                     phantom: _serde::export::PhantomData<ThresholdFilterConfig>,
+                                                 }
+                                                 impl _serde::Deserialize for
+                                                  __SerdeDeserializeWithStruct
+                                                  {
+                                                     fn deserialize<__D>(__d:
+                                                                             __D)
+                                                      ->
+                                                          _serde::export::Result<Self,
                                                                                  __D::Error>
-                                                       where
-                                                       __D: _serde::de::Deserializer {
-                                                          let value =
-                                                              try!(::priv_serde::de_filter
-                                                                   ( __d ));
-                                                          Ok(__SerdeDeserializeWithStruct{value:
-                                                                                              value,
-                                                                                          phantom:
-                                                                                              ::std::marker::PhantomData,})
-                                                      }
-                                                  }
-                                                  try!(visitor . visit_value
-                                                       :: <
-                                                       __SerdeDeserializeWithStruct
-                                                       > (  )).value
-                                              }));
+                                                      where
+                                                      __D: _serde::Deserializer {
+                                                         let value =
+                                                             try!(::
+                                                                  priv_serde
+                                                                  :: de_filter
+                                                                  ( __d ));
+                                                         Ok(__SerdeDeserializeWithStruct{value:
+                                                                                             value,
+                                                                                         phantom:
+                                                                                             _serde::export::PhantomData,})
+                                                     }
+                                                 }
+                                                 try!(visitor . visit_value ::
+                                                      <
+                                                      __SerdeDeserializeWithStruct
+                                                      > (  )).value
+                                             });
                                 }
                                 _ => {
-                                    try!(visitor . visit_value :: < _serde ::
-                                         de :: impls :: IgnoredAny > (  ));
+                                    let _ =
+                                        try!(visitor . visit_value :: < _serde
+                                             :: de :: impls :: IgnoredAny > (
+                                             ));
                                 }
                             }
                         }
-                        try!(visitor . end (  ));
                         let __field0 =
                             match __field0 {
                                 Some(__field0) => __field0,

@@ -61,7 +61,7 @@ pub struct FilterConfig {
 
 #[cfg(feature = "file")]
 impl de::Deserialize for FilterConfig {
-    fn deserialize<D>(d: &mut D) -> Result<FilterConfig, D::Error>
+    fn deserialize<D>(d: D) -> Result<FilterConfig, D::Error>
         where D: de::Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));

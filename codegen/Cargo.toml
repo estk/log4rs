@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 
 [dependencies]
-serde_codegen = "0.8"
+serde_codegen = "0.9"
 walkdir = "0.1"

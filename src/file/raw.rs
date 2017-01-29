@@ -4,19 +4,20 @@ use serde::de::{self, Deserialize, Deserializer};
 use serde_value::Value;
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
+use std::fmt;
 use std::time::Duration;
 
 use filter::FilterConfig;
 
 include!("serde.rs");
 
-fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
+fn de_duration<D>(d: D) -> Result<Option<Duration>, D::Error>
     where D: de::Deserializer
 {
     struct S(Duration);
 
     impl de::Deserialize for S {
-        fn deserialize<D>(d: &mut D) -> Result<S, D::Error>
+        fn deserialize<D>(d: D) -> Result<S, D::Error>
             where D: de::Deserializer
         {
             struct V;
@@ -24,12 +25,16 @@ fn de_duration<D>(d: &mut D) -> Result<Option<Duration>, D::Error>
             impl de::Visitor for V {
                 type Value = S;
 
-                fn visit_str<E>(&mut self, v: &str) -> Result<S, E>
+                fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                    fmt.write_str("a duration")
+                }
+
+                fn visit_str<E>(self, v: &str) -> Result<S, E>
                     where E: de::Error
                 {
                     humantime::parse_duration(v)
                         .map(S)
-                        .map_err(|e| E::invalid_value(&e.to_string()))
+                        .map_err(|e| E::custom(e))
                 }
             }
 
@@ -48,7 +53,7 @@ pub struct Appender {
 }
 
 impl Deserialize for Appender {
-    fn deserialize<D>(d: &mut D) -> Result<Appender, D::Error>
+    fn deserialize<D>(d: D) -> Result<Appender, D::Error>
         where D: Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
@@ -203,37 +208,6 @@ loggers:
 }"#;
 
         let actual = parse(Format::Json, cfg).unwrap();
-        let expected = expected();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    #[cfg(feature = "toml_format")]
-    fn basic_toml() {
-        let cfg = r#"
-refresh_rate = "60 seconds"
-
-[appenders.console]
-kind = "console"
-[[appenders.console.filters]]
-kind = "threshold"
-level = "debug"
-
-[appenders.baz]
-kind = "file"
-file = "log/baz.log"
-
-[root]
-appenders = ["console"]
-level = "info"
-
-[loggers."foo::bar::baz"]
-level = "warn"
-appenders = ["baz"]
-additive = false
-"#;
-
-        let actual = parse(Format::Toml, cfg).unwrap();
         let expected = expected();
         assert_eq!(expected, actual);
     }
