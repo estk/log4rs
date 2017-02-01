@@ -63,7 +63,7 @@ fn deserialize_limit<D>(d: D) -> Result<u64, D::Error>
 
             let number = match number.parse::<u64>() {
                 Ok(n) => n,
-                Err(e) => return Err(E::invalid_value(de::Unexpected::Str(number), &"a number")),
+                Err(_) => return Err(E::invalid_value(de::Unexpected::Str(number), &"a number")),
             };
 
             let unit = match unit {

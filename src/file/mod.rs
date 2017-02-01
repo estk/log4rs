@@ -188,7 +188,7 @@ pub struct Deserializers(ShareCloneMap);
 ///         * Requires the `size_trigger` feature.
 impl Default for Deserializers {
     fn default() -> Deserializers {
-        let mut d = Deserializers::new();
+        let mut d = Deserializers::empty();
 
         #[cfg(feature = "console_appender")]
         d.insert("console", ::append::console::ConsoleAppenderDeserializer);
@@ -225,8 +225,13 @@ impl Default for Deserializers {
 }
 
 impl Deserializers {
-    /// Creates a new `Deserializers` with no mappings.
+    /// Creates a new `Deserializers` with default mappings.
     pub fn new() -> Deserializers {
+        Deserializers::default()
+    }
+
+    /// Creates a new `Deserializers` with no mappings.
+    pub fn empty() -> Deserializers {
         Deserializers(ShareCloneMap::custom())
     }
 
@@ -236,7 +241,7 @@ impl Deserializers {
     {
         self.0
             .entry::<KeyAdaptor<T::Trait>>()
-            .or_insert_with(|| HashMap::new())
+            .or_insert_with(HashMap::new)
             .insert(kind.to_owned(), Arc::new(DeserializeEraser(deserializer)));
     }
 
