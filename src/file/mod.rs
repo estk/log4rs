@@ -84,7 +84,6 @@
 //! ```
 
 use log::LogLevelFilter;
-use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::error;
@@ -102,7 +101,7 @@ use filter::FilterConfig;
 mod raw;
 
 /// A trait implemented by traits which are deserializable.
-pub trait Deserializable: Any {
+pub trait Deserializable: 'static {
     /// Returns a name for objects implementing the trait suitable for display in error messages.
     ///
     /// For example, the `Deserializable` implementation for the `Append` trait returns "appender".
@@ -151,7 +150,7 @@ impl<T> ErasedDeserialize for DeserializeEraser<T>
 
 struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
 
-impl<T: ?Sized + Any> Key for KeyAdaptor<T> {
+impl<T: ?Sized + 'static> Key for KeyAdaptor<T> {
     type Value = HashMap<String, Arc<ErasedDeserialize<Trait = T>>>;
 }
 
