@@ -1,8 +1,0 @@
-/// The file appender's configuration.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct FileAppenderConfig {
-    path: String,
-    encoder: Option<EncoderConfig>,
-    append: Option<bool>,
-}

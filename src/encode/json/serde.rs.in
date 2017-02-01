@@ -1,7 +1,0 @@
-/// The JSON encoder's configuration
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct JsonEncoderConfig {
-    #[serde(skip_deserializing)]
-    _p: (),
-}

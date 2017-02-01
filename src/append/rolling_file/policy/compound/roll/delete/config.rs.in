@@ -1,7 +1,0 @@
-/// Configuration for the delete roller.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DeleteRollerConfig {
-    #[serde(skip_deserializing)]
-    _p: (),
-}

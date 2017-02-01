@@ -1,6 +1,0 @@
-/// The pattern encoder's configuration.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PatternEncoderConfig {
-    pattern: Option<String>,
-}

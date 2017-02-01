@@ -15,8 +15,14 @@ use append::rolling_file::policy::compound::trigger::Trigger;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+/// Configuration for the size trigger.
 #[cfg(feature = "file")]
-include!("config.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SizeTriggerConfig {
+    #[serde(deserialize_with = "deserialize_limit")]
+    limit: u64,
+}
 
 #[cfg(feature = "file")]
 fn deserialize_limit<D>(d: D) -> Result<u64, D::Error>

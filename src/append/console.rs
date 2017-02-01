@@ -18,8 +18,23 @@ use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
 use file::{Deserialize, Deserializers};
 use priv_io::{StdWriter, StdWriterLock};
 
+/// The console appender's configuration.
 #[cfg(feature = "file")]
-include!("serde.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConsoleAppenderConfig {
+    target: Option<ConfigTarget>,
+    encoder: Option<EncoderConfig>,
+}
+
+#[cfg(feature = "file")]
+#[derive(Deserialize)]
+enum ConfigTarget {
+    #[serde(rename = "stdout")]
+    Stdout,
+    #[serde(rename = "stderr")]
+    Stderr,
+}
 
 enum Writer {
     Tty(ConsoleWriter),

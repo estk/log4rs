@@ -1,6 +1,0 @@
-/// The threshold filter's configuration.
-#[derive(Deserialize)]
-pub struct ThresholdFilterConfig {
-    #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LogLevelFilter,
-}

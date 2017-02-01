@@ -40,8 +40,16 @@ use file::{Deserialize, Deserializers};
 
 pub mod policy;
 
+/// Configuration for the rolling file appender.
 #[cfg(feature = "file")]
-include!("config.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RollingFileAppenderConfig {
+    path: String,
+    append: Option<bool>,
+    encoder: Option<EncoderConfig>,
+    policy: Policy,
+}
 
 #[cfg(feature = "file")]
 struct Policy {

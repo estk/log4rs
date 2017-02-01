@@ -1,8 +1,0 @@
-/// Configuration for the fixed window roller.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct FixedWindowRollerConfig {
-    pattern: String,
-    base: Option<u32>,
-    count: u32,
-}

@@ -37,7 +37,14 @@ use encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
-include!("serde.rs");
+/// The JSON encoder's configuration
+#[cfg(feature = "file")]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JsonEncoderConfig {
+    #[serde(skip_deserializing)]
+    _p: (),
+}
 
 /// An `Encode`r which writes a JSON object.
 #[derive(Debug)]

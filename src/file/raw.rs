@@ -9,7 +9,36 @@ use std::time::Duration;
 
 use filter::FilterConfig;
 
-include!("serde.rs");
+#[derive(PartialEq, Eq, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Config {
+    #[serde(deserialize_with = "de_duration", default)]
+    pub refresh_rate: Option<Duration>,
+    pub root: Option<Root>,
+    #[serde(default)]
+    pub appenders: HashMap<String, Appender>,
+    #[serde(default)]
+    pub loggers: HashMap<String, Logger>,
+}
+
+#[derive(PartialEq, Eq, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Root {
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    pub level: LogLevelFilter,
+    #[serde(default)]
+    pub appenders: Vec<String>,
+}
+
+#[derive(PartialEq, Eq, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Logger {
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    pub level: LogLevelFilter,
+    #[serde(default)]
+    pub appenders: Vec<String>,
+    pub additive: Option<bool>,
+}
 
 fn de_duration<D>(d: D) -> Result<Option<Duration>, D::Error>
     where D: de::Deserializer

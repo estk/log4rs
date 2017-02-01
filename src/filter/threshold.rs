@@ -10,8 +10,13 @@ use std::error::Error;
 use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
 
+/// The threshold filter's configuration.
 #[cfg(feature = "file")]
-include!("serde.rs");
+#[derive(Deserialize)]
+pub struct ThresholdFilterConfig {
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    level: LogLevelFilter,
+}
 
 /// A filter that rejects all events at a level below a provided threshold.
 #[derive(Debug)]

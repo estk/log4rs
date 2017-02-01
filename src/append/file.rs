@@ -19,8 +19,15 @@ use encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+/// The file appender's configuration.
 #[cfg(feature = "file")]
-include!("serde.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FileAppenderConfig {
+    path: String,
+    encoder: Option<EncoderConfig>,
+    append: Option<bool>,
+}
 
 /// An appender which logs to a file.
 pub struct FileAppender {

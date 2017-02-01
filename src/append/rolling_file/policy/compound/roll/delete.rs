@@ -10,8 +10,14 @@ use append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+/// Configuration for the delete roller.
 #[cfg(feature = "file")]
-include!("config.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeleteRollerConfig {
+    #[serde(skip_deserializing)]
+    _p: (),
+}
 
 /// A roller which deletes the log file.
 #[derive(Debug)]

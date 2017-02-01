@@ -18,8 +18,14 @@ use file::{Deserialize, Deserializers};
 pub mod roll;
 pub mod trigger;
 
+/// Configuration for the compound policy.
 #[cfg(feature = "file")]
-include!("config.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompoundPolicyConfig {
+    trigger: Trigger,
+    roller: Roller,
+}
 
 #[cfg(feature = "file")]
 struct Trigger {

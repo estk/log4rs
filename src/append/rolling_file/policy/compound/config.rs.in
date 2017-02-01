@@ -1,7 +1,0 @@
-/// Configuration for the compound policy.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct CompoundPolicyConfig {
-    trigger: Trigger,
-    roller: Roller,
-}

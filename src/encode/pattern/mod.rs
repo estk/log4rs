@@ -129,8 +129,13 @@ use file::{Deserialize, Deserializers};
 
 mod parser;
 
+/// The pattern encoder's configuration.
 #[cfg(feature = "file")]
-include!("serde.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PatternEncoderConfig {
+    pattern: Option<String>,
+}
 
 fn is_char_boundary(b: u8) -> bool {
     b as i8 >= -0x40

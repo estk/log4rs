@@ -195,6 +195,10 @@ extern crate serde_value;
 #[cfg(all(windows, feature = "winapi"))]
 extern crate winapi;
 
+#[cfg(feature = "serde_derive")]
+#[macro_use]
+extern crate serde_derive;
+
 #[cfg(test)]
 extern crate tempdir;
 

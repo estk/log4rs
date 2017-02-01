@@ -11,8 +11,15 @@ use append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
+/// Configuration for the fixed window roller.
 #[cfg(feature = "file")]
-include!("config.rs");
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FixedWindowRollerConfig {
+    pattern: String,
+    base: Option<u32>,
+    count: u32,
+}
 
 #[derive(Debug)]
 enum Compression {
