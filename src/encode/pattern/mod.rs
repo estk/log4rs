@@ -615,7 +615,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> Result<(), Box<Error>> {
+    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
         let location = Location {
             module_path: record.location().module_path(),
             file: record.location().file(),
@@ -642,7 +642,7 @@ impl PatternEncoder {
                     target: &str,
                     location: &Location,
                     args: &fmt::Arguments)
-                    -> Result<(), Box<Error>> {
+                    -> Result<(), Box<Error + Sync + Send>> {
         for chunk in &self.chunks {
             try!(chunk.encode(w, level, target, location, args));
         }
@@ -679,7 +679,7 @@ impl Deserialize for PatternEncoderDeserializer {
     fn deserialize(&self,
                    config: PatternEncoderConfig,
                    _: &Deserializers)
-                   -> Result<Box<Encode>, Box<Error>> {
+                   -> Result<Box<Encode>, Box<Error + Sync + Send>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),

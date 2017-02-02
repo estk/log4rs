@@ -92,7 +92,7 @@ impl FixedWindowRoller {
 }
 
 impl Roll for FixedWindowRoller {
-    fn roll(&self, file: &Path) -> Result<(), Box<Error>> {
+    fn roll(&self, file: &Path) -> Result<(), Box<Error + Sync + Send>> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -162,7 +162,7 @@ impl FixedWindowRollerBuilder {
     ///
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
-    pub fn build(self, pattern: &str, count: u32) -> Result<FixedWindowRoller, Box<Error>> {
+    pub fn build(self, pattern: &str, count: u32) -> Result<FixedWindowRoller, Box<Error + Sync + Send>> {
         if !pattern.contains("{}") {
             return Err("pattern does not contain `{}`".into());
         }
@@ -217,7 +217,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
     fn deserialize(&self,
                    config: FixedWindowRollerConfig,
                    _: &Deserializers)
-                   -> Result<Box<Roll>, Box<Error>> {
+                   -> Result<Box<Roll>, Box<Error + Sync + Send>> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = config.base {
             builder = builder.base(base);

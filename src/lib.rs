@@ -322,7 +322,7 @@ struct Appender {
 }
 
 impl Appender {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<error::Error>> {
+    fn append(&self, record: &LogRecord) -> Result<(), Box<error::Error + Sync + Send>> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,

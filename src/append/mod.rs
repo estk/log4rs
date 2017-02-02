@@ -20,7 +20,7 @@ pub mod rolling_file;
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `LogRecord`.
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error>>;
+    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]

@@ -99,7 +99,7 @@ impl CompoundPolicy {
 }
 
 impl Policy for CompoundPolicy {
-    fn process(&self, log: &mut LogFile) -> Result<(), Box<Error>> {
+    fn process(&self, log: &mut LogFile) -> Result<(), Box<Error + Sync + Send>> {
         if try!(self.trigger.trigger(log)) {
             log.roll();
             try!(self.roller.roll(log.path()))
@@ -146,7 +146,7 @@ impl Deserialize for CompoundPolicyDeserializer {
     fn deserialize(&self,
                    config: CompoundPolicyConfig,
                    deserializers: &Deserializers)
-                   -> Result<Box<Policy>, Box<Error>> {
+                   -> Result<Box<Policy>, Box<Error + Sync + Send>> {
         let trigger = try!(deserializers.deserialize(&config.trigger.kind, config.trigger.config));
         let roller = try!(deserializers.deserialize(&config.roller.kind, config.roller.config));
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))

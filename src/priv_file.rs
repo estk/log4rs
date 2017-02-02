@@ -55,7 +55,7 @@ pub enum Error {
     /// An error from the log crate
     Log(SetLoggerError),
     /// A fatal error initializing the log4rs config.
-    Log4rs(Box<error::Error>),
+    Log4rs(Box<error::Error + Sync + Send>),
 }
 
 impl fmt::Display for Error {
@@ -89,13 +89,13 @@ impl From<SetLoggerError> for Error {
     }
 }
 
-impl From<Box<error::Error>> for Error {
-    fn from(t: Box<error::Error>) -> Error {
+impl From<Box<error::Error + Sync + Send>> for Error {
+    fn from(t: Box<error::Error + Sync + Send>) -> Error {
         Error::Log4rs(t)
     }
 }
 
-fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
+fn get_format(path: &Path) -> Result<Format, Box<error::Error + Sync + Send>> {
     match path.extension().and_then(|s| s.to_str()) {
         #[cfg(feature = "yaml_format")]
         Some("yaml") | Some("yml") => Ok(Format::Yaml),
@@ -112,7 +112,7 @@ fn get_format(path: &Path) -> Result<Format, Box<error::Error>> {
     }
 }
 
-fn read_config(path: &Path) -> Result<String, Box<error::Error>> {
+fn read_config(path: &Path) -> Result<String, Box<error::Error + Sync + Send>> {
     let mut file = try!(File::open(path));
     let mut s = String::new();
     try!(file.read_to_string(&mut s));
@@ -122,7 +122,7 @@ fn read_config(path: &Path) -> Result<String, Box<error::Error>> {
 fn parse_config(source: &str,
                 format: Format,
                 deserializers: &Deserializers)
-                -> Result<file::Config, Box<error::Error>> {
+                -> Result<file::Config, Box<error::Error + Sync + Send>> {
     let config = try!(file::Config::parse(&source, format, deserializers));
     for error in config.errors() {
         handle_error(error);
@@ -174,7 +174,7 @@ impl ConfigReloader {
         }
     }
 
-    fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, Box<error::Error>> {
+    fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, Box<error::Error + Sync + Send>> {
         if let Some(last_modified) = self.modified {
             let modified = try!(fs::metadata(&self.path).and_then(|m| m.modified()));
             if last_modified == modified {

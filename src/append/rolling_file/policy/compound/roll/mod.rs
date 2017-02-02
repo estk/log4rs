@@ -21,7 +21,7 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     ///
     /// If this method returns successfully, there *must* no longer be a file
     /// at the specified location.
-    fn roll(&self, file: &Path) -> Result<(), Box<Error>>;
+    fn roll(&self, file: &Path) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]

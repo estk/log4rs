@@ -34,7 +34,7 @@ const NEWLINE: &'static str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `LogRecord` into bytes and writes them.
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error>>;
+    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]

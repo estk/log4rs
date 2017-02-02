@@ -67,7 +67,7 @@ impl JsonEncoder {
                     file: &str,
                     line: u32,
                     args: &fmt::Arguments)
-                    -> Result<(), Box<Error>> {
+                    -> Result<(), Box<Error + Sync + Send>> {
         let message = Message {
             time: time,
             level: level,
@@ -84,7 +84,7 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error>> {
+    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
         self.encode_inner(w,
                           Local::now(),
                           record.level(),
@@ -193,7 +193,7 @@ impl Deserialize for JsonEncoderDeserializer {
     fn deserialize(&self,
                    _: JsonEncoderConfig,
                    _: &Deserializers)
-                   -> Result<Box<Encode>, Box<Error>> {
+                   -> Result<Box<Encode>, Box<Error + Sync + Send>> {
         Ok(Box::new(JsonEncoder::new()))
     }
 }

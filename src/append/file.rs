@@ -46,7 +46,7 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error>> {
+    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
         let mut file = self.file.lock();
         try!(self.encoder.encode(&mut *file, record));
         try!(file.flush());
@@ -137,7 +137,7 @@ impl Deserialize for FileAppenderDeserializer {
     fn deserialize(&self,
                    config: FileAppenderConfig,
                    deserializers: &Deserializers)
-                   -> Result<Box<Append>, Box<Error>> {
+                   -> Result<Box<Append>, Box<Error + Sync + Send>> {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);

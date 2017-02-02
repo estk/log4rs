@@ -15,7 +15,7 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     ///
     /// This method is called after each log event. It is provided a reference
     /// to the current log file.
-    fn process(&self, log: &mut LogFile) -> Result<(), Box<Error>>;
+    fn process(&self, log: &mut LogFile) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]

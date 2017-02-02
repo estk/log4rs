@@ -63,7 +63,7 @@ impl Deserialize for ThresholdFilterDeserializer {
     fn deserialize(&self,
                    config: ThresholdFilterConfig,
                    _: &Deserializers)
-                   -> Result<Box<Filter>, Box<Error>> {
+                   -> Result<Box<Filter>, Box<Error + Sync + Send>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }
