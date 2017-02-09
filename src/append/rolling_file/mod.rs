@@ -326,7 +326,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use file::{Config, Deserializers, Format};
+        use file::{RawConfig, Deserializers};
 
         let config = "
 appenders:
@@ -354,9 +354,10 @@ appenders:
         count: 5
 ";
 
-        let config = Config::parse(config, Format::Yaml, &Deserializers::default()).unwrap();
-        println!("{:?}", config.errors());
-        assert!(config.errors().is_empty());
+        let config = ::serde_yaml::from_str::<RawConfig>(config).unwrap();
+        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        println!("{:?}", errors);
+        assert!(errors.is_empty());
     }
 
     #[derive(Debug)]

@@ -463,10 +463,6 @@ trait ConfigPrivateExt {
     fn unpack(self) -> (Vec<config::Appender>, config::Root, Vec<config::Logger>);
 }
 
-trait PrivateConfigErrorsExt {
-    fn unpack(self) -> Vec<config::Error>;
-}
-
 trait PrivateConfigAppenderExt {
     fn unpack(self) -> (String, Box<Append>, Vec<Box<Filter>>);
 }

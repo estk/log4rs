@@ -82,23 +82,22 @@
 //!     # if not specified.
 //!     additive: false
 //! ```
-
+use humantime;
 use log::LogLevelFilter;
+use serde;
+use serde::de::{self, Deserialize as SerdeDeserialize};
+use serde_value::Value;
+use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::marker::PhantomData;
 use std::error;
 use std::fmt;
-use std::time::Duration;
+use std::marker::PhantomData;
 use std::sync::Arc;
+use std::time::Duration;
 use typemap::{Key, ShareCloneMap};
-use serde;
-use serde_value::Value;
 
-use PrivateConfigErrorsExt;
 use config;
-use filter::FilterConfig;
-
-mod raw;
+use append::AppenderConfig;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: 'static {
@@ -264,154 +263,173 @@ impl Deserializers {
     }
 }
 
-/// An error returned when deserializing a configuration into a log4rs `Config`.
+/// An error deserializing a configuration into a log4rs `Config`.
 #[derive(Debug)]
-pub enum Error {
-    /// An error deserializing a component.
-    Deserialization(Box<error::Error + Sync + Send>),
-    /// An error creating the log4rs `Config`.
-    Config(config::Error),
+pub struct Error(ErrorKind, Box<error::Error + Sync + Send>);
+
+#[derive(Debug)]
+enum ErrorKind {
+    Appender(String),
+    Filter(String),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::Deserialization(ref err) => {
-                write!(fmt, "error deserializing component: {}", err)
+        match self.0 {
+            ErrorKind::Appender(ref name) => {
+                write!(fmt, "error deserializing appender {}: {}", name, self.1)
             }
-            Error::Config(ref err) => write!(fmt, "error creating config: {}", err),
+            ErrorKind::Filter(ref name) => {
+                write!(fmt, "error deserializing filter attached to appender {}: {}", name, self.1)
+            }
         }
     }
 }
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        "an error deserializing a configuration file into a log4rs `Config`"
+        "error deserializing a log4rs `Config`"
     }
 
     fn cause(&self) -> Option<&error::Error> {
-        match *self {
-            Error::Deserialization(ref err) => Some(&**err),
-            Error::Config(ref err) => Some(err),
-        }
+        Some(&*self.1)
     }
 }
 
-/// Specifies the format of a configuration file.
-#[derive(Copy, Clone)]
-pub enum Format {
-    /// YAML.
-    ///
-    /// Requires the `yaml_format` feature (enabled by default).
-    #[cfg(feature = "yaml_format")]
-    Yaml,
-
-    /// JSON.
-    ///
-    /// Requires the `json_format` feature.
-    #[cfg(feature = "json_format")]
-    Json,
-}
-
-/// A deserialized log4rs configuration file.
-pub struct Config {
+/// A raw deserializable log4rs configuration.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawConfig {
+    #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,
-    config: config::Config,
-    errors: Vec<Error>,
+    #[serde(default)]
+    root: Root,
+    #[serde(default)]
+    appenders: HashMap<String, AppenderConfig>,
+    #[serde(default)]
+    loggers: HashMap<String, Logger>,
 }
 
-impl Config {
-    /// Creates a log4rs `Config` from the specified config string and `Deserializers`.
-    pub fn parse(config: &str,
-                 format: Format,
-                 deserializers: &Deserializers)
-                 -> Result<Config, Box<error::Error + Sync + Send>> {
+impl RawConfig {
+    /// Returns the root.
+    pub fn root(&self) -> config::Root {
+        config::Root::builder()
+            .appenders(self.root.appenders.clone())
+            .build(self.root.level)
+    }
+
+    /// Returns the loggers.
+    pub fn loggers(&self) -> Vec<config::Logger> {
+        self.loggers
+            .iter()
+            .map(|(name, logger)| {
+                config::Logger::builder()
+                    .appenders(logger.appenders.clone())
+                    .additive(logger.additive)
+                    .build(name.clone(), logger.level)
+            }).collect()
+    }
+
+    /// Returns the appenders.
+    ///
+    /// Any components which fail to be deserialized will be ignored.
+    pub fn appenders_lossy(&self,
+                           deserializers: &Deserializers)
+                           -> (Vec<config::Appender>, Vec<Error>) {
+        let mut appenders = vec![];
         let mut errors = vec![];
 
-        let config = try!(parse(format, config));
-
-        let raw::Config { refresh_rate,
-                          root: raw_root,
-                          appenders: raw_appenders,
-                          loggers: raw_loggers,
-                          .. } = config;
-
-        let root = match raw_root {
-            Some(raw_root) => {
-                config::Root::builder()
-                    .appenders(raw_root.appenders)
-                    .build(raw_root.level)
-            }
-            None => config::Root::builder().build(LogLevelFilter::Debug),
-        };
-
-        let mut config = config::Config::builder();
-
-        for (name, raw::Appender { kind, config: raw_config, filters }) in raw_appenders {
-            match deserializers.deserialize(&kind, raw_config) {
-                Ok(appender_obj) => {
-                    let mut builder = config::Appender::builder();
-                    for FilterConfig { kind, config } in filters {
-                        match deserializers.deserialize(&kind, config) {
-                            Ok(filter) => builder = builder.filter(filter),
-                            Err(err) => errors.push(Error::Deserialization(err)),
-                        }
-                    }
-                    config = config.appender(builder.build(name.clone(), appender_obj));
+        for (name, appender) in &self.appenders {
+            let mut builder = config::Appender::builder();
+            for filter in &appender.filters {
+                match deserializers.deserialize(&filter.kind, filter.config.clone()) {
+                    Ok(filter) => builder = builder.filter(filter),
+                    Err(e) => errors.push(Error(ErrorKind::Filter(name.clone()), e)),
                 }
-                Err(err) => errors.push(Error::Deserialization(err)),
+            }
+            match deserializers.deserialize(&appender.kind, appender.config.clone()) {
+                Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
+                Err(e) => errors.push(Error(ErrorKind::Appender(name.clone()), e)),
             }
         }
 
-        for (name, logger) in raw_loggers {
-            let raw::Logger { level, appenders, additive, .. } = logger;
-            let mut logger = config::Logger::builder().appenders(appenders);
-            if let Some(additive) = additive {
-                logger = logger.additive(additive);
-            }
-            config = config.logger(logger.build(name, level));
-        }
-
-        let (config, config_errors) = config.build_lossy(root);
-        if let Err(config_errors) = config_errors {
-            for error in config_errors.unpack() {
-                errors.push(Error::Config(error));
-            }
-        }
-
-        let config = Config {
-            refresh_rate: refresh_rate.map(|r| r),
-            config: config,
-            errors: errors,
-        };
-
-        Ok(config)
+        (appenders, errors)
     }
 
     /// Returns the requested refresh rate.
     pub fn refresh_rate(&self) -> Option<Duration> {
         self.refresh_rate
     }
+}
 
-    /// Returns the log4rs `Config`.
-    pub fn into_config(self) -> config::Config {
-        self.config
+fn de_duration<D>(d: D) -> Result<Option<Duration>, D::Error>
+    where D: de::Deserializer
+{
+    struct S(Duration);
+
+    impl de::Deserialize for S {
+        fn deserialize<D>(d: D) -> Result<S, D::Error>
+            where D: de::Deserializer
+        {
+            struct V;
+
+            impl de::Visitor for V {
+                type Value = S;
+
+                fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                    fmt.write_str("a duration")
+                }
+
+                fn visit_str<E>(self, v: &str) -> Result<S, E>
+                    where E: de::Error
+                {
+                    humantime::parse_duration(v)
+                        .map(S)
+                        .map_err(|e| E::custom(e))
+                }
+            }
+
+            d.deserialize(V)
+        }
     }
 
-    /// Returns any nonfatal errors encountered when deserializing the config.
-    pub fn errors(&self) -> &[Error] {
-        &self.errors
+    Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Root {
+    #[serde(deserialize_with = "::priv_serde::de_filter", default = "root_level_default")]
+    level: LogLevelFilter,
+    #[serde(default)]
+    appenders: Vec<String>,
+}
+
+impl Default for Root {
+    fn default() -> Root {
+        Root {
+            level: root_level_default(),
+            appenders: vec![]
+        }
     }
 }
 
-fn parse(format: Format, _config: &str) -> Result<raw::Config, Box<error::Error + Sync + Send>> {
-    match format {
-        #[cfg(feature = "yaml_format")]
-        Format::Yaml => ::serde_yaml::from_str(_config).map_err(Into::into),
-        #[cfg(feature = "json_format")]
-        Format::Json => ::serde_json::from_str(_config).map_err(Into::into),
-    }
+fn root_level_default() -> LogLevelFilter {
+    LogLevelFilter::Debug
 }
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Logger {
+    #[serde(deserialize_with = "::priv_serde::de_filter")]
+    level: LogLevelFilter,
+    #[serde(default)]
+    appenders: Vec<String>,
+    #[serde(default = "logger_additive_default")]
+    additive: bool,
+}
+
+fn logger_additive_default() -> bool { true }
 
 #[cfg(test)]
 #[allow(unused_imports)]
@@ -448,15 +466,15 @@ loggers:
       - baz
     additive: false
 "#;
-        let config = Config::parse(cfg, Format::Yaml, &Deserializers::default()).unwrap();
-        println!("{:?}", config.errors());
-        assert!(config.errors().is_empty());
+        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        println!("{:?}", errors);
+        assert!(errors.is_empty());
     }
 
     #[test]
     #[cfg(feature = "yaml_format")]
     fn empty() {
-        let config = Config::parse("{}", Format::Yaml, &Deserializers::default()).unwrap();
-        assert!(config.errors().is_empty());
+        let config = ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
     }
 }

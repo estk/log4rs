@@ -8,7 +8,7 @@ use log::LogLevelFilter;
 
 use append::Append;
 use filter::Filter;
-use {ConfigPrivateExt, PrivateConfigErrorsExt, PrivateConfigAppenderExt};
+use {ConfigPrivateExt, PrivateConfigAppenderExt};
 
 /// Configuration for the root logger.
 #[derive(Debug)]
@@ -50,9 +50,9 @@ impl RootBuilder {
     }
 
     /// Adds appenders.
-    pub fn appenders<T, I>(mut self, appenders: I) -> RootBuilder
-        where T: Into<String>,
-              I: IntoIterator<Item = T>
+    pub fn appenders<I>(mut self, appenders: I) -> RootBuilder
+        where I: IntoIterator,
+              I::Item: Into<String>,
     {
         self.appenders.extend(appenders.into_iter().map(Into::into));
         self
@@ -195,9 +195,9 @@ impl LoggerBuilder {
     }
 
     /// Adds appenders.
-    pub fn appenders<T, I>(mut self, appenders: I) -> LoggerBuilder
-        where T: Into<String>,
-              I: IntoIterator<Item = T>
+    pub fn appenders<I>(mut self, appenders: I) -> LoggerBuilder
+        where I: IntoIterator,
+              I::Item: Into<String>
     {
         self.appenders.extend(appenders.into_iter().map(Into::into));
         self
@@ -294,7 +294,7 @@ impl ConfigBuilder {
     ///
     /// Unlike `build`, this method will always return a `Config` by stripping
     /// portions of the configuration that are incorrect.
-    pub fn build_lossy(self, mut root: Root) -> (Config, Result<(), Errors>) {
+    pub fn build_lossy(self, mut root: Root) -> (Config, Vec<Error>) {
         let mut errors = vec![];
 
         let ConfigBuilder { appenders, loggers } = self;
@@ -351,19 +351,19 @@ impl ConfigBuilder {
             loggers: ok_loggers,
         };
 
-        let errors = if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(Errors { errors: errors })
-        };
-
         (config, errors)
     }
 
     /// Consumes the `ConfigBuilder`, returning the `Config`.
     pub fn build(self, root: Root) -> Result<Config, Errors> {
         let (config, errors) = self.build_lossy(root);
-        errors.map(|_| config)
+        if errors.is_empty() {
+            Ok(config)
+        } else {
+            Err(Errors {
+                errors: errors,
+            })
+        }
     }
 }
 
@@ -429,12 +429,6 @@ impl error::Error for Errors {
     }
 }
 
-impl PrivateConfigErrorsExt for Errors {
-    fn unpack(self) -> Vec<Error> {
-        self.errors
-    }
-}
-
 /// An error validating a log4rs `Config`.
 #[derive(Debug)]
 pub enum Error {
@@ -446,6 +440,8 @@ pub enum Error {
     DuplicateLoggerName(String),
     /// A logger name was invalid.
     InvalidLoggerName(String),
+    #[doc(hidden)]
+    __Extensible,
 }
 
 impl fmt::Display for Error {
@@ -457,6 +453,7 @@ impl fmt::Display for Error {
             }
             Error::DuplicateLoggerName(ref n) => write!(fmt, "Duplicate logger name `{}`", n),
             Error::InvalidLoggerName(ref n) => write!(fmt, "Invalid logger name `{}`", n),
+            Error::__Extensible => unreachable!(),
         }
     }
 }

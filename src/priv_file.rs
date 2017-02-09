@@ -8,7 +8,8 @@ use std::fmt;
 use std::time::{Duration, SystemTime};
 
 use {init_config, Handle, handle_error};
-use file::{self, Format, Deserializers};
+use file::{Deserializers, RawConfig};
+use config::Config;
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
@@ -23,14 +24,14 @@ pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
     where P: AsRef<Path>
 {
     let path = path.as_ref().to_path_buf();
-    let format = try!(get_format(&path));
+    let format = try!(Format::from_path(&path));
     let source = try!(read_config(&path));
     // An Err here could come because mtime isn't available, so don't bail
     let modified = fs::metadata(&path).and_then(|m| m.modified()).ok();
-    let config = try!(parse_config(&source, format, &deserializers));
+    let config = try!(format.parse(&source));
 
     let refresh_rate = config.refresh_rate();
-    let config = config.into_config();
+    let config = deserialize(&config, &deserializers);
 
     match init_config(config) {
         Ok(handle) => {
@@ -95,20 +96,38 @@ impl From<Box<error::Error + Sync + Send>> for Error {
     }
 }
 
-fn get_format(path: &Path) -> Result<Format, Box<error::Error + Sync + Send>> {
-    match path.extension().and_then(|s| s.to_str()) {
-        #[cfg(feature = "yaml_format")]
-        Some("yaml") | Some("yml") => Ok(Format::Yaml),
-        #[cfg(not(feature = "yaml_format"))]
-        Some("yaml") | Some("yml") => {
-            Err("the `yaml_format` feature is required for YAML support".into())
+enum Format {
+    #[cfg(feature = "yaml_format")]
+    Yaml,
+    #[cfg(feature = "json_format")]
+    Json,
+}
+
+impl Format {
+    fn from_path(path: &Path) -> Result<Format, Box<error::Error + Sync + Send>> {
+        match path.extension().and_then(|s| s.to_str()) {
+            #[cfg(feature = "yaml_format")]
+            Some("yaml") | Some("yml") => Ok(Format::Yaml),
+            #[cfg(not(feature = "yaml_format"))]
+            Some("yaml") | Some("yml") => {
+                Err("the `yaml_format` feature is required for YAML support".into())
+            }
+            #[cfg(feature = "json_format")]
+            Some("json") => Ok(Format::Json),
+            #[cfg(not(feature = "json_format"))]
+            Some("json") => Err("the `json_format` feature is required for JSON support".into()),
+            Some(f) => Err(format!("unsupported file format `{}`", f).into()),
+            None => Err("unable to determine the file format".into()),
         }
-        #[cfg(feature = "json_format")]
-        Some("json") => Ok(Format::Json),
-        #[cfg(not(feature = "json_format"))]
-        Some("json") => Err("the `json_format` feature is required for JSON support".into()),
-        Some(f) => Err(format!("unsupported file format `{}`", f).into()),
-        None => Err("unable to determine the file format".into()),
+    }
+
+    fn parse(&self, source: &str) -> Result<RawConfig, Box<error::Error + Sync + Send>> {
+        match *self {
+            #[cfg(feature = "yaml_format")]
+            Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
+            #[cfg(feature = "json_format")]
+            Format::Json => ::serde_json::from_str(source).map_err(Into::into),
+        }
     }
 }
 
@@ -119,15 +138,21 @@ fn read_config(path: &Path) -> Result<String, Box<error::Error + Sync + Send>> {
     Ok(s)
 }
 
-fn parse_config(source: &str,
-                format: Format,
-                deserializers: &Deserializers)
-                -> Result<file::Config, Box<error::Error + Sync + Send>> {
-    let config = try!(file::Config::parse(&source, format, deserializers));
-    for error in config.errors() {
+fn deserialize(config: &RawConfig, deserializers: &Deserializers) -> Config {
+    let (appenders, errors) = config.appenders_lossy(deserializers);
+    for error in &errors {
         handle_error(error);
     }
-    Ok(config)
+
+    let (config, errors) = Config::builder()
+        .appenders(appenders)
+        .loggers(config.loggers())
+        .build_lossy(config.root());
+    for error in &errors {
+        handle_error(error);
+    }
+
+    config
 }
 
 struct ConfigReloader {
@@ -192,9 +217,9 @@ impl ConfigReloader {
 
         self.source = source;
 
-        let config = try!(parse_config(&self.source, self.format, &self.deserializers));
+        let config = try!(self.format.parse(&self.source));
         let rate = config.refresh_rate();
-        let config = config.into_config();
+        let config = deserialize(&config, &self.deserializers);
 
         self.handle.set_config(config);
 
