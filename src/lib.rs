@@ -68,8 +68,8 @@
 //! `yaml_format` feature and the console appender requires the
 //! `console_appender` feature.
 //!
-//! By default, the `console_appender`, `file_appender`, `pattern_encoder`,
-//! `file`, and `yaml_format` features are enabled.
+//! By default, the `all_components`, `gzip`, `file`, and `yaml_format` features
+//! are enabled.
 //!
 //! As a convenience, the `all_components` feature activates all logger components.
 //!

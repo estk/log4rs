@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["logger", "log", "logging"]
 
 [features]
-default = ["console_appender", "file_appender", "pattern_encoder", "file", "yaml_format"]
+default = ["all_components", "gzip", "file", "yaml_format"]
 
 file = ["humantime", "serde", "serde_derive", "serde-value", "typemap"]
 yaml_format = ["serde_yaml"]
