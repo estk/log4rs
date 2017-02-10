@@ -5,7 +5,7 @@ appenders:
     kind: console
     encoder:
       pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
-    filter:
+    filters:
     - kind: threshold
       level: error
   file:
