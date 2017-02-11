@@ -15,6 +15,7 @@ default = ["all_components", "gzip", "file", "yaml_format"]
 file = ["humantime", "serde", "serde_derive", "serde-value", "typemap"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
+toml_format = ["toml"]
 
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
 file_appender = ["antidote", "simple_writer", "pattern_encoder"]
@@ -60,6 +61,7 @@ serde-value = { version = "0.4", optional = true }
 typemap = { version = "0.3", optional = true }
 serde_json = { version = "0.9", optional = true }
 serde_yaml = { version = "0.6.0-rc1", optional = true }
+toml = { version = "0.3", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2", optional = true }

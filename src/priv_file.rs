@@ -101,6 +101,8 @@ enum Format {
     Yaml,
     #[cfg(feature = "json_format")]
     Json,
+    #[cfg(feature = "toml_format")]
+    Toml,
 }
 
 impl Format {
@@ -116,6 +118,10 @@ impl Format {
             Some("json") => Ok(Format::Json),
             #[cfg(not(feature = "json_format"))]
             Some("json") => Err("the `json_format` feature is required for JSON support".into()),
+            #[cfg(feature = "toml_format")]
+            Some("toml") => Ok(Format::Toml),
+            #[cfg(not(feature = "toml_format"))]
+            Some("toml") => Err("the `toml_format` feature is required for TOML support".into()),
             Some(f) => Err(format!("unsupported file format `{}`", f).into()),
             None => Err("unable to determine the file format".into()),
         }
@@ -127,6 +133,8 @@ impl Format {
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
             #[cfg(feature = "json_format")]
             Format::Json => ::serde_json::from_str(source).map_err(Into::into),
+            #[cfg(feature = "toml_format")]
+            Format::Toml => ::toml::from_str(source).map_err(Into::into),
         }
     }
 }

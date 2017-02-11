@@ -194,6 +194,8 @@ extern crate serde_json;
 extern crate serde_value;
 #[cfg(all(windows, feature = "winapi"))]
 extern crate winapi;
+#[cfg(feature = "toml")]
+extern crate toml;
 
 #[cfg(feature = "serde_derive")]
 #[macro_use]
