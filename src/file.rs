@@ -1,8 +1,8 @@
 //! Support for log4rs configuration from files.
 //!
 //! Multiple file formats are supported, each requiring a Cargo feature to be
-//! enabled. YAML support requires the `yaml` feature, and JSON support requires
-//! the `JSON` feature.
+//! enabled. YAML support requires the `yaml_format` feature, JSON support requires
+//! the `json_format` feature, and TOML support requires the `toml_format` feature.
 //!
 //! # Syntax
 //!
