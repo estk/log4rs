@@ -475,6 +475,6 @@ loggers:
     #[test]
     #[cfg(feature = "yaml_format")]
     fn empty() {
-        let config = ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
     }
 }
