@@ -77,8 +77,8 @@ impl JsonEncoder {
             line: line,
             args: args,
         };
-        message.serialize(&mut serde_json::Serializer::new(&mut *w));
-        w.write_all(NEWLINE.as_bytes());
+        message.serialize(&mut serde_json::Serializer::new(&mut *w))?;
+        w.write_all(NEWLINE.as_bytes())?;
         Ok(())
     }
 }
