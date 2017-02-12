@@ -114,8 +114,8 @@ impl fmt::Debug for ConsoleAppender {
 impl Append for ConsoleAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
         let mut writer = self.writer.lock();
-        try!(self.encoder.encode(&mut writer, record));
-        try!(writer.flush());
+        self.encoder.encode(&mut writer, record)?;
+        writer.flush()?;
         Ok(())
     }
 }
@@ -220,7 +220,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
         }
         if let Some(encoder) = config.encoder {
             appender =
-                appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
+                appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
         Ok(Box::new(appender.build()))
     }

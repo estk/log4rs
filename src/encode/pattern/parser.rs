@@ -67,7 +67,7 @@ impl<'a> Parser<'a> {
     fn formatter(&mut self) -> Result<Formatter<'a>, String> {
         Ok(Formatter {
             name: self.name(),
-            args: try!(self.args()),
+            args: self.args()?,
         })
     }
 
@@ -94,7 +94,7 @@ impl<'a> Parser<'a> {
     fn args(&mut self) -> Result<Vec<Vec<Piece<'a>>>, String> {
         let mut args = vec![];
         while let Some(&(_, '(')) = self.it.peek() {
-            args.push(try!(self.arg()));
+            args.push(self.arg()?);
         }
         Ok(args)
     }

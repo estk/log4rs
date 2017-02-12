@@ -38,10 +38,10 @@ impl serde::Deserialize for Trigger {
     fn deserialize<D>(d: D) -> Result<Trigger, D::Error>
         where D: serde::Deserializer
     {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
             None => return Err(de::Error::missing_field("kind")),
         };
 
@@ -63,10 +63,10 @@ impl serde::Deserialize for Roller {
     fn deserialize<D>(d: D) -> Result<Roller, D::Error>
         where D: serde::Deserializer
     {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
             None => return Err(de::Error::missing_field("kind")),
         };
 
@@ -100,9 +100,9 @@ impl CompoundPolicy {
 
 impl Policy for CompoundPolicy {
     fn process(&self, log: &mut LogFile) -> Result<(), Box<Error + Sync + Send>> {
-        if try!(self.trigger.trigger(log)) {
+        if self.trigger.trigger(log)? {
             log.roll();
-            try!(self.roller.roll(log.path()))
+            self.roller.roll(log.path())?;
         }
         Ok(())
     }
@@ -147,8 +147,8 @@ impl Deserialize for CompoundPolicyDeserializer {
                    config: CompoundPolicyConfig,
                    deserializers: &Deserializers)
                    -> Result<Box<Policy>, Box<Error + Sync + Send>> {
-        let trigger = try!(deserializers.deserialize(&config.trigger.kind, config.trigger.config));
-        let roller = try!(deserializers.deserialize(&config.roller.kind, config.roller.config));
+        let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
+        let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))
     }
 }

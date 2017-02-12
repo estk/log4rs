@@ -417,7 +417,7 @@ impl Errors {
 impl fmt::Display for Errors {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for error in &self.errors {
-            try!(writeln!(fmt, "{}", error));
+            writeln!(fmt, "{}", error)?;
         }
         Ok(())
     }

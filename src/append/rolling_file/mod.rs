@@ -62,10 +62,10 @@ impl serde::Deserialize for Policy {
     fn deserialize<D>(d: D) -> Result<Policy, D::Error>
         where D: serde::Deserializer
     {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
             None => "compound".to_owned(),
         };
 
@@ -157,9 +157,9 @@ impl Append for RollingFileAppender {
         let mut writer = self.writer.lock();
 
         let len = {
-            let writer = try!(self.get_writer(&mut writer));
-            try!(self.encoder.encode(writer, record));
-            try!(writer.flush());
+            let writer = self.get_writer(&mut writer)?;
+            self.encoder.encode(writer, record)?;
+            writer.flush()?;
             writer.len
         };
 
@@ -184,14 +184,14 @@ impl RollingFileAppender {
 
     fn get_writer<'a>(&self, writer: &'a mut Option<LogWriter>) -> io::Result<&'a mut LogWriter> {
         if writer.is_none() {
-            let file = try!(OpenOptions::new()
+            let file = OpenOptions::new()
                 .write(true)
                 .append(self.append)
                 .truncate(!self.append)
                 .create(true)
-                .open(&self.path));
+                .open(&self.path)?;
             let len = if self.append {
-                try!(file.metadata()).len()
+                file.metadata()?.len()
             } else {
                 0
             };
@@ -242,11 +242,11 @@ impl RollingFileAppenderBuilder {
         };
 
         if let Some(parent) = appender.path.parent() {
-            try!(fs::create_dir_all(parent));
+            fs::create_dir_all(parent)?;
         }
 
         // open the log file immediately
-        try!(appender.get_writer(&mut appender.writer.lock()));
+        appender.get_writer(&mut appender.writer.lock())?;
 
         Ok(appender)
     }
@@ -303,12 +303,12 @@ impl Deserialize for RollingFileAppenderDeserializer {
             builder = builder.append(append);
         }
         if let Some(encoder) = config.encoder {
-            let encoder = try!(deserializers.deserialize(&encoder.kind, encoder.config));
+            let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
             builder = builder.encoder(encoder);
         }
 
-        let policy = try!(deserializers.deserialize(&config.policy.kind, config.policy.config));
-        let appender = try!(builder.build(config.path, policy));
+        let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
+        let appender = builder.build(config.path, policy)?;
         Ok(Box::new(appender))
     }
 }

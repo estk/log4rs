@@ -59,10 +59,10 @@ impl de::Deserialize for EncoderConfig {
     fn deserialize<D>(d: D) -> Result<EncoderConfig, D::Error>
         where D: de::Deserializer
     {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.to_error())),
+            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
             None => "pattern".to_owned(),
         };
 

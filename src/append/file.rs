@@ -48,8 +48,8 @@ impl fmt::Debug for FileAppender {
 impl Append for FileAppender {
     fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
         let mut file = self.file.lock();
-        try!(self.encoder.encode(&mut *file, record));
-        try!(file.flush());
+        self.encoder.encode(&mut *file, record)?;
+        file.flush()?;
         Ok(())
     }
 }
@@ -89,14 +89,14 @@ impl FileAppenderBuilder {
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let path = path.as_ref().to_owned();
         if let Some(parent) = path.parent() {
-            try!(fs::create_dir_all(parent));
+            fs::create_dir_all(parent)?;
         }
-        let file = try!(OpenOptions::new()
+        let file = OpenOptions::new()
             .write(true)
             .append(self.append)
             .truncate(!self.append)
             .create(true)
-            .open(&path));
+            .open(&path)?;
 
         Ok(FileAppender {
             path: path,
@@ -144,9 +144,9 @@ impl Deserialize for FileAppenderDeserializer {
         }
         if let Some(encoder) = config.encoder {
             appender =
-                appender.encoder(try!(deserializers.deserialize(&encoder.kind, encoder.config)));
+                appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
-        Ok(Box::new(try!(appender.build(&config.path))))
+        Ok(Box::new(appender.build(&config.path)?))
     }
 }
 

@@ -142,7 +142,7 @@ impl<T> ErasedDeserialize for DeserializeEraser<T>
                    config: Value,
                    deserializers: &Deserializers)
                    -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>> {
-        let config = try!(config.deserialize_into());
+        let config = config.deserialize_into()?;
         self.0.deserialize(config, deserializers)
     }
 }

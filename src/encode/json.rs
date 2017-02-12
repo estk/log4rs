@@ -77,8 +77,8 @@ impl JsonEncoder {
             line: line,
             args: args,
         };
-        try!(message.serialize(&mut serde_json::Serializer::new(&mut *w)));
-        try!(w.write_all(NEWLINE.as_bytes()));
+        message.serialize(&mut serde_json::Serializer::new(&mut *w));
+        w.write_all(NEWLINE.as_bytes());
         Ok(())
     }
 }
@@ -110,34 +110,34 @@ impl<'a> ser::Serialize for Message<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: ser::Serializer
     {
-        let mut map = try!(serializer.serialize_map(None));
+        let mut map = serializer.serialize_map(None)?;
 
-        try!(map.serialize_key("time"));
-        try!(map.serialize_value(&self.time.to_rfc3339()));
+        map.serialize_key("time")?;
+        map.serialize_value(&self.time.to_rfc3339())?;
 
-        try!(map.serialize_key("message"));
-        try!(map.serialize_value(&format!("{}", self.args)));
+        map.serialize_key("message")?;
+        map.serialize_value(&format!("{}", self.args))?;
 
-        try!(map.serialize_key("module_path"));
-        try!(map.serialize_value(&self.module_path));
+        map.serialize_key("module_path")?;
+        map.serialize_value(&self.module_path)?;
 
-        try!(map.serialize_key("file"));
-        try!(map.serialize_value(&self.file));
+        map.serialize_key("file")?;
+        map.serialize_value(&self.file)?;
 
-        try!(map.serialize_key("line"));
-        try!(map.serialize_value(&self.line));
+        map.serialize_key("line")?;
+        map.serialize_value(&self.line)?;
 
-        try!(map.serialize_key("level"));
-        try!(map.serialize_value(&level_str(self.level)));
+        map.serialize_key("level")?;
+        map.serialize_value(&level_str(self.level))?;
 
-        try!(map.serialize_key("target"));
-        try!(map.serialize_value(&self.target));
+        map.serialize_key("target")?;
+        map.serialize_value(&self.target)?;
 
-        try!(map.serialize_key("thread"));
-        try!(map.serialize_value(&thread::current().name()));
+        map.serialize_key("thread")?;
+        map.serialize_value(&thread::current().name())?;
 
-        try!(map.serialize_key("mdc"));
-        try!(map.serialize_value(&MdcSerializer));
+        map.serialize_key("mdc")?;
+        map.serialize_value(&MdcSerializer)?;
 
         map.end()
     }
@@ -159,7 +159,7 @@ impl ser::Serialize for MdcSerializer {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: ser::Serializer
     {
-        let mut map = try!(serializer.serialize_map(None));
+        let mut map = serializer.serialize_map(None)?;
 
         let mut err = Ok(());
         log_mdc::iter(|k, v| {
@@ -168,7 +168,7 @@ impl ser::Serialize for MdcSerializer {
                     .and_then(|()| map.serialize_value(v));
             }
         });
-        try!(err);
+        err?;
 
         map.end()
     }

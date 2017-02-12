@@ -38,13 +38,13 @@ impl Compression {
                 use flate2::write::GzEncoder;
                 use std::fs::File;
 
-                let mut i = try!(File::open(src));
+                let mut i = File::open(src)?;
 
-                let o = try!(File::create(dst));
+                let o = File::create(dst)?;
                 let mut o = GzEncoder::new(o, flate2::Compression::Default);
 
-                try!(io::copy(&mut i, &mut o));
-                drop(try!(o.finish()));
+                io::copy(&mut i, &mut o)?;
+                drop(o.finish()?);
                 drop(i); // needs to happen before remove_file call on Windows
 
                 fs::remove_file(src)
@@ -100,7 +100,7 @@ impl Roll for FixedWindowRoller {
         let dst_0 = self.pattern.replace("{}", "0");
 
         if let Some(parent) = Path::new(&dst_0).parent() {
-            try!(fs::create_dir_all(parent));
+            fs::create_dir_all(parent)?;
         }
 
         // In the common case, all of the archived files will be in the same
@@ -116,11 +116,11 @@ impl Roll for FixedWindowRoller {
 
             if parent_varies {
                 if let Some(parent) = Path::new(&dst).parent() {
-                    try!(fs::create_dir_all(parent));
+                    fs::create_dir_all(parent)?;
                 }
             }
 
-            try!(move_file(&src, &dst));
+            move_file(&src, &dst)?;
         }
 
         self.compression.compress(file, &dst_0).map_err(Into::into)
@@ -223,7 +223,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
             builder = builder.base(base);
         }
 
-        Ok(Box::new(try!(builder.build(&config.pattern, config.count))))
+        Ok(Box::new(builder.build(&config.pattern, config.count)?))
     }
 }
 

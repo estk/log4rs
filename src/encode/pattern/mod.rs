@@ -201,7 +201,7 @@ struct LeftAlignWriter<W> {
 impl<W: encode::Write> LeftAlignWriter<W> {
     fn finish(mut self) -> io::Result<()> {
         for _ in 0..self.to_fill {
-            try!(write!(self.w, "{}", self.fill));
+            write!(self.w, "{}", self.fill)?;
         }
         Ok(())
     }
@@ -244,12 +244,12 @@ struct RightAlignWriter<W> {
 impl<W: encode::Write> RightAlignWriter<W> {
     fn finish(mut self) -> io::Result<()> {
         for _ in 0..self.to_fill {
-            try!(write!(self.w, "{}", self.fill));
+            write!(self.w, "{}", self.fill)?;
         }
         for out in self.buf {
             match out {
-                BufferedOutput::Data(ref buf) => try!(self.w.write_all(buf)),
-                BufferedOutput::Style(ref style) => try!(self.w.set_style(style)),
+                BufferedOutput::Data(ref buf) => self.w.write_all(buf)?,
+                BufferedOutput::Style(ref style) => self.w.set_style(style)?,
             }
         }
         Ok(())
@@ -319,7 +319,7 @@ impl Chunk {
                             fill: params.fill,
                             w: w,
                         };
-                        try!(chunk.encode(&mut w, level, target, location, args));
+                        chunk.encode(&mut w, level, target, location, args)?;
                         w.finish()
                     }
                     (Some(min_width), None, Alignment::Right) => {
@@ -329,7 +329,7 @@ impl Chunk {
                             w: w,
                             buf: vec![],
                         };
-                        try!(chunk.encode(&mut w, level, target, location, args));
+                        chunk.encode(&mut w, level, target, location, args)?;
                         w.finish()
                     }
                     (Some(min_width), Some(max_width), Alignment::Left) => {
@@ -341,7 +341,7 @@ impl Chunk {
                                 w: w,
                             },
                         };
-                        try!(chunk.encode(&mut w, level, target, location, args));
+                        chunk.encode(&mut w, level, target, location, args)?;
                         w.finish()
                     }
                     (Some(min_width), Some(max_width), Alignment::Right) => {
@@ -354,7 +354,7 @@ impl Chunk {
                             },
                             buf: vec![],
                         };
-                        try!(chunk.encode(&mut w, level, target, location, args));
+                        chunk.encode(&mut w, level, target, location, args)?;
                         w.finish()
                     }
                 }
@@ -562,25 +562,25 @@ impl FormattedChunk {
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
                 for chunk in chunks {
-                    try!(chunk.encode(w, level, target, location, args));
+                    chunk.encode(w, level, target, location, args)?;
                 }
                 Ok(())
             }
             FormattedChunk::Highlight(ref chunks) => {
                 match level {
                     LogLevel::Error => {
-                        try!(w.set_style(Style::new().text(Color::Red).intense(true)));
+                        w.set_style(Style::new().text(Color::Red).intense(true))?;
                     }
-                    LogLevel::Warn => try!(w.set_style(Style::new().text(Color::Red))),
-                    LogLevel::Info => try!(w.set_style(Style::new().text(Color::Blue))),
+                    LogLevel::Warn => w.set_style(Style::new().text(Color::Red))?,
+                    LogLevel::Info => w.set_style(Style::new().text(Color::Blue))?,
                     _ => {}
                 }
                 for chunk in chunks {
-                    try!(chunk.encode(w, level, target, location, args));
+                    chunk.encode(w, level, target, location, args)?;
                 }
                 match level {
                     LogLevel::Error | LogLevel::Warn | LogLevel::Info => {
-                        try!(w.set_style(&Style::new()))
+                        w.set_style(&Style::new())?
                     }
                     _ => {}
                 }
@@ -644,7 +644,7 @@ impl PatternEncoder {
                     args: &fmt::Arguments)
                     -> Result<(), Box<Error + Sync + Send>> {
         for chunk in &self.chunks {
-            try!(chunk.encode(w, level, target, location, args));
+            chunk.encode(w, level, target, location, args)?;
         }
         Ok(())
     }

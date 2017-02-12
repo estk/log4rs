@@ -320,7 +320,7 @@ mod imp {
 
     impl encode::Write for Writer {
         fn set_style(&mut self, style: &Style) -> io::Result<()> {
-            try!(self.inner.flush());
+            self.inner.flush()?;
             self.console.set_style(style)
         }
     }
@@ -350,7 +350,7 @@ mod imp {
 
     impl<'a> encode::Write for WriterLock<'a> {
         fn set_style(&mut self, style: &Style) -> io::Result<()> {
-            try!(self.inner.flush());
+            self.inner.flush()?;
             self.console.set_style(style)
         }
     }

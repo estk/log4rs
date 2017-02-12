@@ -24,11 +24,11 @@ pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
     where P: AsRef<Path>
 {
     let path = path.as_ref().to_path_buf();
-    let format = try!(Format::from_path(&path));
-    let source = try!(read_config(&path));
+    let format = Format::from_path(&path)?;
+    let source = read_config(&path)?;
     // An Err here could come because mtime isn't available, so don't bail
     let modified = fs::metadata(&path).and_then(|m| m.modified()).ok();
-    let config = try!(format.parse(&source));
+    let config = format.parse(&source)?;
 
     let refresh_rate = config.refresh_rate();
     let config = deserialize(&config, &deserializers);
@@ -140,9 +140,9 @@ impl Format {
 }
 
 fn read_config(path: &Path) -> Result<String, Box<error::Error + Sync + Send>> {
-    let mut file = try!(File::open(path));
+    let mut file = File::open(path)?;
     let mut s = String::new();
-    try!(file.read_to_string(&mut s));
+    file.read_to_string(&mut s)?;
     Ok(s)
 }
 
@@ -209,7 +209,7 @@ impl ConfigReloader {
 
     fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, Box<error::Error + Sync + Send>> {
         if let Some(last_modified) = self.modified {
-            let modified = try!(fs::metadata(&self.path).and_then(|m| m.modified()));
+            let modified = fs::metadata(&self.path).and_then(|m| m.modified())?;
             if last_modified == modified {
                 return Ok(Some(rate));
             }
@@ -217,7 +217,7 @@ impl ConfigReloader {
             self.modified = Some(modified);
         }
 
-        let source = try!(read_config(&self.path));
+        let source = read_config(&self.path)?;
 
         if source == self.source {
             return Ok(Some(rate));
@@ -225,7 +225,7 @@ impl ConfigReloader {
 
         self.source = source;
 
-        let config = try!(self.format.parse(&self.source));
+        let config = self.format.parse(&self.source)?;
         let rate = config.refresh_rate();
         let config = deserialize(&config, &self.deserializers);
 

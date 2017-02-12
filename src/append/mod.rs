@@ -55,15 +55,15 @@ impl Deserialize for AppenderConfig {
     fn deserialize<D>(d: D) -> Result<AppenderConfig, D::Error>
         where D: Deserializer
     {
-        let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
+        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
         let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => try!(kind.deserialize_into().map_err(|e| e.into_error())),
+            Some(kind) => kind.deserialize_into().map_err(|e| e.into_error())?,
             None => return Err(de::Error::missing_field("kind")),
         };
 
         let filters = match map.remove(&Value::String("filters".to_owned())) {
-            Some(filters) => try!(filters.deserialize_into().map_err(|e| e.into_error())),
+            Some(filters) => filters.deserialize_into().map_err(|e| e.into_error())?,
             None => vec![],
         };
 
