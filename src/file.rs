@@ -42,23 +42,26 @@
 //!     # Appenders will commonly be associated with an encoder.
 //!     encoder:
 //!
-//!       # Like appenders, encoders are identified by their "kind". If no kind
-//!       # is specified, it will default to "pattern".
+//!       # Like appenders, encoders are identified by their "kind".
+//!       #
+//!       # Default: pattern
 //!       kind: pattern
 //!
 //!       # The remainder of the configuration is passed along to the
 //!       # encoder's builder, and will vary based on the kind of encoder.
 //!       pattern: "{d} [{t}] {m}{n}"
 //!
-//! # The root logger is configured by the "root" map. Defaults to a level of
-//! # "debug" and no appenders if not provided.
+//! # The root logger is configured by the "root" map.
 //! root:
 //!
 //!   # The maximum log level for the root logger.
+//!   #
+//!   # Default: warn
 //!   level: warn
 //!
-//!   # The list of appenders attached to the root logger. Defaults to an empty
-//!   # list if not specified.
+//!   # The list of appenders attached to the root logger.
+//!   #
+//!   # Default: empty list
 //!   appenders:
 //!     - foo
 //!
@@ -68,18 +71,21 @@
 //!
 //!   foo::bar::baz:
 //!
-//!     # The maximum log level. Defaults to the level of the logger's parent if
-//!     # not specified.
+//!     # The maximum log level.
+//!     #
+//!     # Default: parent logger's level
 //!     level: trace
 //!
-//!     # The list of appenders attached to the logger. Defaults to an empty
-//!     # list if not specified.
+//!     # The list of appenders attached to the logger.
+//!     #
+//!     # Default: empty list
 //!     appenders:
 //!       - foo
 //!
-//!     # The additivity of the logger. If true, appenders attached to the
-//!     # logger's parent will also be attached to this logger. Defaults to true
-//!     # if not specified.
+//!     # The additivity of the logger. If true, appenders attached to the logger's parent will also
+//!     # be attached to this logger.
+//!     #
+//!     Default: true
 //!     additive: false
 //! ```
 use humantime;
