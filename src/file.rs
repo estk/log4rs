@@ -82,8 +82,8 @@
 //!     appenders:
 //!       - foo
 //!
-//!     # The additivity of the logger. If true, appenders attached to the logger's parent will also
-//!     # be attached to this logger.
+//!     # The additivity of the logger. If true, appenders attached to the logger's
+//!     # parent will also be attached to this logger.
 //!     #
 //!     Default: true
 //!     additive: false
