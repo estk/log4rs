@@ -163,34 +163,6 @@ impl<T: ?Sized + 'static> Key for KeyAdaptor<T> {
 #[derive(Clone)]
 pub struct Deserializers(ShareCloneMap);
 
-/// Creates a `Deserializers` with the following mappings:
-///
-/// * Appenders
-///     * "console" -> `ConsoleAppenderDeserializer`
-///         * Requires the `console_appender` feature (enabled by default).
-///     * "file" -> `FileAppenderDeserializer`
-///         * Requires the `file_appender` feature (enabled by default).
-///     * "rolling_file" -> `RollingFileAppenderDeserializer`
-///         * Requires the `rolling_file_appender` feature.
-/// * Encoders
-///     * "pattern" -> `PatternEncoderDeserializer`
-///         * Requires the `pattern_encoder` feature (enabled by default).
-///     * "json" -> `JsonEncoderDeserializer`
-///         * Requires the `json_encoder` feature.
-/// * Filters
-///     * "threshold" -> `ThresholdFilterDeserializer`
-///         * Requires the `threshold_filter` feature.
-/// * Policies
-///     *  "compound" -> `CompoundPolicyDeserializer`
-///         * Requires the `compound_policy` feature.
-/// * Rollers
-///     * "delete" -> `DeleteRollerDeserializer`
-///         * Requires the `delete_roller` feature.
-///     * "fixed_window" -> `FixedWindowRollerDeserializer`
-///         * Requires the `fixed_window_roller` feature.
-/// * Triggers
-///     * "size" -> `SizeTriggerDeserializer`
-///         * Requires the `size_trigger` feature.
 impl Default for Deserializers {
     fn default() -> Deserializers {
         let mut d = Deserializers::empty();
@@ -230,7 +202,36 @@ impl Default for Deserializers {
 }
 
 impl Deserializers {
-    /// Creates a new `Deserializers` with default mappings.
+    /// Creates a `Deserializers` with default mappings.
+    ///
+    /// All are enabled by default.
+    ///
+    /// * Appenders
+    ///     * "console" -> `ConsoleAppenderDeserializer`
+    ///         * Requires the `console_appender` feature.
+    ///     * "file" -> `FileAppenderDeserializer`
+    ///         * Requires the `file_appender` feature.
+    ///     * "rolling_file" -> `RollingFileAppenderDeserializer`
+    ///         * Requires the `rolling_file_appender` feature.
+    /// * Encoders
+    ///     * "pattern" -> `PatternEncoderDeserializer`
+    ///         * Requires the `pattern_encoder` feature.
+    ///     * "json" -> `JsonEncoderDeserializer`
+    ///         * Requires the `json_encoder` feature.
+    /// * Filters
+    ///     * "threshold" -> `ThresholdFilterDeserializer`
+    ///         * Requires the `threshold_filter` feature.
+    /// * Policies
+    ///     *  "compound" -> `CompoundPolicyDeserializer`
+    ///         * Requires the `compound_policy` feature.
+    /// * Rollers
+    ///     * "delete" -> `DeleteRollerDeserializer`
+    ///         * Requires the `delete_roller` feature.
+    ///     * "fixed_window" -> `FixedWindowRollerDeserializer`
+    ///         * Requires the `fixed_window_roller` feature.
+    /// * Triggers
+    ///     * "size" -> `SizeTriggerDeserializer`
+    ///         * Requires the `size_trigger` feature.
     pub fn new() -> Deserializers {
         Deserializers::default()
     }
