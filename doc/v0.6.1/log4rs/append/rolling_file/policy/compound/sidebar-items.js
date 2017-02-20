@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["roll","Rollers"],["trigger","Triggers"]],"struct":[["CompoundPolicy","A rolling policy which delegates to a \"trigger\" and \"roller\"."],["CompoundPolicyConfig","Configuration for the compound policy."],["CompoundPolicyDeserializer","A deserializer for the `CompoundPolicyDeserializer`."]]});

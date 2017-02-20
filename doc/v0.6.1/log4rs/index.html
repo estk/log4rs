@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `log4rs` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, log4rs">
+
+    <title>log4rs - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'log4rs', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>log4rs</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/log4rs/lib.rs.html#1-503' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>log4rs is a highly configurable logging framework modeled after Java&#39;s
+Logback and log4j libraries.</p>
+
+<h1 id='architecture' class='section-header'><a href='#architecture'>Architecture</a></h1>
+<p>The basic units of configuration are <em>appenders</em>, <em>encoders</em>, <em>filters</em>, and
+<em>loggers</em>.</p>
+
+<h2 id='appenders' class='section-header'><a href='#appenders'>Appenders</a></h2>
+<p>An appender takes a log record and logs it somewhere, for example, to a
+file, the console, or the syslog.</p>
+
+<h2 id='encoders' class='section-header'><a href='#encoders'>Encoders</a></h2>
+<p>An encoder is responsible for taking a log record, transforming it into the
+appropriate output format, and writing it out. An appender will normally
+use an encoder internally.</p>
+
+<h2 id='filters' class='section-header'><a href='#filters'>Filters</a></h2>
+<p>Filters are associated with appenders and, like the name would suggest,
+filter log events coming into that appender.</p>
+
+<h2 id='loggers' class='section-header'><a href='#loggers'>Loggers</a></h2>
+<p>A log event is targeted at a specific logger, which are identified by
+string names. The logging macros built in to the <code>log</code> crate set the logger
+of a log event to the one identified by the module containing the
+invocation location.</p>
+
+<p>Loggers form a hierarchy: logger names are divided into components by &quot;::&quot;.
+One logger is the ancestor of another if the first logger&#39;s component list
+is a prefix of the second logger&#39;s component list.</p>
+
+<p>Loggers are associated with a maximum log level. Log events for that logger
+with a level above the maximum will be ignored. The maximum log level for
+any logger can be configured manually; if it is not, the level will be
+inherited from the logger&#39;s parent.</p>
+
+<p>Loggers are also associated with a set of appenders. Appenders can be
+associated directly with a logger. In addition, the appenders of the
+logger&#39;s parent will be associated with the logger unless the logger has
+its <em>additivity</em> set to <code>false</code>. Log events sent to the logger that are not
+filtered out by the logger&#39;s maximum log level will be sent to all
+associated appenders.</p>
+
+<p>The &quot;root&quot; logger is the ancestor of all other loggers. Since it has no
+ancestors, its additivity cannot be configured.</p>
+
+<h1 id='configuration' class='section-header'><a href='#configuration'>Configuration</a></h1>
+<p>log4rs can be configured programmatically by using the builders in the
+<code>config</code> module to construct a log4rs <code>Config</code> object, which can be passed
+to the <code>init_config</code> function.</p>
+
+<p>The more common configuration method, however, is via a separate config
+file. The <code>init_file</code> function takes the path to a config file as
+well as a <code>Deserializers</code> object which is responsible for instantiating the
+various objects specified by the config file. The <code>file</code> module
+documentation covers the exact configuration syntax, but an example in the
+YAML format is provided below.</p>
+
+<p>log4rs makes heavy use of Cargo features to enable consumers to pick the
+functionality they wish to use. File-based configuration requires the <code>file</code>
+feature, and each file format requires its own feature as well. In addition,
+each component has its own feature. For example, YAML support requires the
+<code>yaml_format</code> feature and the console appender requires the
+<code>console_appender</code> feature.</p>
+
+<p>By default, the <code>all_components</code>, <code>gzip</code>, <code>file</code>, and <code>yaml_format</code> features
+are enabled.</p>
+
+<p>As a convenience, the <code>all_components</code> feature activates all logger components.</p>
+
+<h1 id='examples' class='section-header'><a href='#examples'>Examples</a></h1>
+<p>Configuration via a YAML file:</p>
+
+<pre><code class="language-yaml"># Scan this file for changes every 30 seconds
+refresh_rate: 30 seconds
+
+appenders:
+  # An appender named &quot;stdout&quot; that writes to stdout
+  stdout:
+    kind: console
+
+  # An appender named &quot;requests&quot; that writes to a file with a custom pattern encoder
+  requests:
+    kind: file
+    path: &quot;log/requests.log&quot;
+    encoder:
+      pattern: &quot;{d} - {m}{n}&quot;
+
+# Set the default logging level to &quot;warn&quot; and attach the &quot;stdout&quot; appender to the root
+root:
+  level: warn
+  appenders:
+    - stdout
+
+loggers:
+  # Raise the maximum log level for events sent to the &quot;app::backend::db&quot; logger to &quot;info&quot;
+  app::backend::db:
+    level: info
+
+  # Route log events sent to the &quot;app::requests&quot; logger to the &quot;requests&quot; appender,
+  # and *not* the normal appenders installed at the root
+  app::requests:
+    level: info
+    appenders:
+      - requests
+    additive: false
+</code></pre>
+
+<pre class='rust rust-example-rendered'>
+<span class='ident'>log4rs</span>::<span class='ident'>init_file</span>(<span class='string'>&quot;log4rs.yml&quot;</span>, <span class='ident'>Default</span>::<span class='ident'>default</span>()).<span class='ident'>unwrap</span>();</pre>
+
+<p>Programmatically constructing a configuration:</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log4rs</span>;
+
+<span class='kw'>use</span> <span class='ident'>log</span>::<span class='ident'>LogLevelFilter</span>;
+<span class='kw'>use</span> <span class='ident'>log4rs</span>::<span class='ident'>append</span>::<span class='ident'>console</span>::<span class='ident'>ConsoleAppender</span>;
+<span class='kw'>use</span> <span class='ident'>log4rs</span>::<span class='ident'>append</span>::<span class='ident'>file</span>::<span class='ident'>FileAppender</span>;
+<span class='kw'>use</span> <span class='ident'>log4rs</span>::<span class='ident'>encode</span>::<span class='ident'>pattern</span>::<span class='ident'>PatternEncoder</span>;
+<span class='kw'>use</span> <span class='ident'>log4rs</span>::<span class='ident'>config</span>::{<span class='ident'>Appender</span>, <span class='ident'>Config</span>, <span class='ident'>Logger</span>, <span class='ident'>Root</span>};
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='kw'>let</span> <span class='ident'>stdout</span> <span class='op'>=</span> <span class='ident'>ConsoleAppender</span>::<span class='ident'>builder</span>().<span class='ident'>build</span>();
+
+    <span class='kw'>let</span> <span class='ident'>requests</span> <span class='op'>=</span> <span class='ident'>FileAppender</span>::<span class='ident'>builder</span>()
+        .<span class='ident'>encoder</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>PatternEncoder</span>::<span class='ident'>new</span>(<span class='string'>&quot;{d} - {m}{n}&quot;</span>)))
+        .<span class='ident'>build</span>(<span class='string'>&quot;log/requests.log&quot;</span>)
+        .<span class='ident'>unwrap</span>();
+
+    <span class='kw'>let</span> <span class='ident'>config</span> <span class='op'>=</span> <span class='ident'>Config</span>::<span class='ident'>builder</span>()
+        .<span class='ident'>appender</span>(<span class='ident'>Appender</span>::<span class='ident'>builder</span>().<span class='ident'>build</span>(<span class='string'>&quot;stdout&quot;</span>, <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>stdout</span>)))
+        .<span class='ident'>appender</span>(<span class='ident'>Appender</span>::<span class='ident'>builder</span>().<span class='ident'>build</span>(<span class='string'>&quot;requests&quot;</span>, <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>requests</span>)))
+        .<span class='ident'>logger</span>(<span class='ident'>Logger</span>::<span class='ident'>builder</span>().<span class='ident'>build</span>(<span class='string'>&quot;app::backend::db&quot;</span>, <span class='ident'>LogLevelFilter</span>::<span class='ident'>Info</span>))
+        .<span class='ident'>logger</span>(<span class='ident'>Logger</span>::<span class='ident'>builder</span>()
+            .<span class='ident'>appender</span>(<span class='string'>&quot;requests&quot;</span>)
+            .<span class='ident'>additive</span>(<span class='bool-val'>false</span>)
+            .<span class='ident'>build</span>(<span class='string'>&quot;app::requests&quot;</span>, <span class='ident'>LogLevelFilter</span>::<span class='ident'>Info</span>))
+        .<span class='ident'>build</span>(<span class='ident'>Root</span>::<span class='ident'>builder</span>().<span class='ident'>appender</span>(<span class='string'>&quot;stdout&quot;</span>).<span class='ident'>build</span>(<span class='ident'>LogLevelFilter</span>::<span class='ident'>Warn</span>))
+        .<span class='ident'>unwrap</span>();
+
+    <span class='kw'>let</span> <span class='ident'>handle</span> <span class='op'>=</span> <span class='ident'>log4rs</span>::<span class='ident'>init_config</span>(<span class='ident'>config</span>).<span class='ident'>unwrap</span>();
+
+    <span class='comment'>// use handle to change logger configuration at runtime</span>
+}</pre>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='append/index.html'
+                                  title='log4rs::append'>append</a></td>
+                           <td class='docblock-short'>
+                                <p>Appenders</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='config/index.html'
+                                  title='log4rs::config'>config</a></td>
+                           <td class='docblock-short'>
+                                <p>log4rs configuration</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='encode/index.html'
+                                  title='log4rs::encode'>encode</a></td>
+                           <td class='docblock-short'>
+                                <p>Encoders</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='file/index.html'
+                                  title='log4rs::file'>file</a></td>
+                           <td class='docblock-short'>
+                                <p>Support for log4rs configuration from files.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='filter/index.html'
+                                  title='log4rs::filter'>filter</a></td>
+                           <td class='docblock-short'>
+                                <p>Filters</p>
+                           </td>
+                       </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Handle.html'
+                                  title='log4rs::Handle'>Handle</a></td>
+                           <td class='docblock-short'>
+                                <p>A handle to the active logger.</p>
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.Error.html'
+                                  title='log4rs::Error'>Error</a></td>
+                           <td class='docblock-short'>
+                                <p>An error initializing the logging framework from a file.</p>
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.init_config.html'
+                                  title='log4rs::init_config'>init_config</a></td>
+                           <td class='docblock-short'>
+                                <p>Initializes the global logger as a log4rs logger with the provided config.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.init_file.html'
+                                  title='log4rs::init_file'>init_file</a></td>
+                           <td class='docblock-short'>
+                                <p>Initializes the global logger as a log4rs logger configured via a file.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "log4rs";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SizeTrigger","A trigger which rolls the log once it has passed a certain size."],["SizeTriggerConfig","Configuration for the size trigger."],["SizeTriggerDeserializer","A deserializer for the `SizeTrigger`."]]});
