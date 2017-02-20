@@ -162,7 +162,7 @@
 //! # }
 //! # fn main() {}
 //! ```
-#![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.6.1")]
+#![doc(html_root_url="https://docs.rs/log4rs/0.6.1")]
 #![warn(missing_docs)]
 
 #[cfg(feature = "antidote")]
