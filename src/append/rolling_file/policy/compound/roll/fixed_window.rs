@@ -97,7 +97,7 @@ impl Roll for FixedWindowRoller {
             return fs::remove_file(file).map_err(Into::into);
         }
 
-        let dst_0 = self.pattern.replace("{}", "0");
+        let dst_0 = self.pattern.replace("{}", &self.base.to_string());
 
         if let Some(parent) = Path::new(&dst_0).parent() {
             fs::create_dir_all(parent)?;
@@ -277,6 +277,45 @@ mod test {
         contents.clear();
         File::open(dir.path().join("foo.log.0")).unwrap().read_to_end(&mut contents).unwrap();
         assert_eq!(contents, b"file3");
+    }
+
+    #[test]
+    fn rotation_no_trivial_base() {
+        let dir = TempDir::new("rotation_no_trivial_base").unwrap();
+        let base = 3;
+        let fname = "foo.log";
+        let fcontent = b"something";
+        let expected_fist_roll = format!("{}.{}", fname, base);
+
+        let base_dir = dir.path().to_str().unwrap();
+        let roller = FixedWindowRoller::builder()
+            .base(base)
+            .build(&format!("{}/{}.{{}}", base_dir, fname), 2)
+            .unwrap();
+
+        let file = dir.path().join(fname);
+        File::create(&file).unwrap().write_all(fcontent).unwrap();
+
+        roller.roll(&file).unwrap();
+        assert!(!file.exists());
+
+        let mut contents = vec![];
+
+        let first_roll = dir.path().join(&expected_fist_roll);
+
+        assert!(first_roll.as_path().exists());
+
+        File::open(first_roll).unwrap().read_to_end(&mut contents).unwrap();
+        assert_eq!(contents, fcontent);
+
+        // Sanity check general behaviour
+        roller.roll(&file).unwrap();
+        assert!(!file.exists());
+        contents.clear();
+        File::open(dir.path().join(&format!("{}.{}", fname, base + 1)))
+            .unwrap()
+            .read_to_end(&mut contents).unwrap();
+        assert_eq!(contents, b"something");
     }
 
     #[test]
