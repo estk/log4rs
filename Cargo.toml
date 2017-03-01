@@ -1,11 +1,11 @@
 [package]
 name = "log4rs"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://docs.rs/log4rs/0.6.1"
+documentation = "https://docs.rs/log4rs/0.6.2"
 readme = "README.md"
 keywords = ["logger", "log", "logging"]
 
