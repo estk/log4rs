@@ -163,7 +163,7 @@ impl ConsoleAppenderBuilder {
             Target::Stdout => {
                 match ConsoleWriter::stdout() {
                     Some(writer) => Writer::Tty(writer),
-                    None => Writer::Raw(StdWriter::stderr()),
+                    None => Writer::Raw(StdWriter::stdout()),
                 }
             }
         };
