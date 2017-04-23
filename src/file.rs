@@ -119,7 +119,7 @@ pub trait Deserialize: Send + Sync + 'static {
     type Trait: ?Sized + Deserializable;
 
     /// This deserializer's configuration.
-    type Config: serde::Deserialize<'static>;
+    type Config: for <'a> serde::Deserialize<'a>;
 
     /// Create a new trait object based on the provided config.
     fn deserialize(&self,
