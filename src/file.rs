@@ -91,7 +91,7 @@
 use humantime;
 use log::LogLevelFilter;
 use serde;
-use serde::de::{self, Deserialize as SerdeDeserialize};
+use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -119,7 +119,7 @@ pub trait Deserialize: Send + Sync + 'static {
     type Trait: ?Sized + Deserializable;
 
     /// This deserializer's configuration.
-    type Config: for <'a> serde::Deserialize<'a>;
+    type Config: DeserializeOwned;
 
     /// Create a new trait object based on the provided config.
     fn deserialize(&self,
