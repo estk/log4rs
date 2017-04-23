@@ -2,18 +2,18 @@ use log::LogLevelFilter;
 use serde::de::{self, Deserialize};
 use std::fmt;
 
-pub fn de_filter<D>(d: D) -> Result<LogLevelFilter, D::Error>
-    where D: de::Deserializer
+pub fn de_filter<'de, D>(d: D) -> Result<LogLevelFilter, D::Error>
+    where D: de::Deserializer<'de>
 {
     struct S(LogLevelFilter);
 
-    impl de::Deserialize for S {
+    impl<'de2> de::Deserialize<'de2> for S {
         fn deserialize<D>(d: D) -> Result<S, D::Error>
-            where D: de::Deserializer
+            where D: de::Deserializer<'de2>
         {
             struct V;
 
-            impl de::Visitor for V {
+            impl<'de3> de::Visitor<'de3> for V {
                 type Value = S;
 
                 fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {

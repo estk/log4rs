@@ -25,12 +25,12 @@ pub struct SizeTriggerConfig {
 }
 
 #[cfg(feature = "file")]
-fn deserialize_limit<D>(d: D) -> Result<u64, D::Error>
-    where D: de::Deserializer
+fn deserialize_limit<'de, D>(d: D) -> Result<u64, D::Error>
+    where D: de::Deserializer<'de>
 {
     struct V;
 
-    impl de::Visitor for V {
+    impl<'de2> de::Visitor<'de2> for V {
         type Value = u64;
 
         fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -93,7 +93,7 @@ fn deserialize_limit<D>(d: D) -> Result<u64, D::Error>
         }
     }
 
-    d.deserialize(V)
+    d.deserialize_any(V)
 }
 
 /// A trigger which rolls the log once it has passed a certain size.

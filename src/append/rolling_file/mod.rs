@@ -58,9 +58,9 @@ struct Policy {
 }
 
 #[cfg(feature = "file")]
-impl serde::Deserialize for Policy {
+impl<'de> serde::Deserialize<'de> for Policy {
     fn deserialize<D>(d: D) -> Result<Policy, D::Error>
-        where D: serde::Deserializer
+        where D: serde::Deserializer<'de>
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 

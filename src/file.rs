@@ -119,7 +119,7 @@ pub trait Deserialize: Send + Sync + 'static {
     type Trait: ?Sized + Deserializable;
 
     /// This deserializer's configuration.
-    type Config: serde::Deserialize;
+    type Config: serde::Deserialize<'static>;
 
     /// Create a new trait object based on the provided config.
     fn deserialize(&self,
@@ -369,18 +369,18 @@ impl RawConfig {
     }
 }
 
-fn de_duration<D>(d: D) -> Result<Option<Duration>, D::Error>
-    where D: de::Deserializer
+fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
+    where D: de::Deserializer<'de>
 {
     struct S(Duration);
 
-    impl de::Deserialize for S {
+    impl<'de2> de::Deserialize<'de2> for S {
         fn deserialize<D>(d: D) -> Result<S, D::Error>
-            where D: de::Deserializer
+            where D: de::Deserializer<'de2>
         {
             struct V;
 
-            impl de::Visitor for V {
+            impl<'de3> de::Visitor<'de3> for V {
                 type Value = S;
 
                 fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -396,7 +396,7 @@ fn de_duration<D>(d: D) -> Result<Option<Duration>, D::Error>
                 }
             }
 
-            d.deserialize(V)
+            d.deserialize_any(V)
         }
     }
 
