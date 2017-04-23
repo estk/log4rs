@@ -90,7 +90,6 @@
 //! ```
 use humantime;
 use log::LogLevelFilter;
-use serde;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
 use std::borrow::ToOwned;

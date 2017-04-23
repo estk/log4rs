@@ -25,11 +25,13 @@
 //! ```
 
 use chrono::{DateTime, Local};
+use chrono::format::{DelayedFormat, Item, Fixed};
 use log::{LogLevel, LogRecord};
 use log_mdc;
 use std::error::Error;
 use std::fmt;
 use std::thread;
+use std::option;
 use serde::ser::{self, Serialize, SerializeMap};
 use serde_json;
 
@@ -68,14 +70,17 @@ impl JsonEncoder {
                     line: u32,
                     args: &fmt::Arguments)
                     -> Result<(), Box<Error + Sync + Send>> {
+        let thread = thread::current();
         let message = Message {
-            time: time,
-            level: level,
-            target: target,
+            time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
+            message: args,
+            level: level_str(level),
             module_path: module_path,
             file: file,
             line: line,
-            args: args,
+            target: target,
+            thread: thread.name(),
+            mdc: Mdc,
         };
         message.serialize(&mut serde_json::Serializer::new(&mut *w))?;
         w.write_all(NEWLINE.as_bytes())?;
@@ -96,51 +101,19 @@ impl Encode for JsonEncoder {
     }
 }
 
+#[derive(Serialize)]
 struct Message<'a> {
-    time: DateTime<Local>,
-    level: LogLevel,
-    target: &'a str,
+    #[serde(serialize_with = "ser_display")]
+    time: DelayedFormat<option::IntoIter<Item<'a>>>,
+    #[serde(serialize_with = "ser_display")]
+    message: &'a fmt::Arguments<'a>,
     module_path: &'a str,
     file: &'a str,
     line: u32,
-    args: &'a fmt::Arguments<'a>,
-}
-
-impl<'a> ser::Serialize for Message<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: ser::Serializer
-    {
-        let mut map = serializer.serialize_map(None)?;
-
-        map.serialize_key("time")?;
-        map.serialize_value(&self.time.to_rfc3339())?;
-
-        map.serialize_key("message")?;
-        map.serialize_value(&format!("{}", self.args))?;
-
-        map.serialize_key("module_path")?;
-        map.serialize_value(&self.module_path)?;
-
-        map.serialize_key("file")?;
-        map.serialize_value(&self.file)?;
-
-        map.serialize_key("line")?;
-        map.serialize_value(&self.line)?;
-
-        map.serialize_key("level")?;
-        map.serialize_value(&level_str(self.level))?;
-
-        map.serialize_key("target")?;
-        map.serialize_value(&self.target)?;
-
-        map.serialize_key("thread")?;
-        map.serialize_value(&thread::current().name())?;
-
-        map.serialize_key("mdc")?;
-        map.serialize_value(&MdcSerializer)?;
-
-        map.end()
-    }
+    level: &'static str,
+    target: &'a str,
+    thread: Option<&'a str>,
+    mdc: Mdc,
 }
 
 fn level_str(level: LogLevel) -> &'static str {
@@ -153,9 +126,16 @@ fn level_str(level: LogLevel) -> &'static str {
     }
 }
 
-struct MdcSerializer;
+fn ser_display<T, S>(v: &T, s: S) -> Result<S::Ok, S::Error>
+    where T: fmt::Display,
+          S: ser::Serializer
+{
+    s.collect_str(v)
+}
 
-impl ser::Serialize for MdcSerializer {
+struct Mdc;
+
+impl ser::Serialize for Mdc {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: ser::Serializer
     {
