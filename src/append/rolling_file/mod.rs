@@ -328,11 +328,13 @@ mod test {
     fn deserialize() {
         use file::{RawConfig, Deserializers};
 
-        let config = "
+        let dir = TempDir::new("deserialize").unwrap();
+
+        let config = format!("
 appenders:
   foo:
     kind: rolling_file
-    path: foo.log
+    path: {0}/foo.log
     policy:
       trigger:
         kind: size
@@ -341,7 +343,7 @@ appenders:
         kind: delete
   bar:
     kind: rolling_file
-    path: foo.log
+    path: {0}/foo.log
     policy:
       kind: compound
       trigger:
@@ -349,12 +351,12 @@ appenders:
         limit: 5 mb
       roller:
         kind: fixed_window
-        pattern: 'foo.log.{}'
+        pattern: '{}/foo.log.{{}}'
         base: 1
         count: 5
-";
+", dir.path().display());
 
-        let config = ::serde_yaml::from_str::<RawConfig>(config).unwrap();
+        let config = ::serde_yaml::from_str::<RawConfig>(&config).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
