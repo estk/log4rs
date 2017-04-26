@@ -351,7 +351,7 @@ appenders:
         limit: 5 mb
       roller:
         kind: fixed_window
-        pattern: '{}/foo.log.{{}}'
+        pattern: '{0}/foo.log.{{}}'
         base: 1
         count: 5
 ", dir.path().display());
