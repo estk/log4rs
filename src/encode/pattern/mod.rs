@@ -59,6 +59,7 @@
 //! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
+//! * `P`, `PID` - The process ID of the current program..
 //! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
 //!     the key, and the second argument specifies the default value if the
 //!     key is not present in the MDC. The second argument is optional, and
@@ -121,6 +122,7 @@ use std::error::Error;
 use std::fmt;
 use std::io;
 use std::thread;
+use libc;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
 use encode::{self, Encode, Style, Color, NEWLINE};
@@ -443,6 +445,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                     "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
                     "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                     "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
+                    "P" | "PID" => no_args(&formatter.args, parameters, FormattedChunk::PID),
                     "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
                     "X" | "mdc" => {
                         if formatter.args.len() > 2 {
@@ -531,6 +534,7 @@ enum FormattedChunk {
     Line,
     Thread,
     Target,
+    PID,
     Newline,
     Align(Vec<Chunk>),
     Highlight(Vec<Chunk>),
@@ -557,6 +561,9 @@ impl FormattedChunk {
             FormattedChunk::Line => write!(w, "{}", location.line),
             FormattedChunk::Thread => {
                 w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
+            }
+            FormattedChunk::PID => {
+                w.write_all(unsafe { libc::getpid().to_string().as_bytes() } )
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
