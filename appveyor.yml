@@ -24,3 +24,5 @@ test_script:
 cache:
   - C:\Users\appveyor\.cargo\registry
   - target
+
+build: false
