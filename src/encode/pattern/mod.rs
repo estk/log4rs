@@ -122,7 +122,11 @@ use std::error::Error;
 use std::fmt;
 use std::io;
 use std::thread;
+
+#[cfg(not(windows))]
 use libc;
+#[cfg(windows)]
+use kernel32;
 
 use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
 use encode::{self, Encode, Style, Color, NEWLINE};
@@ -563,7 +567,7 @@ impl FormattedChunk {
                 w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
             }
             FormattedChunk::PID => {
-                w.write_all(unsafe { libc::getpid().to_string().as_bytes() } )
+                w.write_all(get_pid().as_bytes())
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
@@ -692,6 +696,21 @@ impl Deserialize for PatternEncoderDeserializer {
             None => PatternEncoder::default(),
         };
         Ok(Box::new(encoder))
+    }
+}
+
+/// Get the process ID as String for different OS
+#[cfg(not (target_os = "windows"))]
+fn get_pid() -> String { 
+    unsafe {
+        libc::getpid().to_string()
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn get_pid() -> String { 
+    unsafe {
+        kernel32::GetCurrentProcessId().to_string()
     }
 }
 
