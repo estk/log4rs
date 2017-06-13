@@ -12,7 +12,7 @@ appenders:
     kind: file
     path: error.log
     encoder:
-      pattern: "{d} [{t}] {l} {M}:{m}{n}"
+      pattern: "{P} {d} [{t}] {l} {M}:{m}{n}"
 
 root:
   level: warn

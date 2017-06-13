@@ -728,6 +728,8 @@ mod tests {
     use super::Location;
     #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
+    #[cfg(feature = "simple_writer")]
+    use encode::pattern::get_pid;
 
     #[cfg(feature = "simple_writer")]
     static LOCATION: Location<'static> = Location {
@@ -807,6 +809,21 @@ mod tests {
             .unwrap()
             .join()
             .unwrap();
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn process_id() {
+        let pw = PatternEncoder::new(r"{P}");
+
+        let mut buf = vec![];
+        pw.append_inner(&mut SimpleWriter(&mut buf),
+                          LogLevel::Info,
+                          "",
+                          &LOCATION,
+                          &format_args!("foo"))
+            .unwrap();
+        assert_eq!(buf, get_pid().as_bytes());
     }
 
     #[test]
