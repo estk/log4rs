@@ -113,7 +113,7 @@
 //!
 //! [MDC]: https://crates.io/crates/log-mdc
 
-use chrono::{UTC, Local};
+use chrono::{Utc, Local};
 use log::{LogRecord, LogLevel};
 use log_mdc;
 use std::default::Default;
@@ -546,7 +546,7 @@ impl FormattedChunk {
               args: &fmt::Arguments)
               -> io::Result<()> {
         match *self {
-            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", UTC::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
                 write!(w, "{}", Local::now().format(fmt))
             }
