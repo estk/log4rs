@@ -217,7 +217,7 @@ mod test {
 
         let expected = format!("{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
                                 \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
-                                \"thread\":\"{}\",\"mdc\":{{\"foo\":\"bar\"}}}}\n",
+                                \"thread\":\"{}\",\"mdc\":{{\"foo\":\"bar\"}}}}",
                                time.to_rfc3339(),
                                message,
                                module_path,
@@ -226,6 +226,6 @@ mod test {
                                level,
                                target,
                                thread);
-        assert_eq!(expected, String::from_utf8(buf).unwrap());
+        assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
     }
 }

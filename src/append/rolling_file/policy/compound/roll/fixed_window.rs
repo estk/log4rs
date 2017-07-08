@@ -381,6 +381,8 @@ mod test {
 
     #[test]
     #[cfg_attr(not(feature = "gzip"), ignore)]
+    // or should we force windows user to install gunzip
+    #[cfg(not(windows))]
     fn supported_gzip() {
         let dir = TempDir::new("supported_gzip").unwrap();
 
