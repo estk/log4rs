@@ -1,0 +1,30 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/build
+    docker:
+      - image: jimmycuadra/rust:1.15.0
+    steps:
+      - checkout
+      - run: apt-get update
+      - run: DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends jq
+      - restore_cache:
+          key: registry
+      - run: cargo generate-lockfile
+      - save_cache:
+          key: registry-{{ epoch }}
+          paths:
+            - ~/.cargo/registry/index
+      - restore_cache:
+          key: dependencies-1.15-{{ checksum "Cargo.lock" }}
+      - run: cargo test
+      - run: |
+          for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
+            cargo test --no-default-features --features $feature
+          done
+      - run: cargo test --all-features
+      - save_cache:
+          key: dependencies-1.15-{{ checksum "Cargo.lock" }}
+          paths:
+            - target
+            - ~/.cargo/registry/cache

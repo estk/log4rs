@@ -1,9 +1,0 @@
-language: rust
-cache: cargo
-rust:
-- nightly
-- 1.15.0
-script:
-- cargo test --no-default-features
-- (for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do cargo test --no-default-features --features $feature || exit 1; done)
-- cargo test --features "$(cargo read-manifest | jq -r '.features|keys|join(" ")')"
