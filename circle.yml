@@ -20,7 +20,8 @@ jobs:
       - run: cargo test
       - run: |
           for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
-            cargo test --no-default-features --features $feature
+            echo building with feature "$feature"
+            cargo test --no-default-features --features "$feature"
           done
       - run: cargo test --all-features
       - save_cache:
