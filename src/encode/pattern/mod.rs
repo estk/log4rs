@@ -59,7 +59,7 @@
 //! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
-//! * `P`, `PID` - The process ID of the current program..
+//! * `P`, `pid` - The process ID of the current program..
 //! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
 //!     the key, and the second argument specifies the default value if the
 //!     key is not present in the MDC. The second argument is optional, and
@@ -449,7 +449,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                     "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
                     "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                     "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
-                    "P" | "PID" => no_args(&formatter.args, parameters, FormattedChunk::PID),
+                    "P" | "pid" => no_args(&formatter.args, parameters, FormattedChunk::Pid),
                     "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
                     "X" | "mdc" => {
                         if formatter.args.len() > 2 {
@@ -538,7 +538,7 @@ enum FormattedChunk {
     Line,
     Thread,
     Target,
-    PID,
+    Pid,
     Newline,
     Align(Vec<Chunk>),
     Highlight(Vec<Chunk>),
@@ -566,7 +566,7 @@ impl FormattedChunk {
             FormattedChunk::Thread => {
                 w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
             }
-            FormattedChunk::PID => {
+            FormattedChunk::Pid => {
                 w.write_all(get_pid().as_bytes())
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
