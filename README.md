@@ -1,9 +1,9 @@
 # log4rs
 
+[![CircleCI](https://circleci.com/gh/sfackler/log4rs.svg?style=shield)](https://circleci.com/gh/sfackler/log4rs)
+
 log4rs is a highly configurable logging framework modeled after Java's Logback
 and log4j libraries.
-
-[![Build Status](https://travis-ci.org/sfackler/log4rs.svg?branch=master)](https://travis-ci.org/sfackler/log4rs)
 
 [Documentation](https://docs.rs/log4rs)
 
