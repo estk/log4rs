@@ -567,7 +567,7 @@ impl FormattedChunk {
                 w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
             }
             FormattedChunk::Pid => {
-                w.write_all(get_pid().as_bytes())
+                w.write_all(get_pid().to_string().as_bytes())
             }
             FormattedChunk::Target => w.write_all(target.as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
@@ -701,16 +701,16 @@ impl Deserialize for PatternEncoderDeserializer {
 
 /// Get the process ID as String for different OS
 #[cfg(not (target_os = "windows"))]
-fn get_pid() -> String { 
+fn get_pid() -> u64 { 
     unsafe {
-        libc::getpid().to_string()
+        libc::getpid() as u64
     }
 }
 
 #[cfg(target_os = "windows")]
-fn get_pid() -> String { 
+fn get_pid() -> u64 { 
     unsafe {
-        kernel32::GetCurrentProcessId().to_string()
+        kernel32::GetCurrentProcessId() as u64
     }
 }
 
@@ -823,7 +823,7 @@ mod tests {
                           &LOCATION,
                           &format_args!("foo"))
             .unwrap();
-        assert_eq!(buf, get_pid().as_bytes());
+        assert_eq!(buf, get_pid().to_string().as_bytes());
     }
 
     #[test]
