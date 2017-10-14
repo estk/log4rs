@@ -5,7 +5,7 @@
 use std::io::{self, Write};
 use std::fmt;
 use std::error::Error;
-use log::LogRecord;
+use log::Record;
 
 use append::Append;
 use encode::{self, Encode, Style};
@@ -112,7 +112,7 @@ impl fmt::Debug for ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
         let mut writer = self.writer.lock();
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;

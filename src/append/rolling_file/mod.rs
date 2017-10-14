@@ -17,7 +17,7 @@
 //! Requires the `rolling_file_appender` feature.
 
 use antidote::Mutex;
-use log::LogRecord;
+use log::Record;
 #[cfg(feature = "file")]
 use serde;
 #[cfg(feature = "file")]
@@ -153,7 +153,7 @@ impl fmt::Debug for RollingFileAppender {
 }
 
 impl Append for RollingFileAppender {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
         let mut writer = self.writer.lock();
 
         let len = {

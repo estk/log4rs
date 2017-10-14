@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::iter::IntoIterator;
 use std::error;
-use log::LogLevelFilter;
+use log::LevelFilter;
 
 use append::Append;
 use filter::Filter;
@@ -13,7 +13,7 @@ use {ConfigPrivateExt, PrivateConfigAppenderExt};
 /// Configuration for the root logger.
 #[derive(Debug)]
 pub struct Root {
-    level: LogLevelFilter,
+    level: LevelFilter,
     appenders: Vec<String>,
 }
 
@@ -24,7 +24,7 @@ impl Root {
     }
 
     /// Returns the minimum level of log messages that the root logger will accept.
-    pub fn level(&self) -> LogLevelFilter {
+    pub fn level(&self) -> LevelFilter {
         self.level
     }
 
@@ -59,7 +59,7 @@ impl RootBuilder {
     }
 
     /// Consumes the `RootBuilder`, returning the `Root`.
-    pub fn build(self, level: LogLevelFilter) -> Root {
+    pub fn build(self, level: LevelFilter) -> Root {
         Root {
             level: level,
             appenders: self.appenders,
@@ -141,7 +141,7 @@ impl AppenderBuilder {
 #[derive(Debug)]
 pub struct Logger {
     name: String,
-    level: LogLevelFilter,
+    level: LevelFilter,
     appenders: Vec<String>,
     additive: bool,
 }
@@ -163,7 +163,7 @@ impl Logger {
     }
 
     /// Returns the minimum level of log messages that the logger will accept.
-    pub fn level(&self) -> LogLevelFilter {
+    pub fn level(&self) -> LevelFilter {
         self.level
     }
 
@@ -210,7 +210,7 @@ impl LoggerBuilder {
     }
 
     /// Consumes the `LoggerBuilder`, returning the `Logger`.
-    pub fn build<T>(self, name: T, level: LogLevelFilter) -> Logger
+    pub fn build<T>(self, name: T, level: LevelFilter) -> Logger
         where T: Into<String>
     {
         Logger {

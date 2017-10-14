@@ -130,7 +130,7 @@
 //! #           feature = "file_appender",
 //! #           feature = "pattern_encoder"))]
 //! # fn f() {
-//! use log::LogLevelFilter;
+//! use log::LevelFilter;
 //! use log4rs::append::console::ConsoleAppender;
 //! use log4rs::append::file::FileAppender;
 //! use log4rs::encode::pattern::PatternEncoder;
@@ -147,12 +147,12 @@
 //!     let config = Config::builder()
 //!         .appender(Appender::builder().build("stdout", Box::new(stdout)))
 //!         .appender(Appender::builder().build("requests", Box::new(requests)))
-//!         .logger(Logger::builder().build("app::backend::db", LogLevelFilter::Info))
+//!         .logger(Logger::builder().build("app::backend::db", LevelFilter::Info))
 //!         .logger(Logger::builder()
 //!             .appender("requests")
 //!             .additive(false)
-//!             .build("app::requests", LogLevelFilter::Info))
-//!         .build(Root::builder().appender("stdout").build(LogLevelFilter::Warn))
+//!             .build("app::requests", LevelFilter::Info))
+//!         .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
 //!         .unwrap();
 //!
 //!     let handle = log4rs::init_config(config).unwrap();
@@ -215,7 +215,7 @@ use std::hash::BuildHasherDefault;
 use std::io;
 use std::io::prelude::*;
 use std::sync::Arc;
-use log::{LogLevel, LogMetadata, LogRecord, LogLevelFilter, SetLoggerError, MaxLogLevelFilter};
+use log::{Level, Metadata, Record, LevelFilter, SetLoggerError};
 
 #[cfg(feature = "file")]
 pub use priv_file::{init_file, Error};
@@ -240,7 +240,7 @@ mod priv_io;
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
 struct ConfiguredLogger {
-    level: LogLevelFilter,
+    level: LevelFilter,
     appenders: Vec<usize>,
     children: FnvHashMap<String, ConfiguredLogger>,
 }
@@ -250,7 +250,7 @@ impl ConfiguredLogger {
            path: &str,
            mut appenders: Vec<usize>,
            additive: bool,
-           level: LogLevelFilter) {
+           level: LevelFilter) {
         let (part, rest) = match path.find("::") {
             Some(idx) => (&path[..idx], &path[idx + 2..]),
             None => (path, ""),
@@ -284,7 +284,7 @@ impl ConfiguredLogger {
         self.children.insert(part.to_owned(), child);
     }
 
-    fn max_log_level(&self) -> LogLevelFilter {
+    fn max_log_level(&self) -> LevelFilter {
         let mut max = self.level;
         for child in self.children.values() {
             max = cmp::max(max, child.max_log_level());
@@ -305,11 +305,11 @@ impl ConfiguredLogger {
         node
     }
 
-    fn enabled(&self, level: LogLevel) -> bool {
+    fn enabled(&self, level: Level) -> bool {
         self.level >= level
     }
 
-    fn log(&self, record: &log::LogRecord, appenders: &[Appender]) {
+    fn log(&self, record: &log::Record, appenders: &[Appender]) {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
@@ -326,7 +326,7 @@ struct Appender {
 }
 
 impl Appender {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<error::Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<error::Error + Sync + Send>> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
@@ -400,24 +400,26 @@ impl Logger {
         Logger(Arc::new(ArcCell::new(Arc::new(SharedLogger::new(config)))))
     }
 
-    fn max_log_level(&self) -> LogLevelFilter {
+    fn max_log_level(&self) -> LevelFilter {
         self.0.get().root.max_log_level()
     }
 }
 
 impl log::Log for Logger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
+    fn enabled(&self, metadata: &Metadata) -> bool {
         self.enabled_inner(metadata.level(), metadata.target())
     }
 
-    fn log(&self, record: &log::LogRecord) {
+    fn log(&self, record: &log::Record) {
         let shared = self.0.get();
         shared.root.find(record.target()).log(record, &shared.appenders);
     }
+
+    fn flush(&self) {}
 }
 
 impl Logger {
-    fn enabled_inner(&self, level: LogLevel, target: &str) -> bool {
+    fn enabled_inner(&self, level: Level, target: &str) -> bool {
         self.0.get().root.find(target).enabled(level)
     }
 }
@@ -431,30 +433,24 @@ fn handle_error<E: error::Error + ?Sized>(e: &E) {
 /// A `Handle` object is returned which can be used to adjust the logging
 /// configuration.
 pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
-    let mut handle = None;
-    log::set_logger(|max_log_level| {
-            let logger = Logger::new(config);
-            max_log_level.set(logger.max_log_level());
-            handle = Some(Handle {
-                shared: logger.0.clone(),
-                max_log_level: max_log_level,
-            });
-            Box::new(logger)
-        })
-        .map(|()| handle.unwrap())
+    let logger = Logger::new(config);
+    log::set_max_level(logger.max_log_level());
+    let handle = Handle {
+        shared: logger.0.clone()
+    };
+    log::set_boxed_logger(Box::new(logger)).map(|()| handle)
 }
 
 /// A handle to the active logger.
 pub struct Handle {
     shared: Arc<ArcCell<SharedLogger>>,
-    max_log_level: MaxLogLevelFilter,
 }
 
 impl Handle {
     /// Sets the logging configuration.
     pub fn set_config(&self, config: Config) {
         let shared = SharedLogger::new(config);
-        self.max_log_level.set(shared.root.max_log_level());
+        log::set_max_level(shared.root.max_log_level());
         self.shared.set(Arc::new(shared));
     }
 }
@@ -473,33 +469,33 @@ trait PrivateConfigAppenderExt {
 
 #[cfg(test)]
 mod test {
-    use log::{LogLevel, LogLevelFilter};
+    use log::{Level, LevelFilter};
 
     use super::*;
 
     #[test]
     fn enabled() {
-        let root = config::Root::builder().build(LogLevelFilter::Debug);
+        let root = config::Root::builder().build(LevelFilter::Debug);
         let mut config = config::Config::builder();
-        let logger = config::Logger::builder().build("foo::bar", LogLevelFilter::Trace);
+        let logger = config::Logger::builder().build("foo::bar", LevelFilter::Trace);
         config = config.logger(logger);
-        let logger = config::Logger::builder().build("foo::bar::baz", LogLevelFilter::Off);
+        let logger = config::Logger::builder().build("foo::bar::baz", LevelFilter::Off);
         config = config.logger(logger);
-        let logger = config::Logger::builder().build("foo::baz::buz", LogLevelFilter::Error);
+        let logger = config::Logger::builder().build("foo::baz::buz", LevelFilter::Error);
         config = config.logger(logger);
         let config = config.build(root).unwrap();
 
         let logger = super::Logger::new(config);
 
-        assert!(logger.enabled_inner(LogLevel::Warn, "bar"));
-        assert!(!logger.enabled_inner(LogLevel::Trace, "bar"));
-        assert!(logger.enabled_inner(LogLevel::Debug, "foo"));
-        assert!(logger.enabled_inner(LogLevel::Trace, "foo::bar"));
-        assert!(!logger.enabled_inner(LogLevel::Error, "foo::bar::baz"));
-        assert!(logger.enabled_inner(LogLevel::Debug, "foo::bar::bazbuz"));
-        assert!(!logger.enabled_inner(LogLevel::Error, "foo::bar::baz::buz"));
-        assert!(!logger.enabled_inner(LogLevel::Warn, "foo::baz::buz"));
-        assert!(!logger.enabled_inner(LogLevel::Warn, "foo::baz::buz::bar"));
-        assert!(logger.enabled_inner(LogLevel::Error, "foo::baz::buz::bar"));
+        assert!(logger.enabled_inner(Level::Warn, "bar"));
+        assert!(!logger.enabled_inner(Level::Trace, "bar"));
+        assert!(logger.enabled_inner(Level::Debug, "foo"));
+        assert!(logger.enabled_inner(Level::Trace, "foo::bar"));
+        assert!(!logger.enabled_inner(Level::Error, "foo::bar::baz"));
+        assert!(logger.enabled_inner(Level::Debug, "foo::bar::bazbuz"));
+        assert!(!logger.enabled_inner(Level::Error, "foo::bar::baz::buz"));
+        assert!(!logger.enabled_inner(Level::Warn, "foo::baz::buz"));
+        assert!(!logger.enabled_inner(Level::Warn, "foo::baz::buz::bar"));
+        assert!(logger.enabled_inner(Level::Error, "foo::baz::buz::bar"));
     }
 }

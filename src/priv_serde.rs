@@ -1,11 +1,11 @@
-use log::LogLevelFilter;
+use log::LevelFilter;
 use serde::de::{self, Deserialize};
 use std::fmt;
 
-pub fn de_filter<'de, D>(d: D) -> Result<LogLevelFilter, D::Error>
+pub fn de_filter<'de, D>(d: D) -> Result<LevelFilter, D::Error>
     where D: de::Deserializer<'de>
 {
-    struct S(LogLevelFilter);
+    struct S(LevelFilter);
 
     impl<'de2> de::Deserialize<'de2> for S {
         fn deserialize<D>(d: D) -> Result<S, D::Error>

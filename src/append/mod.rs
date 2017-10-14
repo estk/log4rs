@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::fmt;
-use log::{LogRecord, Log};
+use log::{Record, Log};
 #[cfg(feature = "file")]
 use serde::{de, Deserialize, Deserializer};
 #[cfg(feature = "file")]
@@ -27,8 +27,8 @@ pub mod rolling_file;
 /// Appenders take a log record and processes them, for example, by writing it
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
-    /// Processes the provided `LogRecord`.
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>>;
+    /// Processes the provided `Record`.
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]

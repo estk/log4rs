@@ -41,21 +41,24 @@
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
 //!     A custom format may be provided in the syntax accepted by `chrono`.
-//!     The timezone defaults to local, but can be specified explicitly by passing
-//!     a second argument of `utc` for UTC or `local` for local time.
+//!     The timezone defaults to local, but can be specified explicitly by
+//!     passing a second argument of `utc` for UTC or `local` for local time.
 //!     * `{d}` - `2016-03-20T14:22:20.644420340-08:00`
 //!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 14:22:20`
 //!     * `{d(%Y-%m-%d %H:%M:%S %Z)(utc)}` - `2016-03-20 22:22:20 UTC`
-//! * `f`, `file` - The source file that the log message came from.
+//! * `f`, `file` - The source file that the log message came from, or `???` if
+//!     not provided.
 //! * `h`, `highlight` - Styles its argument according to the log level. The
 //!     style is intense red for errors, red for warnings, blue for info, and
 //!     the default style for all other levels.
 //!     * `{h(the level is {l})}` -
 //!         <code style="color: red; font-weight: bold">the level is ERROR</code>
 //! * `l``, level` - The log level.
-//! * `L`, `line` - The line that the log message came from.
+//! * `L`, `line` - The line that the log message came from, or `???` if not
+//!     provided.
 //! * `m`, `message` - The log message.
-//! * `M`, `module` - The module that the log message came from.
+//! * `M`, `module` - The module that the log message came from, or `???` if not
+//!     provided.
 //! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
@@ -114,7 +117,7 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Utc, Local};
-use log::{LogRecord, LogLevel};
+use log::{Record, Level};
 use log_mdc;
 use std::default::Default;
 use std::error::Error;
@@ -296,22 +299,19 @@ enum Chunk {
 impl Chunk {
     fn encode(&self,
               w: &mut encode::Write,
-              level: LogLevel,
-              target: &str,
-              location: &Location,
-              args: &fmt::Arguments)
+              record: &Record)
               -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted { ref chunk, ref params } => {
                 match (params.min_width, params.max_width, params.align) {
-                    (None, None, _) => chunk.encode(w, level, target, location, args),
+                    (None, None, _) => chunk.encode(w, record),
                     (None, Some(max_width), _) => {
                         let mut w = MaxWidthWriter {
                             remaining: max_width,
                             w: w,
                         };
-                        chunk.encode(&mut w, level, target, location, args)
+                        chunk.encode(&mut w, record)
                     }
                     (Some(min_width), None, Alignment::Left) => {
                         let mut w = LeftAlignWriter {
@@ -319,7 +319,7 @@ impl Chunk {
                             fill: params.fill,
                             w: w,
                         };
-                        chunk.encode(&mut w, level, target, location, args)?;
+                        chunk.encode(&mut w, record)?;
                         w.finish()
                     }
                     (Some(min_width), None, Alignment::Right) => {
@@ -329,7 +329,7 @@ impl Chunk {
                             w: w,
                             buf: vec![],
                         };
-                        chunk.encode(&mut w, level, target, location, args)?;
+                        chunk.encode(&mut w, record)?;
                         w.finish()
                     }
                     (Some(min_width), Some(max_width), Alignment::Left) => {
@@ -341,7 +341,7 @@ impl Chunk {
                                 w: w,
                             },
                         };
-                        chunk.encode(&mut w, level, target, location, args)?;
+                        chunk.encode(&mut w, record)?;
                         w.finish()
                     }
                     (Some(min_width), Some(max_width), Alignment::Right) => {
@@ -354,7 +354,7 @@ impl Chunk {
                             },
                             buf: vec![],
                         };
-                        chunk.encode(&mut w, level, target, location, args)?;
+                        chunk.encode(&mut w, record)?;
                         w.finish()
                     }
                 }
@@ -540,46 +540,48 @@ enum FormattedChunk {
 impl FormattedChunk {
     fn encode(&self,
               w: &mut encode::Write,
-              level: LogLevel,
-              target: &str,
-              location: &Location,
-              args: &fmt::Arguments)
+              record: &Record)
               -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
                 write!(w, "{}", Local::now().format(fmt))
             }
-            FormattedChunk::Level => write!(w, "{}", level),
-            FormattedChunk::Message => w.write_fmt(*args),
-            FormattedChunk::Module => w.write_all(location.module_path.as_bytes()),
-            FormattedChunk::File => w.write_all(location.file.as_bytes()),
-            FormattedChunk::Line => write!(w, "{}", location.line),
-            FormattedChunk::Thread => {
-                w.write_all(thread::current().name().unwrap_or("<unnamed>").as_bytes())
+            FormattedChunk::Level => write!(w, "{}", record.level()),
+            FormattedChunk::Message => w.write_fmt(*record.args()),
+            FormattedChunk::Module => w.write_all(record.module_path().unwrap_or("???").as_bytes()),
+            FormattedChunk::File => w.write_all(record.file().unwrap_or("???").as_bytes()),
+            FormattedChunk::Line => {
+                match record.line() {
+                    Some(line) => write!(w, "{}", line),
+                    None => w.write_all(b"???"),
+                }
             }
-            FormattedChunk::Target => w.write_all(target.as_bytes()),
+            FormattedChunk::Thread => {
+                w.write_all(thread::current().name().unwrap_or("unnamed").as_bytes())
+            }
+            FormattedChunk::Target => w.write_all(record.target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
                 for chunk in chunks {
-                    chunk.encode(w, level, target, location, args)?;
+                    chunk.encode(w, record)?;
                 }
                 Ok(())
             }
             FormattedChunk::Highlight(ref chunks) => {
-                match level {
-                    LogLevel::Error => {
+                match record.level() {
+                    Level::Error => {
                         w.set_style(Style::new().text(Color::Red).intense(true))?;
                     }
-                    LogLevel::Warn => w.set_style(Style::new().text(Color::Red))?,
-                    LogLevel::Info => w.set_style(Style::new().text(Color::Blue))?,
+                    Level::Warn => w.set_style(Style::new().text(Color::Red))?,
+                    Level::Info => w.set_style(Style::new().text(Color::Blue))?,
                     _ => {}
                 }
                 for chunk in chunks {
-                    chunk.encode(w, level, target, location, args)?;
+                    chunk.encode(w, record)?;
                 }
-                match level {
-                    LogLevel::Error | LogLevel::Warn | LogLevel::Info => {
+                match record.level() {
+                    Level::Error | Level::Warn | Level::Info => {
                         w.set_style(&Style::new())?
                     }
                     _ => {}
@@ -615,13 +617,11 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut encode::Write, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
-        let location = Location {
-            module_path: record.location().module_path(),
-            file: record.location().file(),
-            line: record.location().line(),
-        };
-        self.append_inner(w, record.level(), record.target(), &location, record.args())
+    fn encode(&self, w: &mut encode::Write, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+        for chunk in &self.chunks {
+            chunk.encode(w, record)?;
+        }
+        Ok(())
     }
 }
 
@@ -635,25 +635,6 @@ impl PatternEncoder {
             pattern: pattern.to_owned(),
         }
     }
-
-    fn append_inner(&self,
-                    w: &mut encode::Write,
-                    level: LogLevel,
-                    target: &str,
-                    location: &Location,
-                    args: &fmt::Arguments)
-                    -> Result<(), Box<Error + Sync + Send>> {
-        for chunk in &self.chunks {
-            chunk.encode(w, level, target, location, args)?;
-        }
-        Ok(())
-    }
-}
-
-struct Location<'a> {
-    module_path: &'a str,
-    file: &'a str,
-    line: u32,
 }
 
 /// A deserializer for the `PatternEncoder`.
@@ -693,22 +674,15 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
     #[cfg(feature = "simple_writer")]
-    use log::LogLevel;
+    use log::{Level, Record};
     #[cfg(feature = "simple_writer")]
     use log_mdc;
 
     use super::{PatternEncoder, Chunk};
     #[cfg(feature = "simple_writer")]
-    use super::Location;
+    use encode::Encode;
     #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
-
-    #[cfg(feature = "simple_writer")]
-    static LOCATION: Location<'static> = Location {
-        module_path: "path",
-        file: "file",
-        line: 132,
-    };
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| {
@@ -734,12 +708,16 @@ mod tests {
     fn log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Debug,
-                          "target",
-                          &LOCATION,
-                          &format_args!("the message"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder()
+                .level(Level::Debug)
+                .args(format_args!("the message"))
+                .module_path(Some("path"))
+                .file(Some("file"))
+                .line(Some(132))
+                .build(),
+        ).unwrap();
 
         assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
@@ -750,13 +728,11 @@ mod tests {
         thread::spawn(|| {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
-                pw.append_inner(&mut SimpleWriter(&mut buf),
-                                  LogLevel::Debug,
-                                  "target",
-                                  &LOCATION,
-                                  &format_args!("message"))
-                    .unwrap();
-                assert_eq!(buf, b"<unnamed>");
+                pw.encode(
+                    &mut SimpleWriter(&mut buf),
+                    &Record::builder().build(),
+                ).unwrap();
+                assert_eq!(buf, b"unnamed");
             })
             .join()
             .unwrap();
@@ -770,12 +746,10 @@ mod tests {
             .spawn(|| {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
-                pw.append_inner(&mut SimpleWriter(&mut buf),
-                                  LogLevel::Debug,
-                                  "target",
-                                  &LOCATION,
-                                  &format_args!("message"))
-                    .unwrap();
+                pw.encode(
+                    &mut SimpleWriter(&mut buf),
+                    &Record::builder().build(),
+                ).unwrap();
                 assert_eq!(buf, b"foobar");
             })
             .unwrap()
@@ -795,21 +769,17 @@ mod tests {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Debug,
-                          "",
-                          &LOCATION,
-                          &format_args!("foo"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().args(format_args!("foo")).build(),
+        ).unwrap();
         assert_eq!(buf, b"foo~~");
 
         buf.clear();
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Debug,
-                          "",
-                          &LOCATION,
-                          &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().args(format_args!("foobar!")).build(),
+        ).unwrap();
         assert_eq!(buf, b"foobar");
     }
 
@@ -819,21 +789,17 @@ mod tests {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Debug,
-                          "",
-                          &LOCATION,
-                          &format_args!("foo"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().args(format_args!("foo")).build(),
+        ).unwrap();
         assert_eq!(buf, b"~~foo");
 
         buf.clear();
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Debug,
-                          "",
-                          &LOCATION,
-                          &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().args(format_args!("foobar!")).build(),
+        ).unwrap();
         assert_eq!(buf, b"foobar");
     }
 
@@ -843,12 +809,13 @@ mod tests {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Info,
-                          "",
-                          &LOCATION,
-                          &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder()
+                .level(Level::Info)
+                .args(format_args!("foobar!"))
+                .build(),
+        ).unwrap();
         assert_eq!(buf, b"INFO foobar!   ");
     }
 
@@ -858,12 +825,13 @@ mod tests {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Info,
-                          "",
-                          &LOCATION,
-                          &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder()
+                .level(Level::Info)
+                .args(format_args!("foobar!"))
+                .build(),
+        ).unwrap();
         assert_eq!(buf, b"   INFO foobar!");
     }
 
@@ -890,12 +858,10 @@ mod tests {
         let pw = PatternEncoder::new("{{{m}(())}}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Info,
-                          "",
-                          &LOCATION,
-                          &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().args(format_args!("foobar!")).build(),
+        ).unwrap();
         assert_eq!(buf, b"{foobar!()}");
     }
 
@@ -905,12 +871,10 @@ mod tests {
         let pw = PatternEncoder::new(r"\{\({l}\)\}\\");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                          LogLevel::Info,
-                          "",
-                          &LOCATION,
-                          &format_args!("foo"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().level(Level::Info).build(),
+        ).unwrap();
         assert_eq!(buf, br"{(INFO)}\");
     }
 
@@ -921,12 +885,10 @@ mod tests {
         log_mdc::insert("user_id", "mdc value");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().build(),
+        ).unwrap();
 
         assert_eq!(buf, b"mdc value");
     }
@@ -937,12 +899,10 @@ mod tests {
         let pw = PatternEncoder::new("{X(user_id)}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().build(),
+        ).unwrap();
 
         assert_eq!(buf, b"");
     }
@@ -953,12 +913,10 @@ mod tests {
         let pw = PatternEncoder::new("{X(user_id)(missing value)}");
 
         let mut buf = vec![];
-        pw.append_inner(&mut SimpleWriter(&mut buf),
-                        LogLevel::Info,
-                        "",
-                        &LOCATION,
-                        &format_args!("foobar!"))
-            .unwrap();
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().build(),
+        ).unwrap();
 
         assert_eq!(buf, b"missing value");
     }

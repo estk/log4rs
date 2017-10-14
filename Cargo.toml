@@ -25,7 +25,7 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive"]
+json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde"]
 pattern_encoder = ["chrono", "log-mdc"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
@@ -54,7 +54,7 @@ crossbeam = "0.3"
 flate2 = { version = "0.2", optional = true }
 fnv = "1.0"
 humantime = { version = "1.0", optional = true }
-log = "0.3"
+log = { version = "0.4.0-rc.1", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }

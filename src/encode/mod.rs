@@ -1,6 +1,6 @@
 //! Encoders
 
-use log::LogRecord;
+use log::Record;
 #[cfg(feature = "file")]
 use serde::de;
 #[cfg(feature = "file")]
@@ -27,14 +27,14 @@ const NEWLINE: &'static str = "\r\n";
 #[cfg(not(windows))]
 const NEWLINE: &'static str = "\n";
 
-/// A trait implemented by types that can serialize a `LogRecord` into a
+/// A trait implemented by types that can serialize a `Record` into a
 /// `Write`r.
 ///
 /// `Encode`rs are commonly used by `Append`ers to format a log record for
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
-    /// Encodes the `LogRecord` into bytes and writes them.
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>>;
+    /// Encodes the `Record` into bytes and writes them.
+    fn encode(&self, w: &mut Write, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]
