@@ -103,6 +103,8 @@ enum Format {
     Json,
     #[cfg(feature = "toml_format")]
     Toml,
+    #[cfg(feature = "xml_format")]
+    Xml,
 }
 
 impl Format {
@@ -118,10 +120,17 @@ impl Format {
             Some("json") => Ok(Format::Json),
             #[cfg(not(feature = "json_format"))]
             Some("json") => Err("the `json_format` feature is required for JSON support".into()),
+
             #[cfg(feature = "toml_format")]
             Some("toml") => Ok(Format::Toml),
             #[cfg(not(feature = "toml_format"))]
             Some("toml") => Err("the `toml_format` feature is required for TOML support".into()),
+
+            #[cfg(feature = "xml_format")]
+            Some("xml") => Ok(Format::Xml),
+            #[cfg(not(feature = "xml_format"))]
+            Some("xml") => Err("the `xml_format` feature is required for XML support".into()),
+
             Some(f) => Err(format!("unsupported file format `{}`", f).into()),
             None => Err("unable to determine the file format".into()),
         }
@@ -135,6 +144,8 @@ impl Format {
             Format::Json => ::serde_json::from_str(source).map_err(Into::into),
             #[cfg(feature = "toml_format")]
             Format::Toml => ::toml::from_str(source).map_err(Into::into),
+            #[cfg(feature = "xml_format")]
+            Format::Xml => ::serde_xml_rs::deserialize(source.as_bytes()).map_err(Into::into),
         }
     }
 }

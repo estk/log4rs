@@ -196,6 +196,8 @@ extern crate serde_value;
 extern crate winapi;
 #[cfg(feature = "toml")]
 extern crate toml;
+#[cfg(feature = "xml_format")]
+extern crate serde_xml_rs;
 
 #[cfg(feature = "serde_derive")]
 #[macro_use]
