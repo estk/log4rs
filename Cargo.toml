@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["logger", "log", "logging"]
 
 [features]
-default = ["all_components", "gzip", "file", "yaml_format", "xml_format"]
+default = ["all_components", "gzip", "file", "yaml_format"]
 
 file = ["humantime", "serde", "serde_derive", "serde-value", "typemap"]
 yaml_format = ["serde_yaml"]
