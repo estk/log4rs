@@ -232,7 +232,6 @@ mod test {
     use tempdir::TempDir;
     use std::fs::File;
     use std::io::{Read, Write};
-    use std::process::Command;
 
     use append::rolling_file::policy::compound::roll::Roll;
     use super::*;
