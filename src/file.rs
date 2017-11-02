@@ -489,8 +489,7 @@ loggers:
     fn full_deserialize_xml() {
         let cfg = r#"
 <?xml version="1.0" encoding="utf-8"?>
-<configuration>
-    <!--<refresh_rate duration="30 seconds" />-->
+<configuration refresh_rate="30 seconds">
     <appenders>
         <stdout kind="console"/>
         <requests kind="file" path="log/requests.log">
@@ -513,5 +512,6 @@ loggers:
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
+        assert_eq!(config.refresh_rate, Some(Duration::from_secs(30)));
     }
 }
