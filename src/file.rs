@@ -483,4 +483,35 @@ loggers:
     fn empty() {
         ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
     }
+
+    #[test]
+    #[cfg(all(feature = "xml_format"))]
+    fn full_deserialize_xml() {
+        let cfg = r#"
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <!--<refresh_rate duration="30 seconds" />-->
+    <appenders>
+        <stdout kind="console"/>
+        <requests kind="file" path="log/requests.log">
+        <encoder pattern="{d} - {m}{n}" />
+    </requests>
+    </appenders>
+    <root level="warn">
+        <appenders>stdout</appenders>
+        <appenders>requests</appenders>
+    </root>
+    <loggers>
+        <!--<app::common level="trace">
+            <appenders>stdout</appenders>
+            <appenders>requests</appenders>
+        </app::common>-->
+    </loggers>
+</configuration>
+"#;
+        let config: RawConfig = ::serde_xml_rs::deserialize(cfg.as_bytes()).unwrap();
+        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        println!("{:?}", errors);
+        assert!(errors.is_empty());
+    }
 }
