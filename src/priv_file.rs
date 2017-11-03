@@ -9,6 +9,8 @@ use std::time::{Duration, SystemTime};
 
 use {init_config, Handle, handle_error};
 use file::{Deserializers, RawConfig};
+#[cfg(feature = "xml_format")]
+use file::RawConfigXml;
 use config::Config;
 
 /// Initializes the global logger as a log4rs logger configured via a file.
@@ -145,7 +147,9 @@ impl Format {
             #[cfg(feature = "toml_format")]
             Format::Toml => ::toml::from_str(source).map_err(Into::into),
             #[cfg(feature = "xml_format")]
-            Format::Xml => ::serde_xml_rs::deserialize(source.as_bytes()).map_err(Into::into),
+            Format::Xml =>  ::serde_xml_rs::deserialize::<_, RawConfigXml>(source.as_bytes())
+                .map(Into::into)
+                .map_err(Into::into),
         }
     }
 }
