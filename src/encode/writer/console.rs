@@ -173,7 +173,7 @@ mod imp {
 mod imp {
     use winapi;
     use kernel32;
-    use std::io::{self, Stdout, StdoutLock, Write};
+    use std::io::{self, Write};
     use std::fmt;
     use std::mem;
 
