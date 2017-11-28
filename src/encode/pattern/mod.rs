@@ -53,6 +53,7 @@
 //!     * `{h(the level is {l})}` -
 //!         <code style="color: red; font-weight: bold">the level is ERROR</code>
 //! * `l``, level` - The log level.
+//! * `e``, emoji` - The emoji level.
 //! * `L`, `line` - The line that the log message came from.
 //! * `m`, `message` - The log message.
 //! * `M`, `module` - The module that the log message came from.
@@ -435,6 +436,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                         }
                     }
                     "l" | "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
+                    "e" | "emoji" => no_args(&formatter.args, parameters, FormattedChunk::Emoji),
                     "m" | "message" => {
                         no_args(&formatter.args, parameters, FormattedChunk::Message)
                     }
@@ -525,6 +527,7 @@ enum Timezone {
 enum FormattedChunk {
     Time(String, Timezone),
     Level,
+    Emoji,
     Message,
     Module,
     File,
@@ -551,6 +554,7 @@ impl FormattedChunk {
                 write!(w, "{}", Local::now().format(fmt))
             }
             FormattedChunk::Level => write!(w, "{}", level),
+            FormattedChunk::Emoji => write!(w, "{}", level.emoji()),
             FormattedChunk::Message => w.write_fmt(*args),
             FormattedChunk::Module => w.write_all(location.module_path.as_bytes()),
             FormattedChunk::File => w.write_all(location.file.as_bytes()),
