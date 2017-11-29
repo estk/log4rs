@@ -1,0 +1,46 @@
+restore_registry: &RESTORE_REGISTRY
+  restore_cache:
+    key: registry
+
+save_registry: &SAVE_REGISTRY
+  save_cache:
+    key: registry-{{ .BuildNum }}
+    paths:
+      - /usr/local/cargo/registry/index
+
+deps_key: &DEPS_KEY
+  key: deps-1.19.0-{{ checksum "Cargo.lock" }}
+
+restore_deps: &RESTORE_DEPS
+  restore_cache:
+    <<: *DEPS_KEY
+
+save_deps: &SAVE_DEPS
+  save_cache:
+    <<: *DEPS_KEY
+    paths:
+      - target
+      - /usr/local/cargo/registry/cache
+
+version: 2
+jobs:
+  build:
+    working_directory: ~/build
+    docker:
+      - image: rust:1.19.0
+    steps:
+      - checkout
+      - run: apt-get update
+      - run: apt-get install -y --no-install-recommends jq
+      - *RESTORE_REGISTRY
+      - run: cargo generate-lockfile
+      - *SAVE_REGISTRY
+      - *RESTORE_DEPS
+      - run: cargo test
+      - run: |
+          for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
+            echo building with feature "$feature"
+            cargo test --no-default-features --features "$feature"
+          done
+      - run: cargo test --all-features
+      - *SAVE_DEPS
