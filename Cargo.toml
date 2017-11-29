@@ -50,7 +50,7 @@ gzip = ["flate2"]
 [dependencies]
 antidote = { version = "1.0", optional = true }
 chrono = { version = "0.4", optional = true }
-crossbeam = "0.2.9"
+crossbeam = "0.3"
 flate2 = { version = "0.2", optional = true }
 fnv = "1.0"
 humantime = { version = "1.0", optional = true }
