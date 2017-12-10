@@ -475,7 +475,7 @@ where
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Root {
-    #[serde(deserialize_with = "::priv_serde::de_filter", default = "root_level_default")]
+    #[serde(default = "root_level_default")]
     level: LevelFilter,
     #[serde(default)] appenders: Vec<String>,
 }
@@ -501,7 +501,7 @@ struct LoggerXml {
     /// explicit field "name" for xml config
     name: String,
 
-    #[serde(deserialize_with = "::priv_serde::de_filter")] level: LevelFilter,
+    level: LevelFilter,
 
     #[serde(default)] appenders: Vec<String>,
 
@@ -511,7 +511,7 @@ struct LoggerXml {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Logger {
-    #[serde(deserialize_with = "::priv_serde::de_filter")] level: LevelFilter,
+    level: LevelFilter,
     #[serde(default)] appenders: Vec<String>,
     #[serde(default = "logger_additive_default")] additive: bool,
 }

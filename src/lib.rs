@@ -231,8 +231,6 @@ pub mod filter;
 pub mod file;
 pub mod encode;
 #[cfg(feature = "file")]
-mod priv_serde;
-#[cfg(feature = "file")]
 mod priv_file;
 #[cfg(feature = "console_writer")]
 mod priv_io;

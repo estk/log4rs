@@ -12,7 +12,7 @@ keywords = ["logger", "log", "logging"]
 [features]
 default = ["all_components", "gzip", "file", "yaml_format"]
 
-file = ["humantime", "serde", "serde_derive", "serde-value", "typemap"]
+file = ["humantime", "serde", "serde_derive", "serde-value", "typemap", "log/serde"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
