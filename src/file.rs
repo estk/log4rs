@@ -586,7 +586,7 @@ loggers:
 <configuration refresh_rate="30 seconds">
     <appenders>
         <stdout kind="console"/>
-        <requests kind="file" path="log/requests.log">
+        <requests kind="file" path="/tmp/requests.log">
             <encoder pattern="{d} - {m}{n}" />
         </requests>
     </appenders>

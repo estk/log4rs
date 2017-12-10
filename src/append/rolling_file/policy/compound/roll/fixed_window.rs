@@ -40,7 +40,7 @@ impl Compression {
                 let mut i = File::open(src)?;
 
                 let o = File::create(dst)?;
-                let mut o = GzEncoder::new(o, flate2::Compression::Default);
+                let mut o = GzEncoder::new(o, flate2::Compression::default());
 
                 io::copy(&mut i, &mut o)?;
                 drop(o.finish()?);
