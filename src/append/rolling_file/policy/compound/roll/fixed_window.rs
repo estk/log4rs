@@ -24,8 +24,7 @@ pub struct FixedWindowRollerConfig {
 #[derive(Debug)]
 enum Compression {
     None,
-    #[cfg(feature = "gzip")]
-    Gzip,
+    #[cfg(feature = "gzip")] Gzip,
 }
 
 impl Compression {
@@ -105,7 +104,10 @@ impl Roll for FixedWindowRoller {
 
         // In the common case, all of the archived files will be in the same
         // directory, so avoid extra filesystem calls in that case.
-        let parent_varies = match (Path::new(&dst_0).parent(), Path::new(&self.pattern).parent()) {
+        let parent_varies = match (
+            Path::new(&dst_0).parent(),
+            Path::new(&self.pattern).parent(),
+        ) {
             (Some(a), Some(b)) => a != b,
             _ => false, // Only case that can actually happen is (None, None)
         };
@@ -128,7 +130,8 @@ impl Roll for FixedWindowRoller {
 }
 
 fn move_file<P>(src: P, dst: &str) -> io::Result<()>
-    where P: AsRef<Path>
+where
+    P: AsRef<Path>,
 {
     // first try a rename
     match fs::rename(src.as_ref(), dst) {
@@ -162,16 +165,24 @@ impl FixedWindowRollerBuilder {
     ///
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
-    pub fn build(self, pattern: &str, count: u32) -> Result<FixedWindowRoller, Box<Error + Sync + Send>> {
+    pub fn build(
+        self,
+        pattern: &str,
+        count: u32,
+    ) -> Result<FixedWindowRoller, Box<Error + Sync + Send>> {
         if !pattern.contains("{}") {
             return Err("pattern does not contain `{}`".into());
         }
 
         let compression = match Path::new(pattern).extension() {
             #[cfg(feature = "gzip")]
-            Some(e) if e == "gz" => Compression::Gzip,
+            Some(e) if e == "gz" =>
+            {
+                Compression::Gzip
+            }
             #[cfg(not(feature = "gzip"))]
-            Some(e) if e == "gz" => {
+            Some(e) if e == "gz" =>
+            {
                 return Err("gzip compression requires the `gzip` feature".into());
             }
             _ => Compression::None,
@@ -214,10 +225,11 @@ impl Deserialize for FixedWindowRollerDeserializer {
 
     type Config = FixedWindowRollerConfig;
 
-    fn deserialize(&self,
-                   config: FixedWindowRollerConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Roll>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: FixedWindowRollerConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Roll>, Box<Error + Sync + Send>> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = config.base {
             builder = builder.base(base);
@@ -252,7 +264,10 @@ mod test {
         roller.roll(&file).unwrap();
         assert!(!file.exists());
         let mut contents = vec![];
-        File::open(dir.path().join("foo.log.0")).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(dir.path().join("foo.log.0"))
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"file1");
 
         File::create(&file).unwrap().write_all(b"file2").unwrap();
@@ -260,10 +275,16 @@ mod test {
         roller.roll(&file).unwrap();
         assert!(!file.exists());
         contents.clear();
-        File::open(dir.path().join("foo.log.1")).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(dir.path().join("foo.log.1"))
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"file1");
         contents.clear();
-        File::open(dir.path().join("foo.log.0")).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(dir.path().join("foo.log.0"))
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"file2");
 
         File::create(&file).unwrap().write_all(b"file3").unwrap();
@@ -272,10 +293,16 @@ mod test {
         assert!(!file.exists());
         contents.clear();
         assert!(!dir.path().join("foo.log.2").exists());
-        File::open(dir.path().join("foo.log.1")).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(dir.path().join("foo.log.1"))
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"file2");
         contents.clear();
-        File::open(dir.path().join("foo.log.0")).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(dir.path().join("foo.log.0"))
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"file3");
     }
 
@@ -305,7 +332,10 @@ mod test {
 
         assert!(first_roll.as_path().exists());
 
-        File::open(first_roll).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(first_roll)
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, fcontent);
 
         // Sanity check general behaviour
@@ -314,7 +344,8 @@ mod test {
         contents.clear();
         File::open(dir.path().join(&format!("{}.{}", fname, base + 1)))
             .unwrap()
-            .read_to_end(&mut contents).unwrap();
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"something");
     }
 
@@ -376,7 +407,11 @@ mod test {
         let dir = TempDir::new("unsupported_gzip").unwrap();
 
         let pattern = dir.path().join("{}.gz");
-        assert!(FixedWindowRoller::builder().build(pattern.to_str().unwrap(), 2).is_err());
+        assert!(
+            FixedWindowRoller::builder()
+                .build(pattern.to_str().unwrap(), 2)
+                .is_err()
+        );
     }
 
     #[test]
@@ -387,7 +422,9 @@ mod test {
         let dir = TempDir::new("supported_gzip").unwrap();
 
         let pattern = dir.path().join("{}.gz");
-        let roller = FixedWindowRoller::builder().build(pattern.to_str().unwrap(), 2).unwrap();
+        let roller = FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 2)
+            .unwrap();
 
         let contents = (0..10000).map(|i| i as u8).collect::<Vec<_>>();
 
@@ -396,11 +433,13 @@ mod test {
 
         roller.roll(&file).unwrap();
 
-        assert!(Command::new("gunzip")
-            .arg(dir.path().join("0.gz"))
-            .status()
-            .unwrap()
-            .success());
+        assert!(
+            Command::new("gunzip")
+                .arg(dir.path().join("0.gz"))
+                .status()
+                .unwrap()
+                .success()
+        );
 
         let mut file = File::open(dir.path().join("0")).unwrap();
         let mut actual = vec![];

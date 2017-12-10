@@ -3,13 +3,15 @@ use serde::de::{self, Deserialize};
 use std::fmt;
 
 pub fn de_filter<'de, D>(d: D) -> Result<LevelFilter, D::Error>
-    where D: de::Deserializer<'de>
+where
+    D: de::Deserializer<'de>,
 {
     struct S(LevelFilter);
 
     impl<'de2> de::Deserialize<'de2> for S {
         fn deserialize<D>(d: D) -> Result<S, D::Error>
-            where D: de::Deserializer<'de2>
+        where
+            D: de::Deserializer<'de2>,
         {
             struct V;
 
@@ -21,7 +23,8 @@ pub fn de_filter<'de, D>(d: D) -> Result<LevelFilter, D::Error>
                 }
 
                 fn visit_str<E>(self, v: &str) -> Result<S, E>
-                    where E: de::Error
+                where
+                    E: de::Error,
                 {
                     v.parse().map(S).map_err(|_| E::custom(v))
                 }

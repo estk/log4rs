@@ -116,8 +116,8 @@
 //!
 //! [MDC]: https://crates.io/crates/log-mdc
 
-use chrono::{Utc, Local};
-use log::{Record, Level};
+use chrono::{Local, Utc};
+use log::{Level, Record};
 use log_mdc;
 use std::default::Default;
 use std::error::Error;
@@ -125,8 +125,8 @@ use std::fmt;
 use std::io;
 use std::thread;
 
-use encode::pattern::parser::{Parser, Piece, Parameters, Alignment};
-use encode::{self, Encode, Style, Color, NEWLINE};
+use encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
+use encode::{self, Color, Encode, Style, NEWLINE};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
@@ -157,7 +157,10 @@ impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut remaining = self.remaining;
         let mut end = buf.len();
-        for (idx, _) in buf.iter().enumerate().filter(|&(_, &b)| is_char_boundary(b)) {
+        for (idx, _) in buf.iter()
+            .enumerate()
+            .filter(|&(_, &b)| is_char_boundary(b))
+        {
             if remaining == 0 {
                 end = idx;
                 break;
@@ -297,68 +300,66 @@ enum Chunk {
 }
 
 impl Chunk {
-    fn encode(&self,
-              w: &mut encode::Write,
-              record: &Record)
-              -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &Record) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
-            Chunk::Formatted { ref chunk, ref params } => {
-                match (params.min_width, params.max_width, params.align) {
-                    (None, None, _) => chunk.encode(w, record),
-                    (None, Some(max_width), _) => {
-                        let mut w = MaxWidthWriter {
+            Chunk::Formatted {
+                ref chunk,
+                ref params,
+            } => match (params.min_width, params.max_width, params.align) {
+                (None, None, _) => chunk.encode(w, record),
+                (None, Some(max_width), _) => {
+                    let mut w = MaxWidthWriter {
+                        remaining: max_width,
+                        w: w,
+                    };
+                    chunk.encode(&mut w, record)
+                }
+                (Some(min_width), None, Alignment::Left) => {
+                    let mut w = LeftAlignWriter {
+                        to_fill: min_width,
+                        fill: params.fill,
+                        w: w,
+                    };
+                    chunk.encode(&mut w, record)?;
+                    w.finish()
+                }
+                (Some(min_width), None, Alignment::Right) => {
+                    let mut w = RightAlignWriter {
+                        to_fill: min_width,
+                        fill: params.fill,
+                        w: w,
+                        buf: vec![],
+                    };
+                    chunk.encode(&mut w, record)?;
+                    w.finish()
+                }
+                (Some(min_width), Some(max_width), Alignment::Left) => {
+                    let mut w = LeftAlignWriter {
+                        to_fill: min_width,
+                        fill: params.fill,
+                        w: MaxWidthWriter {
                             remaining: max_width,
                             w: w,
-                        };
-                        chunk.encode(&mut w, record)
-                    }
-                    (Some(min_width), None, Alignment::Left) => {
-                        let mut w = LeftAlignWriter {
-                            to_fill: min_width,
-                            fill: params.fill,
-                            w: w,
-                        };
-                        chunk.encode(&mut w, record)?;
-                        w.finish()
-                    }
-                    (Some(min_width), None, Alignment::Right) => {
-                        let mut w = RightAlignWriter {
-                            to_fill: min_width,
-                            fill: params.fill,
-                            w: w,
-                            buf: vec![],
-                        };
-                        chunk.encode(&mut w, record)?;
-                        w.finish()
-                    }
-                    (Some(min_width), Some(max_width), Alignment::Left) => {
-                        let mut w = LeftAlignWriter {
-                            to_fill: min_width,
-                            fill: params.fill,
-                            w: MaxWidthWriter {
-                                remaining: max_width,
-                                w: w,
-                            },
-                        };
-                        chunk.encode(&mut w, record)?;
-                        w.finish()
-                    }
-                    (Some(min_width), Some(max_width), Alignment::Right) => {
-                        let mut w = RightAlignWriter {
-                            to_fill: min_width,
-                            fill: params.fill,
-                            w: MaxWidthWriter {
-                                remaining: max_width,
-                                w: w,
-                            },
-                            buf: vec![],
-                        };
-                        chunk.encode(&mut w, record)?;
-                        w.finish()
-                    }
+                        },
+                    };
+                    chunk.encode(&mut w, record)?;
+                    w.finish()
                 }
-            }
+                (Some(min_width), Some(max_width), Alignment::Right) => {
+                    let mut w = RightAlignWriter {
+                        to_fill: min_width,
+                        fill: params.fill,
+                        w: MaxWidthWriter {
+                            remaining: max_width,
+                            w: w,
+                        },
+                        buf: vec![],
+                    };
+                    chunk.encode(&mut w, record)?;
+                    w.finish()
+                }
+            },
             Chunk::Error(ref s) => write!(w, "{{ERROR: {}}}", s),
         }
     }
@@ -368,139 +369,140 @@ impl<'a> From<Piece<'a>> for Chunk {
     fn from(piece: Piece<'a>) -> Chunk {
         match piece {
             Piece::Text(text) => Chunk::Text(text.to_owned()),
-            Piece::Argument { mut formatter, parameters } => {
-                match formatter.name {
-                    "d" | "date" => {
-                        if formatter.args.len() > 2 {
-                            return Chunk::Error("expected at most two arguments".to_owned());
-                        }
+            Piece::Argument {
+                mut formatter,
+                parameters,
+            } => match formatter.name {
+                "d" | "date" => {
+                    if formatter.args.len() > 2 {
+                        return Chunk::Error("expected at most two arguments".to_owned());
+                    }
 
-                        let format = match formatter.args.get(0) {
-                            Some(arg) => {
-                                let mut format = String::new();
-                                for piece in arg {
-                                    match *piece {
-                                        Piece::Text(text) => format.push_str(text),
-                                        Piece::Argument { .. } => {
-                                            format.push_str("{ERROR: unexpected formatter}");
-                                        }
-                                        Piece::Error(ref err) => {
-                                            format.push_str("{ERROR: ");
-                                            format.push_str(err);
-                                            format.push('}');
-                                        }
+                    let format = match formatter.args.get(0) {
+                        Some(arg) => {
+                            let mut format = String::new();
+                            for piece in arg {
+                                match *piece {
+                                    Piece::Text(text) => format.push_str(text),
+                                    Piece::Argument { .. } => {
+                                        format.push_str("{ERROR: unexpected formatter}");
+                                    }
+                                    Piece::Error(ref err) => {
+                                        format.push_str("{ERROR: ");
+                                        format.push_str(err);
+                                        format.push('}');
                                     }
                                 }
-                                format
                             }
-                            None => "%+".to_owned(),
-                        };
+                            format
+                        }
+                        None => "%+".to_owned(),
+                    };
 
-                        let timezone = match formatter.args.get(1) {
-                            Some(arg) => {
-                                if arg.len() != 1 {
-                                    return Chunk::Error("invalid timezone".to_owned());
-                                }
-                                match arg[0] {
-                                    Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
-                                    Piece::Text(ref z) if *z == "local" => Timezone::Local,
-                                    Piece::Text(ref z) => {
-                                        return Chunk::Error(format!("invalid timezone `{}`", z));
-                                    }
-                                    _ => return Chunk::Error("invalid timezone".to_owned()),
-                                }
+                    let timezone = match formatter.args.get(1) {
+                        Some(arg) => {
+                            if arg.len() != 1 {
+                                return Chunk::Error("invalid timezone".to_owned());
                             }
-                            None => Timezone::Local,
-                        };
-
-                        Chunk::Formatted {
-                            chunk: FormattedChunk::Time(format, timezone),
-                            params: parameters,
-                        }
-                    }
-                    "h" | "highlight" => {
-                        if formatter.args.len() != 1 {
-                            return Chunk::Error("expected exactly one argument".to_owned());
-                        }
-
-                        let chunks = formatter.args
-                            .pop()
-                            .unwrap()
-                            .into_iter()
-                            .map(From::from)
-                            .collect();
-                        Chunk::Formatted {
-                            chunk: FormattedChunk::Highlight(chunks),
-                            params: parameters,
-                        }
-                    }
-                    "l" | "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
-                    "m" | "message" => {
-                        no_args(&formatter.args, parameters, FormattedChunk::Message)
-                    }
-                    "M" | "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
-                    "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
-                    "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
-                    "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
-                    "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
-                    "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
-                    "X" | "mdc" => {
-                        if formatter.args.len() > 2 {
-                            return Chunk::Error("expected at most two arguments".to_owned());
-                        }
-
-                        let key = match formatter.args.get(0) {
-                            Some(arg) => {
-                                if arg.len() != 1 {
-                                    return Chunk::Error("invalid MDC key".to_owned());
+                            match arg[0] {
+                                Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
+                                Piece::Text(ref z) if *z == "local" => Timezone::Local,
+                                Piece::Text(ref z) => {
+                                    return Chunk::Error(format!("invalid timezone `{}`", z));
                                 }
-                                match arg[0] {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
-                                }
+                                _ => return Chunk::Error("invalid timezone".to_owned()),
                             }
-                            None => return Chunk::Error("missing MDC key".to_owned()),
-                        };
-
-                        let default = match formatter.args.get(1) {
-                            Some(arg) => {
-                                if arg.len() != 1 {
-                                    return Chunk::Error("invalid MDC default".to_owned());
-                                }
-                                match arg[0] {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
-                                }
-                            }
-                            None => "".to_owned(),
-                        };
-
-                        Chunk::Formatted {
-                            chunk: FormattedChunk::Mdc(key, default),
-                            params: parameters,
                         }
+                        None => Timezone::Local,
+                    };
+
+                    Chunk::Formatted {
+                        chunk: FormattedChunk::Time(format, timezone),
+                        params: parameters,
                     }
-                    "" => {
-                        if formatter.args.len() != 1 {
-                            return Chunk::Error("expected exactly one argument".to_owned());
-                        }
-
-                        let chunks = formatter.args
-                            .pop()
-                            .unwrap()
-                            .into_iter()
-                            .map(From::from)
-                            .collect();
-                        Chunk::Formatted {
-                            chunk: FormattedChunk::Align(chunks),
-                            params: parameters,
-                        }
-                    }
-                    name => Chunk::Error(format!("unknown formatter `{}`", name)),
                 }
-            }
+                "h" | "highlight" => {
+                    if formatter.args.len() != 1 {
+                        return Chunk::Error("expected exactly one argument".to_owned());
+                    }
+
+                    let chunks = formatter
+                        .args
+                        .pop()
+                        .unwrap()
+                        .into_iter()
+                        .map(From::from)
+                        .collect();
+                    Chunk::Formatted {
+                        chunk: FormattedChunk::Highlight(chunks),
+                        params: parameters,
+                    }
+                }
+                "l" | "level" => no_args(&formatter.args, parameters, FormattedChunk::Level),
+                "m" | "message" => no_args(&formatter.args, parameters, FormattedChunk::Message),
+                "M" | "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
+                "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
+                "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
+                "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
+                "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
+                "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
+                "X" | "mdc" => {
+                    if formatter.args.len() > 2 {
+                        return Chunk::Error("expected at most two arguments".to_owned());
+                    }
+
+                    let key = match formatter.args.get(0) {
+                        Some(arg) => {
+                            if arg.len() != 1 {
+                                return Chunk::Error("invalid MDC key".to_owned());
+                            }
+                            match arg[0] {
+                                Piece::Text(key) => key.to_owned(),
+                                Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                _ => return Chunk::Error("invalid MDC key".to_owned()),
+                            }
+                        }
+                        None => return Chunk::Error("missing MDC key".to_owned()),
+                    };
+
+                    let default = match formatter.args.get(1) {
+                        Some(arg) => {
+                            if arg.len() != 1 {
+                                return Chunk::Error("invalid MDC default".to_owned());
+                            }
+                            match arg[0] {
+                                Piece::Text(key) => key.to_owned(),
+                                Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                _ => return Chunk::Error("invalid MDC default".to_owned()),
+                            }
+                        }
+                        None => "".to_owned(),
+                    };
+
+                    Chunk::Formatted {
+                        chunk: FormattedChunk::Mdc(key, default),
+                        params: parameters,
+                    }
+                }
+                "" => {
+                    if formatter.args.len() != 1 {
+                        return Chunk::Error("expected exactly one argument".to_owned());
+                    }
+
+                    let chunks = formatter
+                        .args
+                        .pop()
+                        .unwrap()
+                        .into_iter()
+                        .map(From::from)
+                        .collect();
+                    Chunk::Formatted {
+                        chunk: FormattedChunk::Align(chunks),
+                        params: parameters,
+                    }
+                }
+                name => Chunk::Error(format!("unknown formatter `{}`", name)),
+            },
             Piece::Error(err) => Chunk::Error(err),
         }
     }
@@ -538,10 +540,7 @@ enum FormattedChunk {
 }
 
 impl FormattedChunk {
-    fn encode(&self,
-              w: &mut encode::Write,
-              record: &Record)
-              -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &Record) -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
@@ -551,12 +550,10 @@ impl FormattedChunk {
             FormattedChunk::Message => w.write_fmt(*record.args()),
             FormattedChunk::Module => w.write_all(record.module_path().unwrap_or("???").as_bytes()),
             FormattedChunk::File => w.write_all(record.file().unwrap_or("???").as_bytes()),
-            FormattedChunk::Line => {
-                match record.line() {
-                    Some(line) => write!(w, "{}", line),
-                    None => w.write_all(b"???"),
-                }
-            }
+            FormattedChunk::Line => match record.line() {
+                Some(line) => write!(w, "{}", line),
+                None => w.write_all(b"???"),
+            },
             FormattedChunk::Thread => {
                 w.write_all(thread::current().name().unwrap_or("unnamed").as_bytes())
             }
@@ -581,9 +578,7 @@ impl FormattedChunk {
                     chunk.encode(w, record)?;
                 }
                 match record.level() {
-                    Level::Error | Level::Warn | Level::Info => {
-                        w.set_style(&Style::new())?
-                    }
+                    Level::Error | Level::Warn | Level::Info => w.set_style(&Style::new())?,
                     _ => {}
                 }
                 Ok(())
@@ -617,7 +612,11 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut encode::Write, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn encode(
+        &self,
+        w: &mut encode::Write,
+        record: &Record,
+    ) -> Result<(), Box<Error + Sync + Send>> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
@@ -657,10 +656,11 @@ impl Deserialize for PatternEncoderDeserializer {
 
     type Config = PatternEncoderConfig;
 
-    fn deserialize(&self,
-                   config: PatternEncoderConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Encode>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: PatternEncoderConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Encode>, Box<Error + Sync + Send>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),
@@ -678,18 +678,16 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use log_mdc;
 
-    use super::{PatternEncoder, Chunk};
+    use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
     use encode::Encode;
     #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
-        encoder.chunks.iter().all(|c| {
-            match *c {
-                Chunk::Error(_) => false,
-                _ => true,
-            }
+        encoder.chunks.iter().all(|c| match *c {
+            Chunk::Error(_) => false,
+            _ => true,
         })
     }
 
@@ -726,15 +724,12 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     fn unnamed_thread() {
         thread::spawn(|| {
-                let pw = PatternEncoder::new("{T}");
-                let mut buf = vec![];
-                pw.encode(
-                    &mut SimpleWriter(&mut buf),
-                    &Record::builder().build(),
-                ).unwrap();
-                assert_eq!(buf, b"unnamed");
-            })
-            .join()
+            let pw = PatternEncoder::new("{T}");
+            let mut buf = vec![];
+            pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+                .unwrap();
+            assert_eq!(buf, b"unnamed");
+        }).join()
             .unwrap();
     }
 
@@ -746,10 +741,8 @@ mod tests {
             .spawn(|| {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
-                pw.encode(
-                    &mut SimpleWriter(&mut buf),
-                    &Record::builder().build(),
-                ).unwrap();
+                pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+                    .unwrap();
                 assert_eq!(buf, b"foobar");
             })
             .unwrap()
@@ -837,7 +830,9 @@ mod tests {
 
     #[test]
     fn custom_date_format() {
-        assert!(error_free(&PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {m}{n}")));
+        assert!(error_free(&PatternEncoder::new(
+            "{d(%Y-%m-%d %H:%M:%S)} {m}{n}"
+        )));
     }
 
     #[test]
@@ -885,10 +880,8 @@ mod tests {
         log_mdc::insert("user_id", "mdc value");
 
         let mut buf = vec![];
-        pw.encode(
-            &mut SimpleWriter(&mut buf),
-            &Record::builder().build(),
-        ).unwrap();
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
 
         assert_eq!(buf, b"mdc value");
     }
@@ -899,10 +892,8 @@ mod tests {
         let pw = PatternEncoder::new("{X(user_id)}");
 
         let mut buf = vec![];
-        pw.encode(
-            &mut SimpleWriter(&mut buf),
-            &Record::builder().build(),
-        ).unwrap();
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
 
         assert_eq!(buf, b"");
     }
@@ -913,10 +904,8 @@ mod tests {
         let pw = PatternEncoder::new("{X(user_id)(missing value)}");
 
         let mut buf = vec![];
-        pw.encode(
-            &mut SimpleWriter(&mut buf),
-            &Record::builder().build(),
-        ).unwrap();
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
 
         assert_eq!(buf, b"missing value");
     }

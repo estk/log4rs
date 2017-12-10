@@ -25,7 +25,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write, BufWriter};
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 #[cfg(feature = "file")]
 use serde_value::Value;
@@ -60,7 +60,8 @@ struct Policy {
 #[cfg(feature = "file")]
 impl<'de> serde::Deserialize<'de> for Policy {
     fn deserialize<D>(d: D) -> Result<Policy, D::Error>
-        where D: serde::Deserializer<'de>
+    where
+        D: serde::Deserializer<'de>,
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
@@ -231,13 +232,15 @@ impl RollingFileAppenderBuilder {
 
     /// Constructs a `RollingFileAppender`.
     pub fn build<P>(self, path: P, policy: Box<policy::Policy>) -> io::Result<RollingFileAppender>
-        where P: AsRef<Path>
+    where
+        P: AsRef<Path>,
     {
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
             path: path.as_ref().to_owned(),
             append: self.append,
-            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            encoder: self.encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
             policy: policy,
         };
 
@@ -294,10 +297,11 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
     type Config = RollingFileAppenderConfig;
 
-    fn deserialize(&self,
-                   config: RollingFileAppenderConfig,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Append>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: RollingFileAppenderConfig,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Append>, Box<Error + Sync + Send>> {
         let mut builder = RollingFileAppender::builder();
         if let Some(append) = config.append {
             builder = builder.append(append);
@@ -326,11 +330,12 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use file::{RawConfig, Deserializers};
+        use file::{Deserializers, RawConfig};
 
         let dir = TempDir::new("deserialize").unwrap();
 
-        let config = format!("
+        let config = format!(
+            "
 appenders:
   foo:
     kind: rolling_file
@@ -354,7 +359,9 @@ appenders:
         pattern: '{0}/foo.log.{{}}'
         base: 1
         count: 5
-", dir.path().display());
+",
+            dir.path().display()
+        );
 
         let config = ::serde_yaml::from_str::<RawConfig>(&config).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
@@ -387,7 +394,10 @@ appenders:
             .build(&path, Box::new(NopPolicy))
             .unwrap();
         let mut contents = vec![];
-        File::open(&path).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(&path)
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"hello");
     }
 
@@ -407,7 +417,10 @@ appenders:
             .build(&path, Box::new(NopPolicy))
             .unwrap();
         let mut contents = vec![];
-        File::open(&path).unwrap().read_to_end(&mut contents).unwrap();
+        File::open(&path)
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
         assert_eq!(contents, b"");
     }
 }

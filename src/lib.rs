@@ -162,42 +162,42 @@
 //! # }
 //! # fn main() {}
 //! ```
-#![doc(html_root_url="https://docs.rs/log4rs/0.7.0")]
+#![doc(html_root_url = "https://docs.rs/log4rs/0.7.0")]
 #![warn(missing_docs)]
 
 #[cfg(feature = "antidote")]
 extern crate antidote;
+#[cfg(feature = "chrono")]
+extern crate chrono;
 extern crate crossbeam;
+#[cfg(feature = "flate2")]
+extern crate flate2;
 extern crate fnv;
 #[cfg(feature = "humantime")]
 extern crate humantime;
-extern crate log;
-#[cfg(feature = "log-mdc")]
-extern crate log_mdc;
-#[cfg(feature = "typemap")]
-extern crate typemap;
-#[cfg(feature = "chrono")]
-extern crate chrono;
-#[cfg(feature = "flate2")]
-extern crate flate2;
 #[cfg(all(windows, feature = "kernel32-sys"))]
 extern crate kernel32;
 #[cfg(all(not(windows), feature = "libc"))]
 extern crate libc;
+extern crate log;
+#[cfg(feature = "log-mdc")]
+extern crate log_mdc;
 #[cfg(feature = "serde")]
 extern crate serde;
-#[cfg(feature = "serde_yaml")]
-extern crate serde_yaml;
 #[cfg(feature = "serde_json")]
 extern crate serde_json;
 #[cfg(feature = "serde-value")]
 extern crate serde_value;
-#[cfg(all(windows, feature = "winapi"))]
-extern crate winapi;
-#[cfg(feature = "toml")]
-extern crate toml;
 #[cfg(feature = "xml_format")]
 extern crate serde_xml_rs;
+#[cfg(feature = "serde_yaml")]
+extern crate serde_yaml;
+#[cfg(feature = "toml")]
+extern crate toml;
+#[cfg(feature = "typemap")]
+extern crate typemap;
+#[cfg(all(windows, feature = "winapi"))]
+extern crate winapi;
 
 #[cfg(feature = "serde_derive")]
 #[macro_use]
@@ -215,7 +215,7 @@ use std::hash::BuildHasherDefault;
 use std::io;
 use std::io::prelude::*;
 use std::sync::Arc;
-use log::{Level, Metadata, Record, LevelFilter, SetLoggerError};
+use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 
 #[cfg(feature = "file")]
 pub use priv_file::{init_file, Error};
@@ -246,11 +246,7 @@ struct ConfiguredLogger {
 }
 
 impl ConfiguredLogger {
-    fn add(&mut self,
-           path: &str,
-           mut appenders: Vec<usize>,
-           additive: bool,
-           level: LevelFilter) {
+    fn add(&mut self, path: &str, mut appenders: Vec<usize>, additive: bool, level: LevelFilter) {
         let (part, rest) = match path.find("::") {
             Some(idx) => (&path[..idx], &path[idx + 2..]),
             None => (path, ""),
@@ -349,7 +345,8 @@ impl SharedLogger {
         let (appenders, root, mut loggers) = config.unpack();
 
         let root = {
-            let appender_map = appenders.iter()
+            let appender_map = appenders
+                .iter()
                 .enumerate()
                 .map(|(i, appender)| (appender.name(), i))
                 .collect::<HashMap<_, _>>();
@@ -366,7 +363,8 @@ impl SharedLogger {
             // sort loggers by name length to ensure that we initialize them top to bottom
             loggers.sort_by_key(|l| l.name().len());
             for logger in loggers {
-                let appenders = logger.appenders()
+                let appenders = logger
+                    .appenders()
                     .iter()
                     .map(|appender| appender_map[&**appender])
                     .collect();
@@ -376,7 +374,8 @@ impl SharedLogger {
             root
         };
 
-        let appenders = appenders.into_iter()
+        let appenders = appenders
+            .into_iter()
             .map(|appender| {
                 let (_, appender, filters) = appender.unpack();
                 Appender {
@@ -412,7 +411,10 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         let shared = self.0.get();
-        shared.root.find(record.target()).log(record, &shared.appenders);
+        shared
+            .root
+            .find(record.target())
+            .log(record, &shared.appenders);
     }
 
     fn flush(&self) {}
@@ -436,7 +438,7 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
     let logger = Logger::new(config);
     log::set_max_level(logger.max_log_level());
     let handle = Handle {
-        shared: logger.0.clone()
+        shared: logger.0.clone(),
     };
     log::set_boxed_logger(Box::new(logger)).map(|()| handle)
 }

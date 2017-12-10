@@ -60,7 +60,8 @@ pub struct AppenderConfig {
 #[cfg(feature = "file")]
 impl<'de> Deserialize<'de> for AppenderConfig {
     fn deserialize<D>(d: D) -> Result<AppenderConfig, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 

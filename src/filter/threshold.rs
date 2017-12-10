@@ -14,8 +14,7 @@ use filter::{Filter, Response};
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
 pub struct ThresholdFilterConfig {
-    #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LevelFilter,
+    #[serde(deserialize_with = "::priv_serde::de_filter")] level: LevelFilter,
 }
 
 /// A filter that rejects all events at a level below a provided threshold.
@@ -60,10 +59,11 @@ impl Deserialize for ThresholdFilterDeserializer {
 
     type Config = ThresholdFilterConfig;
 
-    fn deserialize(&self,
-                   config: ThresholdFilterConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Filter>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: ThresholdFilterConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Filter>, Box<Error + Sync + Send>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

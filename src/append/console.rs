@@ -30,10 +30,8 @@ pub struct ConsoleAppenderConfig {
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
 enum ConfigTarget {
-    #[serde(rename = "stdout")]
-    Stdout,
-    #[serde(rename = "stderr")]
-    Stderr,
+    #[serde(rename = "stdout")] Stdout,
+    #[serde(rename = "stderr")] Stderr,
 }
 
 enum Writer {
@@ -123,7 +121,7 @@ impl Append for ConsoleAppender {
 impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
-        ConsoleAppenderBuilder{
+        ConsoleAppenderBuilder {
             encoder: None,
             target: Target::Stdout,
         }
@@ -154,23 +152,20 @@ impl ConsoleAppenderBuilder {
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
         let writer = match self.target {
-            Target::Stderr => {
-                match ConsoleWriter::stderr() {
-                    Some(writer) => Writer::Tty(writer),
-                    None => Writer::Raw(StdWriter::stderr()),
-                }
-            }
-            Target::Stdout => {
-                match ConsoleWriter::stdout() {
-                    Some(writer) => Writer::Tty(writer),
-                    None => Writer::Raw(StdWriter::stdout()),
-                }
-            }
+            Target::Stderr => match ConsoleWriter::stderr() {
+                Some(writer) => Writer::Tty(writer),
+                None => Writer::Raw(StdWriter::stderr()),
+            },
+            Target::Stdout => match ConsoleWriter::stdout() {
+                Some(writer) => Writer::Tty(writer),
+                None => Writer::Raw(StdWriter::stdout()),
+            },
         };
 
         ConsoleAppender {
             writer: writer,
-            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            encoder: self.encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
         }
     }
 }
@@ -206,10 +201,11 @@ impl Deserialize for ConsoleAppenderDeserializer {
 
     type Config = ConsoleAppenderConfig;
 
-    fn deserialize(&self,
-                   config: ConsoleAppenderConfig,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Append>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: ConsoleAppenderConfig,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Append>, Box<Error + Sync + Send>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = config.target {
             let target = match target {
@@ -219,8 +215,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
             appender = appender.target(target);
         }
         if let Some(encoder) = config.encoder {
-            appender =
-                appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
+            appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
         Ok(Box::new(appender.build()))
     }

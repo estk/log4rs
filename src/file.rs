@@ -121,32 +121,36 @@ pub trait Deserialize: Send + Sync + 'static {
     type Config: DeserializeOwned;
 
     /// Create a new trait object based on the provided config.
-    fn deserialize(&self,
-                   config: Self::Config,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>>;
+    fn deserialize(
+        &self,
+        config: Self::Config,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>>;
 }
 
 trait ErasedDeserialize: Send + Sync + 'static {
     type Trait: ?Sized;
 
-    fn deserialize(&self,
-                   config: Value,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>>;
+    fn deserialize(
+        &self,
+        config: Value,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>>;
 }
 
 struct DeserializeEraser<T>(T);
 
 impl<T> ErasedDeserialize for DeserializeEraser<T>
-    where T: Deserialize
+where
+    T: Deserialize,
 {
     type Trait = T::Trait;
 
-    fn deserialize(&self,
-                   config: Value,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: Value,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>> {
         let config = config.deserialize_into()?;
         self.0.deserialize(config, deserializers)
     }
@@ -173,19 +177,34 @@ impl Default for Deserializers {
         d.insert("file", ::append::file::FileAppenderDeserializer);
 
         #[cfg(feature = "rolling_file_appender")]
-        d.insert("rolling_file", ::append::rolling_file::RollingFileAppenderDeserializer);
+        d.insert(
+            "rolling_file",
+            ::append::rolling_file::RollingFileAppenderDeserializer,
+        );
 
         #[cfg(feature = "compound_policy")]
-        d.insert("compound", ::append::rolling_file::policy::compound::CompoundPolicyDeserializer);
+        d.insert(
+            "compound",
+            ::append::rolling_file::policy::compound::CompoundPolicyDeserializer,
+        );
 
         #[cfg(feature = "delete_roller")]
-        d.insert("delete", ::append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer);
+        d.insert(
+            "delete",
+            ::append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer,
+        );
 
         #[cfg(feature = "fixed_window_roller")]
-        d.insert("fixed_window", ::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer);
+        d.insert(
+            "fixed_window",
+            ::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer,
+        );
 
         #[cfg(feature = "size_trigger")]
-        d.insert("size", ::append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer);
+        d.insert(
+            "size",
+            ::append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
+        );
 
         #[cfg(feature = "json_encoder")]
         d.insert("json", ::encode::json::JsonEncoderDeserializer);
@@ -194,7 +213,10 @@ impl Default for Deserializers {
         d.insert("pattern", ::encode::pattern::PatternEncoderDeserializer);
 
         #[cfg(feature = "threshold_filter")]
-        d.insert("threshold", ::filter::threshold::ThresholdFilterDeserializer);
+        d.insert(
+            "threshold",
+            ::filter::threshold::ThresholdFilterDeserializer,
+        );
 
         d
     }
@@ -242,7 +264,8 @@ impl Deserializers {
 
     /// Adds a mapping from the specified `kind` to a deserializer.
     pub fn insert<T>(&mut self, kind: &str, deserializer: T)
-        where T: Deserialize
+    where
+        T: Deserialize,
     {
         self.0
             .entry::<KeyAdaptor<T::Trait>>()
@@ -251,20 +274,21 @@ impl Deserializers {
     }
 
     /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(&self,
-                                  kind: &str,
-                                  config: Value)
-                                  -> Result<Box<T>, Box<error::Error + Sync + Send>>
-        where T: Deserializable
+    pub fn deserialize<T: ?Sized>(
+        &self,
+        kind: &str,
+        config: Value,
+    ) -> Result<Box<T>, Box<error::Error + Sync + Send>>
+    where
+        T: Deserializable,
     {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
-            None => {
-                Err(format!("no {} deserializer for kind `{}` registered",
-                            T::name(),
-                            kind)
-                    .into())
-            }
+            None => Err(format!(
+                "no {} deserializer for kind `{}` registered",
+                T::name(),
+                kind
+            ).into()),
         }
     }
 }
@@ -285,9 +309,12 @@ impl fmt::Display for Error {
             ErrorKind::Appender(ref name) => {
                 write!(fmt, "error deserializing appender {}: {}", name, self.1)
             }
-            ErrorKind::Filter(ref name) => {
-                write!(fmt, "error deserializing filter attached to appender {}: {}", name, self.1)
-            }
+            ErrorKind::Filter(ref name) => write!(
+                fmt,
+                "error deserializing filter attached to appender {}: {}",
+                name,
+                self.1
+            ),
         }
     }
 }
@@ -307,14 +334,10 @@ impl error::Error for Error {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfigXml {
-    #[serde(deserialize_with = "de_duration", default)]
-    refresh_rate: Option<Duration>,
-    #[serde(default)]
-    root: Root,
-    #[serde(default)]
-    appenders: HashMap<String, AppenderConfig>,
-    #[serde(rename = "loggers", default)]
-    loggers: LoggersXml,
+    #[serde(deserialize_with = "de_duration", default)] refresh_rate: Option<Duration>,
+    #[serde(default)] root: Root,
+    #[serde(default)] appenders: HashMap<String, AppenderConfig>,
+    #[serde(rename = "loggers", default)] loggers: LoggersXml,
 }
 
 /// Loggers section wrapper for xml configuration
@@ -322,16 +345,13 @@ pub struct RawConfigXml {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LoggersXml {
-    #[serde(rename = "logger", default)]
-    loggers: Vec<LoggerXml>,
+    #[serde(rename = "logger", default)] loggers: Vec<LoggerXml>,
 }
 
 #[cfg(feature = "xml_format")]
 impl Default for LoggersXml {
     fn default() -> Self {
-        Self {
-            loggers: vec![]
-        }
+        Self { loggers: vec![] }
     }
 }
 
@@ -339,14 +359,10 @@ impl Default for LoggersXml {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
-    #[serde(deserialize_with = "de_duration", default)]
-    refresh_rate: Option<Duration>,
-    #[serde(default)]
-    root: Root,
-    #[serde(default)]
-    appenders: HashMap<String, AppenderConfig>,
-    #[serde(default)]
-    loggers: HashMap<String, Logger>,
+    #[serde(deserialize_with = "de_duration", default)] refresh_rate: Option<Duration>,
+    #[serde(default)] root: Root,
+    #[serde(default)] appenders: HashMap<String, AppenderConfig>,
+    #[serde(default)] loggers: HashMap<String, Logger>,
 }
 
 impl RawConfig {
@@ -366,15 +382,17 @@ impl RawConfig {
                     .appenders(logger.appenders.clone())
                     .additive(logger.additive)
                     .build(name.clone(), logger.level)
-            }).collect()
+            })
+            .collect()
     }
 
     /// Returns the appenders.
     ///
     /// Any components which fail to be deserialized will be ignored.
-    pub fn appenders_lossy(&self,
-                           deserializers: &Deserializers)
-                           -> (Vec<config::Appender>, Vec<Error>) {
+    pub fn appenders_lossy(
+        &self,
+        deserializers: &Deserializers,
+    ) -> (Vec<config::Appender>, Vec<Error>) {
         let mut appenders = vec![];
         let mut errors = vec![];
 
@@ -408,19 +426,25 @@ impl ::std::convert::From<RawConfigXml> for RawConfig {
             refresh_rate: cfg.refresh_rate,
             root: cfg.root,
             appenders: cfg.appenders,
-            loggers: cfg.loggers.loggers.into_iter().map(|l| (l.name.clone(), l.into())).collect(),
+            loggers: cfg.loggers
+                .loggers
+                .into_iter()
+                .map(|l| (l.name.clone(), l.into()))
+                .collect(),
         }
     }
 }
 
 fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
-    where D: de::Deserializer<'de>
+where
+    D: de::Deserializer<'de>,
 {
     struct S(Duration);
 
     impl<'de2> de::Deserialize<'de2> for S {
         fn deserialize<D>(d: D) -> Result<S, D::Error>
-            where D: de::Deserializer<'de2>
+        where
+            D: de::Deserializer<'de2>,
         {
             struct V;
 
@@ -432,7 +456,8 @@ fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
                 }
 
                 fn visit_str<E>(self, v: &str) -> Result<S, E>
-                    where E: de::Error
+                where
+                    E: de::Error,
                 {
                     humantime::parse_duration(v)
                         .map(S)
@@ -452,15 +477,14 @@ fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
 struct Root {
     #[serde(deserialize_with = "::priv_serde::de_filter", default = "root_level_default")]
     level: LevelFilter,
-    #[serde(default)]
-    appenders: Vec<String>,
+    #[serde(default)] appenders: Vec<String>,
 }
 
 impl Default for Root {
     fn default() -> Root {
         Root {
             level: root_level_default(),
-            appenders: vec![]
+            appenders: vec![],
         }
     }
 }
@@ -477,25 +501,19 @@ struct LoggerXml {
     /// explicit field "name" for xml config
     name: String,
 
-    #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LevelFilter,
+    #[serde(deserialize_with = "::priv_serde::de_filter")] level: LevelFilter,
 
-    #[serde(default)]
-    appenders: Vec<String>,
+    #[serde(default)] appenders: Vec<String>,
 
-    #[serde(default = "logger_additive_default")]
-    additive: bool,
+    #[serde(default = "logger_additive_default")] additive: bool,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Logger {
-    #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LevelFilter,
-    #[serde(default)]
-    appenders: Vec<String>,
-    #[serde(default = "logger_additive_default")]
-    additive: bool,
+    #[serde(deserialize_with = "::priv_serde::de_filter")] level: LevelFilter,
+    #[serde(default)] appenders: Vec<String>,
+    #[serde(default = "logger_additive_default")] additive: bool,
 }
 
 #[cfg(feature = "xml_format")]
@@ -509,7 +527,9 @@ impl ::std::convert::From<LoggerXml> for Logger {
     }
 }
 
-fn logger_additive_default() -> bool { true }
+fn logger_additive_default() -> bool {
+    true
+}
 
 #[cfg(test)]
 #[allow(unused_imports)]

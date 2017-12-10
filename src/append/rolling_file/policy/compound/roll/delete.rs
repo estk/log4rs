@@ -15,8 +15,7 @@ use file::{Deserialize, Deserializers};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteRollerConfig {
-    #[serde(skip_deserializing)]
-    _p: (),
+    #[serde(skip_deserializing)] _p: (),
 }
 
 /// A roller which deletes the log file.
@@ -52,10 +51,11 @@ impl Deserialize for DeleteRollerDeserializer {
 
     type Config = DeleteRollerConfig;
 
-    fn deserialize(&self,
-                   _: DeleteRollerConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Roll>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        _: DeleteRollerConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Roll>, Box<Error + Sync + Send>> {
         Ok(Box::new(DeleteRoller::new()))
     }
 }
