@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::fmt;
-use log::LogRecord;
+use log::{LogRecord, Log};
 #[cfg(feature = "file")]
 use serde::{de, Deserialize, Deserializer};
 #[cfg(feature = "file")]
@@ -35,6 +35,13 @@ pub trait Append: fmt::Debug + Send + Sync + 'static {
 impl Deserializable for Append {
     fn name() -> &'static str {
         "appender"
+    }
+}
+
+impl<T: Log + fmt::Debug + 'static> Append for T {
+    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
+        self.log(record);
+        Ok(())
     }
 }
 
