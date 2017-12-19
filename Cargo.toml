@@ -28,7 +28,7 @@ size_trigger = []
 json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive"]
 pattern_encoder = ["chrono", "log-mdc"]
 ansi_writer = []
-console_writer = ["ansi_writer", "libc", "kernel32-sys", "winapi"]
+console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 
@@ -66,8 +66,7 @@ toml = { version = "0.4", optional = true }
 serde-xml-rs = { version = "0.2.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = { version = "0.2", optional = true }
-winapi = { version = "0.2", optional = true }
+winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }
 
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2", optional = true }
