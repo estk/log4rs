@@ -408,7 +408,11 @@ impl Logger {
 
 impl log::Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        self.enabled_inner(metadata.level(), metadata.target())
+        self.0
+            .get()
+            .root
+            .find(metadata.target())
+            .enabled(metadata.level())
     }
 
     fn log(&self, record: &log::Record) {
@@ -423,12 +427,6 @@ impl log::Log for Logger {
         for appender in &self.0.get().appenders {
             appender.flush();
         }
-    }
-}
-
-impl Logger {
-    fn enabled_inner(&self, level: Level, target: &str) -> bool {
-        self.0.get().root.find(target).enabled(level)
     }
 }
 
@@ -477,7 +475,7 @@ trait PrivateConfigAppenderExt {
 
 #[cfg(test)]
 mod test {
-    use log::{Level, LevelFilter};
+    use log::{Level, LevelFilter, Log};
 
     use super::*;
 
@@ -495,15 +493,50 @@ mod test {
 
         let logger = super::Logger::new(config);
 
-        assert!(logger.enabled_inner(Level::Warn, "bar"));
-        assert!(!logger.enabled_inner(Level::Trace, "bar"));
-        assert!(logger.enabled_inner(Level::Debug, "foo"));
-        assert!(logger.enabled_inner(Level::Trace, "foo::bar"));
-        assert!(!logger.enabled_inner(Level::Error, "foo::bar::baz"));
-        assert!(logger.enabled_inner(Level::Debug, "foo::bar::bazbuz"));
-        assert!(!logger.enabled_inner(Level::Error, "foo::bar::baz::buz"));
-        assert!(!logger.enabled_inner(Level::Warn, "foo::baz::buz"));
-        assert!(!logger.enabled_inner(Level::Warn, "foo::baz::buz::bar"));
-        assert!(logger.enabled_inner(Level::Error, "foo::baz::buz::bar"));
+        assert!(logger.enabled(&Metadata::builder().level(Level::Warn).target("bar").build()));
+        assert!(!logger.enabled(&Metadata::builder()
+            .level(Level::Trace)
+            .target("bar")
+            .build()));
+        assert!(
+            logger.enabled(&Metadata::builder()
+                .level(Level::Debug)
+                .target("foo")
+                .build())
+        );
+        assert!(
+            logger.enabled(&Metadata::builder()
+                .level(Level::Trace)
+                .target("foo::bar")
+                .build())
+        );
+        assert!(!logger.enabled(&Metadata::builder()
+            .level(Level::Error)
+            .target("foo::bar::baz")
+            .build()));
+        assert!(
+            logger.enabled(&Metadata::builder()
+                .level(Level::Debug)
+                .target("foo::bar::bazbuz")
+                .build())
+        );
+        assert!(!logger.enabled(&Metadata::builder()
+            .level(Level::Error)
+            .target("foo::bar::baz::buz")
+            .build()));
+        assert!(!logger.enabled(&Metadata::builder()
+            .level(Level::Warn)
+            .target("foo::baz::buz")
+            .build()));
+        assert!(!logger.enabled(&Metadata::builder()
+            .level(Level::Warn)
+            .target("foo::baz::buz::bar")
+            .build()));
+        assert!(
+            logger.enabled(&Metadata::builder()
+                .level(Level::Error)
+                .target("foo::baz::buz::bar")
+                .build())
+        );
     }
 }
