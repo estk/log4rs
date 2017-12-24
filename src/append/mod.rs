@@ -39,7 +39,7 @@ impl Deserializable for Append {
 }
 
 impl<T: Log + fmt::Debug + 'static> Append for T {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
         self.log(record);
         Ok(())
     }
