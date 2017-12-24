@@ -2,7 +2,7 @@
 //!
 //! Requires the `threshold_filter` feature.
 
-use log::{LogLevelFilter, LogRecord};
+use log::{LevelFilter, Record};
 #[cfg(feature = "file")]
 use std::error::Error;
 
@@ -14,25 +14,24 @@ use filter::{Filter, Response};
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
 pub struct ThresholdFilterConfig {
-    #[serde(deserialize_with = "::priv_serde::de_filter")]
-    level: LogLevelFilter,
+    level: LevelFilter,
 }
 
 /// A filter that rejects all events at a level below a provided threshold.
 #[derive(Debug)]
 pub struct ThresholdFilter {
-    level: LogLevelFilter,
+    level: LevelFilter,
 }
 
 impl ThresholdFilter {
     /// Creates a new `ThresholdFilter` with the specified threshold.
-    pub fn new(level: LogLevelFilter) -> ThresholdFilter {
+    pub fn new(level: LevelFilter) -> ThresholdFilter {
         ThresholdFilter { level: level }
     }
 }
 
 impl Filter for ThresholdFilter {
-    fn filter(&self, record: &LogRecord) -> Response {
+    fn filter(&self, record: &Record) -> Response {
         if record.level() > self.level {
             Response::Reject
         } else {
@@ -60,10 +59,11 @@ impl Deserialize for ThresholdFilterDeserializer {
 
     type Config = ThresholdFilterConfig;
 
-    fn deserialize(&self,
-                   config: ThresholdFilterConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Filter>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: ThresholdFilterConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Filter>, Box<Error + Sync + Send>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

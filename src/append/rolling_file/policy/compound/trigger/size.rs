@@ -20,13 +20,13 @@ use file::{Deserialize, Deserializers};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SizeTriggerConfig {
-    #[serde(deserialize_with = "deserialize_limit")]
-    limit: u64,
+    #[serde(deserialize_with = "deserialize_limit")] limit: u64,
 }
 
 #[cfg(feature = "file")]
 fn deserialize_limit<'de, D>(d: D) -> Result<u64, D::Error>
-    where D: de::Deserializer<'de>
+where
+    D: de::Deserializer<'de>,
 {
     struct V;
 
@@ -38,23 +38,29 @@ fn deserialize_limit<'de, D>(d: D) -> Result<u64, D::Error>
         }
 
         fn visit_u64<E>(self, v: u64) -> Result<u64, E>
-            where E: de::Error
+        where
+            E: de::Error,
         {
             Ok(v)
         }
 
         fn visit_i64<E>(self, v: i64) -> Result<u64, E>
-            where E: de::Error
+        where
+            E: de::Error,
         {
             if v < 0 {
-                return Err(E::invalid_value(de::Unexpected::Signed(v), &"a non-negative number"));
+                return Err(E::invalid_value(
+                    de::Unexpected::Signed(v),
+                    &"a non-negative number",
+                ));
             }
 
             Ok(v as u64)
         }
 
         fn visit_str<E>(self, v: &str) -> Result<u64, E>
-            where E: de::Error
+        where
+            E: de::Error,
         {
             let (number, unit) = match v.find(|c: char| !c.is_digit(10)) {
                 Some(n) => (v[..n].trim(), Some(v[n..].trim())),
@@ -71,20 +77,19 @@ fn deserialize_limit<'de, D>(d: D) -> Result<u64, D::Error>
                 None => return Ok(number),
             };
 
-            let number =
-                if unit.eq_ignore_ascii_case("b") {
-                    Some(number)
-                } else if unit.eq_ignore_ascii_case("kb") || unit.eq_ignore_ascii_case("kib") {
-                    number.checked_mul(1024)
-                } else if unit.eq_ignore_ascii_case("mb") || unit.eq_ignore_ascii_case("mib") {
-                    number.checked_mul(1024 * 1024)
-                } else if unit.eq_ignore_ascii_case("gb") || unit.eq_ignore_ascii_case("gib") {
-                    number.checked_mul(1024 * 1024 * 1024)
-                } else if unit.eq_ignore_ascii_case("tb") || unit.eq_ignore_ascii_case("tib") {
-                    number.checked_mul(1024 * 1024 * 1024 * 1024)
-                } else {
-                    return Err(E::invalid_value(de::Unexpected::Str(unit), &"a valid unit"));
-                };
+            let number = if unit.eq_ignore_ascii_case("b") {
+                Some(number)
+            } else if unit.eq_ignore_ascii_case("kb") || unit.eq_ignore_ascii_case("kib") {
+                number.checked_mul(1024)
+            } else if unit.eq_ignore_ascii_case("mb") || unit.eq_ignore_ascii_case("mib") {
+                number.checked_mul(1024 * 1024)
+            } else if unit.eq_ignore_ascii_case("gb") || unit.eq_ignore_ascii_case("gib") {
+                number.checked_mul(1024 * 1024 * 1024)
+            } else if unit.eq_ignore_ascii_case("tb") || unit.eq_ignore_ascii_case("tib") {
+                number.checked_mul(1024 * 1024 * 1024 * 1024)
+            } else {
+                return Err(E::invalid_value(de::Unexpected::Str(unit), &"a valid unit"));
+            };
 
             match number {
                 Some(n) => Ok(n),
@@ -137,10 +142,11 @@ impl Deserialize for SizeTriggerDeserializer {
 
     type Config = SizeTriggerConfig;
 
-    fn deserialize(&self,
-                   config: SizeTriggerConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Trigger>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: SizeTriggerConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Trigger>, Box<Error + Sync + Send>> {
         Ok(Box::new(SizeTrigger::new(config.limit)))
     }
 }

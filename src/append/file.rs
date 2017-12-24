@@ -3,11 +3,11 @@
 //! Requires the `file_appender` feature.
 
 use antidote::Mutex;
-use log::LogRecord;
+use log::Record;
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write, BufWriter};
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use append::Append;
@@ -46,12 +46,14 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
         Ok(())
     }
+
+    fn flush(&self) {}
 }
 
 impl FileAppender {
@@ -101,7 +103,8 @@ impl FileAppenderBuilder {
         Ok(FileAppender {
             path: path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            encoder: self.encoder.unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            encoder: self.encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
         })
     }
 }
@@ -134,17 +137,17 @@ impl Deserialize for FileAppenderDeserializer {
 
     type Config = FileAppenderConfig;
 
-    fn deserialize(&self,
-                   config: FileAppenderConfig,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Append>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: FileAppenderConfig,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Append>, Box<Error + Sync + Send>> {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);
         }
         if let Some(encoder) = config.encoder {
-            appender =
-                appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
+            appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
         Ok(Box::new(appender.build(&config.path)?))
     }

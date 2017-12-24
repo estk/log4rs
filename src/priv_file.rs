@@ -7,7 +7,7 @@ use std::thread;
 use std::fmt;
 use std::time::{Duration, SystemTime};
 
-use {init_config, Handle, handle_error};
+use {handle_error, init_config, Handle};
 use file::{Deserializers, RawConfig};
 #[cfg(feature = "xml_format")]
 use file::RawConfigXml;
@@ -23,7 +23,8 @@ use config::Config;
 ///
 /// Requires the `file` feature (enabled by default).
 pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
-    where P: AsRef<Path>
+where
+    P: AsRef<Path>,
 {
     let path = path.as_ref().to_path_buf();
     let format = Format::from_path(&path)?;
@@ -38,13 +39,15 @@ pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
     match init_config(config) {
         Ok(handle) => {
             if let Some(refresh_rate) = refresh_rate {
-                ConfigReloader::start(path,
-                                      format,
-                                      refresh_rate,
-                                      source,
-                                      modified,
-                                      deserializers,
-                                      handle);
+                ConfigReloader::start(
+                    path,
+                    format,
+                    refresh_rate,
+                    source,
+                    modified,
+                    deserializers,
+                    handle,
+                );
             }
             Ok(())
         }
@@ -99,14 +102,10 @@ impl From<Box<error::Error + Sync + Send>> for Error {
 }
 
 enum Format {
-    #[cfg(feature = "yaml_format")]
-    Yaml,
-    #[cfg(feature = "json_format")]
-    Json,
-    #[cfg(feature = "toml_format")]
-    Toml,
-    #[cfg(feature = "xml_format")]
-    Xml,
+    #[cfg(feature = "yaml_format")] Yaml,
+    #[cfg(feature = "json_format")] Json,
+    #[cfg(feature = "toml_format")] Toml,
+    #[cfg(feature = "xml_format")] Xml,
 }
 
 impl Format {
@@ -147,7 +146,7 @@ impl Format {
             #[cfg(feature = "toml_format")]
             Format::Toml => ::toml::from_str(source).map_err(Into::into),
             #[cfg(feature = "xml_format")]
-            Format::Xml =>  ::serde_xml_rs::deserialize::<_, RawConfigXml>(source.as_bytes())
+            Format::Xml => ::serde_xml_rs::deserialize::<_, RawConfigXml>(source.as_bytes())
                 .map(Into::into)
                 .map_err(Into::into),
         }
@@ -188,13 +187,15 @@ struct ConfigReloader {
 }
 
 impl ConfigReloader {
-    fn start(path: PathBuf,
-             format: Format,
-             rate: Duration,
-             source: String,
-             modified: Option<SystemTime>,
-             deserializers: Deserializers,
-             handle: Handle) {
+    fn start(
+        path: PathBuf,
+        format: Format,
+        rate: Duration,
+        source: String,
+        modified: Option<SystemTime>,
+        deserializers: Deserializers,
+        handle: Handle,
+    ) {
         let mut reloader = ConfigReloader {
             path: path,
             format: format,
@@ -222,7 +223,10 @@ impl ConfigReloader {
         }
     }
 
-    fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, Box<error::Error + Sync + Send>> {
+    fn run_once(
+        &mut self,
+        rate: Duration,
+    ) -> Result<Option<Duration>, Box<error::Error + Sync + Send>> {
         if let Some(last_modified) = self.modified {
             let modified = fs::metadata(&self.path).and_then(|m| m.modified())?;
             if last_modified == modified {

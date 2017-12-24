@@ -25,8 +25,8 @@
 //! ```
 
 use chrono::{DateTime, Local};
-use chrono::format::{DelayedFormat, Item, Fixed};
-use log::{LogLevel, LogRecord};
+use chrono::format::{DelayedFormat, Fixed, Item};
+use log::{Level, Record};
 use log_mdc;
 use std::error::Error;
 use std::fmt;
@@ -44,8 +44,7 @@ use file::{Deserialize, Deserializers};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JsonEncoderConfig {
-    #[serde(skip_deserializing)]
-    _p: (),
+    #[serde(skip_deserializing)] _p: (),
 }
 
 /// An `Encode`r which writes a JSON object.
@@ -60,25 +59,21 @@ impl JsonEncoder {
 }
 
 impl JsonEncoder {
-    fn encode_inner(&self,
-                    w: &mut Write,
-                    time: DateTime<Local>,
-                    level: LogLevel,
-                    target: &str,
-                    module_path: &str,
-                    file: &str,
-                    line: u32,
-                    args: &fmt::Arguments)
-                    -> Result<(), Box<Error + Sync + Send>> {
+    fn encode_inner(
+        &self,
+        w: &mut Write,
+        time: DateTime<Local>,
+        record: &Record,
+    ) -> Result<(), Box<Error + Sync + Send>> {
         let thread = thread::current();
         let message = Message {
             time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
-            message: args,
-            level: level_str(level),
-            module_path: module_path,
-            file: file,
-            line: line,
-            target: target,
+            message: record.args(),
+            level: record.level(),
+            module_path: record.module_path(),
+            file: record.file(),
+            line: record.line(),
+            target: record.target(),
             thread: thread.name(),
             mdc: Mdc,
         };
@@ -89,46 +84,28 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut Write, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>> {
-        self.encode_inner(w,
-                          Local::now(),
-                          record.level(),
-                          record.target(),
-                          record.location().module_path(),
-                          record.location().file(),
-                          record.location().line(),
-                          record.args())
+    fn encode(&self, w: &mut Write, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+        self.encode_inner(w, Local::now(), record)
     }
 }
 
 #[derive(Serialize)]
 struct Message<'a> {
-    #[serde(serialize_with = "ser_display")]
-    time: DelayedFormat<option::IntoIter<Item<'a>>>,
-    #[serde(serialize_with = "ser_display")]
-    message: &'a fmt::Arguments<'a>,
-    module_path: &'a str,
-    file: &'a str,
-    line: u32,
-    level: &'static str,
+    #[serde(serialize_with = "ser_display")] time: DelayedFormat<option::IntoIter<Item<'a>>>,
+    #[serde(serialize_with = "ser_display")] message: &'a fmt::Arguments<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")] module_path: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")] file: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")] line: Option<u32>,
+    level: Level,
     target: &'a str,
     thread: Option<&'a str>,
     mdc: Mdc,
 }
 
-fn level_str(level: LogLevel) -> &'static str {
-    match level {
-        LogLevel::Error => "ERROR",
-        LogLevel::Warn => "WARN",
-        LogLevel::Info => "INFO",
-        LogLevel::Debug => "DEBUG",
-        LogLevel::Trace => "TRACE",
-    }
-}
-
 fn ser_display<T, S>(v: &T, s: S) -> Result<S::Ok, S::Error>
-    where T: fmt::Display,
-          S: ser::Serializer
+where
+    T: fmt::Display,
+    S: ser::Serializer,
 {
     s.collect_str(v)
 }
@@ -137,15 +114,15 @@ struct Mdc;
 
 impl ser::Serialize for Mdc {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: ser::Serializer
+    where
+        S: ser::Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
 
         let mut err = Ok(());
         log_mdc::iter(|k, v| {
             if let Ok(()) = err {
-                err = map.serialize_key(k)
-                    .and_then(|()| map.serialize_value(v));
+                err = map.serialize_key(k).and_then(|()| map.serialize_value(v));
             }
         });
         err?;
@@ -170,10 +147,11 @@ impl Deserialize for JsonEncoderDeserializer {
 
     type Config = JsonEncoderConfig;
 
-    fn deserialize(&self,
-                   _: JsonEncoderConfig,
-                   _: &Deserializers)
-                   -> Result<Box<Encode>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        _: JsonEncoderConfig,
+        _: &Deserializers,
+    ) -> Result<Box<Encode>, Box<Error + Sync + Send>> {
         Ok(Box::new(JsonEncoder::new()))
     }
 }
@@ -182,7 +160,7 @@ impl Deserialize for JsonEncoderDeserializer {
 #[cfg(feature = "simple_writer")]
 mod test {
     use chrono::{DateTime, Local};
-    use log::LogLevel;
+    use log::Level;
     use log_mdc;
 
     use encode::writer::simple::SimpleWriter;
@@ -193,7 +171,7 @@ mod test {
         let time = DateTime::parse_from_rfc3339("2016-03-20T14:22:20.644420340-08:00")
             .unwrap()
             .with_timezone(&Local);
-        let level = LogLevel::Debug;
+        let level = Level::Debug;
         let target = "target";
         let module_path = "module_path";
         let file = "file";
@@ -205,27 +183,34 @@ mod test {
         let encoder = JsonEncoder::new();
 
         let mut buf = vec![];
-        encoder.encode_inner(&mut SimpleWriter(&mut buf),
-                          time,
-                          level,
-                          target,
-                          module_path,
-                          file,
-                          line,
-                          &format_args!("{}", message))
+        encoder
+            .encode_inner(
+                &mut SimpleWriter(&mut buf),
+                time,
+                &Record::builder()
+                    .level(level)
+                    .target(target)
+                    .module_path(Some(module_path))
+                    .file(Some(file))
+                    .line(Some(line))
+                    .args(format_args!("{}", message))
+                    .build(),
+            )
             .unwrap();
 
-        let expected = format!("{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
-                                \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
-                                \"thread\":\"{}\",\"mdc\":{{\"foo\":\"bar\"}}}}",
-                               time.to_rfc3339(),
-                               message,
-                               module_path,
-                               file,
-                               line,
-                               level,
-                               target,
-                               thread);
+        let expected = format!(
+            "{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
+             \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
+             \"thread\":\"{}\",\"mdc\":{{\"foo\":\"bar\"}}}}",
+            time.to_rfc3339(),
+            message,
+            module_path,
+            file,
+            line,
+            level,
+            target,
+            thread
+        );
         assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
     }
 }

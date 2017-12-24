@@ -84,7 +84,7 @@ fn color_byte(c: Color) -> u8 {
 mod test {
     use std::io::{self, Write};
 
-    use encode::{Style, Color};
+    use encode::{Color, Style};
     use encode::Write as EncodeWrite;
     use super::*;
 
@@ -94,7 +94,12 @@ mod test {
         let mut w = AnsiWriter(stdout.lock());
 
         w.write_all(b"normal ").unwrap();
-        w.set_style(Style::new().text(Color::Red).background(Color::Blue).intense(true)).unwrap();
+        w.set_style(
+            Style::new()
+                .text(Color::Red)
+                .background(Color::Blue)
+                .intense(true),
+        ).unwrap();
         w.write_all(b"styled").unwrap();
         w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();

@@ -3,3 +3,4 @@ Cargo.lock
 !codegen/Cargo.lock
 .idea/
 *.iml
+.vscode/
