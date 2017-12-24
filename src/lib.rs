@@ -331,6 +331,10 @@ impl Appender {
 
         self.appender.append(record)
     }
+
+    fn flush(&self) {
+        self.appender.flush();
+    }
 }
 
 struct SharedLogger {
@@ -415,7 +419,11 @@ impl log::Log for Logger {
             .log(record, &shared.appenders);
     }
 
-    fn flush(&self) {}
+    fn flush(&self) {
+        for appender in &self.0.get().appenders {
+            appender.flush();
+        }
+    }
 }
 
 impl Logger {

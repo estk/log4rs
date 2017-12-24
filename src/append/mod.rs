@@ -29,6 +29,9 @@ pub mod rolling_file;
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `Record`.
     fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
+
+    /// Flushes all in-flight records.
+    fn flush(&self);
 }
 
 #[cfg(feature = "file")]
@@ -42,6 +45,10 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
     fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
         self.log(record);
         Ok(())
+    }
+
+    fn flush(&self) {
+        Log::flush(self)
     }
 }
 

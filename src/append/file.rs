@@ -52,6 +52,8 @@ impl Append for FileAppender {
         file.flush()?;
         Ok(())
     }
+
+    fn flush(&self) {}
 }
 
 impl FileAppender {

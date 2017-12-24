@@ -172,6 +172,8 @@ impl Append for RollingFileAppender {
 
         self.policy.process(&mut file)
     }
+
+    fn flush(&self) {}
 }
 
 impl RollingFileAppender {

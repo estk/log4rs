@@ -116,6 +116,8 @@ impl Append for ConsoleAppender {
         writer.flush()?;
         Ok(())
     }
+
+    fn flush(&self) {}
 }
 
 impl ConsoleAppender {
