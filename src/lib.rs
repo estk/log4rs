@@ -175,8 +175,6 @@ extern crate flate2;
 extern crate fnv;
 #[cfg(feature = "humantime")]
 extern crate humantime;
-#[cfg(all(windows, feature = "kernel32-sys"))]
-extern crate kernel32;
 #[cfg(all(not(windows), feature = "libc"))]
 extern crate libc;
 extern crate log;
