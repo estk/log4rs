@@ -193,8 +193,8 @@ mod imp {
             let mut attrs = self.defaults;
 
             if let Some(text) = style.text {
-                attrs &= !((wincon::FOREGROUND_RED | wincon::FOREGROUND_GREEN |
-                            wincon::FOREGROUND_BLUE) as minwindef::WORD);
+                attrs &= !((wincon::FOREGROUND_RED | wincon::FOREGROUND_GREEN
+                    | wincon::FOREGROUND_BLUE) as minwindef::WORD);
                 attrs |= match text {
                     Color::Black => 0,
                     Color::Red => wincon::FOREGROUND_RED,
@@ -210,8 +210,8 @@ mod imp {
             }
 
             if let Some(background) = style.background {
-                attrs &= !((wincon::BACKGROUND_RED | wincon::BACKGROUND_GREEN |
-                            wincon::BACKGROUND_BLUE) as minwindef::WORD);
+                attrs &= !((wincon::BACKGROUND_RED | wincon::BACKGROUND_GREEN
+                    | wincon::BACKGROUND_BLUE) as minwindef::WORD);
                 attrs |= match background {
                     Color::Black => 0,
                     Color::Red => wincon::BACKGROUND_RED,
