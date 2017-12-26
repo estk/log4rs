@@ -18,5 +18,5 @@
 Look at the [release tags] for information about older releases.
 
 [Unreleased]: https://github.com/sfackler/log4rs/compare/0.8.0...HEAD
-[0.8.0]: https://github.com/sfackler/log4rs/0.7.0...HEAD
+[0.8.0]: https://github.com/sfackler/log4rs/compare/0.7.0...HEAD
 [release tags]: https://github.com/sfackler/log4rs/releases
