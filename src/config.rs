@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::iter::IntoIterator;
 use std::error;
-use log::LogLevelFilter;
+use log::LevelFilter;
 
 use append::Append;
 use filter::Filter;
@@ -13,7 +13,7 @@ use {ConfigPrivateExt, PrivateConfigAppenderExt};
 /// Configuration for the root logger.
 #[derive(Debug)]
 pub struct Root {
-    level: LogLevelFilter,
+    level: LevelFilter,
     appenders: Vec<String>,
 }
 
@@ -24,7 +24,7 @@ impl Root {
     }
 
     /// Returns the minimum level of log messages that the root logger will accept.
-    pub fn level(&self) -> LogLevelFilter {
+    pub fn level(&self) -> LevelFilter {
         self.level
     }
 
@@ -43,7 +43,8 @@ pub struct RootBuilder {
 impl RootBuilder {
     /// Adds an appender.
     pub fn appender<T>(mut self, appender: T) -> RootBuilder
-        where T: Into<String>
+    where
+        T: Into<String>,
     {
         self.appenders.push(appender.into());
         self
@@ -51,15 +52,16 @@ impl RootBuilder {
 
     /// Adds appenders.
     pub fn appenders<I>(mut self, appenders: I) -> RootBuilder
-        where I: IntoIterator,
-              I::Item: Into<String>,
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
     {
         self.appenders.extend(appenders.into_iter().map(Into::into));
         self
     }
 
     /// Consumes the `RootBuilder`, returning the `Root`.
-    pub fn build(self, level: LogLevelFilter) -> Root {
+    pub fn build(self, level: LevelFilter) -> Root {
         Root {
             level: level,
             appenders: self.appenders,
@@ -99,7 +101,11 @@ impl Appender {
 
 impl PrivateConfigAppenderExt for Appender {
     fn unpack(self) -> (String, Box<Append>, Vec<Box<Filter>>) {
-        let Appender { name, appender, filters } = self;
+        let Appender {
+            name,
+            appender,
+            filters,
+        } = self;
         (name, appender, filters)
     }
 }
@@ -119,7 +125,8 @@ impl AppenderBuilder {
 
     /// Adds filters.
     pub fn filters<I>(mut self, filters: I) -> AppenderBuilder
-        where I: IntoIterator<Item = Box<Filter>>
+    where
+        I: IntoIterator<Item = Box<Filter>>,
     {
         self.filters.extend(filters);
         self
@@ -127,7 +134,8 @@ impl AppenderBuilder {
 
     /// Consumes the `AppenderBuilder`, returning the `Appender`.
     pub fn build<T>(self, name: T, appender: Box<Append>) -> Appender
-        where T: Into<String>
+    where
+        T: Into<String>,
     {
         Appender {
             name: name.into(),
@@ -141,7 +149,7 @@ impl AppenderBuilder {
 #[derive(Debug)]
 pub struct Logger {
     name: String,
-    level: LogLevelFilter,
+    level: LevelFilter,
     appenders: Vec<String>,
     additive: bool,
 }
@@ -163,7 +171,7 @@ impl Logger {
     }
 
     /// Returns the minimum level of log messages that the logger will accept.
-    pub fn level(&self) -> LogLevelFilter {
+    pub fn level(&self) -> LevelFilter {
         self.level
     }
 
@@ -188,7 +196,8 @@ pub struct LoggerBuilder {
 impl LoggerBuilder {
     /// Adds an appender.
     pub fn appender<T>(mut self, appender: T) -> LoggerBuilder
-        where T: Into<String>
+    where
+        T: Into<String>,
     {
         self.appenders.push(appender.into());
         self
@@ -196,8 +205,9 @@ impl LoggerBuilder {
 
     /// Adds appenders.
     pub fn appenders<I>(mut self, appenders: I) -> LoggerBuilder
-        where I: IntoIterator,
-              I::Item: Into<String>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
     {
         self.appenders.extend(appenders.into_iter().map(Into::into));
         self
@@ -210,8 +220,9 @@ impl LoggerBuilder {
     }
 
     /// Consumes the `LoggerBuilder`, returning the `Logger`.
-    pub fn build<T>(self, name: T, level: LogLevelFilter) -> Logger
-        where T: Into<String>
+    pub fn build<T>(self, name: T, level: LevelFilter) -> Logger
+    where
+        T: Into<String>,
     {
         Logger {
             name: name.into(),
@@ -270,7 +281,8 @@ impl ConfigBuilder {
 
     /// Adds appenders.
     pub fn appenders<I>(mut self, appenders: I) -> ConfigBuilder
-        where I: IntoIterator<Item = Appender>
+    where
+        I: IntoIterator<Item = Appender>,
     {
         self.appenders.extend(appenders);
         self
@@ -284,7 +296,8 @@ impl ConfigBuilder {
 
     /// Adds loggers.
     pub fn loggers<I>(mut self, loggers: I) -> ConfigBuilder
-        where I: IntoIterator<Item = Logger>
+    where
+        I: IntoIterator<Item = Logger>,
     {
         self.loggers.extend(loggers);
         self
@@ -360,9 +373,7 @@ impl ConfigBuilder {
         if errors.is_empty() {
             Ok(config)
         } else {
-            Err(Errors {
-                errors: errors,
-            })
+            Err(Errors { errors: errors })
         }
     }
 }
@@ -396,7 +407,11 @@ fn check_logger_name(name: &str) -> Result<(), Error> {
 
 impl ConfigPrivateExt for Config {
     fn unpack(self) -> (Vec<Appender>, Root, Vec<Logger>) {
-        let Config { appenders, root, loggers } = self;
+        let Config {
+            appenders,
+            root,
+            loggers,
+        } = self;
         (appenders, root, loggers)
     }
 }
@@ -440,8 +455,7 @@ pub enum Error {
     DuplicateLoggerName(String),
     /// A logger name was invalid.
     InvalidLoggerName(String),
-    #[doc(hidden)]
-    __Extensible,
+    #[doc(hidden)] __Extensible,
 }
 
 impl fmt::Display for Error {
@@ -468,19 +482,23 @@ impl error::Error for Error {
 mod test {
     #[test]
     fn check_logger_name() {
-        let tests = [("", false),
-                     ("asdf", true),
-                     ("asdf::jkl", true),
-                     ("::", false),
-                     ("asdf::jkl::", false),
-                     ("asdf:jkl", false),
-                     ("asdf:::jkl", false),
-                     ("asdf::jkl::", false)];
+        let tests = [
+            ("", false),
+            ("asdf", true),
+            ("asdf::jkl", true),
+            ("::", false),
+            ("asdf::jkl::", false),
+            ("asdf:jkl", false),
+            ("asdf:::jkl", false),
+            ("asdf::jkl::", false),
+        ];
 
         for &(ref name, expected) in &tests {
-            assert!(expected == super::check_logger_name(name).is_ok(),
-                    "{}",
-                    name);
+            assert!(
+                expected == super::check_logger_name(name).is_ok(),
+                "{}",
+                name
+            );
         }
     }
 }

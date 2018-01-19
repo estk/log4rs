@@ -171,18 +171,18 @@ mod imp {
 
 #[cfg(windows)]
 mod imp {
-    use winapi;
-    use kernel32;
-    use std::io::{self, Stdout, StdoutLock, Write};
+    use winapi::shared::minwindef;
+    use winapi::um::{handleapi, processenv, winbase, wincon, winnt};
+    use std::io::{self, Write};
     use std::fmt;
     use std::mem;
 
-    use encode::{self, Style, Color};
+    use encode::{self, Color, Style};
     use priv_io::{StdWriter, StdWriterLock};
 
     struct RawConsole {
-        handle: winapi::HANDLE,
-        defaults: winapi::WORD,
+        handle: winnt::HANDLE,
+        defaults: minwindef::WORD,
     }
 
     unsafe impl Sync for RawConsole {}
@@ -193,48 +193,48 @@ mod imp {
             let mut attrs = self.defaults;
 
             if let Some(text) = style.text {
-                attrs &= !((winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN |
-                            winapi::FOREGROUND_BLUE) as winapi::WORD);
+                attrs &= !((wincon::FOREGROUND_RED | wincon::FOREGROUND_GREEN
+                    | wincon::FOREGROUND_BLUE) as minwindef::WORD);
                 attrs |= match text {
                     Color::Black => 0,
-                    Color::Red => winapi::FOREGROUND_RED,
-                    Color::Green => winapi::FOREGROUND_GREEN,
-                    Color::Yellow => winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN,
-                    Color::Blue => winapi::FOREGROUND_BLUE,
-                    Color::Magenta => winapi::FOREGROUND_RED | winapi::FOREGROUND_BLUE,
-                    Color::Cyan => winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE,
+                    Color::Red => wincon::FOREGROUND_RED,
+                    Color::Green => wincon::FOREGROUND_GREEN,
+                    Color::Yellow => wincon::FOREGROUND_RED | wincon::FOREGROUND_GREEN,
+                    Color::Blue => wincon::FOREGROUND_BLUE,
+                    Color::Magenta => wincon::FOREGROUND_RED | wincon::FOREGROUND_BLUE,
+                    Color::Cyan => wincon::FOREGROUND_GREEN | wincon::FOREGROUND_BLUE,
                     Color::White => {
-                        winapi::FOREGROUND_RED | winapi::FOREGROUND_GREEN | winapi::FOREGROUND_BLUE
+                        wincon::FOREGROUND_RED | wincon::FOREGROUND_GREEN | wincon::FOREGROUND_BLUE
                     }
-                } as winapi::WORD;
+                } as minwindef::WORD;
             }
 
             if let Some(background) = style.background {
-                attrs &= !((winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN |
-                            winapi::BACKGROUND_BLUE) as winapi::WORD);
+                attrs &= !((wincon::BACKGROUND_RED | wincon::BACKGROUND_GREEN
+                    | wincon::BACKGROUND_BLUE) as minwindef::WORD);
                 attrs |= match background {
                     Color::Black => 0,
-                    Color::Red => winapi::BACKGROUND_RED,
-                    Color::Green => winapi::BACKGROUND_GREEN,
-                    Color::Yellow => winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN,
-                    Color::Blue => winapi::BACKGROUND_BLUE,
-                    Color::Magenta => winapi::BACKGROUND_RED | winapi::BACKGROUND_BLUE,
-                    Color::Cyan => winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE,
+                    Color::Red => wincon::BACKGROUND_RED,
+                    Color::Green => wincon::BACKGROUND_GREEN,
+                    Color::Yellow => wincon::BACKGROUND_RED | wincon::BACKGROUND_GREEN,
+                    Color::Blue => wincon::BACKGROUND_BLUE,
+                    Color::Magenta => wincon::BACKGROUND_RED | wincon::BACKGROUND_BLUE,
+                    Color::Cyan => wincon::BACKGROUND_GREEN | wincon::BACKGROUND_BLUE,
                     Color::White => {
-                        winapi::BACKGROUND_RED | winapi::BACKGROUND_GREEN | winapi::BACKGROUND_BLUE
+                        wincon::BACKGROUND_RED | wincon::BACKGROUND_GREEN | wincon::BACKGROUND_BLUE
                     }
-                } as winapi::WORD;
+                } as minwindef::WORD;
             }
 
             if let Some(intense) = style.intense {
                 if intense {
-                    attrs |= winapi::FOREGROUND_INTENSITY as winapi::WORD;
+                    attrs |= wincon::FOREGROUND_INTENSITY as minwindef::WORD;
                 } else {
-                    attrs &= !(winapi::FOREGROUND_INTENSITY as winapi::WORD);
+                    attrs &= !(wincon::FOREGROUND_INTENSITY as minwindef::WORD);
                 }
             }
 
-            if unsafe { kernel32::SetConsoleTextAttribute(self.handle, attrs) } == 0 {
+            if unsafe { wincon::SetConsoleTextAttribute(self.handle, attrs) } == 0 {
                 Err(io::Error::last_os_error())
             } else {
                 Ok(())
@@ -250,13 +250,13 @@ mod imp {
     impl Writer {
         pub fn stdout() -> Option<Writer> {
             unsafe {
-                let handle = kernel32::GetStdHandle(winapi::STD_OUTPUT_HANDLE);
-                if handle.is_null() || handle == winapi::INVALID_HANDLE_VALUE {
+                let handle = processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE);
+                if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
 
                 let mut info = mem::zeroed();
-                if kernel32::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
+                if wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
                     return None;
                 }
 
@@ -272,13 +272,13 @@ mod imp {
 
         pub fn stderr() -> Option<Writer> {
             unsafe {
-                let handle = kernel32::GetStdHandle(winapi::STD_ERROR_HANDLE);
-                if handle.is_null() || handle == winapi::INVALID_HANDLE_VALUE {
+                let handle = processenv::GetStdHandle(winbase::STD_ERROR_HANDLE);
+                if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
 
                 let mut info = mem::zeroed();
-                if kernel32::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
+                if wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
                     return None;
                 }
 
@@ -360,7 +360,7 @@ mod imp {
 mod test {
     use std::io::Write;
 
-    use encode::{Style, Color};
+    use encode::{Color, Style};
     use encode::Write as EncodeWrite;
     use super::*;
 
@@ -373,7 +373,12 @@ mod test {
         let mut w = w.lock();
 
         w.write_all(b"normal ").unwrap();
-        w.set_style(Style::new().text(Color::Red).background(Color::Blue).intense(true)).unwrap();
+        w.set_style(
+            Style::new()
+                .text(Color::Red)
+                .background(Color::Blue)
+                .intense(true),
+        ).unwrap();
         w.write_all(b"styled").unwrap();
         w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();

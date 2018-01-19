@@ -4,5 +4,5 @@ version = "0.0.1"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 
 [dependencies]
-log = "0.3"
+log = "0.4.0-rc.1"
 log4rs = { path = ".." }

@@ -1,4 +1,4 @@
-use std::io::{self, Stdout, StdoutLock, Stderr, StderrLock};
+use std::io::{self, Stderr, StderrLock, Stdout, StdoutLock};
 use std::fmt;
 
 pub enum StdWriter {

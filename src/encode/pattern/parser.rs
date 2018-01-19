@@ -171,7 +171,11 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if found { Some(cur) } else { None }
+        if found {
+            Some(cur)
+        } else {
+            None
+        }
     }
 
     fn text(&mut self, start: usize) -> Piece<'a> {

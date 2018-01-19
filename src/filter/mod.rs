@@ -1,7 +1,7 @@
 //! Filters
 
 use std::fmt;
-use log::LogRecord;
+use log::Record;
 #[cfg(feature = "file")]
 use serde_value::Value;
 #[cfg(feature = "file")]
@@ -21,7 +21,7 @@ pub mod threshold;
 /// sent to that appender.
 pub trait Filter: fmt::Debug + Send + Sync + 'static {
     /// Filters a log event.
-    fn filter(&self, record: &LogRecord) -> Response;
+    fn filter(&self, record: &Record) -> Response;
 }
 
 #[cfg(feature = "file")]
@@ -62,7 +62,8 @@ pub struct FilterConfig {
 #[cfg(feature = "file")]
 impl<'de> de::Deserialize<'de> for FilterConfig {
     fn deserialize<D>(d: D) -> Result<FilterConfig, D::Error>
-        where D: de::Deserializer<'de>
+    where
+        D: de::Deserializer<'de>,
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 

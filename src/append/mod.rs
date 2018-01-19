@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::fmt;
-use log::LogRecord;
+use log::{Record, Log};
 #[cfg(feature = "file")]
 use serde::{de, Deserialize, Deserializer};
 #[cfg(feature = "file")]
@@ -27,14 +27,28 @@ pub mod rolling_file;
 /// Appenders take a log record and processes them, for example, by writing it
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
-    /// Processes the provided `LogRecord`.
-    fn append(&self, record: &LogRecord) -> Result<(), Box<Error + Sync + Send>>;
+    /// Processes the provided `Record`.
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
+
+    /// Flushes all in-flight records.
+    fn flush(&self);
 }
 
 #[cfg(feature = "file")]
 impl Deserializable for Append {
     fn name() -> &'static str {
         "appender"
+    }
+}
+
+impl<T: Log + fmt::Debug + 'static> Append for T {
+    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+        self.log(record);
+        Ok(())
+    }
+
+    fn flush(&self) {
+        Log::flush(self)
     }
 }
 
@@ -53,7 +67,8 @@ pub struct AppenderConfig {
 #[cfg(feature = "file")]
 impl<'de> Deserialize<'de> for AppenderConfig {
     fn deserialize<D>(d: D) -> Result<AppenderConfig, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 

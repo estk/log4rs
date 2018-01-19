@@ -1,21 +1,21 @@
 [package]
 name = "log4rs"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
-documentation = "https://docs.rs/log4rs/0.7.0"
 readme = "README.md"
 keywords = ["logger", "log", "logging"]
 
 [features]
 default = ["all_components", "gzip", "file", "yaml_format"]
 
-file = ["humantime", "serde", "serde_derive", "serde-value", "typemap"]
+file = ["humantime", "serde", "serde_derive", "serde-value", "typemap", "log/serde"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
+xml_format = ["serde-xml-rs"]
 
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
 file_appender = ["antidote", "simple_writer", "pattern_encoder"]
@@ -24,10 +24,10 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive"]
-pattern_encoder = ["chrono", "log-mdc", "libc", "kernel32-sys"]
+json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde"]
+pattern_encoder = ["chrono", "log-mdc", "libc"]
 ansi_writer = []
-console_writer = ["ansi_writer", "libc", "kernel32-sys", "winapi"]
+console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 
@@ -49,11 +49,11 @@ gzip = ["flate2"]
 [dependencies]
 antidote = { version = "1.0", optional = true }
 chrono = { version = "0.4", optional = true }
-crossbeam = "0.2.9"
-flate2 = { version = "0.2", optional = true }
+crossbeam = "0.3"
+flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
 humantime = { version = "1.0", optional = true }
-log = "0.3"
+log = { version = "0.4.0", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
@@ -62,10 +62,10 @@ typemap = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.7", optional = true }
 toml = { version = "0.4", optional = true }
+serde-xml-rs = { version = "0.2.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = { version = "0.2", optional = true }
-winapi = { version = "0.2", optional = true }
+winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }
 
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2", optional = true }

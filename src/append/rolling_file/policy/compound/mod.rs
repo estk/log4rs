@@ -36,7 +36,8 @@ struct Trigger {
 #[cfg(feature = "file")]
 impl<'de> serde::Deserialize<'de> for Trigger {
     fn deserialize<D>(d: D) -> Result<Trigger, D::Error>
-        where D: serde::Deserializer<'de>
+    where
+        D: serde::Deserializer<'de>,
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
@@ -61,7 +62,8 @@ struct Roller {
 #[cfg(feature = "file")]
 impl<'de> serde::Deserialize<'de> for Roller {
     fn deserialize<D>(d: D) -> Result<Roller, D::Error>
-        where D: serde::Deserializer<'de>
+    where
+        D: serde::Deserializer<'de>,
     {
         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
 
@@ -143,10 +145,11 @@ impl Deserialize for CompoundPolicyDeserializer {
 
     type Config = CompoundPolicyConfig;
 
-    fn deserialize(&self,
-                   config: CompoundPolicyConfig,
-                   deserializers: &Deserializers)
-                   -> Result<Box<Policy>, Box<Error + Sync + Send>> {
+    fn deserialize(
+        &self,
+        config: CompoundPolicyConfig,
+        deserializers: &Deserializers,
+    ) -> Result<Box<Policy>, Box<Error + Sync + Send>> {
         let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))
