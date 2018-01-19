@@ -25,7 +25,7 @@ delete_roller = []
 fixed_window_roller = []
 size_trigger = []
 json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde"]
-pattern_encoder = ["chrono", "log-mdc", "libc"]
+pattern_encoder = ["chrono", "log-mdc", "libc", "kernel32-sys"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
@@ -65,6 +65,7 @@ toml = { version = "0.4", optional = true }
 serde-xml-rs = { version = "0.2.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
+kernel32-sys = { version = "0.2.2", optional = true }
 winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }
 
 [target.'cfg(not(windows))'.dependencies]

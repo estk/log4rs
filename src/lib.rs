@@ -196,6 +196,8 @@ extern crate toml;
 extern crate typemap;
 #[cfg(all(windows, feature = "winapi"))]
 extern crate winapi;
+#[cfg(all(windows, feature = "kernel32-sys"))]
+extern crate kernel32;
 
 #[cfg(feature = "serde_derive")]
 #[macro_use]
