@@ -106,6 +106,7 @@ enum Format {
     #[cfg(feature = "json_format")] Json,
     #[cfg(feature = "toml_format")] Toml,
     #[cfg(feature = "xml_format")] Xml,
+    #[cfg(feature = "ron_format")] Ron,
 }
 
 impl Format {
@@ -132,6 +133,11 @@ impl Format {
             #[cfg(not(feature = "xml_format"))]
             Some("xml") => Err("the `xml_format` feature is required for XML support".into()),
 
+            #[cfg(feature = "ron_format")]
+            Some("ron") => Ok(Format::Ron),
+            #[cfg(not(feature = "ron_format"))]
+            Some("ron") => Err("the `ron_format` feature is required for RON support".into()),
+
             Some(f) => Err(format!("unsupported file format `{}`", f).into()),
             None => Err("unable to determine the file format".into()),
         }
@@ -149,6 +155,8 @@ impl Format {
             Format::Xml => ::serde_xml_rs::deserialize::<_, RawConfigXml>(source.as_bytes())
                 .map(Into::into)
                 .map_err(Into::into),
+            #[cfg(feature = "ron_format")]
+            Format::Ron => ::ron::de::from_str(source).map_err(Into::into),
         }
     }
 }

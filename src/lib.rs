@@ -180,6 +180,8 @@ extern crate libc;
 extern crate log;
 #[cfg(feature = "log-mdc")]
 extern crate log_mdc;
+#[cfg(feature = "ron")]
+extern crate ron;
 #[cfg(feature = "serde")]
 extern crate serde;
 #[cfg(feature = "serde_json")]
