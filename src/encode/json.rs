@@ -18,6 +18,7 @@
 //!     "level": "INFO",
 //!     "target": "foo::bar",
 //!     "thread": "main",
+//!     "thread_id": 123,
 //!     "mdc": {
 //!         "request_id": "123e4567-e89b-12d3-a456-426655440000"
 //!     }
@@ -34,6 +35,7 @@ use std::thread;
 use std::option;
 use serde::ser::{self, Serialize, SerializeMap};
 use serde_json;
+use thread_id;
 
 use encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
@@ -75,6 +77,7 @@ impl JsonEncoder {
             line: record.line(),
             target: record.target(),
             thread: thread.name(),
+            thread_id: thread_id::get(),
             mdc: Mdc,
         };
         message.serialize(&mut serde_json::Serializer::new(&mut *w))?;
@@ -99,6 +102,7 @@ struct Message<'a> {
     level: Level,
     target: &'a str,
     thread: Option<&'a str>,
+    thread_id: usize,
     mdc: Mdc,
 }
 
@@ -201,7 +205,7 @@ mod test {
         let expected = format!(
             "{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
              \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
-             \"thread\":\"{}\",\"mdc\":{{\"foo\":\"bar\"}}}}",
+             \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}}}",
             time.to_rfc3339(),
             message,
             module_path,
@@ -209,7 +213,8 @@ mod test {
             line,
             level,
             target,
-            thread
+            thread,
+            thread_id::get(),
         );
         assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
     }

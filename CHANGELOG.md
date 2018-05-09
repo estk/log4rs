@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## New
+
+* Support thread IDs in both JSON and pattern encoders.
+
 ## [0.8.0] - 2017-12-25
 
 ## New
