@@ -9,6 +9,7 @@ use std::error::Error;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 use filter::{Filter, Response};
+use record::ExtendedRecord;
 
 /// The threshold filter's configuration.
 #[cfg(feature = "file")]
@@ -31,8 +32,8 @@ impl ThresholdFilter {
 }
 
 impl Filter for ThresholdFilter {
-    fn filter(&self, record: &Record) -> Response {
-        if record.level() > self.level {
+    fn filter(&self, record: &ExtendedRecord) -> Response {
+        if record.record().level() > self.level {
             Response::Reject
         } else {
             Response::Neutral

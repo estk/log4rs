@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## New
+
+* The same timestamp is used for log record when multiple appenders/encoders
+are used.
+
 ## [0.8.0] - 2017-12-25
 
 ## New

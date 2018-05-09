@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 
 #[cfg(feature = "file")]
 use file::Deserializable;
+use record::ExtendedRecord;
 
 #[cfg(feature = "threshold_filter")]
 pub mod threshold;
@@ -21,7 +22,7 @@ pub mod threshold;
 /// sent to that appender.
 pub trait Filter: fmt::Debug + Send + Sync + 'static {
     /// Filters a log event.
-    fn filter(&self, record: &Record) -> Response;
+    fn filter(&self, record: &ExtendedRecord) -> Response;
 }
 
 #[cfg(feature = "file")]

@@ -116,7 +116,7 @@
 //!
 //! [MDC]: https://crates.io/crates/log-mdc
 
-use chrono::{Local, Utc};
+use chrono::Local;
 use log::{Level, Record};
 use log_mdc;
 use std::default::Default;
@@ -129,6 +129,7 @@ use encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
 use encode::{self, Color, Encode, Style, NEWLINE};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
+use record::ExtendedRecord;
 
 mod parser;
 
@@ -300,7 +301,7 @@ enum Chunk {
 }
 
 impl Chunk {
-    fn encode(&self, w: &mut encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &ExtendedRecord) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted {
@@ -540,24 +541,24 @@ enum FormattedChunk {
 }
 
 impl FormattedChunk {
-    fn encode(&self, w: &mut encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(&self, w: &mut encode::Write, record: &ExtendedRecord) -> io::Result<()> {
         match *self {
-            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", record.timestamp().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
-                write!(w, "{}", Local::now().format(fmt))
+                write!(w, "{}", record.timestamp().with_timezone(&Local).format(fmt))
             }
-            FormattedChunk::Level => write!(w, "{}", record.level()),
-            FormattedChunk::Message => w.write_fmt(*record.args()),
-            FormattedChunk::Module => w.write_all(record.module_path().unwrap_or("???").as_bytes()),
-            FormattedChunk::File => w.write_all(record.file().unwrap_or("???").as_bytes()),
-            FormattedChunk::Line => match record.line() {
+            FormattedChunk::Level => write!(w, "{}", record.record().level()),
+            FormattedChunk::Message => w.write_fmt(*record.record().args()),
+            FormattedChunk::Module => w.write_all(record.record().module_path().unwrap_or("???").as_bytes()),
+            FormattedChunk::File => w.write_all(record.record().file().unwrap_or("???").as_bytes()),
+            FormattedChunk::Line => match record.record().line() {
                 Some(line) => write!(w, "{}", line),
                 None => w.write_all(b"???"),
             },
             FormattedChunk::Thread => {
                 w.write_all(thread::current().name().unwrap_or("unnamed").as_bytes())
             }
-            FormattedChunk::Target => w.write_all(record.target().as_bytes()),
+            FormattedChunk::Target => w.write_all(record.record().target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
                 for chunk in chunks {
@@ -566,7 +567,7 @@ impl FormattedChunk {
                 Ok(())
             }
             FormattedChunk::Highlight(ref chunks) => {
-                match record.level() {
+                match record.record().level() {
                     Level::Error => {
                         w.set_style(Style::new().text(Color::Red).intense(true))?;
                     }
@@ -577,7 +578,7 @@ impl FormattedChunk {
                 for chunk in chunks {
                     chunk.encode(w, record)?;
                 }
-                match record.level() {
+                match record.record().level() {
                     Level::Error | Level::Warn | Level::Info => w.set_style(&Style::new())?,
                     _ => {}
                 }
@@ -615,7 +616,7 @@ impl Encode for PatternEncoder {
     fn encode(
         &self,
         w: &mut encode::Write,
-        record: &Record,
+        record: &ExtendedRecord,
     ) -> Result<(), Box<Error + Sync + Send>> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
@@ -674,6 +675,8 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
     #[cfg(feature = "simple_writer")]
+    use std::time::Duration;
+    #[cfg(feature = "simple_writer")]
     use log::{Level, Record};
     #[cfg(feature = "simple_writer")]
     use log_mdc;
@@ -683,6 +686,7 @@ mod tests {
     use encode::Encode;
     #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
+    use record::ExtendedRecord;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| match *c {
@@ -708,14 +712,14 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder()
+            &ExtendedRecord::new(&Record::builder()
                 .level(Level::Debug)
                 .args(format_args!("the message"))
                 .module_path(Some("path"))
                 .file(Some("file"))
                 .line(Some(132))
                 .build(),
-        ).unwrap();
+        )).unwrap();
 
         assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
@@ -726,7 +730,8 @@ mod tests {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{T}");
             let mut buf = vec![];
-            pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            pw.encode(&mut SimpleWriter(&mut buf),
+                      &ExtendedRecord::new(&Record::builder().build()))
                 .unwrap();
             assert_eq!(buf, b"unnamed");
         }).join()
@@ -741,7 +746,8 @@ mod tests {
             .spawn(|| {
                 let pw = PatternEncoder::new("{T}");
                 let mut buf = vec![];
-                pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+                pw.encode(&mut SimpleWriter(&mut buf),
+                          &ExtendedRecord::new(&Record::builder().build()))
                     .unwrap();
                 assert_eq!(buf, b"foobar");
             })
@@ -764,14 +770,14 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder().args(format_args!("foo")).build(),
+            &ExtendedRecord::new(&Record::builder().args(format_args!("foo")).build()),
         ).unwrap();
         assert_eq!(buf, b"foo~~");
 
         buf.clear();
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder().args(format_args!("foobar!")).build(),
+            &ExtendedRecord::new(&Record::builder().args(format_args!("foobar!")).build()),
         ).unwrap();
         assert_eq!(buf, b"foobar");
     }
@@ -784,14 +790,14 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder().args(format_args!("foo")).build(),
+            &ExtendedRecord::new(&Record::builder().args(format_args!("foo")).build()),
         ).unwrap();
         assert_eq!(buf, b"~~foo");
 
         buf.clear();
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder().args(format_args!("foobar!")).build(),
+            &ExtendedRecord::new(&Record::builder().args(format_args!("foobar!")).build()),
         ).unwrap();
         assert_eq!(buf, b"foobar");
     }
@@ -804,11 +810,11 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder()
+            &ExtendedRecord::new(&Record::builder()
                 .level(Level::Info)
                 .args(format_args!("foobar!"))
                 .build(),
-        ).unwrap();
+        )).unwrap();
         assert_eq!(buf, b"INFO foobar!   ");
     }
 
@@ -820,11 +826,11 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder()
+            &ExtendedRecord::new(&Record::builder()
                 .level(Level::Info)
                 .args(format_args!("foobar!"))
                 .build(),
-        ).unwrap();
+        )).unwrap();
         assert_eq!(buf, b"   INFO foobar!");
     }
 
@@ -855,7 +861,7 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder().args(format_args!("foobar!")).build(),
+            &ExtendedRecord::new(&Record::builder().args(format_args!("foobar!")).build()),
         ).unwrap();
         assert_eq!(buf, b"{foobar!()}");
     }
@@ -868,7 +874,7 @@ mod tests {
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
-            &Record::builder().level(Level::Info).build(),
+            &ExtendedRecord::new(&Record::builder().level(Level::Info).build()),
         ).unwrap();
         assert_eq!(buf, br"{(INFO)}\");
     }
@@ -880,7 +886,8 @@ mod tests {
         log_mdc::insert("user_id", "mdc value");
 
         let mut buf = vec![];
-        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+        pw.encode(&mut SimpleWriter(&mut buf),
+                  &ExtendedRecord::new(&Record::builder().build()))
             .unwrap();
 
         assert_eq!(buf, b"mdc value");
@@ -892,7 +899,8 @@ mod tests {
         let pw = PatternEncoder::new("{X(user_id)}");
 
         let mut buf = vec![];
-        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+        pw.encode(&mut SimpleWriter(&mut buf),
+                  &ExtendedRecord::new(&Record::builder().build()))
             .unwrap();
 
         assert_eq!(buf, b"");
@@ -904,9 +912,31 @@ mod tests {
         let pw = PatternEncoder::new("{X(user_id)(missing value)}");
 
         let mut buf = vec![];
-        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+        pw.encode(&mut SimpleWriter(&mut buf),
+                  &ExtendedRecord::new(&Record::builder().build()))
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn same_timestamp() {
+        let pw1 = PatternEncoder::new("{d}");
+        let pw2 = PatternEncoder::new("{d}");
+        let record = Record::builder().build();
+        let extended_record = ExtendedRecord::new(&record);
+
+        let mut buf1 = vec![];
+        pw1.encode(&mut SimpleWriter(&mut buf1), &extended_record)
+            .unwrap();
+
+        thread::sleep(Duration::from_millis(100));
+
+        let mut buf2 = vec![];
+        pw2.encode(&mut SimpleWriter(&mut buf2), &extended_record)
+            .unwrap();
+
+        assert_eq!(buf1, buf2);
     }
 }

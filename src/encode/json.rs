@@ -38,6 +38,7 @@ use serde_json;
 use encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
+use record::ExtendedRecord;
 
 /// The JSON encoder's configuration
 #[cfg(feature = "file")]
@@ -84,8 +85,8 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut Write, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
-        self.encode_inner(w, Local::now(), record)
+    fn encode(&self, w: &mut Write, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>> {
+        self.encode_inner(w, record.timestamp().with_timezone(&Local), record.record())
     }
 }
 

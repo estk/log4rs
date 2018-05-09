@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use file::Deserializable;
 #[cfg(feature = "file")]
 use filter::FilterConfig;
+use record::ExtendedRecord;
 
 #[cfg(feature = "file_appender")]
 pub mod file;
@@ -28,7 +29,7 @@ pub mod rolling_file;
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `Record`.
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
+    fn append(&self, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>>;
 
     /// Flushes all in-flight records.
     fn flush(&self);
@@ -42,8 +43,8 @@ impl Deserializable for Append {
 }
 
 impl<T: Log + fmt::Debug + 'static> Append for T {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
-        self.log(record);
+    fn append(&self, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>> {
+        self.log(record.record());
         Ok(())
     }
 

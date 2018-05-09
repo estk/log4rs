@@ -17,6 +17,7 @@ use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 use priv_io::{StdWriter, StdWriterLock};
+use record::ExtendedRecord;
 
 /// The console appender's configuration.
 #[cfg(feature = "file")]
@@ -110,7 +111,7 @@ impl fmt::Debug for ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>> {
         let mut writer = self.writer.lock();
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;

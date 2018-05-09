@@ -18,6 +18,7 @@ use encode::pattern::PatternEncoder;
 use encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
+use record::ExtendedRecord;
 
 /// The file appender's configuration.
 #[cfg(feature = "file")]
@@ -46,7 +47,7 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;

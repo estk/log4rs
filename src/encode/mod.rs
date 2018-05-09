@@ -13,6 +13,7 @@ use std::io;
 
 #[cfg(feature = "file")]
 use file::Deserializable;
+use record::ExtendedRecord;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -34,7 +35,7 @@ const NEWLINE: &'static str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `Record` into bytes and writes them.
-    fn encode(&self, w: &mut Write, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
+    fn encode(&self, w: &mut Write, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]

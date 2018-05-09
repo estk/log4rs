@@ -37,6 +37,7 @@ use encode::EncoderConfig;
 use encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
+use record::ExtendedRecord;
 
 pub mod policy;
 
@@ -154,7 +155,7 @@ impl fmt::Debug for RollingFileAppender {
 }
 
 impl Append for RollingFileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &ExtendedRecord) -> Result<(), Box<Error + Sync + Send>> {
         let mut writer = self.writer.lock();
 
         let len = {
