@@ -62,6 +62,7 @@
 //! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
+//! * `I`, `thread_id` - The ID of the current thread.
 //! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
 //!     the key, and the second argument specifies the default value if the
 //!     key is not present in the MDC. The second argument is optional, and
@@ -124,6 +125,7 @@ use std::error::Error;
 use std::fmt;
 use std::io;
 use std::thread;
+use thread_id;
 
 use encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
 use encode::{self, Color, Encode, Style, NEWLINE};
@@ -445,6 +447,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
                 "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                 "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
+                "I" | "thread_id" => no_args(&formatter.args, parameters, FormattedChunk::ThreadId),
                 "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
                 "X" | "mdc" => {
                     if formatter.args.len() > 2 {
@@ -532,6 +535,7 @@ enum FormattedChunk {
     File,
     Line,
     Thread,
+    ThreadId,
     Target,
     Newline,
     Align(Vec<Chunk>),
@@ -556,6 +560,9 @@ impl FormattedChunk {
             },
             FormattedChunk::Thread => {
                 w.write_all(thread::current().name().unwrap_or("unnamed").as_bytes())
+            }
+            FormattedChunk::ThreadId => {
+                w.write_all(thread_id::get().to_string().as_bytes())
             }
             FormattedChunk::Target => w.write_all(record.target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
@@ -677,6 +684,8 @@ mod tests {
     use log::{Level, Record};
     #[cfg(feature = "simple_writer")]
     use log_mdc;
+    #[cfg(feature = "simple_writer")]
+    use thread_id;
 
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
@@ -746,6 +755,20 @@ mod tests {
                 assert_eq!(buf, b"foobar");
             })
             .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn thread_id() {
+        thread::spawn(|| {
+                let pw = PatternEncoder::new("{I}");
+                let mut buf = vec![];
+                pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+                    .unwrap();
+                assert_eq!(buf, thread_id::get().to_string().as_bytes());
+            })
             .join()
             .unwrap();
     }

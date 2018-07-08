@@ -24,8 +24,8 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde"]
-pattern_encoder = ["chrono", "log-mdc"]
+json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde", "thread-id"]
+pattern_encoder = ["chrono", "log-mdc", "thread-id"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
@@ -58,6 +58,7 @@ log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
 serde-value = { version = "0.5", optional = true }
+thread-id = { version = "3.3", optional = true }
 typemap = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.7", optional = true }

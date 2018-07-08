@@ -190,6 +190,8 @@ extern crate serde_value;
 extern crate serde_xml_rs;
 #[cfg(feature = "serde_yaml")]
 extern crate serde_yaml;
+#[cfg(feature = "thread-id")]
+extern crate thread_id;
 #[cfg(feature = "toml")]
 extern crate toml;
 #[cfg(feature = "typemap")]
