@@ -55,6 +55,22 @@ where
     }
 }
 
+/// Loads a log4rs logger configuration from a file.
+///
+/// Unlike `init_file`, this function does not initialize the logger; it only
+/// loads the `Config` and returns it.
+pub fn load_config_file<P>(path: P, deserializers: Deserializers) -> Result<Config, Error>
+where
+    P: AsRef<Path>,
+{
+    let path = path.as_ref();
+    let format = Format::from_path(&path)?;
+    let source = read_config(&path)?;
+    let config = format.parse(&source)?;
+
+    Ok(deserialize(&config, &deserializers))
+}
+
 /// An error initializing the logging framework from a file.
 #[derive(Debug)]
 pub enum Error {
