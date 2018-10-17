@@ -162,7 +162,7 @@
 //! # }
 //! # fn main() {}
 //! ```
-#![doc(html_root_url = "https://docs.rs/log4rs/0.8.0")]
+#![doc(html_root_url = "https://docs.rs/log4rs/0.8")]
 #![warn(missing_docs)]
 
 #[cfg(feature = "antidote")]

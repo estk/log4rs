@@ -2,9 +2,15 @@
 
 ## [Unreleased]
 
+## [0.8.1] - 2018-10-17
+
 ## New
 
 * Support thread IDs in both JSON and pattern encoders.
+
+## Changed
+
+* Upgraded to serde_yaml 0.8.
 
 ## [0.8.0] - 2017-12-25
 
@@ -21,6 +27,7 @@
 
 Look at the [release tags] for information about older releases.
 
-[Unreleased]: https://github.com/sfackler/log4rs/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/sfackler/log4rs/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/sfackler/log4rs/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/sfackler/log4rs/compare/v0.7.0...v0.8.0
 [release tags]: https://github.com/sfackler/log4rs/releases
