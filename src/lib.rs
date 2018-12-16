@@ -206,7 +206,7 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate tempdir;
 
-use crossbeam::sync::ArcCell;
+use crossbeam::atomic::ArcCell;
 use fnv::FnvHasher;
 use std::cmp;
 use std::collections::HashMap;
