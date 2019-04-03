@@ -165,11 +165,11 @@
 #![doc(html_root_url = "https://docs.rs/log4rs/0.8")]
 #![warn(missing_docs)]
 
+extern crate arc_swap;
 #[cfg(feature = "antidote")]
 extern crate antidote;
 #[cfg(feature = "chrono")]
 extern crate chrono;
-extern crate crossbeam;
 #[cfg(feature = "flate2")]
 extern crate flate2;
 extern crate fnv;
@@ -206,7 +206,7 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate tempdir;
 
-use crossbeam::atomic::ArcCell;
+use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use std::cmp;
 use std::collections::HashMap;
@@ -394,29 +394,29 @@ impl SharedLogger {
     }
 }
 
-struct Logger(Arc<ArcCell<SharedLogger>>);
+struct Logger(Arc<ArcSwap<SharedLogger>>);
 
 impl Logger {
     fn new(config: config::Config) -> Logger {
-        Logger(Arc::new(ArcCell::new(Arc::new(SharedLogger::new(config)))))
+        Logger(Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))))
     }
 
     fn max_log_level(&self) -> LevelFilter {
-        self.0.get().root.max_log_level()
+        self.0.lease().root.max_log_level()
     }
 }
 
 impl log::Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         self.0
-            .get()
+            .lease()
             .root
             .find(metadata.target())
             .enabled(metadata.level())
     }
 
     fn log(&self, record: &log::Record) {
-        let shared = self.0.get();
+        let shared = self.0.lease();
         shared
             .root
             .find(record.target())
@@ -424,7 +424,7 @@ impl log::Log for Logger {
     }
 
     fn flush(&self) {
-        for appender in &self.0.get().appenders {
+        for appender in &self.0.lease().appenders {
             appender.flush();
         }
     }
@@ -449,7 +449,7 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
 
 /// A handle to the active logger.
 pub struct Handle {
-    shared: Arc<ArcCell<SharedLogger>>,
+    shared: Arc<ArcSwap<SharedLogger>>,
 }
 
 impl Handle {
@@ -457,7 +457,7 @@ impl Handle {
     pub fn set_config(&self, config: Config) {
         let shared = SharedLogger::new(config);
         log::set_max_level(shared.root.max_log_level());
-        self.shared.set(Arc::new(shared));
+        self.shared.store(Arc::new(shared));
     }
 }
 
