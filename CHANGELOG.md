@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.8.3] - 2019-04-02
+
+## Fixed
+
+* Fixed Cargo.toml badge.
+
+## [0.8.2] - 2019-04-02
+
+## Changed
+
+* Switched from crossbeam's `ArcCell` to arc-swap's `ArcSwap` internally.
+* Upgraded toml to 0.5.
+
 ## [0.8.1] - 2018-10-17
 
 ## New
@@ -27,7 +40,9 @@
 
 Look at the [release tags] for information about older releases.
 
-[Unreleased]: https://github.com/sfackler/log4rs/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/sfackler/log4rs/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/sfackler/log4rs/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/sfackler/log4rs/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/sfackler/log4rs/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/sfackler/log4rs/compare/v0.7.0...v0.8.0
 [release tags]: https://github.com/sfackler/log4rs/releases
