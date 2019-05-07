@@ -394,14 +394,14 @@ impl SharedLogger {
     }
 }
 
-struct Logger(Arc<ArcSwap<SharedLogger>>);
+pub struct Logger(Arc<ArcSwap<SharedLogger>>);
 
 impl Logger {
-    fn new(config: config::Config) -> Logger {
+    pub fn new(config: config::Config) -> Logger {
         Logger(Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))))
     }
 
-    fn max_log_level(&self) -> LevelFilter {
+    pub fn max_log_level(&self) -> LevelFilter {
         self.0.lease().root.max_log_level()
     }
 }
