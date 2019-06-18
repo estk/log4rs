@@ -200,6 +200,12 @@ impl Default for Deserializers {
             ::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer,
         );
 
+        #[cfg(feature = "daily_file_roller")]
+        d.insert(
+            "daily_file",
+            ::append::rolling_file::policy::compound::roll::daily_file::DailyFileRollerDeserializer,
+        );
+
         #[cfg(feature = "size_trigger")]
         d.insert(
             "size",

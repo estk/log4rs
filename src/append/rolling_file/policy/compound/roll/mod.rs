@@ -11,6 +11,8 @@ use file::Deserializable;
 pub mod delete;
 #[cfg(feature = "fixed_window_roller")]
 pub mod fixed_window;
+#[cfg(feature = "daily_file_roller")]
+pub mod daily_file;
 
 /// A trait which processes log files after they have been rolled over.
 pub trait Roll: fmt::Debug + Send + Sync + 'static {

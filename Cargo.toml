@@ -26,6 +26,7 @@ rolling_file_appender = ["antidote", "simple_writer", "pattern_encoder"]
 compound_policy = []
 delete_roller = []
 fixed_window_roller = []
+daily_file_roller = []
 size_trigger = []
 daily_trigger = []
 json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde", "thread-id"]
@@ -42,6 +43,7 @@ all_components = [
     "compound_policy",
     "delete_roller",
     "fixed_window_roller",
+    "daily_file_roller",
     "size_trigger",
     "daily_trigger",
     "json_encoder",
