@@ -4,14 +4,12 @@
 
 #[cfg(feature = "file")]
 use serde::de;
-#[cfg(feature = "file")]
-use std::ascii::AsciiExt;
 use std::error::Error;
 #[cfg(feature = "file")]
 use std::fmt;
 
-use append::rolling_file::LogFile;
 use append::rolling_file::policy::compound::trigger::Trigger;
+use append::rolling_file::LogFile;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
@@ -20,7 +18,8 @@ use file::{Deserialize, Deserializers};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SizeTriggerConfig {
-    #[serde(deserialize_with = "deserialize_limit")] limit: u64,
+    #[serde(deserialize_with = "deserialize_limit")]
+    limit: u64,
 }
 
 #[cfg(feature = "file")]

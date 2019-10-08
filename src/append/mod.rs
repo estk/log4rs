@@ -1,24 +1,24 @@
 //! Appenders
 
-use std::error::Error;
-use std::fmt;
-use log::{Record, Log};
+use log::{Log, Record};
 #[cfg(feature = "file")]
 use serde::{de, Deserialize, Deserializer};
 #[cfg(feature = "file")]
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
+use std::error::Error;
+use std::fmt;
 
 #[cfg(feature = "file")]
 use file::Deserializable;
 #[cfg(feature = "file")]
 use filter::FilterConfig;
 
-#[cfg(feature = "file_appender")]
-pub mod file;
 #[cfg(feature = "console_appender")]
 pub mod console;
+#[cfg(feature = "file_appender")]
+pub mod file;
 #[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
 
@@ -54,7 +54,7 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
 
 /// Configuration for an appender.
 #[cfg(feature = "file")]
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct AppenderConfig {
     /// The appender kind.
     pub kind: String,

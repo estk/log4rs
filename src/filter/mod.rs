@@ -1,13 +1,13 @@
 //! Filters
 
-use std::fmt;
 use log::Record;
-#[cfg(feature = "file")]
-use serde_value::Value;
 #[cfg(feature = "file")]
 use serde::de;
 #[cfg(feature = "file")]
+use serde_value::Value;
+#[cfg(feature = "file")]
 use std::collections::BTreeMap;
+use std::fmt;
 
 #[cfg(feature = "file")]
 use file::Deserializable;
@@ -50,7 +50,7 @@ pub enum Response {
 }
 
 /// Configuration for a filter.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 #[cfg(feature = "file")]
 pub struct FilterConfig {
     /// The filter kind.

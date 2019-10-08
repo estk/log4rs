@@ -101,8 +101,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use typemap::{Key, ShareCloneMap};
 
-use config;
 use append::AppenderConfig;
+use config;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: 'static {
@@ -288,7 +288,8 @@ impl Deserializers {
                 "no {} deserializer for kind `{}` registered",
                 T::name(),
                 kind
-            ).into()),
+            )
+            .into()),
         }
     }
 }
@@ -312,8 +313,7 @@ impl fmt::Display for Error {
             ErrorKind::Filter(ref name) => write!(
                 fmt,
                 "error deserializing filter attached to appender {}: {}",
-                name,
-                self.1
+                name, self.1
             ),
         }
     }
@@ -331,21 +331,26 @@ impl error::Error for Error {
 
 /// A raw deserializable log4rs configuration for xml.
 #[cfg(feature = "xml_format")]
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfigXml {
-    #[serde(deserialize_with = "de_duration", default)] refresh_rate: Option<Duration>,
-    #[serde(default)] root: Root,
-    #[serde(default)] appenders: HashMap<String, AppenderConfig>,
-    #[serde(rename = "loggers", default)] loggers: LoggersXml,
+    #[serde(deserialize_with = "de_duration", default)]
+    refresh_rate: Option<Duration>,
+    #[serde(default)]
+    root: Root,
+    #[serde(default)]
+    appenders: HashMap<String, AppenderConfig>,
+    #[serde(rename = "loggers", default)]
+    loggers: LoggersXml,
 }
 
 /// Loggers section wrapper for xml configuration
 #[cfg(feature = "xml_format")]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct LoggersXml {
-    #[serde(rename = "logger", default)] loggers: Vec<LoggerXml>,
+    #[serde(rename = "logger", default)]
+    loggers: Vec<LoggerXml>,
 }
 
 #[cfg(feature = "xml_format")]
@@ -356,13 +361,17 @@ impl Default for LoggersXml {
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
-    #[serde(deserialize_with = "de_duration", default)] refresh_rate: Option<Duration>,
-    #[serde(default)] root: Root,
-    #[serde(default)] appenders: HashMap<String, AppenderConfig>,
-    #[serde(default)] loggers: HashMap<String, Logger>,
+    #[serde(deserialize_with = "de_duration", default)]
+    refresh_rate: Option<Duration>,
+    #[serde(default)]
+    root: Root,
+    #[serde(default)]
+    appenders: HashMap<String, AppenderConfig>,
+    #[serde(default)]
+    loggers: HashMap<String, Logger>,
 }
 
 impl RawConfig {
@@ -426,7 +435,8 @@ impl ::std::convert::From<RawConfigXml> for RawConfig {
             refresh_rate: cfg.refresh_rate,
             root: cfg.root,
             appenders: cfg.appenders,
-            loggers: cfg.loggers
+            loggers: cfg
+                .loggers
                 .loggers
                 .into_iter()
                 .map(|l| (l.name.clone(), l.into()))
@@ -472,12 +482,13 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
     level: LevelFilter,
-    #[serde(default)] appenders: Vec<String>,
+    #[serde(default)]
+    appenders: Vec<String>,
 }
 
 impl Default for Root {
@@ -495,7 +506,7 @@ fn root_level_default() -> LevelFilter {
 
 /// logger struct for xml configuration
 #[cfg(feature = "xml_format")]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct LoggerXml {
     /// explicit field "name" for xml config
@@ -503,17 +514,21 @@ struct LoggerXml {
 
     level: LevelFilter,
 
-    #[serde(default)] appenders: Vec<String>,
+    #[serde(default)]
+    appenders: Vec<String>,
 
-    #[serde(default = "logger_additive_default")] additive: bool,
+    #[serde(default = "logger_additive_default")]
+    additive: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct Logger {
     level: LevelFilter,
-    #[serde(default)] appenders: Vec<String>,
-    #[serde(default = "logger_additive_default")] additive: bool,
+    #[serde(default)]
+    appenders: Vec<String>,
+    #[serde(default = "logger_additive_default")]
+    additive: bool,
 }
 
 #[cfg(feature = "xml_format")]
