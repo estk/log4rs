@@ -21,20 +21,20 @@ use log::Record;
 #[cfg(feature = "file")]
 use serde;
 #[cfg(feature = "file")]
+use serde_value::Value;
+#[cfg(feature = "file")]
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
-#[cfg(feature = "file")]
-use serde_value::Value;
 
 use append::Append;
-use encode::{self, Encode};
+use encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
 use encode::EncoderConfig;
-use encode::pattern::PatternEncoder;
+use encode::{self, Encode};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
@@ -71,7 +71,7 @@ impl<'de> serde::Deserialize<'de> for Policy {
         };
 
         Ok(Policy {
-            kind: kind,
+            kind,
             config: Value::Map(map),
         })
     }
@@ -138,8 +138,8 @@ pub struct RollingFileAppender {
     writer: Mutex<Option<LogWriter>>,
     path: PathBuf,
     append: bool,
-    encoder: Box<Encode>,
-    policy: Box<policy::Policy>,
+    encoder: Box<dyn Encode>,
+    policy: Box<dyn policy::Policy>,
 }
 
 impl fmt::Debug for RollingFileAppender {
@@ -154,7 +154,7 @@ impl fmt::Debug for RollingFileAppender {
 }
 
 impl Append for RollingFileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut writer = self.writer.lock();
 
         let len = {
@@ -167,7 +167,7 @@ impl Append for RollingFileAppender {
         let mut file = LogFile {
             writer: &mut writer,
             path: &self.path,
-            len: len,
+            len,
         };
 
         self.policy.process(&mut file)
@@ -200,7 +200,7 @@ impl RollingFileAppender {
             };
             *writer = Some(LogWriter {
                 file: BufWriter::with_capacity(1024, file),
-                len: len,
+                len,
             });
         }
 
@@ -212,7 +212,7 @@ impl RollingFileAppender {
 /// A builder for the `RollingFileAppender`.
 pub struct RollingFileAppenderBuilder {
     append: bool,
-    encoder: Option<Box<Encode>>,
+    encoder: Option<Box<dyn Encode>>,
 }
 
 impl RollingFileAppenderBuilder {
@@ -227,13 +227,17 @@ impl RollingFileAppenderBuilder {
     /// Sets the encoder used by the appender.
     ///
     /// Defaults to a `PatternEncoder` with the default pattern.
-    pub fn encoder(mut self, encoder: Box<Encode>) -> RollingFileAppenderBuilder {
+    pub fn encoder(mut self, encoder: Box<dyn Encode>) -> RollingFileAppenderBuilder {
         self.encoder = Some(encoder);
         self
     }
 
     /// Constructs a `RollingFileAppender`.
-    pub fn build<P>(self, path: P, policy: Box<policy::Policy>) -> io::Result<RollingFileAppender>
+    pub fn build<P>(
+        self,
+        path: P,
+        policy: Box<dyn policy::Policy>,
+    ) -> io::Result<RollingFileAppender>
     where
         P: AsRef<Path>,
     {
@@ -241,9 +245,10 @@ impl RollingFileAppenderBuilder {
             writer: Mutex::new(None),
             path: path.as_ref().to_owned(),
             append: self.append,
-            encoder: self.encoder
+            encoder: self
+                .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
-            policy: policy,
+            policy,
         };
 
         if let Some(parent) = appender.path.parent() {
@@ -295,7 +300,7 @@ pub struct RollingFileAppenderDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for RollingFileAppenderDeserializer {
-    type Trait = Append;
+    type Trait = dyn Append;
 
     type Config = RollingFileAppenderConfig;
 
@@ -303,7 +308,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         &self,
         config: RollingFileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Append>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Append>, Box<dyn Error + Sync + Send>> {
         let mut builder = RollingFileAppender::builder();
         if let Some(append) = config.append {
             builder = builder.append(append);
@@ -322,12 +327,12 @@ impl Deserialize for RollingFileAppenderDeserializer {
 #[cfg(test)]
 mod test {
     use std::error::Error;
-    use std::io::{Read, Write};
     use std::fs::File;
+    use std::io::{Read, Write};
     use tempdir::TempDir;
 
-    use append::rolling_file::policy::Policy;
     use super::*;
+    use append::rolling_file::policy::Policy;
 
     #[test]
     #[cfg(feature = "yaml_format")]
@@ -375,7 +380,7 @@ appenders:
     struct NopPolicy;
 
     impl Policy for NopPolicy {
-        fn process(&self, _: &mut LogFile) -> Result<(), Box<Error + Sync + Send>> {
+        fn process(&self, _: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
             Ok(())
         }
     }

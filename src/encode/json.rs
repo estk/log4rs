@@ -25,16 +25,16 @@
 //! }
 //! ```
 
-use chrono::{DateTime, Local};
 use chrono::format::{DelayedFormat, Fixed, Item};
+use chrono::{DateTime, Local};
 use log::{Level, Record};
 use log_mdc;
-use std::error::Error;
-use std::fmt;
-use std::thread;
-use std::option;
 use serde::ser::{self, Serialize, SerializeMap};
 use serde_json;
+use std::error::Error;
+use std::fmt;
+use std::option;
+use std::thread;
 use thread_id;
 
 use encode::{Encode, Write, NEWLINE};
@@ -43,30 +43,31 @@ use file::{Deserialize, Deserializers};
 
 /// The JSON encoder's configuration
 #[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct JsonEncoderConfig {
-    #[serde(skip_deserializing)] _p: (),
+    #[serde(skip_deserializing)]
+    _p: (),
 }
 
 /// An `Encode`r which writes a JSON object.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct JsonEncoder(());
 
 impl JsonEncoder {
     /// Returns a new `JsonEncoder` with a default configuration.
-    pub fn new() -> JsonEncoder {
-        JsonEncoder(())
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
 impl JsonEncoder {
     fn encode_inner(
         &self,
-        w: &mut Write,
+        w: &mut dyn Write,
         time: DateTime<Local>,
         record: &Record,
-    ) -> Result<(), Box<Error + Sync + Send>> {
+    ) -> Result<(), Box<dyn Error + Sync + Send>> {
         let thread = thread::current();
         let message = Message {
             time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
@@ -87,18 +88,27 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut Write, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn encode(
+        &self,
+        w: &mut dyn Write,
+        record: &Record,
+    ) -> Result<(), Box<dyn Error + Sync + Send>> {
         self.encode_inner(w, Local::now(), record)
     }
 }
 
 #[derive(Serialize)]
 struct Message<'a> {
-    #[serde(serialize_with = "ser_display")] time: DelayedFormat<option::IntoIter<Item<'a>>>,
-    #[serde(serialize_with = "ser_display")] message: &'a fmt::Arguments<'a>,
-    #[serde(skip_serializing_if = "Option::is_none")] module_path: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none")] file: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none")] line: Option<u32>,
+    #[serde(serialize_with = "ser_display")]
+    time: DelayedFormat<option::IntoIter<Item<'a>>>,
+    #[serde(serialize_with = "ser_display")]
+    message: &'a fmt::Arguments<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    module_path: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    file: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    line: Option<u32>,
     level: Level,
     target: &'a str,
     thread: Option<&'a str>,
@@ -147,7 +157,7 @@ pub struct JsonEncoderDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for JsonEncoderDeserializer {
-    type Trait = Encode;
+    type Trait = dyn Encode;
 
     type Config = JsonEncoderConfig;
 
@@ -155,8 +165,8 @@ impl Deserialize for JsonEncoderDeserializer {
         &self,
         _: JsonEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<Encode>, Box<Error + Sync + Send>> {
-        Ok(Box::new(JsonEncoder::new()))
+    ) -> Result<Box<dyn Encode>, Box<dyn Error + Sync + Send>> {
+        Ok(Box::new(JsonEncoder::default()))
     }
 }
 
@@ -167,8 +177,8 @@ mod test {
     use log::Level;
     use log_mdc;
 
-    use encode::writer::simple::SimpleWriter;
     use super::*;
+    use encode::writer::simple::SimpleWriter;
 
     #[test]
     fn default() {

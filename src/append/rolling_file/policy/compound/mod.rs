@@ -9,9 +9,9 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use append::rolling_file::LogFile;
 use append::rolling_file::policy::compound::roll::Roll;
 use append::rolling_file::policy::Policy;
+use append::rolling_file::LogFile;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
@@ -47,7 +47,7 @@ impl<'de> serde::Deserialize<'de> for Trigger {
         };
 
         Ok(Trigger {
-            kind: kind,
+            kind,
             config: Value::Map(map),
         })
     }
@@ -73,7 +73,7 @@ impl<'de> serde::Deserialize<'de> for Roller {
         };
 
         Ok(Roller {
-            kind: kind,
+            kind,
             config: Value::Map(map),
         })
     }
@@ -86,22 +86,19 @@ impl<'de> serde::Deserialize<'de> for Roller {
 /// by compressing it and moving it to a different location.
 #[derive(Debug)]
 pub struct CompoundPolicy {
-    trigger: Box<trigger::Trigger>,
-    roller: Box<Roll>,
+    trigger: Box<dyn trigger::Trigger>,
+    roller: Box<dyn Roll>,
 }
 
 impl CompoundPolicy {
     /// Creates a new `CompoundPolicy`.
-    pub fn new(trigger: Box<trigger::Trigger>, roller: Box<Roll>) -> CompoundPolicy {
-        CompoundPolicy {
-            trigger: trigger,
-            roller: roller,
-        }
+    pub fn new(trigger: Box<dyn trigger::Trigger>, roller: Box<dyn Roll>) -> CompoundPolicy {
+        CompoundPolicy { trigger, roller }
     }
 }
 
 impl Policy for CompoundPolicy {
-    fn process(&self, log: &mut LogFile) -> Result<(), Box<Error + Sync + Send>> {
+    fn process(&self, log: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
         if self.trigger.trigger(log)? {
             log.roll();
             self.roller.roll(log.path())?;
@@ -141,7 +138,7 @@ pub struct CompoundPolicyDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for CompoundPolicyDeserializer {
-    type Trait = Policy;
+    type Trait = dyn Policy;
 
     type Config = CompoundPolicyConfig;
 
@@ -149,7 +146,7 @@ impl Deserialize for CompoundPolicyDeserializer {
         &self,
         config: CompoundPolicyConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Policy>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Policy>, Box<dyn Error + Sync + Send>> {
         let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))

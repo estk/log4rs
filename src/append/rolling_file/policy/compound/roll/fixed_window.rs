@@ -24,7 +24,8 @@ pub struct FixedWindowRollerConfig {
 #[derive(Debug)]
 enum Compression {
     None,
-    #[cfg(feature = "gzip")] Gzip,
+    #[cfg(feature = "gzip")]
+    Gzip,
 }
 
 impl Compression {
@@ -33,7 +34,6 @@ impl Compression {
             Compression::None => move_file(src, dst),
             #[cfg(feature = "gzip")]
             Compression::Gzip => {
-                use flate2;
                 use flate2::write::GzEncoder;
                 use std::fs::File;
 
@@ -91,7 +91,7 @@ impl FixedWindowRoller {
 }
 
 impl Roll for FixedWindowRoller {
-    fn roll(&self, file: &Path) -> Result<(), Box<Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -169,20 +169,16 @@ impl FixedWindowRollerBuilder {
         self,
         pattern: &str,
         count: u32,
-    ) -> Result<FixedWindowRoller, Box<Error + Sync + Send>> {
+    ) -> Result<FixedWindowRoller, Box<dyn Error + Sync + Send>> {
         if !pattern.contains("{}") {
             return Err("pattern does not contain `{}`".into());
         }
 
         let compression = match Path::new(pattern).extension() {
             #[cfg(feature = "gzip")]
-            Some(e) if e == "gz" =>
-            {
-                Compression::Gzip
-            }
+            Some(e) if e == "gz" => Compression::Gzip,
             #[cfg(not(feature = "gzip"))]
-            Some(e) if e == "gz" =>
-            {
+            Some(e) if e == "gz" => {
                 return Err("gzip compression requires the `gzip` feature".into());
             }
             _ => Compression::None,
@@ -190,9 +186,9 @@ impl FixedWindowRollerBuilder {
 
         Ok(FixedWindowRoller {
             pattern: pattern.to_owned(),
-            compression: compression,
+            compression,
             base: self.base,
-            count: count,
+            count,
         })
     }
 }
@@ -221,7 +217,7 @@ pub struct FixedWindowRollerDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for FixedWindowRollerDeserializer {
-    type Trait = Roll;
+    type Trait = dyn Roll;
 
     type Config = FixedWindowRollerConfig;
 
@@ -229,7 +225,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
         &self,
         config: FixedWindowRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<Roll>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Roll>, Box<dyn Error + Sync + Send>> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = config.base {
             builder = builder.base(base);
@@ -241,13 +237,13 @@ impl Deserialize for FixedWindowRollerDeserializer {
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
     use std::fs::File;
     use std::io::{Read, Write};
     use std::process::Command;
+    use tempdir::TempDir;
 
-    use append::rolling_file::policy::compound::roll::Roll;
     use super::*;
+    use append::rolling_file::policy::compound::roll::Roll;
 
     #[test]
     fn rotation() {
@@ -407,11 +403,9 @@ mod test {
         let dir = TempDir::new("unsupported_gzip").unwrap();
 
         let pattern = dir.path().join("{}.gz");
-        assert!(
-            FixedWindowRoller::builder()
-                .build(pattern.to_str().unwrap(), 2)
-                .is_err()
-        );
+        assert!(FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 2)
+            .is_err());
     }
 
     #[test]
@@ -433,13 +427,11 @@ mod test {
 
         roller.roll(&file).unwrap();
 
-        assert!(
-            Command::new("gunzip")
-                .arg(dir.path().join("0.gz"))
-                .status()
-                .unwrap()
-                .success()
-        );
+        assert!(Command::new("gunzip")
+            .arg(dir.path().join("0.gz"))
+            .status()
+            .unwrap()
+            .success());
 
         let mut file = File::open(dir.path().join("0")).unwrap();
         let mut actual = vec![];

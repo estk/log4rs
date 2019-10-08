@@ -261,8 +261,8 @@ impl ConfiguredLogger {
             }
 
             ConfiguredLogger {
-                level: level,
-                appenders: appenders,
+                level,
+                appenders,
                 children: FnvHashMap::default(),
             }
         } else {
@@ -315,12 +315,12 @@ impl ConfiguredLogger {
 }
 
 struct Appender {
-    appender: Box<Append>,
-    filters: Vec<Box<Filter>>,
+    appender: Box<dyn Append>,
+    filters: Vec<Box<dyn Filter>>,
 }
 
 impl Appender {
-    fn append(&self, record: &Record) -> Result<(), Box<error::Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<dyn error::Error + Sync + Send>> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
@@ -381,10 +381,7 @@ impl SharedLogger {
             .into_iter()
             .map(|appender| {
                 let (_, appender, filters) = appender.unpack();
-                Appender {
-                    appender: appender,
-                    filters: filters,
-                }
+                Appender { appender, filters }
             })
             .collect();
 
@@ -472,7 +469,7 @@ trait ConfigPrivateExt {
 }
 
 trait PrivateConfigAppenderExt {
-    fn unpack(self) -> (String, Box<Append>, Vec<Box<Filter>>);
+    fn unpack(self) -> (String, Box<dyn Append>, Vec<Box<dyn Filter>>);
 }
 
 #[cfg(test)]

@@ -25,7 +25,7 @@ pub trait Filter: fmt::Debug + Send + Sync + 'static {
 }
 
 #[cfg(feature = "file")]
-impl Deserializable for Filter {
+impl Deserializable for dyn Filter {
     fn name() -> &'static str {
         "filter"
     }
@@ -73,7 +73,7 @@ impl<'de> de::Deserialize<'de> for FilterConfig {
         };
 
         Ok(FilterConfig {
-            kind: kind,
+            kind,
             config: Value::Map(map),
         })
     }

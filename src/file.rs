@@ -125,7 +125,7 @@ pub trait Deserialize: Send + Sync + 'static {
         &self,
         config: Self::Config,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>>;
+    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>>;
 }
 
 trait ErasedDeserialize: Send + Sync + 'static {
@@ -135,7 +135,7 @@ trait ErasedDeserialize: Send + Sync + 'static {
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>>;
+    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>>;
 }
 
 struct DeserializeEraser<T>(T);
@@ -150,7 +150,7 @@ where
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<error::Error + Sync + Send>> {
+    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>> {
         let config = config.deserialize_into()?;
         self.0.deserialize(config, deserializers)
     }
@@ -159,7 +159,7 @@ where
 struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
 
 impl<T: ?Sized + 'static> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Arc<ErasedDeserialize<Trait = T>>>;
+    type Value = HashMap<String, Arc<dyn ErasedDeserialize<Trait = T>>>;
 }
 
 /// A container of `Deserialize`rs.
@@ -278,7 +278,7 @@ impl Deserializers {
         &self,
         kind: &str,
         config: Value,
-    ) -> Result<Box<T>, Box<error::Error + Sync + Send>>
+    ) -> Result<Box<T>, Box<dyn error::Error + Sync + Send>>
     where
         T: Deserializable,
     {
@@ -296,7 +296,7 @@ impl Deserializers {
 
 /// An error deserializing a configuration into a log4rs `Config`.
 #[derive(Debug)]
-pub struct Error(ErrorKind, Box<error::Error + Sync + Send>);
+pub struct Error(ErrorKind, Box<dyn error::Error + Sync + Send>);
 
 #[derive(Debug)]
 enum ErrorKind {
@@ -324,7 +324,7 @@ impl error::Error for Error {
         "error deserializing a log4rs `Config`"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         Some(&*self.1)
     }
 }
@@ -469,9 +469,7 @@ where
                 where
                     E: de::Error,
                 {
-                    humantime::parse_duration(v)
-                        .map(S)
-                        .map_err(|e| E::custom(e))
+                    humantime::parse_duration(v).map(S).map_err(E::custom)
                 }
             }
 

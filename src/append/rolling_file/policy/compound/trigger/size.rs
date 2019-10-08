@@ -110,12 +110,12 @@ impl SizeTrigger {
     /// Returns a new trigger which rolls the log once it has passed the
     /// specified size in bytes.
     pub fn new(limit: u64) -> SizeTrigger {
-        SizeTrigger { limit: limit }
+        SizeTrigger { limit }
     }
 }
 
 impl Trigger for SizeTrigger {
-    fn trigger(&self, file: &LogFile) -> Result<bool, Box<Error + Sync + Send>> {
+    fn trigger(&self, file: &LogFile) -> Result<bool, Box<dyn Error + Sync + Send>> {
         Ok(file.len() > self.limit)
     }
 }
@@ -137,7 +137,7 @@ pub struct SizeTriggerDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for SizeTriggerDeserializer {
-    type Trait = Trigger;
+    type Trait = dyn Trigger;
 
     type Config = SizeTriggerConfig;
 
@@ -145,7 +145,7 @@ impl Deserialize for SizeTriggerDeserializer {
         &self,
         config: SizeTriggerConfig,
         _: &Deserializers,
-    ) -> Result<Box<Trigger>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Trigger>, Box<dyn Error + Sync + Send>> {
         Ok(Box::new(SizeTrigger::new(config.limit)))
     }
 }
