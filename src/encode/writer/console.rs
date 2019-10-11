@@ -2,8 +2,8 @@
 //!
 //! Requires the `console_writer` feature.
 
-use std::io;
 use std::fmt;
+use std::io;
 
 use encode::{self, Style};
 
@@ -28,7 +28,7 @@ impl ConsoleWriter {
     }
 
     /// Locks the console, preventing other threads from writing concurrently.
-    pub fn lock<'a>(&'a self) -> ConsoleWriterLock<'a> {
+    pub fn lock(&self) -> ConsoleWriterLock {
         ConsoleWriterLock(self.0.lock())
     }
 }
@@ -86,12 +86,12 @@ impl<'a> encode::Write for ConsoleWriterLock<'a> {
 
 #[cfg(unix)]
 mod imp {
-    use std::io;
-    use std::fmt;
     use libc;
+    use std::fmt;
+    use std::io;
 
-    use encode::{self, Style};
     use encode::writer::ansi::AnsiWriter;
+    use encode::{self, Style};
     use priv_io::{StdWriter, StdWriterLock};
 
     pub struct Writer(AnsiWriter<StdWriter>);
@@ -113,7 +113,7 @@ mod imp {
             Some(Writer(AnsiWriter(StdWriter::stderr())))
         }
 
-        pub fn lock<'a>(&'a self) -> WriterLock<'a> {
+        pub fn lock(&self) -> WriterLock {
             WriterLock(AnsiWriter((self.0).0.lock()))
         }
     }
@@ -171,11 +171,11 @@ mod imp {
 
 #[cfg(windows)]
 mod imp {
+    use std::fmt;
+    use std::io::{self, Write};
+    use std::mem;
     use winapi::shared::minwindef;
     use winapi::um::{handleapi, processenv, winbase, wincon, winnt};
-    use std::io::{self, Write};
-    use std::fmt;
-    use std::mem;
 
     use encode::{self, Color, Style};
     use priv_io::{StdWriter, StdWriterLock};
@@ -193,7 +193,8 @@ mod imp {
             let mut attrs = self.defaults;
 
             if let Some(text) = style.text {
-                attrs &= !((wincon::FOREGROUND_RED | wincon::FOREGROUND_GREEN
+                attrs &= !((wincon::FOREGROUND_RED
+                    | wincon::FOREGROUND_GREEN
                     | wincon::FOREGROUND_BLUE) as minwindef::WORD);
                 attrs |= match text {
                     Color::Black => 0,
@@ -210,7 +211,8 @@ mod imp {
             }
 
             if let Some(background) = style.background {
-                attrs &= !((wincon::BACKGROUND_RED | wincon::BACKGROUND_GREEN
+                attrs &= !((wincon::BACKGROUND_RED
+                    | wincon::BACKGROUND_GREEN
                     | wincon::BACKGROUND_BLUE) as minwindef::WORD);
                 attrs |= match background {
                     Color::Black => 0,
@@ -262,7 +264,7 @@ mod imp {
 
                 Some(Writer {
                     console: RawConsole {
-                        handle: handle,
+                        handle,
                         defaults: info.wAttributes,
                     },
                     inner: StdWriter::stdout(),
@@ -284,7 +286,7 @@ mod imp {
 
                 Some(Writer {
                     console: RawConsole {
-                        handle: handle,
+                        handle,
                         defaults: info.wAttributes,
                     },
                     inner: StdWriter::stderr(),
@@ -360,9 +362,9 @@ mod imp {
 mod test {
     use std::io::Write;
 
-    use encode::{Color, Style};
-    use encode::Write as EncodeWrite;
     use super::*;
+    use encode::Write as EncodeWrite;
+    use encode::{Color, Style};
 
     #[test]
     fn basic() {
@@ -378,7 +380,8 @@ mod test {
                 .text(Color::Red)
                 .background(Color::Blue)
                 .intense(true),
-        ).unwrap();
+        )
+        .unwrap();
         w.write_all(b"styled").unwrap();
         w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();

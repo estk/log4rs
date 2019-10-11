@@ -21,11 +21,11 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     ///
     /// If this method returns successfully, there *must* no longer be a file
     /// at the specified location.
-    fn roll(&self, file: &Path) -> Result<(), Box<Error + Sync + Send>>;
+    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]
-impl Deserializable for Roll {
+impl Deserializable for dyn Roll {
     fn name() -> &'static str {
         "roller"
     }

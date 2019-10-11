@@ -2,9 +2,9 @@
 //!
 //! Requires the `ansi_writer` feature.
 
-use std::io;
-use std::fmt;
 use encode::{self, Color, Style};
+use std::fmt;
+use std::io;
 
 /// An `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
@@ -63,7 +63,7 @@ impl<W: io::Write> encode::Write for AnsiWriter<W> {
             }
         }
         buf[idx] = b'm';
-        self.0.write_all(&buf[..idx + 1])
+        self.0.write_all(&buf[..=idx])
     }
 }
 
@@ -84,9 +84,9 @@ fn color_byte(c: Color) -> u8 {
 mod test {
     use std::io::{self, Write};
 
-    use encode::{Color, Style};
-    use encode::Write as EncodeWrite;
     use super::*;
+    use encode::Write as EncodeWrite;
+    use encode::{Color, Style};
 
     #[test]
     fn basic() {
@@ -99,7 +99,8 @@ mod test {
                 .text(Color::Red)
                 .background(Color::Blue)
                 .intense(true),
-        ).unwrap();
+        )
+        .unwrap();
         w.write_all(b"styled").unwrap();
         w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();

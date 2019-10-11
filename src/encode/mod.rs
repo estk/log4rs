@@ -25,7 +25,7 @@ pub mod writer;
 const NEWLINE: &'static str = "\r\n";
 #[allow(dead_code)]
 #[cfg(not(windows))]
-const NEWLINE: &'static str = "\n";
+const NEWLINE: &str = "\n";
 
 /// A trait implemented by types that can serialize a `Record` into a
 /// `Write`r.
@@ -34,11 +34,15 @@ const NEWLINE: &'static str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `Record` into bytes and writes them.
-    fn encode(&self, w: &mut Write, record: &Record) -> Result<(), Box<Error + Sync + Send>>;
+    fn encode(
+        &self,
+        w: &mut dyn Write,
+        record: &Record,
+    ) -> Result<(), Box<dyn Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]
-impl Deserializable for Encode {
+impl Deserializable for dyn Encode {
     fn name() -> &'static str {
         "encoder"
     }
@@ -68,7 +72,7 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
         };
 
         Ok(EncoderConfig {
-            kind: kind,
+            kind,
             config: Value::Map(map),
         })
     }

@@ -37,7 +37,7 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn new(pattern: &'a str) -> Parser<'a> {
         Parser {
-            pattern: pattern,
+            pattern,
             it: pattern.char_indices().peekable(),
         }
     }
@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
         };
 
         Piece::Argument {
-            formatter: formatter,
+            formatter,
             parameters: self.parameters(),
         }
     }
@@ -130,7 +130,7 @@ impl<'a> Parser<'a> {
         }
 
         if let Some(&(_, ch)) = self.it.peek() {
-            match self.it.clone().skip(1).next() {
+            match self.it.clone().nth(1) {
                 Some((_, '<')) | Some((_, '>')) => {
                     self.it.next();
                     params.fill = ch;

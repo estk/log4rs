@@ -11,11 +11,11 @@ use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use append::Append;
+use encode::pattern::PatternEncoder;
+use encode::writer::simple::SimpleWriter;
 use encode::Encode;
 #[cfg(feature = "file")]
 use encode::EncoderConfig;
-use encode::pattern::PatternEncoder;
-use encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 
@@ -33,7 +33,7 @@ pub struct FileAppenderConfig {
 pub struct FileAppender {
     path: PathBuf,
     file: Mutex<SimpleWriter<BufWriter<File>>>,
-    encoder: Box<Encode>,
+    encoder: Box<dyn Encode>,
 }
 
 impl fmt::Debug for FileAppender {
@@ -46,7 +46,7 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
@@ -68,13 +68,13 @@ impl FileAppender {
 
 /// A builder for `FileAppender`s.
 pub struct FileAppenderBuilder {
-    encoder: Option<Box<Encode>>,
+    encoder: Option<Box<dyn Encode>>,
     append: bool,
 }
 
 impl FileAppenderBuilder {
     /// Sets the output encoder for the `FileAppender`.
-    pub fn encoder(mut self, encoder: Box<Encode>) -> FileAppenderBuilder {
+    pub fn encoder(mut self, encoder: Box<dyn Encode>) -> FileAppenderBuilder {
         self.encoder = Some(encoder);
         self
     }
@@ -101,14 +101,14 @@ impl FileAppenderBuilder {
             .open(&path)?;
 
         Ok(FileAppender {
-            path: path,
+            path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            encoder: self.encoder
+            encoder: self
+                .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
         })
     }
 }
-
 
 /// A deserializer for the `FileAppender`.
 ///
@@ -133,7 +133,7 @@ pub struct FileAppenderDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for FileAppenderDeserializer {
-    type Trait = Append;
+    type Trait = dyn Append;
 
     type Config = FileAppenderConfig;
 
@@ -141,7 +141,7 @@ impl Deserialize for FileAppenderDeserializer {
         &self,
         config: FileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Append>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<Self::Trait>, Box<dyn Error + Sync + Send>> {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);

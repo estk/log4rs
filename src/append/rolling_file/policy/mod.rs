@@ -15,11 +15,11 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     ///
     /// This method is called after each log event. It is provided a reference
     /// to the current log file.
-    fn process(&self, log: &mut LogFile) -> Result<(), Box<Error + Sync + Send>>;
+    fn process(&self, log: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>>;
 }
 
 #[cfg(feature = "file")]
-impl Deserializable for Policy {
+impl Deserializable for dyn Policy {
     fn name() -> &'static str {
         "policy"
     }

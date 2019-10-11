@@ -26,7 +26,7 @@ pub struct ThresholdFilter {
 impl ThresholdFilter {
     /// Creates a new `ThresholdFilter` with the specified threshold.
     pub fn new(level: LevelFilter) -> ThresholdFilter {
-        ThresholdFilter { level: level }
+        ThresholdFilter { level }
     }
 }
 
@@ -55,7 +55,7 @@ pub struct ThresholdFilterDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for ThresholdFilterDeserializer {
-    type Trait = Filter;
+    type Trait = dyn Filter;
 
     type Config = ThresholdFilterConfig;
 
@@ -63,7 +63,7 @@ impl Deserialize for ThresholdFilterDeserializer {
         &self,
         config: ThresholdFilterConfig,
         _: &Deserializers,
-    ) -> Result<Box<Filter>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Filter>, Box<dyn Error + Sync + Send>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

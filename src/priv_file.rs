@@ -1,17 +1,17 @@
 use log::SetLoggerError;
 use std::error;
-use std::path::{Path, PathBuf};
+use std::fmt;
 use std::fs::{self, File};
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::thread;
-use std::fmt;
 use std::time::{Duration, SystemTime};
 
-use {handle_error, init_config, Handle};
-use file::{Deserializers, RawConfig};
+use config::Config;
 #[cfg(feature = "xml_format")]
 use file::RawConfigXml;
-use config::Config;
+use file::{Deserializers, RawConfig};
+use {handle_error, init_config, Handle};
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
@@ -77,7 +77,7 @@ pub enum Error {
     /// An error from the log crate
     Log(SetLoggerError),
     /// A fatal error initializing the log4rs config.
-    Log4rs(Box<error::Error + Sync + Send>),
+    Log4rs(Box<dyn error::Error + Sync + Send>),
 }
 
 impl fmt::Display for Error {
@@ -97,7 +97,7 @@ impl error::Error for Error {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::Log(ref e) => Some(e),
             Error::Log4rs(ref e) => Some(&**e),
@@ -111,21 +111,25 @@ impl From<SetLoggerError> for Error {
     }
 }
 
-impl From<Box<error::Error + Sync + Send>> for Error {
-    fn from(t: Box<error::Error + Sync + Send>) -> Error {
+impl From<Box<dyn error::Error + Sync + Send>> for Error {
+    fn from(t: Box<dyn error::Error + Sync + Send>) -> Error {
         Error::Log4rs(t)
     }
 }
 
 enum Format {
-    #[cfg(feature = "yaml_format")] Yaml,
-    #[cfg(feature = "json_format")] Json,
-    #[cfg(feature = "toml_format")] Toml,
-    #[cfg(feature = "xml_format")] Xml,
+    #[cfg(feature = "yaml_format")]
+    Yaml,
+    #[cfg(feature = "json_format")]
+    Json,
+    #[cfg(feature = "toml_format")]
+    Toml,
+    #[cfg(feature = "xml_format")]
+    Xml,
 }
 
 impl Format {
-    fn from_path(path: &Path) -> Result<Format, Box<error::Error + Sync + Send>> {
+    fn from_path(path: &Path) -> Result<Format, Box<dyn error::Error + Sync + Send>> {
         match path.extension().and_then(|s| s.to_str()) {
             #[cfg(feature = "yaml_format")]
             Some("yaml") | Some("yml") => Ok(Format::Yaml),
@@ -153,7 +157,7 @@ impl Format {
         }
     }
 
-    fn parse(&self, source: &str) -> Result<RawConfig, Box<error::Error + Sync + Send>> {
+    fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Sync + Send>> {
         match *self {
             #[cfg(feature = "yaml_format")]
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
@@ -169,7 +173,7 @@ impl Format {
     }
 }
 
-fn read_config(path: &Path) -> Result<String, Box<error::Error + Sync + Send>> {
+fn read_config(path: &Path) -> Result<String, Box<dyn error::Error + Sync + Send>> {
     let mut file = File::open(path)?;
     let mut s = String::new();
     file.read_to_string(&mut s)?;
@@ -213,12 +217,12 @@ impl ConfigReloader {
         handle: Handle,
     ) {
         let mut reloader = ConfigReloader {
-            path: path,
-            format: format,
-            source: source,
-            modified: modified,
-            deserializers: deserializers,
-            handle: handle,
+            path,
+            format,
+            source,
+            modified,
+            deserializers,
+            handle,
         };
 
         thread::Builder::new()
@@ -242,7 +246,7 @@ impl ConfigReloader {
     fn run_once(
         &mut self,
         rate: Duration,
-    ) -> Result<Option<Duration>, Box<error::Error + Sync + Send>> {
+    ) -> Result<Option<Duration>, Box<dyn error::Error + Sync + Send>> {
         if let Some(last_modified) = self.modified {
             let modified = fs::metadata(&self.path).and_then(|m| m.modified())?;
             if last_modified == modified {

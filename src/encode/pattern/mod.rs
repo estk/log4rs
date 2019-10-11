@@ -152,14 +152,15 @@ fn char_starts(buf: &[u8]) -> usize {
 
 struct MaxWidthWriter<'a> {
     remaining: usize,
-    w: &'a mut encode::Write,
+    w: &'a mut dyn encode::Write,
 }
 
 impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut remaining = self.remaining;
         let mut end = buf.len();
-        for (idx, _) in buf.iter()
+        for (idx, _) in buf
+            .iter()
             .enumerate()
             .filter(|&(_, &b)| is_char_boundary(b))
         {
@@ -302,7 +303,7 @@ enum Chunk {
 }
 
 impl Chunk {
-    fn encode(&self, w: &mut encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted {
@@ -313,7 +314,7 @@ impl Chunk {
                 (None, Some(max_width), _) => {
                     let mut w = MaxWidthWriter {
                         remaining: max_width,
-                        w: w,
+                        w,
                     };
                     chunk.encode(&mut w, record)
                 }
@@ -321,7 +322,7 @@ impl Chunk {
                     let mut w = LeftAlignWriter {
                         to_fill: min_width,
                         fill: params.fill,
-                        w: w,
+                        w,
                     };
                     chunk.encode(&mut w, record)?;
                     w.finish()
@@ -330,7 +331,7 @@ impl Chunk {
                     let mut w = RightAlignWriter {
                         to_fill: min_width,
                         fill: params.fill,
-                        w: w,
+                        w,
                         buf: vec![],
                     };
                     chunk.encode(&mut w, record)?;
@@ -342,7 +343,7 @@ impl Chunk {
                         fill: params.fill,
                         w: MaxWidthWriter {
                             remaining: max_width,
-                            w: w,
+                            w,
                         },
                     };
                     chunk.encode(&mut w, record)?;
@@ -354,7 +355,7 @@ impl Chunk {
                         fill: params.fill,
                         w: MaxWidthWriter {
                             remaining: max_width,
-                            w: w,
+                            w,
                         },
                         buf: vec![],
                     };
@@ -513,10 +514,7 @@ impl<'a> From<Piece<'a>> for Chunk {
 
 fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chunk {
     if arg.is_empty() {
-        Chunk::Formatted {
-            chunk: chunk,
-            params: params,
-        }
+        Chunk::Formatted { chunk, params }
     } else {
         Chunk::Error("unexpected arguments".to_owned())
     }
@@ -544,7 +542,7 @@ enum FormattedChunk {
 }
 
 impl FormattedChunk {
-    fn encode(&self, w: &mut encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
@@ -561,9 +559,7 @@ impl FormattedChunk {
             FormattedChunk::Thread => {
                 w.write_all(thread::current().name().unwrap_or("unnamed").as_bytes())
             }
-            FormattedChunk::ThreadId => {
-                w.write_all(thread_id::get().to_string().as_bytes())
-            }
+            FormattedChunk::ThreadId => w.write_all(thread_id::get().to_string().as_bytes()),
             FormattedChunk::Target => w.write_all(record.target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
@@ -621,9 +617,9 @@ impl Default for PatternEncoder {
 impl Encode for PatternEncoder {
     fn encode(
         &self,
-        w: &mut encode::Write,
+        w: &mut dyn encode::Write,
         record: &Record,
-    ) -> Result<(), Box<Error + Sync + Send>> {
+    ) -> Result<(), Box<dyn Error + Sync + Send>> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
@@ -659,7 +655,7 @@ pub struct PatternEncoderDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for PatternEncoderDeserializer {
-    type Trait = Encode;
+    type Trait = dyn Encode;
 
     type Config = PatternEncoderConfig;
 
@@ -667,7 +663,7 @@ impl Deserialize for PatternEncoderDeserializer {
         &self,
         config: PatternEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<Encode>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Encode>, Box<dyn Error + Sync + Send>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),
@@ -679,19 +675,19 @@ impl Deserialize for PatternEncoderDeserializer {
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "simple_writer")]
-    use std::thread;
-    #[cfg(feature = "simple_writer")]
     use log::{Level, Record};
     #[cfg(feature = "simple_writer")]
     use log_mdc;
+    #[cfg(feature = "simple_writer")]
+    use std::thread;
     #[cfg(feature = "simple_writer")]
     use thread_id;
 
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
-    use encode::Encode;
-    #[cfg(feature = "simple_writer")]
     use encode::writer::simple::SimpleWriter;
+    #[cfg(feature = "simple_writer")]
+    use encode::Encode;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| match *c {
@@ -724,7 +720,8 @@ mod tests {
                 .file(Some("file"))
                 .line(Some(132))
                 .build(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(buf, &b"DEBUG the message at path in file:132"[..]);
     }
@@ -738,8 +735,9 @@ mod tests {
             pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
                 .unwrap();
             assert_eq!(buf, b"unnamed");
-        }).join()
-            .unwrap();
+        })
+        .join()
+        .unwrap();
     }
 
     #[test]
@@ -763,14 +761,14 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     fn thread_id() {
         thread::spawn(|| {
-                let pw = PatternEncoder::new("{I}");
-                let mut buf = vec![];
-                pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
-                    .unwrap();
-                assert_eq!(buf, thread_id::get().to_string().as_bytes());
-            })
-            .join()
-            .unwrap();
+            let pw = PatternEncoder::new("{I}");
+            let mut buf = vec![];
+            pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+                .unwrap();
+            assert_eq!(buf, thread_id::get().to_string().as_bytes());
+        })
+        .join()
+        .unwrap();
     }
 
     #[test]
@@ -788,14 +786,16 @@ mod tests {
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder().args(format_args!("foo")).build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"foo~~");
 
         buf.clear();
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder().args(format_args!("foobar!")).build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"foobar");
     }
 
@@ -808,14 +808,16 @@ mod tests {
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder().args(format_args!("foo")).build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"~~foo");
 
         buf.clear();
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder().args(format_args!("foobar!")).build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"foobar");
     }
 
@@ -831,7 +833,8 @@ mod tests {
                 .level(Level::Info)
                 .args(format_args!("foobar!"))
                 .build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"INFO foobar!   ");
     }
 
@@ -847,7 +850,8 @@ mod tests {
                 .level(Level::Info)
                 .args(format_args!("foobar!"))
                 .build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"   INFO foobar!");
     }
 
@@ -879,7 +883,8 @@ mod tests {
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder().args(format_args!("foobar!")).build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, b"{foobar!()}");
     }
 
@@ -892,7 +897,8 @@ mod tests {
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder().level(Level::Info).build(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(buf, br"{(INFO)}\");
     }
 

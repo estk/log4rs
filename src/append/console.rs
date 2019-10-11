@@ -2,18 +2,18 @@
 //!
 //! Requires the `console_appender` feature.
 
-use std::io::{self, Write};
-use std::fmt;
-use std::error::Error;
 use log::Record;
+use std::error::Error;
+use std::fmt;
+use std::io::{self, Write};
 
 use append::Append;
-use encode::{self, Encode, Style};
+use encode::pattern::PatternEncoder;
+use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
+use encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]
 use encode::EncoderConfig;
-use encode::pattern::PatternEncoder;
-use encode::writer::simple::SimpleWriter;
-use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
+use encode::{self, Encode, Style};
 #[cfg(feature = "file")]
 use file::{Deserialize, Deserializers};
 use priv_io::{StdWriter, StdWriterLock};
@@ -30,8 +30,10 @@ pub struct ConsoleAppenderConfig {
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
 enum ConfigTarget {
-    #[serde(rename = "stdout")] Stdout,
-    #[serde(rename = "stderr")] Stderr,
+    #[serde(rename = "stdout")]
+    Stdout,
+    #[serde(rename = "stderr")]
+    Stderr,
 }
 
 enum Writer {
@@ -40,7 +42,7 @@ enum Writer {
 }
 
 impl Writer {
-    fn lock<'a>(&'a self) -> WriterLock<'a> {
+    fn lock(&self) -> WriterLock {
         match *self {
             Writer::Tty(ref w) => WriterLock::Tty(w.lock()),
             Writer::Raw(ref w) => WriterLock::Raw(SimpleWriter(w.lock())),
@@ -98,7 +100,7 @@ impl<'a> encode::Write for WriterLock<'a> {
 /// or is a TTY on Unix.
 pub struct ConsoleAppender {
     writer: Writer,
-    encoder: Box<Encode>,
+    encoder: Box<dyn Encode>,
 }
 
 impl fmt::Debug for ConsoleAppender {
@@ -110,7 +112,7 @@ impl fmt::Debug for ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut writer = self.writer.lock();
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;
@@ -132,13 +134,13 @@ impl ConsoleAppender {
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
-    encoder: Option<Box<Encode>>,
+    encoder: Option<Box<dyn Encode>>,
     target: Target,
 }
 
 impl ConsoleAppenderBuilder {
     /// Sets the output encoder for the `ConsoleAppender`.
-    pub fn encoder(mut self, encoder: Box<Encode>) -> ConsoleAppenderBuilder {
+    pub fn encoder(mut self, encoder: Box<dyn Encode>) -> ConsoleAppenderBuilder {
         self.encoder = Some(encoder);
         self
     }
@@ -165,8 +167,9 @@ impl ConsoleAppenderBuilder {
         };
 
         ConsoleAppender {
-            writer: writer,
-            encoder: self.encoder
+            writer,
+            encoder: self
+                .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
         }
     }
@@ -199,7 +202,7 @@ pub struct ConsoleAppenderDeserializer;
 
 #[cfg(feature = "file")]
 impl Deserialize for ConsoleAppenderDeserializer {
-    type Trait = Append;
+    type Trait = dyn Append;
 
     type Config = ConsoleAppenderConfig;
 
@@ -207,7 +210,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
         &self,
         config: ConsoleAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Append>, Box<Error + Sync + Send>> {
+    ) -> Result<Box<dyn Append>, Box<dyn Error + Sync + Send>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = config.target {
             let target = match target {
