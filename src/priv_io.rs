@@ -1,5 +1,5 @@
-use std::io::{self, Stderr, StderrLock, Stdout, StdoutLock};
 use std::fmt;
+use std::io::{self, Stderr, StderrLock, Stdout, StdoutLock};
 
 pub enum StdWriter {
     Stdout(Stdout),

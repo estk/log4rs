@@ -2,9 +2,9 @@
 //!
 //! Requires the `simple_writer` feature.
 
-use std::io;
-use std::fmt;
 use encode;
+use std::fmt;
+use std::io;
 
 /// An `encode::Write`r that simply delegates to an `io::Write`r and relies
 /// on the default implementations of `encode::Write`r methods.
