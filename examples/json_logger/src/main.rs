@@ -6,18 +6,9 @@ use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Root};
 use log4rs::encode::json::JsonEncoder;
 
-//appenders:
-//    stdout:
-//        kind: console
-//        encoder:
-//            kind: json
-//root:
-//    level: info
-//    appenders:
-//        - stdout
-//The above YAML is the same as the programatically built logger below.
 
 fn main() {
+    // This will programmatically build a config similar to ./log4rs.yaml
     let stdout: ConsoleAppender = ConsoleAppender::builder()
         .encoder(Box::new(JsonEncoder::new()))
         .build();
