@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 log = "0.4.8"
-log4rs = {version = "0.8.3", features = ["json_encoder"]}
+log4rs = {path = "../..", features = ["json_encoder"]}

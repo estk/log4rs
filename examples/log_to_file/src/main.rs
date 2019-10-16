@@ -1,6 +1,3 @@
-// cargo install cargo-edit
-// cargo add log4rs log
-
 use log::LevelFilter;
 use log::{debug, error, info, trace, warn};
 use log4rs::append::console::{ConsoleAppender, Target};
@@ -10,12 +7,10 @@ use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
 fn main() {
-    // You probably want to pass this as a parameter.
     let level = log::LevelFilter::Info;
-    // You probably want to pass this as a parameter.
     let file_path = "/tmp/foo.log";
 
-    // Logging to stderr
+    // Build a stderr logger.
     let stderr = ConsoleAppender::builder().target(Target::Stderr).build();
 
     // Logging to log file.
@@ -25,7 +20,8 @@ fn main() {
         .build(file_path)
         .unwrap();
 
-    // Log Trace output to file, and the user-specified level to stderr.
+    // Log Trace level output to file where trace is the default level
+    // and the programmatically specified level to stderr.
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
         .appender(
