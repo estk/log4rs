@@ -9,7 +9,7 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
-fn main() -> Result<(), log4rs::Error>{
+fn main() -> Result<(), log4rs::Error> {
     let level = log::LevelFilter::Info;
     let file_path = "/tmp/foo.log";
 
