@@ -1,8 +1,8 @@
 extern crate log;
 extern crate log4rs;
 
-use log::{LevelFilter, SetLoggerError};
 use log::{debug, error, info, trace, warn};
+use log::{LevelFilter, SetLoggerError};
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
