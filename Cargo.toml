@@ -7,6 +7,7 @@ license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
 readme = "README.md"
 keywords = ["logger", "log", "logging"]
+autoexamples = false
 
 [badges]
 maintenance = { status = "looking-for-maintainer" }
@@ -76,3 +77,8 @@ libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempdir = "0.3"
+
+[[example]]
+name = "json_logger"
+[[example]]
+name = "log_to_file"

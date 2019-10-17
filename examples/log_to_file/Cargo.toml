@@ -1,9 +1,0 @@
-[package]
-name = "log_to_file"
-version = "0.1.0"
-authors = ["Calvin Brown <cab025@protonmail.com"]
-edition = "2018"
-
-[dependencies]
-log = "0.4.8"
-log4rs = {path = "../.."}

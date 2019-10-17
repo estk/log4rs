@@ -1,3 +1,6 @@
+extern crate log;
+extern crate log4rs;
+
 use log::LevelFilter;
 use log::{debug, error, info, trace, warn};
 use log4rs::append::console::{ConsoleAppender, Target};
@@ -6,7 +9,7 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
-fn main() {
+fn main() -> Result<(), log4rs::Error>{
     let level = log::LevelFilter::Info;
     let file_path = "/tmp/foo.log";
 
@@ -38,11 +41,16 @@ fn main() {
         .unwrap();
 
     // Use this to change log levels at runtime.
-    let _handle = log4rs::init_config(config).unwrap();
+    // This means you can change the default log level to trace
+    // if you are trying to debug an issue and need more logs on then turn it off
+    // once you are done.
+    let _handle = log4rs::init_config(config)?;
 
     error!("Goes to stderr and file");
     warn!("Goes to stderr and file");
     info!("Goes to stderr and file");
     debug!("Goes to file only");
     trace!("Goes to file only");
+
+    Ok(())
 }
