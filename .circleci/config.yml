@@ -29,9 +29,10 @@ jobs:
     docker:
       - image: rust:1.38.0
       - image: qima/eclint:circleci-latest
-      - run: --rm -v $(pwd):/app/code qima/eclint:circleci-latest check $(git ls-files)
     steps:
       - checkout
+      - setup_remote_docker
+      - run: docker run --rm -v $(pwd):/app/code qima/eclint:circleci-latest check $(git ls-files)
       - run: rustup component add rustfmt
       - run: cargo fmt -- --check
       - run: apt-get update
