@@ -80,7 +80,7 @@ tempdir = "0.3"
 
 [[example]]
 name = "json_logger"
-required-features = ["json_encoder"]
+required-features = ["json_encoder", "console_appender"]
 
 [[example]]
 name = "log_to_file"
