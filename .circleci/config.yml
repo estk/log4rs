@@ -29,6 +29,7 @@ jobs:
     docker:
       - image: rust:1.38.0
       - image: qima/eclint:circleci-latest
+      - run: --rm -v $(pwd):/app/code qima/eclint:circleci-latest check $(git ls-files)
     steps:
       - checkout
       - run: rustup component add rustfmt
