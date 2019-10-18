@@ -28,7 +28,6 @@ jobs:
     working_directory: ~/build
     docker:
       - image: rust:1.38.0
-      - image: qima/eclint:circleci-latest
     steps:
       - checkout
       - setup_remote_docker
