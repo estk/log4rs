@@ -32,6 +32,11 @@ impl Root {
     pub fn appenders(&self) -> &[String] {
         &self.appenders
     }
+
+    /// Sets the minimum level of log messages that the root logger will accept.
+    pub fn set_level(&mut self, level: LevelFilter) {
+        self.level = level;
+    }
 }
 
 /// A builder for `Root`s.
@@ -258,6 +263,11 @@ impl Config {
     /// Returns the `Root` associated with the `Config`.
     pub fn root(&self) -> &Root {
         &self.root
+    }
+
+    /// Returns a mutable handle for the `Root` associated with the `Config`.
+    pub fn root_mut(&mut self) -> &mut Root {
+        &mut self.root
     }
 
     /// Returns the `Logger`s associated with the `Config`.
