@@ -76,3 +76,11 @@ libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempdir = "0.3"
+
+[[example]]
+name = "json_logger"
+required-features = ["json_encoder", "console_appender"]
+
+[[example]]
+name = "log_to_file"
+required-features = ["console_appender", "file_appender", "rolling_file_appender"]

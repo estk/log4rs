@@ -1,9 +1,0 @@
-appenders:
-  stdout:
-    kind: console
-    encoder:
-      kind: json
-root:
-  level: info
-  appenders:
-    - stdout
