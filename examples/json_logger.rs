@@ -8,7 +8,6 @@ use log4rs::config::{Appender, Root};
 use log4rs::encode::json::JsonEncoder;
 
 fn main() {
-    // This will programmatically build a config similar to ./log4rs.yaml
     let stdout: ConsoleAppender = ConsoleAppender::builder()
         .encoder(Box::new(JsonEncoder::new()))
         .build();
