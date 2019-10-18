@@ -7,7 +7,6 @@ license = "MIT/Apache-2.0"
 repository = "https://github.com/sfackler/log4rs"
 readme = "README.md"
 keywords = ["logger", "log", "logging"]
-autoexamples = false
 
 [badges]
 maintenance = { status = "looking-for-maintainer" }
