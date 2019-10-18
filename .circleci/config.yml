@@ -39,7 +39,7 @@ jobs:
               tar -xz -C /tmp -f /tmp/docker-$VER.tgz
               mv /tmp/docker/* /usr/bin
       - setup_remote_docker
-      - run: docker run --rm -v $(pwd):/app/code qima/eclint:circleci-latest check
+      - run: docker run --rm -v $(pwd):/app/code qima/eclint check
       - run: rustup component add rustfmt
       - run: cargo fmt -- --check
       - run: apt-get update
