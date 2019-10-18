@@ -28,11 +28,11 @@ jobs:
     working_directory: ~/build
     docker:
       - image: rust:1.38.0
+      - image: qima/eclint:circleci-latest
     steps:
       - checkout
       - run: rustup component add rustfmt
       - run: cargo fmt -- --check
-      - run: docker run --rm -v $(pwd):/app/code qima/eclint:circleci-latest check $(git ls-files)
       - run: apt-get update
       - run: apt-get install -y --no-install-recommends jq
       - *RESTORE_REGISTRY
