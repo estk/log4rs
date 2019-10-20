@@ -170,6 +170,8 @@ extern crate antidote;
 extern crate arc_swap;
 #[cfg(feature = "chrono")]
 extern crate chrono;
+#[macro_use]
+extern crate downcast_rs;
 #[cfg(feature = "flate2")]
 extern crate flate2;
 extern crate fnv;

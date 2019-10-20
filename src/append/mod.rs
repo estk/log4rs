@@ -26,13 +26,15 @@ pub mod rolling_file;
 ///
 /// Appenders take a log record and processes them, for example, by writing it
 /// to a file or the console.
-pub trait Append: fmt::Debug + Send + Sync + 'static {
+pub trait Append: fmt::Debug + downcast_rs::DowncastSync + Send + Sync + 'static {
     /// Processes the provided `Record`.
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>>;
 
     /// Flushes all in-flight records.
     fn flush(&self);
 }
+
+impl_downcast!(sync Append);
 
 #[cfg(feature = "file")]
 impl Deserializable for dyn Append {
