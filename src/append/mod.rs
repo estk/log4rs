@@ -91,3 +91,35 @@ impl<'de> Deserialize<'de> for AppenderConfig {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Append;
+    use append::{console::ConsoleAppender, file::FileAppender};
+    use std::path::Path;
+    use tempdir::TempDir;
+
+    fn sample_appends(tempdir: &Path) -> Vec<Box<dyn Append>> {
+        vec![
+            Box::new(
+                FileAppender::builder()
+                    .build(tempdir.join("file.log"))
+                    .unwrap(),
+            ),
+            Box::new(ConsoleAppender::builder().build()),
+        ]
+    }
+
+    #[test]
+    fn downcast_to_concrete_appender() {
+        let tempdir = TempDir::new("downcast").unwrap();
+        let appends = sample_appends(tempdir.path());
+
+        let file_append = appends[0]
+            .downcast_ref::<FileAppender>()
+            .expect("should be FileAppender");
+        assert_eq!(file_append.path(), tempdir.path().join("file.log"));
+
+        assert!(appends[1].is::<ConsoleAppender>());
+    }
+}

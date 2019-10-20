@@ -64,6 +64,11 @@ impl FileAppender {
             append: true,
         }
     }
+
+    /// The path of config file `FileAppender` writes to.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 /// A builder for `FileAppender`s.
