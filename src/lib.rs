@@ -401,21 +401,21 @@ impl Logger {
 
     /// Set the max log level above which everything will be filtered.
     pub fn max_log_level(&self) -> LevelFilter {
-        self.0.lease().root.max_log_level()
+        self.0.load().root.max_log_level()
     }
 }
 
 impl log::Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         self.0
-            .lease()
+            .load()
             .root
             .find(metadata.target())
             .enabled(metadata.level())
     }
 
     fn log(&self, record: &log::Record) {
-        let shared = self.0.lease();
+        let shared = self.0.load();
         shared
             .root
             .find(record.target())
@@ -423,7 +423,7 @@ impl log::Log for Logger {
     }
 
     fn flush(&self) {
-        for appender in &self.0.lease().appenders {
+        for appender in &self.0.load().appenders {
             appender.flush();
         }
     }
