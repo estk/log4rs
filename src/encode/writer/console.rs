@@ -5,7 +5,7 @@
 use std::fmt;
 use std::io;
 
-use encode::{self, Style};
+use crate::encode::{self, Style};
 
 /// An `encode::Write`r that outputs to a console.
 pub struct ConsoleWriter(imp::Writer);
@@ -90,9 +90,9 @@ mod imp {
     use std::fmt;
     use std::io;
 
-    use encode::writer::ansi::AnsiWriter;
-    use encode::{self, Style};
-    use priv_io::{StdWriter, StdWriterLock};
+    use crate::encode::writer::ansi::AnsiWriter;
+    use crate::encode::{self, Style};
+    use crate::priv_io::{StdWriter, StdWriterLock};
 
     pub struct Writer(AnsiWriter<StdWriter>);
 
@@ -363,8 +363,8 @@ mod test {
     use std::io::Write;
 
     use super::*;
-    use encode::Write as EncodeWrite;
-    use encode::{Color, Style};
+    use crate::encode::Write as EncodeWrite;
+    use crate::encode::{Color, Style};
 
     #[test]
     fn basic() {

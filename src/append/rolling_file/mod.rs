@@ -30,13 +30,13 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use append::Append;
-use encode::pattern::PatternEncoder;
+use crate::append::Append;
+use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
-use encode::EncoderConfig;
-use encode::{self, Encode};
+use crate::encode::EncoderConfig;
+use crate::encode::{self, Encode};
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 pub mod policy;
 
@@ -332,12 +332,12 @@ mod test {
     use tempdir::TempDir;
 
     use super::*;
-    use append::rolling_file::policy::Policy;
+    use crate::append::rolling_file::policy::Policy;
 
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use file::{Deserializers, RawConfig};
+        use crate::file::{Deserializers, RawConfig};
 
         let dir = TempDir::new("deserialize").unwrap();
 

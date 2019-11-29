@@ -11,9 +11,9 @@ use std::error::Error;
 use std::fmt;
 
 #[cfg(feature = "file")]
-use file::Deserializable;
+use crate::file::Deserializable;
 #[cfg(feature = "file")]
-use filter::FilterConfig;
+use crate::filter::FilterConfig;
 
 #[cfg(feature = "console_appender")]
 pub mod console;

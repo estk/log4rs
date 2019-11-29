@@ -218,11 +218,11 @@ use std::io::prelude::*;
 use std::sync::Arc;
 
 #[cfg(feature = "file")]
-pub use priv_file::{init_file, load_config_file, Error};
+pub use crate::priv_file::{init_file, load_config_file, Error};
 
-use append::Append;
-use config::Config;
-use filter::Filter;
+use crate::append::Append;
+use crate::config::Config;
+use crate::filter::Filter;
 
 pub mod append;
 pub mod config;

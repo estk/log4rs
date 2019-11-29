@@ -5,7 +5,7 @@ use std::fmt;
 use std::path::Path;
 
 #[cfg(feature = "file")]
-use file::Deserializable;
+use crate::file::Deserializable;
 
 #[cfg(feature = "delete_roller")]
 pub mod delete;

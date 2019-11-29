@@ -129,10 +129,10 @@ use std::process;
 use std::thread;
 use thread_id;
 
-use encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
-use encode::{self, Color, Encode, Style, NEWLINE};
+use crate::encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
+use crate::encode::{self, Color, Encode, Style, NEWLINE};
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 mod parser;
 
@@ -692,9 +692,9 @@ mod tests {
 
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
-    use encode::writer::simple::SimpleWriter;
+    use crate::encode::writer::simple::SimpleWriter;
     #[cfg(feature = "simple_writer")]
-    use encode::Encode;
+    use crate::encode::Encode;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| match *c {

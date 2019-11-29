@@ -2,7 +2,7 @@
 //!
 //! Requires the `ansi_writer` feature.
 
-use encode::{self, Color, Style};
+use crate::encode::{self, Color, Style};
 use std::fmt;
 use std::io;
 
@@ -85,8 +85,8 @@ mod test {
     use std::io::{self, Write};
 
     use super::*;
-    use encode::Write as EncodeWrite;
-    use encode::{Color, Style};
+    use crate::encode::Write as EncodeWrite;
+    use crate::encode::{Color, Style};
 
     #[test]
     fn basic() {

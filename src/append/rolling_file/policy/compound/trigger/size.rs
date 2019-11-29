@@ -8,10 +8,10 @@ use std::error::Error;
 #[cfg(feature = "file")]
 use std::fmt;
 
-use append::rolling_file::policy::compound::trigger::Trigger;
-use append::rolling_file::LogFile;
+use crate::append::rolling_file::policy::compound::trigger::Trigger;
+use crate::append::rolling_file::LogFile;
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 /// Configuration for the size trigger.
 #[cfg(feature = "file")]

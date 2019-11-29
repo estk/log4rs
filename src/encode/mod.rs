@@ -12,7 +12,7 @@ use std::fmt;
 use std::io;
 
 #[cfg(feature = "file")]
-use file::Deserializable;
+use crate::file::Deserializable;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;

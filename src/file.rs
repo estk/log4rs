@@ -101,8 +101,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use typemap::{Key, ShareCloneMap};
 
-use append::AppenderConfig;
-use config;
+use crate::append::{self, AppenderConfig};
+use crate::config;
+use crate::encode;
+use crate::filter;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: 'static {
@@ -171,52 +173,49 @@ impl Default for Deserializers {
         let mut d = Deserializers::empty();
 
         #[cfg(feature = "console_appender")]
-        d.insert("console", ::append::console::ConsoleAppenderDeserializer);
+        d.insert("console", append::console::ConsoleAppenderDeserializer);
 
         #[cfg(feature = "file_appender")]
-        d.insert("file", ::append::file::FileAppenderDeserializer);
+        d.insert("file", append::file::FileAppenderDeserializer);
 
         #[cfg(feature = "rolling_file_appender")]
         d.insert(
             "rolling_file",
-            ::append::rolling_file::RollingFileAppenderDeserializer,
+            append::rolling_file::RollingFileAppenderDeserializer,
         );
 
         #[cfg(feature = "compound_policy")]
         d.insert(
             "compound",
-            ::append::rolling_file::policy::compound::CompoundPolicyDeserializer,
+            append::rolling_file::policy::compound::CompoundPolicyDeserializer,
         );
 
         #[cfg(feature = "delete_roller")]
         d.insert(
             "delete",
-            ::append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer,
+            append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer,
         );
 
         #[cfg(feature = "fixed_window_roller")]
         d.insert(
             "fixed_window",
-            ::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer,
+            append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer,
         );
 
         #[cfg(feature = "size_trigger")]
         d.insert(
             "size",
-            ::append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
+            append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
         );
 
         #[cfg(feature = "json_encoder")]
-        d.insert("json", ::encode::json::JsonEncoderDeserializer);
+        d.insert("json", encode::json::JsonEncoderDeserializer);
 
         #[cfg(feature = "pattern_encoder")]
-        d.insert("pattern", ::encode::pattern::PatternEncoderDeserializer);
+        d.insert("pattern", encode::pattern::PatternEncoderDeserializer);
 
         #[cfg(feature = "threshold_filter")]
-        d.insert(
-            "threshold",
-            ::filter::threshold::ThresholdFilterDeserializer,
-        );
+        d.insert("threshold", filter::threshold::ThresholdFilterDeserializer);
 
         d
     }

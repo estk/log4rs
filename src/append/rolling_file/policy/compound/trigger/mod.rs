@@ -3,9 +3,9 @@
 use std::error::Error;
 use std::fmt;
 
-use append::rolling_file::LogFile;
+use crate::append::rolling_file::LogFile;
 #[cfg(feature = "file")]
-use file::Deserializable;
+use crate::file::Deserializable;
 
 #[cfg(feature = "size_trigger")]
 pub mod size;

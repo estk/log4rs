@@ -37,9 +37,9 @@ use std::option;
 use std::thread;
 use thread_id;
 
-use encode::{Encode, Write, NEWLINE};
+use crate::encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 /// The JSON encoder's configuration
 #[cfg(feature = "file")]
@@ -178,7 +178,7 @@ mod test {
     use log_mdc;
 
     use super::*;
-    use encode::writer::simple::SimpleWriter;
+    use crate::encode::writer::simple::SimpleWriter;
 
     #[test]
     fn default() {

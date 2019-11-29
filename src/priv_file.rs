@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use config::Config;
+use crate::config::Config;
 #[cfg(feature = "xml_format")]
-use file::RawConfigXml;
-use file::{Deserializers, RawConfig};
-use {handle_error, init_config, Handle};
+use crate::file::RawConfigXml;
+use crate::file::{Deserializers, RawConfig};
+use crate::{handle_error, init_config, Handle};
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///

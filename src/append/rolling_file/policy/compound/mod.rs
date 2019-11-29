@@ -9,11 +9,11 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use append::rolling_file::policy::compound::roll::Roll;
-use append::rolling_file::policy::Policy;
-use append::rolling_file::LogFile;
+use crate::append::rolling_file::policy::compound::roll::Roll;
+use crate::append::rolling_file::policy::Policy;
+use crate::append::rolling_file::LogFile;
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 pub mod roll;
 pub mod trigger;
