@@ -766,7 +766,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn thread_id() {
+    fn thread_id_field() {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{I}");
             let mut buf = vec![];
