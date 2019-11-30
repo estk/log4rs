@@ -116,7 +116,18 @@ impl<'a> LogFile<'a> {
     /// and adding the number of bytes written. It may be inaccurate if any
     /// writes have failed or if another process has modified the file
     /// concurrently.
+    #[deprecated(since = "0.9.1", note = "Please use the len_estimate function instead")]
     pub fn len(&self) -> u64 {
+        self.len
+    }
+
+    /// Returns an estimate of the log file's current size.
+    ///
+    /// This is calculated by taking the size of the log file when it is opened
+    /// and adding the number of bytes written. It may be inaccurate if any
+    /// writes have failed or if another process has modified the file
+    /// concurrently.
+    pub fn len_estimate(&self) -> u64 {
         self.len
     }
 
