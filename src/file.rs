@@ -612,7 +612,7 @@ loggers:
     </loggers>
 </configuration>
 "#;
-        let config: RawConfigXml = ::serde_xml_rs::deserialize(cfg.as_bytes()).unwrap();
+        let config: RawConfigXml = ::serde_xml_rs::from_reader(cfg.as_bytes()).unwrap();
         let config: RawConfig = config.into();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);

@@ -157,7 +157,7 @@ impl Format {
         }
     }
 
-    fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Sync + Send>> {
+    fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Send + Sync>> {
         match *self {
             #[cfg(feature = "yaml_format")]
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
@@ -166,9 +166,9 @@ impl Format {
             #[cfg(feature = "toml_format")]
             Format::Toml => ::toml::from_str(source).map_err(Into::into),
             #[cfg(feature = "xml_format")]
-            Format::Xml => ::serde_xml_rs::deserialize::<_, RawConfigXml>(source.as_bytes())
+            Format::Xml => ::serde_xml_rs::from_reader::<_, RawConfigXml>(source.as_bytes())
                 .map(Into::into)
-                .map_err(Into::into),
+                .map_err(|e| e.to_string().into()),
         }
     }
 }
