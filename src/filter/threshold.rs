@@ -3,7 +3,7 @@
 //! Requires the `threshold_filter` feature.
 
 use log::{LevelFilter, Record};
-#[cfg(feature = "serde_derive")]
+#[cfg(feature = "file")]
 use serde_derive::Deserialize;
 #[cfg(feature = "file")]
 use std::error::Error;

@@ -4,7 +4,7 @@
 
 #[cfg(feature = "file")]
 use serde::de;
-#[cfg(feature = "serde_derive")]
+#[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::error::Error;
 #[cfg(feature = "file")]

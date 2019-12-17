@@ -21,7 +21,7 @@ use antidote::Mutex;
 use log::Record;
 #[cfg(feature = "file")]
 use serde;
-#[cfg(feature = "serde_derive")]
+#[cfg(feature = "file")]
 use serde_derive::Deserialize;
 #[cfg(feature = "file")]
 use serde_value::Value;
