@@ -7,8 +7,8 @@ use log::{LevelFilter, Record};
 use std::error::Error;
 
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
-use filter::{Filter, Response};
+use crate::file::{Deserialize, Deserializers};
+use crate::filter::{Filter, Response};
 
 /// The threshold filter's configuration.
 #[cfg(feature = "file")]

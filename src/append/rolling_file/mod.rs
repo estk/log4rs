@@ -30,13 +30,13 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use append::Append;
-use encode::pattern::PatternEncoder;
+use crate::append::Append;
+use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
-use encode::EncoderConfig;
-use encode::{self, Encode};
+use crate::encode::EncoderConfig;
+use crate::encode::{self, Encode};
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 pub mod policy;
 
@@ -116,7 +116,18 @@ impl<'a> LogFile<'a> {
     /// and adding the number of bytes written. It may be inaccurate if any
     /// writes have failed or if another process has modified the file
     /// concurrently.
+    #[deprecated(since = "0.9.1", note = "Please use the len_estimate function instead")]
     pub fn len(&self) -> u64 {
+        self.len
+    }
+
+    /// Returns an estimate of the log file's current size.
+    ///
+    /// This is calculated by taking the size of the log file when it is opened
+    /// and adding the number of bytes written. It may be inaccurate if any
+    /// writes have failed or if another process has modified the file
+    /// concurrently.
+    pub fn len_estimate(&self) -> u64 {
         self.len
     }
 
@@ -332,12 +343,12 @@ mod test {
     use tempdir::TempDir;
 
     use super::*;
-    use append::rolling_file::policy::Policy;
+    use crate::append::rolling_file::policy::Policy;
 
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use file::{Deserializers, RawConfig};
+        use crate::file::{Deserializers, RawConfig};
 
         let dir = TempDir::new("deserialize").unwrap();
 

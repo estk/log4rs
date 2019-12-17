@@ -7,9 +7,9 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use append::rolling_file::policy::compound::roll::Roll;
+use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "file")]
@@ -243,7 +243,7 @@ mod test {
     use tempdir::TempDir;
 
     use super::*;
-    use append::rolling_file::policy::compound::roll::Roll;
+    use crate::append::rolling_file::policy::compound::roll::Roll;
 
     #[test]
     fn rotation() {

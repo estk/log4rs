@@ -2,7 +2,7 @@
 //!
 //! Requires the `simple_writer` feature.
 
-use encode;
+use crate::encode;
 use std::fmt;
 use std::io;
 

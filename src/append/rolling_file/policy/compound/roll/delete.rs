@@ -6,9 +6,9 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use append::rolling_file::policy::compound::roll::Roll;
+use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 /// Configuration for the delete roller.
 #[cfg(feature = "file")]

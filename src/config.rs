@@ -6,9 +6,9 @@ use std::error;
 use std::fmt;
 use std::iter::IntoIterator;
 
-use append::Append;
-use filter::Filter;
-use {ConfigPrivateExt, PrivateConfigAppenderExt};
+use crate::append::Append;
+use crate::filter::Filter;
+use crate::{ConfigPrivateExt, PrivateConfigAppenderExt};
 
 /// Configuration for the root logger.
 #[derive(Debug)]

@@ -218,11 +218,11 @@ use std::io::prelude::*;
 use std::sync::Arc;
 
 #[cfg(feature = "file")]
-pub use priv_file::{init_file, load_config_file, Error};
+pub use crate::priv_file::{init_file, load_config_file, Error};
 
-use append::Append;
-use config::Config;
-use filter::Filter;
+use crate::append::Append;
+use crate::config::Config;
+use crate::filter::Filter;
 
 pub mod append;
 pub mod config;
@@ -401,21 +401,21 @@ impl Logger {
 
     /// Set the max log level above which everything will be filtered.
     pub fn max_log_level(&self) -> LevelFilter {
-        self.0.lease().root.max_log_level()
+        self.0.load().root.max_log_level()
     }
 }
 
 impl log::Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         self.0
-            .lease()
+            .load()
             .root
             .find(metadata.target())
             .enabled(metadata.level())
     }
 
     fn log(&self, record: &log::Record) {
-        let shared = self.0.lease();
+        let shared = self.0.load();
         shared
             .root
             .find(record.target())
@@ -423,7 +423,7 @@ impl log::Log for Logger {
     }
 
     fn flush(&self) {
-        for appender in &self.0.lease().appenders {
+        for appender in &self.0.load().appenders {
             appender.flush();
         }
     }

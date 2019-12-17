@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use config::Config;
+use crate::config::Config;
 #[cfg(feature = "xml_format")]
-use file::RawConfigXml;
-use file::{Deserializers, RawConfig};
-use {handle_error, init_config, Handle};
+use crate::file::RawConfigXml;
+use crate::file::{Deserializers, RawConfig};
+use crate::{handle_error, init_config, Handle};
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
@@ -157,7 +157,7 @@ impl Format {
         }
     }
 
-    fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Sync + Send>> {
+    fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Send + Sync>> {
         match *self {
             #[cfg(feature = "yaml_format")]
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
@@ -166,9 +166,9 @@ impl Format {
             #[cfg(feature = "toml_format")]
             Format::Toml => ::toml::from_str(source).map_err(Into::into),
             #[cfg(feature = "xml_format")]
-            Format::Xml => ::serde_xml_rs::deserialize::<_, RawConfigXml>(source.as_bytes())
+            Format::Xml => ::serde_xml_rs::from_reader::<_, RawConfigXml>(source.as_bytes())
                 .map(Into::into)
-                .map_err(Into::into),
+                .map_err(|e| e.to_string().into()),
         }
     }
 }

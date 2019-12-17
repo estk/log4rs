@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### New
+
+* More badges in the readme.
+
+### Changed
+
+* Use rust 2018 edition.
+* Update `arcswap`, `serde-value` and `serde-xml-rs`.
+
+### Fixed
+
+* Deprecate len method on rolling_file.
+
 ## [0.9.0]
 
 ### New

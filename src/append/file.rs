@@ -10,14 +10,14 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use append::Append;
-use encode::pattern::PatternEncoder;
-use encode::writer::simple::SimpleWriter;
-use encode::Encode;
+use crate::append::Append;
+use crate::encode::pattern::PatternEncoder;
+use crate::encode::writer::simple::SimpleWriter;
+use crate::encode::Encode;
 #[cfg(feature = "file")]
-use encode::EncoderConfig;
+use crate::encode::EncoderConfig;
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
+use crate::file::{Deserialize, Deserializers};
 
 /// The file appender's configuration.
 #[cfg(feature = "file")]

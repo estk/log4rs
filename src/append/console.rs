@@ -7,16 +7,16 @@ use std::error::Error;
 use std::fmt;
 use std::io::{self, Write};
 
-use append::Append;
-use encode::pattern::PatternEncoder;
-use encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
-use encode::writer::simple::SimpleWriter;
+use crate::append::Append;
+use crate::encode::pattern::PatternEncoder;
+use crate::encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
+use crate::encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]
-use encode::EncoderConfig;
-use encode::{self, Encode, Style};
+use crate::encode::EncoderConfig;
+use crate::encode::{self, Encode, Style};
 #[cfg(feature = "file")]
-use file::{Deserialize, Deserializers};
-use priv_io::{StdWriter, StdWriterLock};
+use crate::file::{Deserialize, Deserializers};
+use crate::priv_io::{StdWriter, StdWriterLock};
 
 /// The console appender's configuration.
 #[cfg(feature = "file")]
