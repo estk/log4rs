@@ -2,6 +2,8 @@
 //!
 //! Requires the `delete_roller` feature.
 
+#[cfg(feature = "serde-derive")]
+use serde_derive::Deserialize;
 use std::error::Error;
 use std::fs;
 use std::path::Path;

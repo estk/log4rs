@@ -3,6 +3,8 @@
 //! Requires the `compound_policy` feature.
 #[cfg(feature = "file")]
 use serde::{self, de};
+#[cfg(feature = "serde-derive")]
+use serde_derive::Deserialize;
 #[cfg(feature = "file")]
 use serde_value::Value;
 #[cfg(feature = "file")]

@@ -2,6 +2,8 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
+#[cfg(feature = "serde-derive")]
+use serde_derive::Deserialize;
 use std::error::Error;
 use std::fs;
 use std::io;
@@ -34,6 +36,7 @@ impl Compression {
             Compression::None => move_file(src, dst),
             #[cfg(feature = "gzip")]
             Compression::Gzip => {
+                #[cfg(feature = "flate2")]
                 use flate2::write::GzEncoder;
                 use std::fs::File;
 
