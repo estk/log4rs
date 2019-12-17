@@ -1,6 +1,3 @@
-extern crate log;
-extern crate log4rs;
-
 use log::{debug, error, info, trace, warn};
 use log::{LevelFilter, SetLoggerError};
 use log4rs::append::console::{ConsoleAppender, Target};

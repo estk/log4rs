@@ -1,8 +1,4 @@
-#[macro_use]
-extern crate log;
-extern crate log4rs;
-
-use log::LevelFilter;
+use log::{error, info, warn, LevelFilter};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Root};
 use log4rs::encode::json::JsonEncoder;
