@@ -2,7 +2,7 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
-#[cfg(feature = "serde-derive")]
+#[cfg(feature = "serde_derive")]
 use serde_derive::Deserialize;
 use std::error::Error;
 use std::fs;

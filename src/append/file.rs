@@ -5,7 +5,7 @@
 #[cfg(feature = "antidote")]
 use antidote::Mutex;
 use log::Record;
-#[cfg(feature = "serde-derive")]
+#[cfg(feature = "serde_derive")]
 use serde_derive::Deserialize;
 use std::error::Error;
 use std::fmt;

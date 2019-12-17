@@ -3,7 +3,7 @@
 //! Requires the `console_appender` feature.
 
 use log::Record;
-#[cfg(feature = "serde-derive")]
+#[cfg(feature = "serde_derive")]
 use serde_derive::Deserialize;
 use std::error::Error;
 use std::fmt;

@@ -121,7 +121,7 @@
 use chrono::{Local, Utc};
 use log::{Level, Record};
 use log_mdc;
-#[cfg(feature = "serde-derive")]
+#[cfg(feature = "serde_derive")]
 use serde_derive::Deserialize;
 use std::default::Default;
 use std::error::Error;
