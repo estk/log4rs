@@ -3,6 +3,8 @@
 //! Requires the `console_appender` feature.
 
 use log::Record;
+#[cfg(feature = "file")]
+use serde_derive::Deserialize;
 use std::error::Error;
 use std::fmt;
 use std::io::{self, Write};

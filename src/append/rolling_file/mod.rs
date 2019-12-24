@@ -16,10 +16,13 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
+#[cfg(feature = "antidote")]
 use antidote::Mutex;
 use log::Record;
 #[cfg(feature = "file")]
 use serde;
+#[cfg(feature = "file")]
+use serde_derive::Deserialize;
 #[cfg(feature = "file")]
 use serde_value::Value;
 #[cfg(feature = "file")]

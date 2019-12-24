@@ -91,6 +91,7 @@
 use humantime;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
+use serde_derive::Deserialize;
 use serde_value::Value;
 use std::borrow::ToOwned;
 use std::collections::HashMap;

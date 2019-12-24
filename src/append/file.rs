@@ -2,8 +2,11 @@
 //!
 //! Requires the `file_appender` feature.
 
+#[cfg(feature = "antidote")]
 use antidote::Mutex;
 use log::Record;
+#[cfg(feature = "file")]
+use serde_derive::Deserialize;
 use std::error::Error;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};

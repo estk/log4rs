@@ -4,6 +4,8 @@
 
 #[cfg(feature = "file")]
 use serde::de;
+#[cfg(feature = "file")]
+use serde_derive::Deserialize;
 use std::error::Error;
 #[cfg(feature = "file")]
 use std::fmt;

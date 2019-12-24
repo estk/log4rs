@@ -4,6 +4,8 @@
 #[cfg(feature = "file")]
 use serde::{self, de};
 #[cfg(feature = "file")]
+use serde_derive::Deserialize;
+#[cfg(feature = "file")]
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;

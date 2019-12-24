@@ -121,6 +121,8 @@
 use chrono::{Local, Utc};
 use log::{Level, Record};
 use log_mdc;
+#[cfg(feature = "file")]
+use serde_derive::Deserialize;
 use std::default::Default;
 use std::error::Error;
 use std::fmt;

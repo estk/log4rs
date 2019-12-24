@@ -4,6 +4,8 @@
 
 use log::{LevelFilter, Record};
 #[cfg(feature = "file")]
+use serde_derive::Deserialize;
+#[cfg(feature = "file")]
 use std::error::Error;
 
 #[cfg(feature = "file")]

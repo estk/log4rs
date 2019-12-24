@@ -123,9 +123,6 @@
 //! Programmatically constructing a configuration:
 //!
 //! ```no_run
-//! extern crate log;
-//! extern crate log4rs;
-//!
 //! # #[cfg(all(feature = "console_appender",
 //! #           feature = "file_appender",
 //! #           feature = "pattern_encoder"))]
@@ -164,47 +161,6 @@
 //! ```
 #![doc(html_root_url = "https://docs.rs/log4rs/0.8")]
 #![warn(missing_docs)]
-
-#[cfg(feature = "antidote")]
-extern crate antidote;
-extern crate arc_swap;
-#[cfg(feature = "chrono")]
-extern crate chrono;
-#[cfg(feature = "flate2")]
-extern crate flate2;
-extern crate fnv;
-#[cfg(feature = "humantime")]
-extern crate humantime;
-#[cfg(all(not(windows), feature = "libc"))]
-extern crate libc;
-extern crate log;
-#[cfg(feature = "log-mdc")]
-extern crate log_mdc;
-#[cfg(feature = "serde")]
-extern crate serde;
-#[cfg(feature = "serde_json")]
-extern crate serde_json;
-#[cfg(feature = "serde-value")]
-extern crate serde_value;
-#[cfg(feature = "xml_format")]
-extern crate serde_xml_rs;
-#[cfg(feature = "serde_yaml")]
-extern crate serde_yaml;
-#[cfg(feature = "thread-id")]
-extern crate thread_id;
-#[cfg(feature = "toml")]
-extern crate toml;
-#[cfg(feature = "typemap")]
-extern crate typemap;
-#[cfg(all(windows, feature = "winapi"))]
-extern crate winapi;
-
-#[cfg(feature = "serde_derive")]
-#[macro_use]
-extern crate serde_derive;
-
-#[cfg(test)]
-extern crate tempdir;
 
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
