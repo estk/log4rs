@@ -106,8 +106,13 @@ impl Roll for FixedWindowRoller {
             return fs::remove_file(file).map_err(Into::into);
         }
 
-        rotate(self.pattern.clone(), self.compression.clone(),
-            self.base, self.count, file.to_path_buf())?;
+        rotate(
+            self.pattern.clone(),
+            self.compression.clone(),
+            self.base,
+            self.count,
+            file.to_path_buf(),
+        )?;
 
         Ok(())
     }
@@ -194,10 +199,7 @@ fn rotate(
 
     // In the common case, all of the archived files will be in the same
     // directory, so avoid extra filesystem calls in that case.
-    let parent_varies = match (
-        Path::new(&dst_0).parent(),
-        Path::new(&pattern).parent(),
-    ) {
+    let parent_varies = match (Path::new(&dst_0).parent(), Path::new(&pattern).parent()) {
         (Some(a), Some(b)) => a != b,
         _ => false, // Only case that can actually happen is (None, None)
     };
@@ -329,8 +331,7 @@ mod test {
     }
 
     #[cfg(not(feature = "async_rotation"))]
-    fn wait_for_roller(_roller: &FixedWindowRoller) {
-    }
+    fn wait_for_roller(_roller: &FixedWindowRoller) {}
 
     #[test]
     fn rotation() {
