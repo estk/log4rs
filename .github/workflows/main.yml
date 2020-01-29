@@ -1,15 +1,8 @@
 name: CI
 
-on: [pull_request]
+on: [push]
 
 jobs:
-
-  fmt:
-    name: Format
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@master
 
   lint:
     name: Lint
@@ -44,10 +37,19 @@ jobs:
       - name: Checkout the source code
         uses: actions/checkout@master
 
+      -name: Install jq tool
+        run: apt-get install -y --no-install-recommends jq
+
       - name: Install Rust Versions
         run: |
           rustup toolchain install --no-self-update ${{ matrix.rust_versions }}
           rustup default stable
+
+      - name: Build lib
+        run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
+
+      - name: Test lib
+        run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
 
       - name: Build lib
         run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
