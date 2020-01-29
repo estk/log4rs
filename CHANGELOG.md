@@ -10,7 +10,7 @@
 
 ## [0.10.0]
 
-* This is a big  release as we're moving to rust 2018 edition!
+This is a big  release as we're moving to rust 2018 edition!
 
 ### New
 
@@ -19,6 +19,7 @@
 ### Changed
 
 * Use rust 2018 edition.
+* Minimum rust version is 1.34.0
 * Update `arcswap`, `serde-value` and `serde-xml-rs`.
 
 ### Fixed

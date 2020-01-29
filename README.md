@@ -1,10 +1,10 @@
 # log4rs
 
-[![crates.io](https://img.shields.io/crates/v/log4rs.svg)](https://crates.io/crates/log4rs)
 [![docs](https://docs.rs/log4rs/badge.svg)](https://docs.rs/log4rs)
+[![crates.io](https://img.shields.io/crates/v/log4rs.svg)](https://crates.io/crates/log4rs)
 [![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/clippy.svg)](#license)
 [![Github Workflows](https://img.shields.io/github/workflow/status/estk/log4rs/CI)]
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.38+-yellow.svg)](https://github.com/rust-random/rand#rust-version-requirements)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.38+-yellow.svg)](https://github.com/estk/log4rs#rust-version-requirements)
 
 log4rs is a highly configurable logging framework modeled after Java's Logback
 and log4j libraries.
@@ -49,6 +49,10 @@ fn main() {
     // ...
 }
 ```
+
+## Rust Version Requirements
+
+Since version `0.10.0` the minimum version for rust is 1.34.0 and is verified via CI.
 
 ## Building for Dev
 
