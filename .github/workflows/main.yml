@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [pull-request]
 
 jobs:
 
@@ -43,7 +43,7 @@ jobs:
           rustup default stable
 
       - name: Build lib
-        run: rustup run ${{ matrix.min_rust }} cargo build ${{ matrix.cargo_build_flags }}
+        run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
 
       - name: Test lib
         run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
