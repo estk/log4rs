@@ -1,0 +1,51 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@master
+
+      - name: Install Rust stable
+        run: |
+          rustup toolchain update --no-self-update stable
+          rustup default stable
+          rustup component add clippy rustfmt
+      - name: Run rustfmt
+        run: cargo fmt -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all --all-features -- -Dwarnings
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        cargo_flags:
+          - ""
+          - "--all-features"
+        include:
+          # Integration tests are disabled on Windows as they take *way* too
+          # long to pull the Docker image
+          - os: windows-latest
+            test_flags: --skip buildtest --skip integration
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@master
+
+      - name: Install Rust stable
+        run: |
+          rustup toolchain update --no-self-update stable
+          rustup default stable
+      - name: Build rustwide
+        run: cargo build --all ${{ matrix.cargo_flags }}
+
+      - name: Test rustwide
+        run: cargo test --all ${{ matrix.cargo_flags }} -- ${{ matrix.test_flags }}
