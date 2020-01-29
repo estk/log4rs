@@ -1,10 +1,10 @@
 # log4rs
 
-[![CircleCI](https://circleci.com/gh/estk/log4rs.svg?style=shield)](https://circleci.com/gh/estk/log4rs)
-[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/clippy.svg)](#license)
 [![crates.io](https://img.shields.io/crates/v/log4rs.svg)](https://crates.io/crates/log4rs)
-[![downloads](https://img.shields.io/crates/d/shuteye.svg)](https://crates.io/crates/log4rs)
-[![API](https://docs.rs/log4rs/badge.svg)](https://docs.rs/log4rs)
+[![docs](https://docs.rs/log4rs/badge.svg)](https://docs.rs/log4rs)
+[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/clippy.svg)](#license)
+[![Github Workflows](https://img.shields.io/github/workflow/status/estk/log4rs/CI)]
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.38+-yellow.svg)](https://github.com/rust-random/rand#rust-version-requirements)
 
 log4rs is a highly configurable logging framework modeled after Java's Logback
 and log4j libraries.

@@ -16,6 +16,7 @@ jobs:
           rustup toolchain update --no-self-update stable
           rustup default stable
           rustup component add clippy rustfmt
+
       - name: Run rustfmt
         run: cargo fmt -- --check
 
@@ -29,25 +30,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        rust_versions: ["stable", "1.34.0"]
         os: [ubuntu-latest, windows-latest]
-        cargo_flags:
-          - ""
-          - "--all-features"
-        include:
-          # Integration tests are disabled on Windows as they take *way* too
-          # long to pull the Docker image
-          - os: windows-latest
-            test_flags: --skip buildtest --skip integration
+        cargo_build_flags: ["--all-features"]
     steps:
       - name: Checkout the source code
         uses: actions/checkout@master
 
-      - name: Install Rust stable
-        run: |
-          rustup toolchain update --no-self-update stable
-          rustup default stable
-      - name: Build rustwide
-        run: cargo build --all ${{ matrix.cargo_flags }}
+      - name: Install Rust Versions
+        run:
+          - rustup toolchain install --no-self-update ${{ matrix.rust_versions }}
+          - rustup default stable
 
-      - name: Test rustwide
-        run: cargo test --all ${{ matrix.cargo_flags }} -- ${{ matrix.test_flags }}
+      - name: Build lib
+        run: rustup run ${{ matrix.min_rust }} cargo build ${{ matrix.cargo_build_flags }}
+
+      - name: Test lib
+        run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
