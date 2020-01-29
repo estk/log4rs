@@ -52,17 +52,16 @@ fn main() {
 
 ## Rust Version Requirements
 
-Since version `0.10.0` the minimum version for rust is 1.38.0 and is verified via CI.
-1.38.0 is required for windows due to the [backtrace](https://github.com/rust-lang/backtrace-rs/issues/276) crate.
-1.34.0 may work for unix environments although it is not officially supported.
+Since version `0.10.0` the minimum version for rust is `1.38.0` and is verified via CI.
+`1.38.0` is required for windows due to the [backtrace](https://github.com/rust-lang/backtrace-rs/issues/276) crate.
+`1.34.0` may work for unix environments although it is not officially supported.
 
 ## Building for Dev
 
-Run the tests: `cargo test --all-features`
-Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gn`
-
-Run the tests for all individual features: `./test.sh`
-Run the tests for all individual features for windows with [cross](https://github.com/rust-embedded/cross): `./test.sh win`
+* Run the tests: `cargo test --all-features`
+* Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gn`
+* Run the tests for all individual features: `./test.sh`
+* Run the tests for all individual features for windows with [cross](https://github.com/rust-embedded/cross): `./test.sh win`
 
 ## License
 
