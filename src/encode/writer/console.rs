@@ -177,8 +177,8 @@ mod imp {
     use winapi::shared::minwindef;
     use winapi::um::{handleapi, processenv, winbase, wincon, winnt};
 
-    use encode::{self, Color, Style};
-    use priv_io::{StdWriter, StdWriterLock};
+    use crate::encode::{self, Color, Style};
+    use crate::priv_io::{StdWriter, StdWriterLock};
 
     struct RawConsole {
         handle: winnt::HANDLE,
