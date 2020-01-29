@@ -47,3 +47,24 @@ jobs:
 
       - name: Test lib
         run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
+
+  features:
+    name: Test Individual Features
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@master
+
+      - name: Install Rust toolchain and jq
+        run: |
+          rustup toolchain install --no-self-update stable
+          rustup default stable
+          apt-get update
+          apt-get install -y --no-install-recommends jq
+
+      - name: Test lib
+        run: |
+          for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
+            echo building with feature "$feature"
+            cargo test --no-default-features --features "$feature"
+          done
