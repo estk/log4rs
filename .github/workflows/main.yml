@@ -38,9 +38,9 @@ jobs:
         uses: actions/checkout@master
 
       - name: Install Rust Versions
-        run:
-          - rustup toolchain install --no-self-update ${{ matrix.rust_versions }}
-          - rustup default stable
+        run: |
+          rustup toolchain install --no-self-update ${{ matrix.rust_versions }}
+          rustup default stable
 
       - name: Build lib
         run: rustup run ${{ matrix.min_rust }} cargo build ${{ matrix.cargo_build_flags }}
