@@ -59,8 +59,7 @@ jobs:
         run: |
           rustup toolchain install --no-self-update stable
           rustup default stable
-          apt-get update
-          apt-get install -y --no-install-recommends jq
+          sudo apt-get install -y --no-install-recommends jq
 
       - name: Test lib
         run: |
