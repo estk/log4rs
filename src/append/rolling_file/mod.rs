@@ -107,6 +107,7 @@ pub struct LogFile<'a> {
     len: u64,
 }
 
+#[allow(clippy::len_without_is_empty)]
 impl<'a> LogFile<'a> {
     /// Returns the path to the log file.
     pub fn path(&self) -> &Path {
