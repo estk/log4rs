@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
 
@@ -16,6 +16,7 @@ jobs:
           rustup toolchain update --no-self-update stable
           rustup default stable
           rustup component add clippy rustfmt
+
       - name: Run rustfmt
         run: cargo fmt -- --check
 
@@ -29,25 +30,40 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        rust_versions: ["stable", "1.38.0"]
         os: [ubuntu-latest, windows-latest]
-        cargo_flags:
-          - ""
-          - "--all-features"
-        include:
-          # Integration tests are disabled on Windows as they take *way* too
-          # long to pull the Docker image
-          - os: windows-latest
-            test_flags: --skip buildtest --skip integration
+        cargo_build_flags: ["--all-features"]
     steps:
       - name: Checkout the source code
         uses: actions/checkout@master
 
-      - name: Install Rust stable
+      - name: Install Rust Versions
         run: |
-          rustup toolchain update --no-self-update stable
+          rustup toolchain install --no-self-update ${{ matrix.rust_versions }}
           rustup default stable
-      - name: Build rustwide
-        run: cargo build --all ${{ matrix.cargo_flags }}
 
-      - name: Test rustwide
-        run: cargo test --all ${{ matrix.cargo_flags }} -- ${{ matrix.test_flags }}
+      - name: Build lib
+        run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
+
+      - name: Test lib
+        run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
+
+  features:
+    name: Test Individual Features
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@master
+
+      - name: Install Rust toolchain and jq
+        run: |
+          rustup toolchain install --no-self-update stable
+          rustup default stable
+          sudo apt-get install -y --no-install-recommends jq
+
+      - name: Test lib
+        run: |
+          for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
+            echo building with feature "$feature"
+            cargo test --no-default-features --features "$feature"
+          done

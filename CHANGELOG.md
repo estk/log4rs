@@ -4,16 +4,28 @@
 
 ### New
 
+### Changed
+
+### Fixed
+
+## [0.10.0]
+
+This is a big  release as we're moving to rust 2018 edition!
+
+### New
+
 * More badges in the readme.
 
 ### Changed
 
 * Use rust 2018 edition.
+* Minimum rust version is 1.38.0
 * Update `arcswap`, `serde-value` and `serde-xml-rs`.
 
 ### Fixed
 
 * Deprecate len method on rolling_file.
+* Windows build issue after 2018 edition.
 
 ## [0.9.0]
 
