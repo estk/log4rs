@@ -54,7 +54,7 @@ chrono = { version = "0.4", optional = true }
 flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
 humantime = { version = "1.0", optional = true }
-log = { version = "0.4.0", features = ["std"] }
+log = { version = "0.4.0", features = ["std", "kv_unstable"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
@@ -65,6 +65,7 @@ serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.8.4", optional = true }
 toml = { version = "0.5", optional = true }
 serde-xml-rs = { version = "0.3", optional = true }
+async-std = {version = "1.5.0", optional = true, features = ["unstable"] }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }

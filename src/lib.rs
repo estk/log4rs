@@ -163,11 +163,15 @@
 #![warn(missing_docs)]
 
 use arc_swap::ArcSwap;
+#[cfg(feature = "async-std")]
+use async_std::{sync::channel, sync::Sender, task};
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::cmp;
 use std::collections::HashMap;
 use std::error;
+#[cfg(feature = "async-std")]
+use std::fmt;
 use std::hash::BuildHasherDefault;
 use std::io;
 use std::io::prelude::*;
@@ -190,6 +194,9 @@ pub mod filter;
 mod priv_file;
 #[cfg(feature = "console_writer")]
 mod priv_io;
+
+#[cfg(feature = "async-std")]
+const CAP: usize = 100;
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
@@ -343,21 +350,49 @@ impl SharedLogger {
 
         SharedLogger { root, appenders }
     }
+    pub fn log(&self, record: &log::Record) {
+        self.root.find(record.target()).log(record, &self.appenders);
+    }
 }
 
 /// The fully configured log4rs Logger which is appropriate
 /// to use with the `log::set_boxed_logger` function.
-pub struct Logger(Arc<ArcSwap<SharedLogger>>);
+pub struct Logger(
+    Arc<ArcSwap<SharedLogger>>,
+    #[cfg(feature = "async-std")] Sender<OwnedRecord<'static>>,
+);
 
 impl Logger {
     /// Create a new `Logger` given a configuration.
+    #[cfg(not(feature = "async-std"))]
     pub fn new(config: config::Config) -> Logger {
         Logger(Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))))
+    }
+
+    /// Create a new `Logger` given a configuration.
+    #[cfg(feature = "async-std")]
+    pub fn new(config: config::Config) -> Logger {
+        let (sender, r) = channel(CAP);
+        let l = Logger(
+            Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))),
+            sender,
+        );
+        let this = &l;
+        task::spawn(async {
+            while let Some(owned) = r.recv().await {
+                this.sync_log(&owned.into())
+            }
+        });
+        l
     }
 
     /// Set the max log level above which everything will be filtered.
     pub fn max_log_level(&self) -> LevelFilter {
         self.0.load().root.max_log_level()
+    }
+
+    fn sync_log(&self, record: &log::Record) {
+        self.0.load().log(record);
     }
 }
 
@@ -370,18 +405,19 @@ impl log::Log for Logger {
             .enabled(metadata.level())
     }
 
-    fn log(&self, record: &log::Record) {
-        let shared = self.0.load();
-        shared
-            .root
-            .find(record.target())
-            .log(record, &shared.appenders);
-    }
-
     fn flush(&self) {
         for appender in &self.0.load().appenders {
             appender.flush();
         }
+    }
+    #[cfg(not(feature = "async-std"))]
+    fn log(&self, record: &log::Record) {
+        self.0.load().log(record);
+    }
+    #[cfg(feature = "async-std")]
+    fn log(&self, record: &log::Record) {
+        let owned: OwnedRecord = record.into();
+        task::spawn(async { self.1.send(owned) });
     }
 }
 
@@ -426,6 +462,75 @@ trait ConfigPrivateExt {
 
 trait PrivateConfigAppenderExt {
     fn unpack(self) -> (String, Box<dyn Append>, Vec<Box<dyn Filter>>);
+}
+
+struct OwnedRecord<'a> {
+    metadata: log::Metadata<'a>,
+    args: Arc<fmt::Arguments<'a>>,
+    module_path: Option<&'a str>,
+    file: Option<&'a str>,
+    line: Option<u32>,
+    key_values: OwnedSource,
+}
+
+struct OwnedSource(Vec<(String, String)>);
+impl From<&dyn log::kv::Source> for OwnedSource {
+    fn from(s: &dyn log::kv::Source) -> Self {
+        // todo
+        OwnedSource(vec![])
+    }
+}
+impl Into<Box<dyn log::kv::Source>> for OwnedSource {
+    fn into(self) -> Box<dyn log::kv::Source> {
+        // todo
+        unimplemented!()
+    }
+}
+
+impl<'o, 'r> Into<log::Record<'r>> for &'o OwnedRecord<'o>
+where
+    'r: 'o,
+{
+    fn into(self) -> log::Record<'r> {
+        let metadata = self.metadata.clone();
+        let args = self.args.clone();
+        let module_path = self.module_path;
+        let file = self.file;
+        let line = self.line;
+        let source = self.key_values.into();
+
+        log::RecordBuilder::new()
+            .metadata(metadata)
+            .args(args)
+            .module_path(module_path)
+            .file(file)
+            .line(line)
+            .key_values(source)
+            .build()
+    }
+}
+
+impl<'r, 'o> From<&'r log::Record<'r>> for OwnedRecord<'o>
+where
+    'r: 'o,
+{
+    fn from(r: &'r log::Record<'r>) -> Self {
+        let metadata = r.metadata().clone();
+        let args = r.args().clone();
+        let module_path = r.module_path();
+        let file = r.file();
+        let line = r.line();
+        let key_values = r.key_values().into();
+
+        Self {
+            metadata,
+            args,
+            module_path,
+            file,
+            line,
+            key_values,
+        }
+    }
 }
 
 #[cfg(test)]
