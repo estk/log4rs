@@ -9,10 +9,11 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
-use std::io;
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;
+
+use crate::cstd::io;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -145,7 +146,7 @@ impl Style {
 /// A trait for types that an `Encode`r will write to.
 ///
 /// It extends `std::io::Write` and adds some extra functionality.
-pub trait Write: io::Write {
+pub trait Write: io::Write + Unpin {
     /// Sets the output text style, if supported.
     ///
     /// `Write`rs should ignore any parts of the `Style` they do not support.
@@ -158,7 +159,7 @@ pub trait Write: io::Write {
     }
 }
 
-impl<'a, W: Write + ?Sized> Write for &'a mut W {
+impl<'a, W: Write + ?Sized + Unpin> Write for &'a mut W {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         <W as Write>::set_style(*self, style)
     }

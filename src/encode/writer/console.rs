@@ -3,7 +3,8 @@
 //! Requires the `console_writer` feature.
 
 use std::fmt;
-use std::io;
+
+use crate::cstd::io;
 
 use crate::encode::{self, Style};
 
@@ -88,7 +89,8 @@ impl<'a> encode::Write for ConsoleWriterLock<'a> {
 mod imp {
     use libc;
     use std::fmt;
-    use std::io;
+
+    use crate::cstd::io;
 
     use crate::encode::writer::ansi::AnsiWriter;
     use crate::encode::{self, Style};
@@ -171,8 +173,8 @@ mod imp {
 
 #[cfg(windows)]
 mod imp {
+    use crate::cstd::io::{self, Write};
     use std::fmt;
-    use std::io::{self, Write};
     use std::mem;
     use winapi::shared::minwindef;
     use winapi::um::{handleapi, processenv, winbase, wincon, winnt};
@@ -360,7 +362,7 @@ mod imp {
 
 #[cfg(test)]
 mod test {
-    use std::io::Write;
+    use crate::cstd::io::Write;
 
     use super::*;
     use crate::encode::Write as EncodeWrite;

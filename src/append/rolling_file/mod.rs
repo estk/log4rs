@@ -29,9 +29,10 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
+
+use crate::cstd::fs::{self, File, OpenOptions};
+use crate::cstd::io::{self, BufWriter, Write};
 
 use crate::append::Append;
 use crate::encode::pattern::PatternEncoder;
@@ -343,7 +344,8 @@ impl Deserialize for RollingFileAppenderDeserializer {
 mod test {
     use std::error::Error;
     use std::fs::File;
-    use std::io::{Read, Write};
+
+    use crate::cstd::io::{Read, Write};
     use tempdir::TempDir;
 
     use super::*;

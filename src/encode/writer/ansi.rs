@@ -3,8 +3,8 @@
 //! Requires the `ansi_writer` feature.
 
 use crate::encode::{self, Color, Style};
+use crate::cstd::io;
 use std::fmt;
-use std::io;
 
 /// An `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
@@ -82,7 +82,7 @@ fn color_byte(c: Color) -> u8 {
 
 #[cfg(test)]
 mod test {
-    use std::io::{self, Write};
+    use crate::cstd::io::{self, Write};
 
     use super::*;
     use crate::encode::Write as EncodeWrite;

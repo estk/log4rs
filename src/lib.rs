@@ -169,9 +169,10 @@ use std::cmp;
 use std::collections::HashMap;
 use std::error;
 use std::hash::BuildHasherDefault;
-use std::io;
-use std::io::prelude::*;
 use std::sync::Arc;
+
+use crate::cstd::io;
+use crate::cstd::io::prelude::*;
 
 #[cfg(feature = "file")]
 pub use crate::priv_file::{init_file, load_config_file, Error};
@@ -182,6 +183,7 @@ use crate::filter::Filter;
 
 pub mod append;
 pub mod config;
+pub(crate) mod cstd;
 pub mod encode;
 #[cfg(feature = "file")]
 pub mod file;

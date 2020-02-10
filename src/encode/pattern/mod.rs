@@ -126,10 +126,11 @@ use serde_derive::Deserialize;
 use std::default::Default;
 use std::error::Error;
 use std::fmt;
-use std::io;
 use std::process;
 use std::thread;
 use thread_id;
+
+use crate::cstd::io;
 
 use crate::encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
 use crate::encode::{self, Color, Encode, Style, NEWLINE};

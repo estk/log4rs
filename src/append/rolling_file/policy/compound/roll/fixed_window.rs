@@ -5,9 +5,9 @@
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::error::Error;
-use std::fs;
-use std::io;
 use std::path::Path;
+
+use crate::cstd::{fs, io};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
@@ -241,9 +241,10 @@ impl Deserialize for FixedWindowRollerDeserializer {
 #[cfg(test)]
 mod test {
     use std::fs::File;
-    use std::io::{Read, Write};
     use std::process::Command;
     use tempdir::TempDir;
+
+    use crate::cstd::io::{Read, Write};
 
     use super::*;
     use crate::append::rolling_file::policy::compound::roll::Roll;

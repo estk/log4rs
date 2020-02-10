@@ -7,7 +7,8 @@ use log::Record;
 use serde_derive::Deserialize;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, Write};
+
+use crate::cstd::io::{self, Write};
 
 use crate::append::Append;
 use crate::encode::pattern::PatternEncoder;

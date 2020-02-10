@@ -9,9 +9,10 @@ use log::Record;
 use serde_derive::Deserialize;
 use std::error::Error;
 use std::fmt;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
+
+use crate::cstd::fs::{self, File, OpenOptions};
+use crate::cstd::io::{self, BufWriter, Write};
 
 use crate::append::Append;
 use crate::encode::pattern::PatternEncoder;
