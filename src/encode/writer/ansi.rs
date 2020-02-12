@@ -2,15 +2,34 @@
 //!
 //! Requires the `ansi_writer` feature.
 
-use crate::encode::{self, Color, Style};
 use crate::cstd::io;
+use crate::encode::{self, Color, Style};
 use std::fmt;
+
+#[cfg(feature = "async-std")]
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 /// An `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
 #[derive(Debug)]
 pub struct AnsiWriter<W>(pub W);
 
+#[cfg(feature = "async-std")]
+impl<W: io::Write> io::Write for AnsiWriter<W> {
+    fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
+        self.0.poll_write(cx, buf)
+    }
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+        self.0.poll_flush(cx)
+    }
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+        self.0.poll_close(cx)
+    }
+}
+#[cfg(not(feature = "async-std"))]
 impl<W: io::Write> io::Write for AnsiWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)

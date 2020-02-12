@@ -23,6 +23,7 @@ impl StdWriter {
     }
 }
 
+#[cfg(not(feature = "async-std"))]
 impl io::Write for StdWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match *self {
@@ -58,6 +59,7 @@ pub enum StdWriterLock<'a> {
     Stderr(StderrLock<'a>),
 }
 
+#[cfg(not(feature = "async-std"))]
 impl<'a> io::Write for StdWriterLock<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match *self {

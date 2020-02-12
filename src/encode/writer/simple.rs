@@ -11,6 +11,7 @@ use std::fmt;
 #[derive(Debug)]
 pub struct SimpleWriter<W>(pub W);
 
+#[cfg(not(feature = "async-std"))]
 impl<W: io::Write> io::Write for SimpleWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)
