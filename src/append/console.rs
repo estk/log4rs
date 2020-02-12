@@ -58,7 +58,7 @@ enum WriterLock<'a> {
     Raw(SimpleWriter<StdWriterLock<'a>>),
 }
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl<'a> io::Write for WriterLock<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match *self {

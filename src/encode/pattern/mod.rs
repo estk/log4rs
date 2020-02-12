@@ -160,7 +160,7 @@ struct MaxWidthWriter<'a> {
     w: &'a mut dyn encode::Write,
 }
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl<'a> io::Write for MaxWidthWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut remaining = self.remaining;
@@ -222,7 +222,7 @@ impl<W: encode::Write> LeftAlignWriter<W> {
     }
 }
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl<W: encode::Write> io::Write for LeftAlignWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.w.write(buf) {
@@ -272,7 +272,7 @@ impl<W: encode::Write> RightAlignWriter<W> {
     }
 }
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl<W: encode::Write> io::Write for RightAlignWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.to_fill = self.to_fill.saturating_sub(char_starts(buf));

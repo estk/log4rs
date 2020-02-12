@@ -1,17 +1,21 @@
 //! Encoders
 
 use log::Record;
+use std::error::Error;
+use std::fmt;
+
 #[cfg(feature = "file")]
 use serde::de;
 #[cfg(feature = "file")]
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::error::Error;
-use std::fmt;
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;
+
+#[cfg(feature = "async_fs")]
+use async_trait::async_trait;
 
 use crate::cstd::io;
 
@@ -146,7 +150,34 @@ impl Style {
 /// A trait for types that an `Encode`r will write to.
 ///
 /// It extends `std::io::Write` and adds some extra functionality.
-pub trait Write: io::Write + Unpin {
+#[async_trait(?Send)]
+#[cfg(feature = "async_fs")]
+pub trait Write: io::Write {
+    /// Sets the output text style, if supported.
+    ///
+    /// `Write`rs should ignore any parts of the `Style` they do not support.
+    ///
+    /// The default implementation returns `Ok(())`. Implementations that do
+    /// not support styling should do this as well.
+    #[allow(unused_variables)]
+    async fn set_style(&mut self, style: &Style) -> io::Result<()>;
+    //  {
+    //     Ok(())
+    // }
+}
+#[async_trait(?Send)]
+#[cfg(feature = "async_fs")]
+impl<'a, W: Write + ?Sized + Unpin> Write for &'a mut W {
+    async fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        <W as Write>::set_style(*self, style).await
+    }
+}
+
+/// A trait for types that an `Encode`r will write to.
+///
+/// It extends `std::io::Write` and adds some extra functionality.
+#[cfg(not(feature = "async_fs"))]
+pub trait Write: io::Write {
     /// Sets the output text style, if supported.
     ///
     /// `Write`rs should ignore any parts of the `Style` they do not support.
@@ -159,6 +190,7 @@ pub trait Write: io::Write + Unpin {
     }
 }
 
+#[cfg(not(feature = "async_fs"))]
 impl<'a, W: Write + ?Sized + Unpin> Write for &'a mut W {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         <W as Write>::set_style(*self, style)

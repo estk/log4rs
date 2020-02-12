@@ -34,7 +34,7 @@ impl ConsoleWriter {
     }
 }
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl io::Write for ConsoleWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)
@@ -62,7 +62,7 @@ impl encode::Write for ConsoleWriter {
 /// An RAII lock over a console.
 pub struct ConsoleWriterLock<'a>(imp::WriterLock<'a>);
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl<'a> io::Write for ConsoleWriterLock<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)
@@ -122,7 +122,7 @@ mod imp {
         }
     }
 
-    #[cfg(not(feature = "async-std"))]
+    #[cfg(not(feature = "async_fs"))]
     impl io::Write for Writer {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.0.write(buf)
@@ -149,7 +149,7 @@ mod imp {
 
     pub struct WriterLock<'a>(AnsiWriter<StdWriterLock<'a>>);
 
-    #[cfg(not(feature = "async-std"))]
+    #[cfg(not(feature = "async_fs"))]
     impl<'a> io::Write for WriterLock<'a> {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.0.write(buf)
@@ -308,7 +308,7 @@ mod imp {
         }
     }
 
-    #[cfg(not(feature = "async-std"))]
+    #[cfg(not(feature = "async_fs"))]
     impl io::Write for Writer {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.inner.write(buf)
@@ -339,7 +339,7 @@ mod imp {
         inner: StdWriterLock<'a>,
     }
 
-    #[cfg(not(feature = "async-std"))]
+    #[cfg(not(feature = "async_fs"))]
     impl<'a> io::Write for WriterLock<'a> {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.inner.write(buf)

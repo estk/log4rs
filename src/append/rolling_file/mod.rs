@@ -86,7 +86,7 @@ struct LogWriter {
     len: u64,
 }
 
-#[cfg(not(feature = "async-std"))]
+#[cfg(not(feature = "async_fs"))]
 impl io::Write for LogWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.file.write(buf).map(|n| {

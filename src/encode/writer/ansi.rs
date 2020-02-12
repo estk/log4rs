@@ -6,8 +6,11 @@ use crate::cstd::io;
 use crate::encode::{self, Color, Style};
 use std::fmt;
 
-#[cfg(feature = "async-std")]
+#[cfg(feature = "async_fs")]
+use async_trait::async_trait;
+#[cfg(feature = "async_fs")]
 use std::{
+    future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -16,40 +19,13 @@ use std::{
 /// for text style.
 #[derive(Debug)]
 pub struct AnsiWriter<W>(pub W);
-
-#[cfg(feature = "async-std")]
-impl<W: io::Write> io::Write for AnsiWriter<W> {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
-        self.0.poll_write(cx, buf)
+impl<W> AnsiWriter<W> {
+    #[cfg(feature = "async_fs")]
+    fn get_mut_inner(self: Pin<&mut Self>) -> Pin<&mut W> {
+        // This is okay because `field` is pinned when `self` is.
+        unsafe { self.map_unchecked_mut(|s| &mut s.0) }
     }
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        self.0.poll_flush(cx)
-    }
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        self.0.poll_close(cx)
-    }
-}
-#[cfg(not(feature = "async-std"))]
-impl<W: io::Write> io::Write for AnsiWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.0.flush()
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        self.0.write_all(buf)
-    }
-
-    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
-        self.0.write_fmt(fmt)
-    }
-}
-
-impl<W: io::Write> encode::Write for AnsiWriter<W> {
-    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+    fn style_to_buf(&self, style: &Style) -> ([u8; 12], usize) {
         let mut buf = [0; 12];
         buf[0] = b'\x1b';
         buf[1] = b'[';
@@ -82,6 +58,51 @@ impl<W: io::Write> encode::Write for AnsiWriter<W> {
             }
         }
         buf[idx] = b'm';
+        (buf, idx)
+    }
+}
+
+#[cfg(feature = "async_fs")]
+impl<W: io::Write> io::Write for AnsiWriter<W> {
+    fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
+        self.get_mut_inner().poll_write(cx, buf)
+    }
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+        self.get_mut_inner().poll_flush(cx)
+    }
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+        self.get_mut_inner().poll_close(cx)
+    }
+}
+#[cfg(not(feature = "async_fs"))]
+impl<W: io::Write> io::Write for AnsiWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush()
+    }
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.0.write_all(buf)
+    }
+    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        self.0.write_fmt(fmt)
+    }
+}
+
+#[cfg(feature = "async_fs")]
+#[async_trait(?Send)]
+impl<W: io::Write> encode::Write for AnsiWriter<W> {
+    async fn set_style(self: Pin<&mut Self>, style: &Style) -> io::Result<()> {
+        use async_std::io::prelude::WriteExt;
+        let (buf, idx) = self.style_to_buf(style);
+        self.get_mut_inner().write_all(&buf[..=idx]).await
+    }
+}
+#[cfg(not(feature = "async_fs"))]
+impl<W: io::Write> encode::Write for AnsiWriter<W> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        let (buf, idx) = self.style_to_buf(style);
         self.0.write_all(&buf[..=idx])
     }
 }
