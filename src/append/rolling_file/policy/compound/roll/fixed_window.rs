@@ -3,7 +3,7 @@
 //! Requires the `fixed_window_roller` feature.
 
 #[cfg(feature = "background_rotation")]
-use parking_lot::Mutex;
+use parking_lot::{Condvar, Mutex};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 #[cfg(feature = "background_rotation")]
@@ -90,7 +90,7 @@ pub struct FixedWindowRoller {
     base: u32,
     count: u32,
     #[cfg(feature = "background_rotation")]
-    lock: Arc<Mutex<()>>,
+    cond_pair: Arc<(Mutex<bool>, Condvar)>,
 }
 
 impl FixedWindowRoller {
@@ -128,23 +128,31 @@ impl Roll for FixedWindowRoller {
         let temp = make_temp_file_name(file);
         move_file(file, &temp)?;
 
-        {
-            // wait for the previous call to end
-            let _lock = self.lock.lock();
+        // Wait for the state to be ready to roll
+        let &(ref lock, ref cvar) = &*self.cond_pair.clone();
+        let mut ready = lock.lock();
+        if !*ready {
+            cvar.wait(&mut ready);
         }
+        *ready = false;
+        drop(ready);
 
         let pattern = self.pattern.clone();
         let compression = self.compression.clone();
         let base = self.base;
         let count = self.count;
-        let lock = Arc::clone(&self.lock);
+        let cond_pair = self.cond_pair.clone();
         // rotate in the separate thread
         std::thread::spawn(move || {
-            let _lock = lock.lock();
+            let &(ref lock, ref cvar) = &*cond_pair;
+            let mut ready = lock.lock();
+
             if let Err(e) = rotate(pattern, compression, base, count, temp) {
                 use std::io::Write;
                 let _ = writeln!(io::stderr(), "log4rs: {}", e);
             }
+            *ready = true;
+            cvar.notify_one();
         });
 
         Ok(())
@@ -270,7 +278,7 @@ impl FixedWindowRollerBuilder {
             base: self.base,
             count,
             #[cfg(feature = "background_rotation")]
-            lock: Arc::new(Mutex::new(())),
+            cond_pair: Arc::new((Mutex::new(true), Condvar::new())),
         })
     }
 }
@@ -333,7 +341,7 @@ mod test {
     #[cfg(feature = "background_rotation")]
     fn wait_for_roller(roller: &FixedWindowRoller) {
         std::thread::sleep(std::time::Duration::from_millis(100));
-        let _lock = roller.lock.lock();
+        let _lock = roller.cond_pair.0.lock();
     }
 
     #[cfg(not(feature = "background_rotation"))]

@@ -170,6 +170,7 @@ impl fmt::Debug for RollingFileAppender {
 
 impl Append for RollingFileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+        // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
         let len = {
@@ -185,6 +186,8 @@ impl Append for RollingFileAppender {
             len,
         };
 
+        // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
+        // data that comes in while we are processing the file rotation.
         self.policy.process(&mut file)
     }
 
