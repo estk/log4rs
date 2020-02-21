@@ -1,6 +1,5 @@
 // cribbed to a large extent from libfmt_macros
-use std::iter::Peekable;
-use std::str::CharIndices;
+use std::{iter::Peekable, str::CharIndices};
 
 pub enum Piece<'a> {
     Text(&'a str),

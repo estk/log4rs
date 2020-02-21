@@ -24,19 +24,22 @@ use serde_derive::Deserialize;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::error::Error;
-use std::fmt;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::{
+    error::Error,
+    fmt,
+    fs::{self, File, OpenOptions},
+    io::{self, BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
-use crate::append::Append;
-use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
-use crate::encode::{self, Encode};
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
+use crate::{
+    append::Append,
+    encode::{self, pattern::PatternEncoder, Encode},
+};
 
 pub mod policy;
 
@@ -338,9 +341,11 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
-    use std::error::Error;
-    use std::fs::File;
-    use std::io::{Read, Write};
+    use std::{
+        error::Error,
+        fs::File,
+        io::{Read, Write},
+    };
     use tempdir::TempDir;
 
     use super::*;

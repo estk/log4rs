@@ -6,20 +6,22 @@ use log::Record;
 use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::error::Error;
-use std::fmt;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::{
+    error::Error,
+    fmt,
+    fs::{self, File, OpenOptions},
+    io::{self, BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
-use crate::append::Append;
-use crate::encode::pattern::PatternEncoder;
-use crate::encode::writer::simple::SimpleWriter;
-use crate::encode::Encode;
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
+use crate::{
+    append::Append,
+    encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
+};
 
 /// The file appender's configuration.
 #[cfg(feature = "file")]

@@ -1,8 +1,6 @@
 //! Rollers
 
-use std::error::Error;
-use std::fmt;
-use std::path::Path;
+use std::{error::Error, fmt, path::Path};
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;

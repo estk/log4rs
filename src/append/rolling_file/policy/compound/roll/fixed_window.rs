@@ -6,12 +6,13 @@
 use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::error::Error;
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
+use std::{
+    error::Error,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
@@ -319,9 +320,11 @@ impl Deserialize for FixedWindowRollerDeserializer {
 
 #[cfg(test)]
 mod test {
-    use std::fs::File;
-    use std::io::{Read, Write};
-    use std::process::Command;
+    use std::{
+        fs::File,
+        io::{Read, Write},
+        process::Command,
+    };
     use tempdir::TempDir;
 
     use super::*;

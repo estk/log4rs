@@ -1,17 +1,20 @@
 use log::SetLoggerError;
-use std::error;
-use std::fmt;
-use std::fs::{self, File};
-use std::io::Read;
-use std::path::{Path, PathBuf};
-use std::thread;
-use std::time::{Duration, SystemTime};
+use std::{
+    error, fmt,
+    fs::{self, File},
+    io::Read,
+    path::{Path, PathBuf},
+    thread,
+    time::{Duration, SystemTime},
+};
 
-use crate::config::Config;
 #[cfg(feature = "xml_format")]
 use crate::file::RawConfigXml;
-use crate::file::{Deserializers, RawConfig};
-use crate::{handle_error, init_config, Handle};
+use crate::{
+    config::Config,
+    file::{Deserializers, RawConfig},
+    handle_error, init_config, Handle,
+};
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
