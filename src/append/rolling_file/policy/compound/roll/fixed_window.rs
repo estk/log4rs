@@ -2,15 +2,15 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
-#[cfg(feature = "async_rotation")]
-use antidote::Mutex;
+#[cfg(feature = "background_rotation")]
+use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::error::Error;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-#[cfg(feature = "async_rotation")]
+#[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
@@ -88,7 +88,7 @@ pub struct FixedWindowRoller {
     compression: Compression,
     base: u32,
     count: u32,
-    #[cfg(feature = "async_rotation")]
+    #[cfg(feature = "background_rotation")]
     lock: Arc<Mutex<()>>,
 }
 
@@ -100,7 +100,7 @@ impl FixedWindowRoller {
 }
 
 impl Roll for FixedWindowRoller {
-    #[cfg(not(feature = "async_rotation"))]
+    #[cfg(not(feature = "background_rotation"))]
     fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
@@ -117,7 +117,7 @@ impl Roll for FixedWindowRoller {
         Ok(())
     }
 
-    #[cfg(feature = "async_rotation")]
+    #[cfg(feature = "background_rotation")]
     fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
@@ -166,7 +166,7 @@ where
     fs::copy(src.as_ref(), dst.as_ref()).and_then(|_| fs::remove_file(src.as_ref()))
 }
 
-#[cfg(feature = "async_rotation")]
+#[cfg(feature = "background_rotation")]
 fn make_temp_file_name<P>(file: P) -> PathBuf
 where
     P: AsRef<Path>,
@@ -268,7 +268,7 @@ impl FixedWindowRollerBuilder {
             compression,
             base: self.base,
             count,
-            #[cfg(feature = "async_rotation")]
+            #[cfg(feature = "background_rotation")]
             lock: Arc::new(Mutex::new(())),
         })
     }
@@ -327,13 +327,13 @@ mod test {
     use super::*;
     use crate::append::rolling_file::policy::compound::roll::Roll;
 
-    #[cfg(feature = "async_rotation")]
+    #[cfg(feature = "background_rotation")]
     fn wait_for_roller(roller: &FixedWindowRoller) {
         std::thread::sleep(std::time::Duration::from_millis(100));
         let _lock = roller.lock.lock();
     }
 
-    #[cfg(not(feature = "async_rotation"))]
+    #[cfg(not(feature = "background_rotation"))]
     fn wait_for_roller(_roller: &FixedWindowRoller) {}
 
     #[test]

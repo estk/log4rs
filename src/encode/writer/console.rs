@@ -86,7 +86,6 @@ impl<'a> encode::Write for ConsoleWriterLock<'a> {
 
 #[cfg(unix)]
 mod imp {
-    use libc;
     use std::fmt;
     use std::io;
 

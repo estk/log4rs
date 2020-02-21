@@ -2,9 +2,8 @@
 //!
 //! Requires the `file_appender` feature.
 
-#[cfg(feature = "antidote")]
-use antidote::Mutex;
 use log::Record;
+use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::error::Error;

@@ -30,17 +30,14 @@ use chrono::{
     DateTime, Local,
 };
 use log::{Level, Record};
-use log_mdc;
 use serde::ser::{self, Serialize, SerializeMap};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use serde_json;
 use std::error::Error;
 use std::fmt;
 use std::option;
 use std::thread;
-use thread_id;
 
 use crate::encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
@@ -181,8 +178,6 @@ mod test {
     #[cfg(feature = "chrono")]
     use chrono::{DateTime, Local};
     use log::Level;
-    #[cfg(feature = "log-mdc")]
-    use log_mdc;
 
     use super::*;
     use crate::encode::writer::simple::SimpleWriter;

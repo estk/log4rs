@@ -120,7 +120,6 @@
 
 use chrono::{Local, Utc};
 use log::{Level, Record};
-use log_mdc;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::default::Default;
@@ -129,7 +128,6 @@ use std::fmt;
 use std::io;
 use std::process;
 use std::thread;
-use thread_id;
 
 use crate::encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
 use crate::encode::{self, Color, Encode, Style, NEWLINE};
@@ -684,13 +682,9 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use log::{Level, Record};
     #[cfg(feature = "simple_writer")]
-    use log_mdc;
-    #[cfg(feature = "simple_writer")]
     use std::process;
     #[cfg(feature = "simple_writer")]
     use std::thread;
-    #[cfg(feature = "simple_writer")]
-    use thread_id;
 
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
