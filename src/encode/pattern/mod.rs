@@ -239,6 +239,7 @@ impl<W: encode::Write> io::Write for LeftAlignWriter<W> {
     }
 }
 
+#[cfg(not(feature = "async_fs"))]
 impl<W: encode::Write> encode::Write for LeftAlignWriter<W> {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         self.w.set_style(style)
@@ -257,6 +258,7 @@ struct RightAlignWriter<W> {
     buf: Vec<BufferedOutput>,
 }
 
+#[cfg(not(feature = "async_fs"))]
 impl<W: encode::Write> RightAlignWriter<W> {
     fn finish(mut self) -> io::Result<()> {
         for _ in 0..self.to_fill {
@@ -294,6 +296,7 @@ impl<W: encode::Write> io::Write for RightAlignWriter<W> {
     }
 }
 
+#[cfg(not(feature = "async_fs"))]
 impl<W: encode::Write> encode::Write for RightAlignWriter<W> {
     fn set_style(&mut self, style: &Style) -> io::Result<()> {
         self.buf.push(BufferedOutput::Style(style.clone()));
@@ -310,6 +313,7 @@ enum Chunk {
     Error(String),
 }
 
+#[cfg(not(feature = "async_fs"))]
 impl Chunk {
     fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
         match *self {
@@ -551,6 +555,7 @@ enum FormattedChunk {
     Mdc(String, String),
 }
 
+#[cfg(not(feature = "async_fs"))]
 impl FormattedChunk {
     fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
         match *self {
