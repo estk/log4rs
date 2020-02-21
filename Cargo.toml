@@ -31,6 +31,7 @@ ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
+async_rotation = []
 
 all_components = [
     "console_appender",
