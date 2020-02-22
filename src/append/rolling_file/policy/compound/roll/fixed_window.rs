@@ -193,6 +193,7 @@ where
     temp
 }
 
+// TODO(eas): compress to tmp file then move into place once prev task is done
 fn rotate(
     pattern: String,
     compression: Compression,
