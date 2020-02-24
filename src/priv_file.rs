@@ -125,6 +125,7 @@ enum Format {
     #[cfg(feature = "toml_format")]
     Toml,
     #[cfg(feature = "xml_format")]
+    #[deprecated(since = "0.11.0")]
     Xml,
 }
 

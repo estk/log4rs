@@ -330,6 +330,7 @@ impl error::Error for Error {
 
 /// A raw deserializable log4rs configuration for xml.
 #[cfg(feature = "xml_format")]
+#[deprecated(since = "0.11.0")]
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfigXml {
@@ -345,6 +346,7 @@ pub struct RawConfigXml {
 
 /// Loggers section wrapper for xml configuration
 #[cfg(feature = "xml_format")]
+#[deprecated(since = "0.11.0")]
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct LoggersXml {
@@ -353,6 +355,7 @@ pub struct LoggersXml {
 }
 
 #[cfg(feature = "xml_format")]
+#[deprecated(since = "0.11.0")]
 impl Default for LoggersXml {
     fn default() -> Self {
         Self { loggers: vec![] }
@@ -503,6 +506,7 @@ fn root_level_default() -> LevelFilter {
 
 /// logger struct for xml configuration
 #[cfg(feature = "xml_format")]
+#[deprecated(since = "0.11.0")]
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct LoggerXml {
