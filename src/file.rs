@@ -93,9 +93,12 @@ use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_derive::Deserialize;
 use serde_value::Value;
 use std::{
-    borrow::ToOwned, collections::HashMap, error, fmt, marker::PhantomData, sync::Arc,
+    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc,
     time::Duration,
 };
+
+use failure::{err_msg, Error, Fail};
+
 use typemap::{Key, ShareCloneMap};
 
 use crate::{
@@ -124,7 +127,7 @@ pub trait Deserialize: Send + Sync + 'static {
         &self,
         config: Self::Config,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>>;
+    ) -> Result<Box<Self::Trait>, Error>;
 }
 
 trait ErasedDeserialize: Send + Sync + 'static {
@@ -134,7 +137,7 @@ trait ErasedDeserialize: Send + Sync + 'static {
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>>;
+    ) -> Result<Box<Self::Trait>, Error>;
 }
 
 struct DeserializeEraser<T>(T);
@@ -149,7 +152,7 @@ where
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>> {
+    ) -> Result<Box<Self::Trait>, Error> {
         let config = config.deserialize_into()?;
         self.0.deserialize(config, deserializers)
     }
@@ -270,59 +273,30 @@ impl Deserializers {
     }
 
     /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(
-        &self,
-        kind: &str,
-        config: Value,
-    ) -> Result<Box<T>, Box<dyn error::Error + Sync + Send>>
+    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> Result<Box<T>, Error>
     where
         T: Deserializable,
     {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
-            None => Err(format!(
+            None => Err(err_msg(format!(
                 "no {} deserializer for kind `{}` registered",
                 T::name(),
                 kind
-            )
-            .into()),
+            ))),
         }
     }
 }
 
-/// An error deserializing a configuration into a log4rs `Config`.
-#[derive(Debug)]
-pub struct Error(ErrorKind, Box<dyn error::Error + Sync + Send>);
-
-#[derive(Debug)]
-enum ErrorKind {
-    Appender(String),
-    Filter(String),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            ErrorKind::Appender(ref name) => {
-                write!(fmt, "error deserializing appender {}: {}", name, self.1)
-            }
-            ErrorKind::Filter(ref name) => write!(
-                fmt,
-                "error deserializing filter attached to appender {}: {}",
-                name, self.1
-            ),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "error deserializing a log4rs `Config`"
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        Some(&*self.1)
-    }
+#[derive(Debug, Fail)]
+enum DeserializingConfigError {
+    #[fail(display = "error deserializing appender {}: {}", 0, 1)]
+    Appender(String, Error),
+    #[fail(
+        display = "error deserializing filter attached to appender {}: {}",
+        0, 1
+    )]
+    Filter(String, Error),
 }
 
 /// A raw deserializable log4rs configuration for xml.
@@ -409,12 +383,12 @@ impl RawConfig {
             for filter in &appender.filters {
                 match deserializers.deserialize(&filter.kind, filter.config.clone()) {
                     Ok(filter) => builder = builder.filter(filter),
-                    Err(e) => errors.push(Error(ErrorKind::Filter(name.clone()), e)),
+                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e).into()),
                 }
             }
             match deserializers.deserialize(&appender.kind, appender.config.clone()) {
                 Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
-                Err(e) => errors.push(Error(ErrorKind::Appender(name.clone()), e)),
+                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e).into()),
             }
         }
 

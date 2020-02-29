@@ -5,8 +5,6 @@
 use log::{LevelFilter, Record};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-#[cfg(feature = "file")]
-use std::error::Error;
 
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
@@ -65,7 +63,7 @@ impl Deserialize for ThresholdFilterDeserializer {
         &self,
         config: ThresholdFilterConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Filter>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Filter>, failure::Error> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }
