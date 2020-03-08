@@ -24,7 +24,9 @@ rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 compound_policy = []
 delete_roller = []
 fixed_window_roller = []
+time_based_roller = []
 size_trigger = []
+time_trigger = []
 json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde", "thread-id"]
 pattern_encoder = ["chrono", "log-mdc", "thread-id"]
 ansi_writer = []
@@ -40,7 +42,9 @@ all_components = [
     "compound_policy",
     "delete_roller",
     "fixed_window_roller",
+    "time_based_roller",
     "size_trigger",
+    "time_trigger",
     "json_encoder",
     "pattern_encoder",
     "threshold_filter"

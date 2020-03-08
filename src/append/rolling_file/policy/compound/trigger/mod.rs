@@ -9,6 +9,8 @@ use crate::file::Deserializable;
 
 #[cfg(feature = "size_trigger")]
 pub mod size;
+#[cfg(feature = "time_trigger")]
+pub mod time;
 
 /// A trait which identifies if the active log file should be rolled over.
 pub trait Trigger: fmt::Debug + Send + Sync + 'static {

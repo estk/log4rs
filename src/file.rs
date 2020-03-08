@@ -202,10 +202,22 @@ impl Default for Deserializers {
             append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer,
         );
 
+        #[cfg(feature = "time_based_roller")]
+        d.insert(
+            "time_based",
+            append::rolling_file::policy::compound::roll::time_based::TimeBasedRollerDeserializer,
+        );
+
         #[cfg(feature = "size_trigger")]
         d.insert(
             "size",
             append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
+        );
+
+        #[cfg(feature = "time_trigger")]
+        d.insert(
+            "time",
+            append::rolling_file::policy::compound::trigger::time::TimeTriggerDeserializer,
         );
 
         #[cfg(feature = "json_encoder")]

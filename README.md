@@ -22,6 +22,32 @@ appenders:
     path: "log/requests.log"
     encoder:
       pattern: "{d} - {m}{n}"
+    policy: compound
+    kind: 
+      trigger:
+        kind: time
+        fmt: "%Y-%m-%d"
+      roller:
+        kind: time_based
+        count: 2
+        fmt: "%Y-%m-%d"
+        scale: "date"
+        pattern: "log/request.log.{}"
+  backend:
+    kind: file
+    path: "log/backend.log"
+    encoder:
+      pattern: "{d} - {m}{n}"
+    policy: compound
+    kind: 
+      trigger:
+        kind: size
+        limit: 100m
+      roller:
+        kind: fixed_window
+        base: 0
+        count: 2
+        pattern: "log/backend.log.{}"
 root:
   level: warn
   appenders:
@@ -29,6 +55,8 @@ root:
 loggers:
   app::backend::db:
     level: info
+    appenders:
+      - backend
   app::requests:
     level: info
     appenders:
