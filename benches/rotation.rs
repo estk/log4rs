@@ -5,6 +5,7 @@ use std::{
 };
 
 use lazy_static::lazy_static;
+use tempfile::{tempdir, TempDir};
 
 const K: u64 = 1024;
 const M: u64 = K * K;
@@ -12,6 +13,7 @@ const FILE_SIZE: u64 = 100 * M;
 const FILE_COUNT: u32 = 10;
 
 lazy_static! {
+    static ref LOGDIR: TempDir = tempdir().unwrap();
     static ref HANDLE: log4rs::Handle =
         log4rs::init_config(mk_config(FILE_SIZE, FILE_COUNT)).unwrap();
     static ref MSG: String = "0".repeat(M as usize);
@@ -67,11 +69,13 @@ mod a {
 }
 
 fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
-    let logdir = tempfile::tempdir().unwrap();
-    let log_path = logdir.path();
+    let log_path = LOGDIR.path();
     let log_pattern = log_path.join("log.log");
-    touch(&log_pattern);
+
+    #[cfg(feature = "gzip")]
     let roll_pattern = format!("{}/{}", log_path.to_string_lossy(), "log.{}.gz");
+    #[cfg(not(feature = "gzip"))]
+    let roll_pattern = format!("{}/{}", log_path.to_string_lossy(), "log.{}");
 
     use log::LevelFilter;
     use log4rs::{
@@ -103,9 +107,9 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
         .unwrap()
 }
 fn touch(path: &Path) -> io::Result<()> {
-    use fs::OpenOptions;
-    match OpenOptions::new().create(true).write(true).open(path) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
+    fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(path)
+        .map(|_| ())
 }
