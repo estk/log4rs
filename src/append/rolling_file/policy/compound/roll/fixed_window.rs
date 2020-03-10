@@ -3,15 +3,16 @@
 //! Requires the `fixed_window_roller` feature.
 
 #[cfg(feature = "background_rotation")]
-use parking_lot::Mutex;
+use parking_lot::{Condvar, Mutex};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::error::Error;
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
+use std::{
+    error::Error,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
@@ -89,7 +90,7 @@ pub struct FixedWindowRoller {
     base: u32,
     count: u32,
     #[cfg(feature = "background_rotation")]
-    lock: Arc<Mutex<()>>,
+    cond_pair: Arc<(Mutex<bool>, Condvar)>,
 }
 
 impl FixedWindowRoller {
@@ -127,23 +128,31 @@ impl Roll for FixedWindowRoller {
         let temp = make_temp_file_name(file);
         move_file(file, &temp)?;
 
-        {
-            // wait for the previous call to end
-            let _lock = self.lock.lock();
+        // Wait for the state to be ready to roll
+        let &(ref lock, ref cvar) = &*self.cond_pair.clone();
+        let mut ready = lock.lock();
+        if !*ready {
+            cvar.wait(&mut ready);
         }
+        *ready = false;
+        drop(ready);
 
         let pattern = self.pattern.clone();
         let compression = self.compression.clone();
         let base = self.base;
         let count = self.count;
-        let lock = Arc::clone(&self.lock);
+        let cond_pair = self.cond_pair.clone();
         // rotate in the separate thread
         std::thread::spawn(move || {
-            let _lock = lock.lock();
+            let &(ref lock, ref cvar) = &*cond_pair;
+            let mut ready = lock.lock();
+
             if let Err(e) = rotate(pattern, compression, base, count, temp) {
                 use std::io::Write;
-                let _ = writeln!(io::stderr(), "log4rs: {}", e);
+                let _ = writeln!(io::stderr(), "log4rs, error rotating: {}", e);
             }
+            *ready = true;
+            cvar.notify_one();
         });
 
         Ok(())
@@ -184,6 +193,7 @@ where
     temp
 }
 
+// TODO(eas): compress to tmp file then move into place once prev task is done
 fn rotate(
     pattern: String,
     compression: Compression,
@@ -217,7 +227,10 @@ fn rotate(
         move_file(&src, &dst)?;
     }
 
-    compression.compress(&file, &dst_0)?;
+    compression.compress(&file, &dst_0).map_err(|e| {
+        println!("err compressing: {:?}, dst: {:?}", file, dst_0);
+        e
+    })?;
     Ok(())
 }
 
@@ -269,7 +282,7 @@ impl FixedWindowRollerBuilder {
             base: self.base,
             count,
             #[cfg(feature = "background_rotation")]
-            lock: Arc::new(Mutex::new(())),
+            cond_pair: Arc::new((Mutex::new(true), Condvar::new())),
         })
     }
 }
@@ -319,10 +332,11 @@ impl Deserialize for FixedWindowRollerDeserializer {
 
 #[cfg(test)]
 mod test {
-    use std::fs::File;
-    use std::io::{Read, Write};
-    use std::process::Command;
-    use tempdir::TempDir;
+    use std::{
+        fs::File,
+        io::{Read, Write},
+        process::Command,
+    };
 
     use super::*;
     use crate::append::rolling_file::policy::compound::roll::Roll;
@@ -330,7 +344,7 @@ mod test {
     #[cfg(feature = "background_rotation")]
     fn wait_for_roller(roller: &FixedWindowRoller) {
         std::thread::sleep(std::time::Duration::from_millis(100));
-        let _lock = roller.lock.lock();
+        let _lock = roller.cond_pair.0.lock();
     }
 
     #[cfg(not(feature = "background_rotation"))]
@@ -338,7 +352,7 @@ mod test {
 
     #[test]
     fn rotation() {
-        let dir = TempDir::new("rotation").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().to_str().unwrap();
         let roller = FixedWindowRoller::builder()
@@ -398,7 +412,7 @@ mod test {
 
     #[test]
     fn rotation_no_trivial_base() {
-        let dir = TempDir::new("rotation_no_trivial_base").unwrap();
+        let dir = tempfile::tempdir().unwrap();
         let base = 3;
         let fname = "foo.log";
         let fcontent = b"something";
@@ -443,7 +457,7 @@ mod test {
 
     #[test]
     fn create_archive_unvaried() {
-        let dir = TempDir::new("create_archive_unvaried").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("foo.{}.log");
@@ -471,7 +485,7 @@ mod test {
 
     #[test]
     fn create_archive_varied() {
-        let dir = TempDir::new("create_archive_unvaried").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("{}").join("foo.log");
@@ -500,7 +514,7 @@ mod test {
     #[test]
     #[cfg_attr(feature = "gzip", ignore)]
     fn unsupported_gzip() {
-        let dir = TempDir::new("unsupported_gzip").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.gz");
         assert!(FixedWindowRoller::builder()
@@ -513,7 +527,7 @@ mod test {
     // or should we force windows user to install gunzip
     #[cfg(not(windows))]
     fn supported_gzip() {
-        let dir = TempDir::new("supported_gzip").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.gz");
         let roller = FixedWindowRoller::builder()

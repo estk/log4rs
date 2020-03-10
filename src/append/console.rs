@@ -5,20 +5,29 @@
 use log::Record;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::error::Error;
-use std::fmt;
-use std::io::{self, Write};
+use std::{
+    error::Error,
+    fmt,
+    io::{self, Write},
+};
 
-use crate::append::Append;
-use crate::encode::pattern::PatternEncoder;
-use crate::encode::writer::console::{ConsoleWriter, ConsoleWriterLock};
-use crate::encode::writer::simple::SimpleWriter;
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
-use crate::encode::{self, Encode, Style};
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
-use crate::priv_io::{StdWriter, StdWriterLock};
+use crate::{
+    append::Append,
+    encode::{
+        self,
+        pattern::PatternEncoder,
+        writer::{
+            console::{ConsoleWriter, ConsoleWriterLock},
+            simple::SimpleWriter,
+        },
+        Encode, Style,
+    },
+    priv_io::{StdWriter, StdWriterLock},
+};
 
 /// The console appender's configuration.
 #[cfg(feature = "file")]

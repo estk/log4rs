@@ -24,19 +24,22 @@ use serde_derive::Deserialize;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::error::Error;
-use std::fmt;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::{
+    error::Error,
+    fmt,
+    fs::{self, File, OpenOptions},
+    io::{self, BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
-use crate::append::Append;
-use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
-use crate::encode::{self, Encode};
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
+use crate::{
+    append::Append,
+    encode::{self, pattern::PatternEncoder, Encode},
+};
 
 pub mod policy;
 
@@ -167,6 +170,7 @@ impl fmt::Debug for RollingFileAppender {
 
 impl Append for RollingFileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+        // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
         let len = {
@@ -182,6 +186,8 @@ impl Append for RollingFileAppender {
             len,
         };
 
+        // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
+        // data that comes in while we are processing the file rotation.
         self.policy.process(&mut file)
     }
 
@@ -338,10 +344,11 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
-    use std::error::Error;
-    use std::fs::File;
-    use std::io::{Read, Write};
-    use tempdir::TempDir;
+    use std::{
+        error::Error,
+        fs::File,
+        io::{Read, Write},
+    };
 
     use super::*;
     use crate::append::rolling_file::policy::Policy;
@@ -351,7 +358,7 @@ mod test {
     fn deserialize() {
         use crate::file::{Deserializers, RawConfig};
 
-        let dir = TempDir::new("deserialize").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let config = format!(
             "
@@ -399,7 +406,7 @@ appenders:
 
     #[test]
     fn append() {
-        let dir = TempDir::new("rolling-file-append").unwrap();
+        let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
         RollingFileAppender::builder()
             .append(true)
@@ -422,7 +429,7 @@ appenders:
 
     #[test]
     fn truncate() {
-        let dir = TempDir::new("rolling-file-truncate").unwrap();
+        let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("truncate.log");
         RollingFileAppender::builder()
             .append(false)

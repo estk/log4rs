@@ -4,9 +4,7 @@
 
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::error::Error;
-use std::fs;
-use std::path::Path;
+use std::{error::Error, fs, path::Path};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]

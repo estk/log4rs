@@ -3,8 +3,7 @@
 //! Requires the `simple_writer` feature.
 
 use crate::encode;
-use std::fmt;
-use std::io;
+use std::{fmt, io};
 
 /// An `encode::Write`r that simply delegates to an `io::Write`r and relies
 /// on the default implementations of `encode::Write`r methods.

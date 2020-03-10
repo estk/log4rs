@@ -34,10 +34,7 @@ use serde::ser::{self, Serialize, SerializeMap};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use std::error::Error;
-use std::fmt;
-use std::option;
-use std::thread;
+use std::{error::Error, fmt, option, thread};
 
 use crate::encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
