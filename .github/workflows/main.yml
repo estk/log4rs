@@ -88,9 +88,6 @@ jobs:
           rustup toolchain install --no-self-update stable
           rustup default stable
 
-      - name: Rotation without compression
-        run: cargo bench rotation
-
       - name: Rotation with compression
         run: "! cargo bench  --features gzip"
 
