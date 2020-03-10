@@ -9,7 +9,22 @@
 log4rs is a highly configurable logging framework modeled after Java's Logback
 and log4j libraries.
 
-[Documentation](https://docs.rs/log4rs)
+### Warning
+
+If you are using the file rotation in your configuration there is a known substancial performance issue so listen up!
+By default the `gzip` feature is enabled and when rolling files it will zip log archives automatically. This is a problem
+when the log archives are large as the zip happens in the main thread and will halt the process while the zip is completed.
+Be advised that the `gzip` feature will be removed from default features as of `1.0`.
+
+The methods to mitigate this are as follows.
+
+1. Use the `background_rotation` feature which spawns an os thread to do the compression.
+1. Disable the `gzip` feature with `--no-default-features`.
+1. Ensure the archives are small enough that the compression time is acceptable.
+
+For more information see the PR that added (`background_rotation`)[https://github.com/estk/log4rs/pull/117].
+
+## Quickstart
 
 log4rs.yaml:
 ```yaml
