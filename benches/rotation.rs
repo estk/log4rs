@@ -1,5 +1,3 @@
-#![feature(duration_constants)]
-
 use std::{
     fs, io,
     path::Path,
