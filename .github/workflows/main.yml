@@ -50,7 +50,7 @@ jobs:
       - name: Build lib
         run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
 
-      - name: Test lib
+      - name: test lib
         run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
 
   features:
@@ -72,3 +72,24 @@ jobs:
             echo building with feature "$feature"
             cargo test --no-default-features --features "$feature"
           done
+
+  bench:
+    name: Test Individual Features
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust_versions: ["stable", "1.38.0"]
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@master
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install --no-self-update stable
+          rustup default stable
+
+      - name: bench lib
+        run: ! cargo bench  --features gzip
+
+      - name: bench lib
+        run: cargo bench  --features gzip,background_rotation

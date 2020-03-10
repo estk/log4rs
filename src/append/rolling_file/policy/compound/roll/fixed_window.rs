@@ -149,7 +149,7 @@ impl Roll for FixedWindowRoller {
 
             if let Err(e) = rotate(pattern, compression, base, count, temp) {
                 use std::io::Write;
-                let _ = writeln!(io::stderr(), "log4rs: {}", e);
+                let _ = writeln!(io::stderr(), "log4rs, error rotating: {}", e);
             }
             *ready = true;
             cvar.notify_one();

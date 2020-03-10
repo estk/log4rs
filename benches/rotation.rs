@@ -1,6 +1,10 @@
 #![feature(duration_constants)]
 
-use std::time::{Duration, Instant};
+use std::{
+    fs, io,
+    path::Path,
+    time::{Duration, Instant},
+};
 
 use lazy_static::lazy_static;
 
@@ -68,6 +72,7 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
     let logdir = tempfile::tempdir().unwrap();
     let log_path = logdir.path();
     let log_pattern = log_path.join("log.log");
+    touch(&log_pattern);
     let roll_pattern = format!("{}/{}", log_path.to_string_lossy(), "log.{}.gz");
 
     use log::LevelFilter;
@@ -98,4 +103,11 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
         )
         .build(Root::builder().appender("file").build(LevelFilter::Info))
         .unwrap()
+}
+fn touch(path: &Path) -> io::Result<()> {
+    use fs::OpenOptions;
+    match OpenOptions::new().create(true).write(true).open(path) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
