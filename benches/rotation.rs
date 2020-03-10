@@ -36,6 +36,7 @@ fn bench_find_anomalies() {
         let dur = now.elapsed();
 
         if i > 100
+            && dur.as_millis() > 10
             && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 50_f64)).round() as u64
         {
             anomalies.push(dur);
