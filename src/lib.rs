@@ -184,20 +184,14 @@
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
-use std::cmp;
-use std::collections::HashMap;
-use std::error;
-use std::hash::BuildHasherDefault;
-use std::io;
-use std::io::prelude::*;
-use std::sync::Arc;
+use std::{
+    cmp, collections::HashMap, error, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
+};
 
 #[cfg(feature = "file")]
 pub use crate::priv_file::{init_file, load_config_file, Error};
 
-use crate::append::Append;
-use crate::config::Config;
-use crate::filter::Filter;
+use crate::{append::Append, config::Config, filter::Filter};
 
 pub mod append;
 pub mod config;

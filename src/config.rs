@@ -1,14 +1,9 @@
 //! log4rs configuration
 
 use log::LevelFilter;
-use std::collections::HashSet;
-use std::error;
-use std::fmt;
-use std::iter::IntoIterator;
+use std::{collections::HashSet, error, fmt, iter::IntoIterator};
 
-use crate::append::Append;
-use crate::filter::Filter;
-use crate::{ConfigPrivateExt, PrivateConfigAppenderExt};
+use crate::{append::Append, filter::Filter, ConfigPrivateExt, PrivateConfigAppenderExt};
 
 /// Configuration for the root logger.
 #[derive(Debug)]

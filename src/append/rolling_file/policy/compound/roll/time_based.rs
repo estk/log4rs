@@ -377,7 +377,6 @@ mod test {
     use std::fs::File;
     use std::io::{Read, Write};
     use std::process::Command;
-    use tempdir::TempDir;
 
     use super::*;
     use crate::append::rolling_file::policy::compound::roll::Roll;
@@ -396,7 +395,7 @@ mod test {
 
     #[test]
     fn rotation() {
-        let dir = TempDir::new("rotation").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("foo.log");
         let roller = TimeBasedRoller::builder()
@@ -458,7 +457,7 @@ mod test {
 
     #[test]
     fn create_archive_unvaried() {
-        let dir = TempDir::new("create_archive_unvaried").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("foo.{}.log");
@@ -488,7 +487,7 @@ mod test {
 
     #[test]
     fn create_archive_varied() {
-        let dir = TempDir::new("create_archive_unvaried").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("{}").join("foo.log");
@@ -529,7 +528,7 @@ mod test {
     #[test]
     #[cfg_attr(feature = "gzip", ignore)]
     fn unsupported_gzip() {
-        let dir = TempDir::new("unsupported_gzip").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.gz");
         assert!(TimeBasedRoller::builder()
@@ -542,7 +541,7 @@ mod test {
     // or should we force windows user to install gunzip
     #[cfg(not(windows))]
     fn supported_gzip() {
-        let dir = TempDir::new("supported_gzip").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.gz");
         let roller = TimeBasedRoller::builder()

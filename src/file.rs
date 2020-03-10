@@ -92,19 +92,16 @@ use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_derive::Deserialize;
 use serde_value::Value;
-use std::borrow::ToOwned;
-use std::collections::HashMap;
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    borrow::ToOwned, collections::HashMap, error, fmt, marker::PhantomData, sync::Arc,
+    time::Duration,
+};
 use typemap::{Key, ShareCloneMap};
 
-use crate::append::{self, AppenderConfig};
-use crate::config;
-use crate::encode;
-use crate::filter;
+use crate::{
+    append::{self, AppenderConfig},
+    config, encode, filter,
+};
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: 'static {

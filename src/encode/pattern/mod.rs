@@ -122,15 +122,13 @@ use chrono::{Local, Utc};
 use log::{Level, Record};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::default::Default;
-use std::error::Error;
-use std::fmt;
-use std::io;
-use std::process;
-use std::thread;
+use std::{default::Default, error::Error, fmt, io, process, thread};
 
-use crate::encode::pattern::parser::{Alignment, Parameters, Parser, Piece};
-use crate::encode::{self, Color, Encode, Style, NEWLINE};
+use crate::encode::{
+    self,
+    pattern::parser::{Alignment, Parameters, Parser, Piece},
+    Color, Encode, Style, NEWLINE,
+};
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 

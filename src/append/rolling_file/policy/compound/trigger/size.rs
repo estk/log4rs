@@ -10,8 +10,7 @@ use std::error::Error;
 #[cfg(feature = "file")]
 use std::fmt;
 
-use crate::append::rolling_file::policy::compound::trigger::Trigger;
-use crate::append::rolling_file::LogFile;
+use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 

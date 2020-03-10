@@ -7,9 +7,7 @@ use serde::de;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::error::Error;
-use std::fmt;
-use std::io;
+use std::{error::Error, fmt, io};
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;

@@ -2,8 +2,7 @@
 //!
 //! Requires the `console_writer` feature.
 
-use std::fmt;
-use std::io;
+use std::{fmt, io};
 
 use crate::encode::{self, Style};
 
@@ -86,12 +85,12 @@ impl<'a> encode::Write for ConsoleWriterLock<'a> {
 
 #[cfg(unix)]
 mod imp {
-    use std::fmt;
-    use std::io;
+    use std::{fmt, io};
 
-    use crate::encode::writer::ansi::AnsiWriter;
-    use crate::encode::{self, Style};
-    use crate::priv_io::{StdWriter, StdWriterLock};
+    use crate::{
+        encode::{self, writer::ansi::AnsiWriter, Style},
+        priv_io::{StdWriter, StdWriterLock},
+    };
 
     pub struct Writer(AnsiWriter<StdWriter>);
 
@@ -170,14 +169,20 @@ mod imp {
 
 #[cfg(windows)]
 mod imp {
-    use std::fmt;
-    use std::io::{self, Write};
-    use std::mem;
-    use winapi::shared::minwindef;
-    use winapi::um::{handleapi, processenv, winbase, wincon, winnt};
+    use std::{
+        fmt,
+        io::{self, Write},
+        mem,
+    };
+    use winapi::{
+        shared::minwindef,
+        um::{handleapi, processenv, winbase, wincon, winnt},
+    };
 
-    use crate::encode::{self, Color, Style};
-    use crate::priv_io::{StdWriter, StdWriterLock};
+    use crate::{
+        encode::{self, Color, Style},
+        priv_io::{StdWriter, StdWriterLock},
+    };
 
     struct RawConsole {
         handle: winnt::HANDLE,
@@ -362,8 +367,7 @@ mod test {
     use std::io::Write;
 
     use super::*;
-    use crate::encode::Write as EncodeWrite;
-    use crate::encode::{Color, Style};
+    use crate::encode::{Color, Style, Write as EncodeWrite};
 
     #[test]
     fn basic() {

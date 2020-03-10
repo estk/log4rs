@@ -52,6 +52,10 @@ all_components = [
 
 gzip = ["flate2"]
 
+[[bench]]
+name = "rotation"
+harness = false
+
 [dependencies]
 arc-swap = "0.4"
 chrono = { version = "0.4", optional = true }
@@ -78,7 +82,10 @@ winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef
 libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
-tempdir = "0.3"
+lazy_static = "1.4"
+streaming-stats = "0.2.3"
+humantime = "1.0.0"
+tempfile = "3.1.0"
 
 [[example]]
 name = "json_logger"

@@ -12,9 +12,10 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use crate::append::rolling_file::policy::compound::roll::Roll;
-use crate::append::rolling_file::policy::Policy;
-use crate::append::rolling_file::LogFile;
+use crate::append::rolling_file::{
+    policy::{compound::roll::Roll, Policy},
+    LogFile,
+};
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 
