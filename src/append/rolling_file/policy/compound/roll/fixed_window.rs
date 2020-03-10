@@ -250,13 +250,13 @@ impl FixedWindowRollerBuilder {
 
     /// Constructs a new `FixedWindowRoller`.
     ///
-    /// `pattern` must contain at least one instance of `{}`, all of which will
-    /// be replaced with an archived log file's index.
-    ///
-    /// Note that the pattern is the full path to roll archived logs to.
+    /// `pattern` is either an absolute path or lacking a leading `/`, relative
+    /// to the `cwd` of your application. The pattern must contain at least one
+    /// instance of `{}`, all of which will be replaced with an archived log file's index.
     ///
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
+    /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
     pub fn build(
         self,
         pattern: &str,
@@ -294,8 +294,9 @@ impl FixedWindowRollerBuilder {
 /// ```yaml
 /// kind: fixed_window
 ///
-/// # The filename pattern for archived logs. Must contain at least one `{}`.
-/// # Note that the pattern is the full path to roll archived logs to.
+/// # The filename pattern for archived logs. This is either an absolute path or if lacking a leading `/`,
+/// # relative to the `cwd` of your application. The pattern must contain at least one
+/// # instance of `{}`, all of which will be replaced with an archived log file's index.
 /// # If the file extension of the pattern is `.gz` and the `gzip` Cargo feature
 /// # is enabled, the archive files will be gzip-compressed.
 /// # Required.
