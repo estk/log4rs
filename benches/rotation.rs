@@ -39,10 +39,20 @@ fn bench_find_anomalies() {
         a::write_log();
         let dur = now.elapsed();
 
-        if i > 100
-            && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 10_f64)).round() as u64
-        {
-            anomalies.push(dur);
+        cfg_if::cfg_if! {
+            if #[cfg(not(feature = "background_rotation"), not(feature = "gzip"))] {
+                if i > 100 && dur.as_millis() > 10
+                    && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 10_f64)).round() as u64
+                {
+                    anomalies.push(dur);
+                }
+            } else {
+                if i > 100
+                    && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 10_f64)).round() as u64
+                {
+                    anomalies.push(dur);
+                }
+            }
         }
 
         online.add(dur.as_micros());
