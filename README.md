@@ -26,7 +26,7 @@ appenders:
     kind: 
       trigger:
         kind: time
-        fmt: "%Y-%m-%d"
+        unit: day
       roller:
         kind: time_based
         count: 2

@@ -13,9 +13,10 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 
-use chrono::{Local, NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
+use crate::append::rolling_file::policy::compound::now_string;
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 
@@ -172,34 +173,6 @@ where
 
     // fall back to a copy and delete if src and dst are on different mounts
     fs::copy(src.as_ref(), dst.as_ref()).and_then(|_| fs::remove_file(src.as_ref()))
-}
-
-#[cfg(not(test))]
-fn now_string(fmt: &str) -> String {
-    Local::now().format(fmt).to_string()
-}
-
-#[cfg(test)]
-use std::cell::RefCell;
-
-#[cfg(test)]
-thread_local! {
-    static MOCK_TIME_STR: RefCell<Option<String>> = RefCell::new(None);
-}
-
-#[cfg(test)]
-pub fn now_string(_fmt: &str) -> String {
-    MOCK_TIME_STR.with(|cell| {
-        cell.borrow()
-            .as_ref()
-            .cloned()
-            .unwrap_or("2020-03-08".to_owned())
-    })
-}
-
-#[cfg(test)]
-pub fn set_mock_time(time: &str) {
-    MOCK_TIME_STR.with(|cell| *cell.borrow_mut() = Some(time.to_owned()));
 }
 
 #[cfg(feature = "background_rotation")]
@@ -429,6 +402,7 @@ mod test {
 
     use super::*;
     use crate::append::rolling_file::policy::compound::roll::Roll;
+    use crate::append::rolling_file::policy::compound::set_mock_time;
 
     static TIME_FMT: &str = "%Y-%m-%d";
 
@@ -446,7 +420,7 @@ mod test {
         let dir = TempDir::new("rotation").unwrap();
 
         let pattern = dir.path().join("foo.log");
-        let mut roller = TimeBasedRoller::builder()
+        let roller = TimeBasedRoller::builder()
             .build(
                 &format!("{}.{{}}", pattern.to_str().unwrap()),
                 2,
@@ -514,7 +488,7 @@ mod test {
 
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("foo.{}.log");
-        let mut roller = TimeBasedRoller::builder()
+        let roller = TimeBasedRoller::builder()
             .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
             .unwrap();
 
@@ -544,7 +518,7 @@ mod test {
 
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("{}").join("foo.log");
-        let mut roller = TimeBasedRoller::builder()
+        let roller = TimeBasedRoller::builder()
             .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
             .unwrap();
 
@@ -597,7 +571,7 @@ mod test {
         let dir = TempDir::new("supported_gzip").unwrap();
 
         let pattern = dir.path().join("{}.gz");
-        let mut roller = TimeBasedRoller::builder()
+        let roller = TimeBasedRoller::builder()
             .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
             .unwrap();
 

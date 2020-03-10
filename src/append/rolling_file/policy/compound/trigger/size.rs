@@ -117,8 +117,8 @@ impl SizeTrigger {
 }
 
 impl Trigger for SizeTrigger {
-    fn trigger(&self, file: &LogFile) -> Result<bool, Box<dyn Error + Sync + Send>> {
-        Ok(file.len_estimate() > self.limit)
+    fn trigger(&self, file: Option<&LogFile>) -> Result<bool, Box<dyn Error + Sync + Send>> {
+        Ok(file.expect("LogFile missing").len_estimate() > self.limit)
     }
 }
 

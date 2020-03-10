@@ -2,7 +2,6 @@
 //!
 //! Requires the `time_trigger` feature.
 
-use chrono::Local;
 #[cfg(feature = "file")]
 use serde::de;
 #[cfg(feature = "file")]
@@ -12,6 +11,7 @@ use std::error::Error;
 use std::fmt;
 use std::sync::RwLock;
 
+use crate::append::rolling_file::policy::compound::now_string;
 use crate::append::rolling_file::policy::compound::trigger::Trigger;
 use crate::append::rolling_file::LogFile;
 
@@ -23,12 +23,12 @@ use crate::file::{Deserialize, Deserializers};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TimeTriggerConfig {
-    #[serde(deserialize_with = "deserialize_fmt")]
-    fmt: String,
+    #[serde(deserialize_with = "deserialize_unit")]
+    unit: String,
 }
 
 #[cfg(feature = "file")]
-fn deserialize_fmt<'de, D>(d: D) -> Result<String, D::Error>
+fn deserialize_unit<'de, D>(d: D) -> Result<String, D::Error>
 where
     D: de::Deserializer<'de>,
 {
@@ -37,15 +37,26 @@ where
     impl<'de2> de::Visitor<'de2> for V {
         type Value = String;
 
-        fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-            fmt.write_str("a time format")
+        fn expecting(&self, unit: &mut fmt::Formatter) -> fmt::Result {
+            unit.write_str("a time unit")
         }
 
         fn visit_str<E>(self, v: &str) -> Result<String, E>
         where
             E: de::Error,
         {
-            Ok(v.to_owned())
+            match v {
+                "year" => Ok("%Y".to_owned()),
+                "month" => Ok("%Y%m".to_owned()),
+                "day" => Ok("%Y%m%d".to_owned()),
+                "hour" => Ok("%Y%m%d%H".to_owned()),
+                "minute" => Ok("%Y%m%d%H%M".to_owned()),
+                "second" => Ok("%Y%m%d%H%M%S".to_owned()),
+                _ => Err(E::invalid_value(
+                    de::Unexpected::Str(v),
+                    &"invalid unit, should be one of year, month, day, hour, minute, second",
+                )),
+            }
         }
     }
 
@@ -65,14 +76,14 @@ impl TimeTrigger {
     pub fn new(fmt: &str) -> TimeTrigger {
         TimeTrigger {
             fmt: fmt.to_owned(),
-            time_string: RwLock::new(Local::now().format(fmt).to_string()),
+            time_string: RwLock::new(now_string(fmt)),
         }
     }
 }
 
 impl Trigger for TimeTrigger {
-    fn trigger(&self, _file: &LogFile) -> Result<bool, Box<dyn Error + Sync + Send>> {
-        let now_string = Local::now().format(&self.fmt).to_string().to_owned();
+    fn trigger(&self, _file: Option<&LogFile>) -> Result<bool, Box<dyn Error + Sync + Send>> {
+        let now_string = now_string(&self.fmt);
         let mut time_string = self.time_string.write().unwrap();
         let is_trigger = *time_string != now_string;
         *time_string = now_string;
@@ -87,8 +98,8 @@ impl Trigger for TimeTrigger {
 /// ```yaml
 /// kind: time
 ///
-/// The valid chrono time format are supported.
-/// fmt: yyyy-MM-dd
+/// The valid time unit are supported.
+/// unit: year, month, day, hour, minute
 /// ```
 #[cfg(feature = "file")]
 pub struct TimeTriggerDeserializer;
@@ -104,6 +115,21 @@ impl Deserialize for TimeTriggerDeserializer {
         config: TimeTriggerConfig,
         _: &Deserializers,
     ) -> Result<Box<dyn Trigger>, Box<dyn Error + Sync + Send>> {
-        Ok(Box::new(TimeTrigger::new(&config.fmt)))
+        Ok(Box::new(TimeTrigger::new(&config.unit)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::append::rolling_file::policy::compound::set_mock_time;
+
+    #[test]
+    fn trigger() {
+        set_mock_time("2020-03-07");
+        let trigger = TimeTrigger::new("%Y%m%d");
+        assert_eq!(false, trigger.trigger(Option::None).unwrap());
+        set_mock_time("2020-03-08");
+        assert_eq!(true, trigger.trigger(Option::None).unwrap());
     }
 }

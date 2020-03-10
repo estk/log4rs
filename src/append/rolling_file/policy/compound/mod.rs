@@ -1,6 +1,7 @@
 //! The compound rolling policy.
 //!
 //! Requires the `compound_policy` feature.
+use chrono::{DateTime, Local, TimeZone};
 #[cfg(feature = "file")]
 use serde::{self, de};
 #[cfg(feature = "file")]
@@ -101,7 +102,7 @@ impl CompoundPolicy {
 
 impl Policy for CompoundPolicy {
     fn process(&self, log: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
-        if self.trigger.trigger(log)? {
+        if self.trigger.trigger(Some(log))? {
             log.roll();
             self.roller.roll(log.path())?;
         }
@@ -153,4 +154,32 @@ impl Deserialize for CompoundPolicyDeserializer {
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))
     }
+}
+
+#[cfg(not(test))]
+fn now_string(fmt: &str) -> String {
+    Local::now().format(fmt).to_string()
+}
+
+#[cfg(test)]
+use std::cell::RefCell;
+
+#[cfg(test)]
+thread_local! {
+    static MOCK_TIME_STR: RefCell<Option<String>> = RefCell::new(None);
+}
+
+#[cfg(test)]
+fn now_string(_fmt: &str) -> String {
+    MOCK_TIME_STR.with(|cell| {
+        cell.borrow()
+            .as_ref()
+            .cloned()
+            .unwrap_or("not set".to_owned())
+    })
+}
+
+#[cfg(test)]
+fn set_mock_time(time: &str) {
+    MOCK_TIME_STR.with(|cell| *cell.borrow_mut() = Some(time.to_owned()));
 }
