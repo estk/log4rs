@@ -1,6 +1,4 @@
 use std::{
-    fs, io,
-    path::Path,
     time::{Duration, Instant},
 };
 
@@ -40,7 +38,7 @@ fn bench_find_anomalies() {
         let dur = now.elapsed();
 
         if i > 100
-            && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 10_f64)).round() as u64
+            && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 20_f64)).round() as u64
         {
             anomalies.push(dur);
         }
@@ -56,7 +54,7 @@ fn bench_find_anomalies() {
         let max = format_duration(Duration::from_micros(*mm.max().unwrap() as u64));
         println!("min: {}\nmax: {}", min, max);
         let median = format_duration(Duration::from_micros(samples.median().unwrap() as u64));
-        println!("median: {}", median);
+        println!("mean: {} median: {}", online.mean(), median);
         println!("anomalies: {:?}", anomalies);
     }
     assert!(anomalies.is_empty(), "There should be no log anomalies");
