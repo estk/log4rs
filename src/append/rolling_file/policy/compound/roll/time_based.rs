@@ -102,19 +102,12 @@ impl Roll for TimeBasedRoller {
             return fs::remove_file(file).map_err(Into::into);
         }
 
-        let now_string: String;
-        if let Some(time) = &self.mock_time {
-            now_string = time.to_owned();
-        } else {
-            now_string = Local::now().format(&self.fmt).to_string();
-        }
-
         rotate(
             self.pattern.clone(),
             self.compression.clone(),
             self.count as usize,
             self.fmt.clone(),
-            now_string,
+            now_string(&self.fmt),
             self.scale.clone(),
             file.to_path_buf(),
         )?;
@@ -137,19 +130,13 @@ impl Roll for TimeBasedRoller {
             let _lock = self.lock.lock();
         }
 
-        let now_string: String;
-        if let Some(time) = &self.mock_time {
-            now_string = time.to_owned();
-        } else {
-            now_string = Local::now().format(&self.fmt).to_string();
-        }
-
         let pattern = self.pattern.clone();
         let compression = self.compression.clone();
         let count = self.count;
         let lock = Arc::clone(&self.lock);
         let scale = self.scale.clone();
         let fmt = self.fmt.clone();
+        let now_string = now_string(&self.fmt);
         // rotate in the separate thread
         std::thread::spawn(move || {
             let _lock = lock.lock();
@@ -185,6 +172,34 @@ where
 
     // fall back to a copy and delete if src and dst are on different mounts
     fs::copy(src.as_ref(), dst.as_ref()).and_then(|_| fs::remove_file(src.as_ref()))
+}
+
+#[cfg(not(test))]
+fn now_string(fmt: &str) -> String {
+    Local::now().format(fmt).to_string()
+}
+
+#[cfg(test)]
+use std::cell::RefCell;
+
+#[cfg(test)]
+thread_local! {
+    static MOCK_TIME_STR: RefCell<Option<String>> = RefCell::new(None);
+}
+
+#[cfg(test)]
+pub fn now_string(_fmt: &str) -> String {
+    MOCK_TIME_STR.with(|cell| {
+        cell.borrow()
+            .as_ref()
+            .cloned()
+            .unwrap_or("2020-03-08".to_owned())
+    })
+}
+
+#[cfg(test)]
+pub fn set_mock_time(time: &str) {
+    MOCK_TIME_STR.with(|cell| *cell.borrow_mut() = Some(time.to_owned()));
 }
 
 #[cfg(feature = "background_rotation")]
@@ -439,8 +454,7 @@ mod test {
                 "date",
             )
             .unwrap();
-        roller.mock_time = Some("2020-03-07".to_owned());
-
+        set_mock_time("2020-03-07");
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(b"file1").unwrap();
 
@@ -456,7 +470,7 @@ mod test {
 
         File::create(&file).unwrap().write_all(b"file2").unwrap();
 
-        roller.mock_time = Some("2020-03-08".to_owned());
+        set_mock_time("2020-03-08");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
         assert!(!file.exists());
@@ -475,7 +489,7 @@ mod test {
 
         File::create(&file).unwrap().write_all(b"file3").unwrap();
 
-        roller.mock_time = Some("2020-03-09".to_owned());
+        set_mock_time("2020-03-09");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
         assert!(!file.exists());
@@ -507,7 +521,7 @@ mod test {
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(b"file").unwrap();
 
-        roller.mock_time = Some("2020-03-07".to_owned());
+        set_mock_time("2020-03-07");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
 
@@ -516,7 +530,7 @@ mod test {
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(b"file2").unwrap();
 
-        roller.mock_time = Some("2020-03-08".to_owned());
+        set_mock_time("2020-03-08");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
 
@@ -537,7 +551,7 @@ mod test {
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(b"file").unwrap();
 
-        roller.mock_time = Some("2020-03-07".to_owned());
+        set_mock_time("2020-03-07");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
 
@@ -546,7 +560,7 @@ mod test {
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(b"file2").unwrap();
 
-        roller.mock_time = Some("2020-03-08".to_owned());
+        set_mock_time("2020-03-08");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
 
@@ -556,7 +570,7 @@ mod test {
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(b"file3").unwrap();
 
-        roller.mock_time = Some("2020-03-09".to_owned());
+        set_mock_time("2020-03-09");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
 
@@ -592,7 +606,7 @@ mod test {
         let file = dir.path().join("foo.log");
         File::create(&file).unwrap().write_all(&contents).unwrap();
 
-        roller.mock_time = Some("2020-03-09".to_owned());
+        set_mock_time("2020-03-09");
         roller.roll(&file).unwrap();
         wait_for_roller(&roller);
 
