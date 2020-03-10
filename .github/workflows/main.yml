@@ -74,7 +74,7 @@ jobs:
           done
 
   bench:
-    name: Test Individual Features
+    name: Benchmark the background_rotation feature
     runs-on: ubuntu-latest
     strategy:
       matrix:
