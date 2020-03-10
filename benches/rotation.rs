@@ -36,7 +36,7 @@ fn bench_find_anomalies() {
         let dur = now.elapsed();
 
         if i > 100
-            && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 20_f64)).round() as u64
+            && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 50_f64)).round() as u64
         {
             anomalies.push(dur);
         }
@@ -46,13 +46,15 @@ fn bench_find_anomalies() {
         mm.add(dur.as_micros());
     }
 
-    if !anomalies.is_empty() {
         use humantime::format_duration;
         let min = format_duration(Duration::from_micros(*mm.min().unwrap() as u64));
         let max = format_duration(Duration::from_micros(*mm.max().unwrap() as u64));
-        println!("min: {}\nmax: {}", min, max);
+        println!("min: {}\nmax: {}", min, mx);
+
         let median = format_duration(Duration::from_micros(samples.median().unwrap() as u64));
         println!("mean: {} median: {}", online.mean(), median);
+        println!("standard deviation: {}", online.stddev());
+    if !anomalies.is_empty() {
         println!("anomalies: {:?}", anomalies);
     }
     assert!(anomalies.is_empty(), "There should be no log anomalies");

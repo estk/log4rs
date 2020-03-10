@@ -78,7 +78,6 @@ winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef
 libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
-criterion = "0.3"
 lazy_static = "1.4"
 streaming-stats = "0.2.3"
 humantime = "1.0.0"
