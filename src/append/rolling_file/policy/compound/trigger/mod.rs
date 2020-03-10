@@ -1,8 +1,8 @@
 //! Triggers
 
 use std::error::Error;
-use std::option::Option;
 use std::fmt;
+use std::option::Option;
 
 use crate::append::rolling_file::LogFile;
 #[cfg(feature = "file")]

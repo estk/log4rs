@@ -31,7 +31,6 @@ appenders:
         kind: time_based
         count: 2
         fmt: "%Y-%m-%d"
-        scale: "date"
         pattern: "log/request.log.{}"
   backend:
     kind: file

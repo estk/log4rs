@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 use chrono::{NaiveDate, NaiveDateTime};
 
-use crate::append::rolling_file::policy::compound::roll::Roll;
 use crate::append::rolling_file::policy::compound::now_string;
+use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 
@@ -28,7 +28,6 @@ pub struct TimeBasedRollerConfig {
     pattern: String,
     count: u32,
     fmt: String,
-    scale: String,
 }
 
 #[derive(Clone, Debug)]
@@ -81,7 +80,6 @@ impl Compression {
 pub struct TimeBasedRoller {
     pattern: String,
     fmt: String,
-    scale: String,
     compression: Compression,
     count: u32,
     #[cfg(feature = "background_rotation")]
@@ -109,7 +107,6 @@ impl Roll for TimeBasedRoller {
             self.count as usize,
             self.fmt.clone(),
             now_string(&self.fmt),
-            self.scale.clone(),
             file.to_path_buf(),
         )?;
 
@@ -135,21 +132,12 @@ impl Roll for TimeBasedRoller {
         let compression = self.compression.clone();
         let count = self.count;
         let lock = Arc::clone(&self.lock);
-        let scale = self.scale.clone();
         let fmt = self.fmt.clone();
         let now_string = now_string(&self.fmt);
         // rotate in the separate thread
         std::thread::spawn(move || {
             let _lock = lock.lock();
-            if let Err(e) = rotate(
-                pattern,
-                compression,
-                count as usize,
-                fmt,
-                now_string,
-                scale,
-                temp,
-            ) {
+            if let Err(e) = rotate(pattern, compression, count as usize, fmt, now_string, temp) {
                 use std::io::Write;
                 let _ = writeln!(io::stderr(), "log4rs: {}", e);
             }
@@ -199,7 +187,6 @@ fn rotate(
     count: usize,
     fmt: String,
     time_string: String,
-    scale: String,
     file: PathBuf,
 ) -> io::Result<()> {
     let dst_0 = pattern.replace("{}", &time_string);
@@ -216,7 +203,7 @@ fn rotate(
         _ => false, // Only case that can actually happen is (None, None)
     };
 
-    let _ = rm_outdated_pattern_files(&dst_0, pattern, fmt, scale, count, parent_varies)?;
+    let _ = rm_outdated_pattern_files(&dst_0, pattern, fmt, count, parent_varies)?;
 
     compression.compress(&file, &dst_0)?;
     Ok(())
@@ -226,7 +213,6 @@ fn rm_outdated_pattern_files(
     dst_0: &str,
     pattern: String,
     format: String,
-    scale: String,
     count: usize,
     parent_varies: bool,
 ) -> io::Result<()> {
@@ -248,12 +234,8 @@ fn rm_outdated_pattern_files(
         .into_iter()
         .filter(|p| {
             if let Some(p) = p.to_str() {
-                if scale.to_lowercase() == "date" {
-                    let e = NaiveDate::parse_from_str(p, &fmt).is_ok();
-                    e
-                } else {
-                    NaiveDateTime::parse_from_str(p, &fmt).is_ok()
-                }
+                NaiveDateTime::parse_from_str(p, &fmt).is_ok()
+                    || NaiveDate::parse_from_str(p, &fmt).is_ok()
             } else {
                 false
             }
@@ -322,7 +304,6 @@ impl TimeBasedRollerBuilder {
         pattern: &str,
         count: u32,
         fmt: &str,
-        scale: &str,
     ) -> Result<TimeBasedRoller, Box<dyn Error + Sync + Send>> {
         if !pattern.contains("{}") {
             return Err("pattern does not contain `{}`".into());
@@ -343,7 +324,6 @@ impl TimeBasedRollerBuilder {
             compression,
             fmt: fmt.to_owned(),
             count,
-            scale: scale.to_owned(),
             #[cfg(feature = "background_rotation")]
             lock: Arc::new(Mutex::new(())),
             mock_time: Option::None,
@@ -388,7 +368,6 @@ impl Deserialize for TimeBasedRollerDeserializer {
             &config.pattern,
             config.count,
             &config.fmt,
-            &config.scale,
         )?))
     }
 }
@@ -421,12 +400,7 @@ mod test {
 
         let pattern = dir.path().join("foo.log");
         let roller = TimeBasedRoller::builder()
-            .build(
-                &format!("{}.{{}}", pattern.to_str().unwrap()),
-                2,
-                TIME_FMT,
-                "date",
-            )
+            .build(&format!("{}.{{}}", pattern.to_str().unwrap()), 2, TIME_FMT)
             .unwrap();
         set_mock_time("2020-03-07");
         let file = dir.path().join("foo.log");
@@ -489,7 +463,7 @@ mod test {
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("foo.{}.log");
         let roller = TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
+            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
             .unwrap();
 
         let file = dir.path().join("foo.log");
@@ -519,7 +493,7 @@ mod test {
         let base = dir.path().join("log").join("archive");
         let pattern = base.join("{}").join("foo.log");
         let roller = TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
+            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
             .unwrap();
 
         let file = dir.path().join("foo.log");
@@ -559,7 +533,7 @@ mod test {
 
         let pattern = dir.path().join("{}.gz");
         assert!(TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
+            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
             .is_err());
     }
 
@@ -572,7 +546,7 @@ mod test {
 
         let pattern = dir.path().join("{}.gz");
         let roller = TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT, "date")
+            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
             .unwrap();
 
         let contents = (0..10000).map(|i| i as u8).collect::<Vec<_>>();
