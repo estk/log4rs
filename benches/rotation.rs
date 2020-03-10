@@ -49,7 +49,7 @@ fn bench_find_anomalies() {
     use humantime::format_duration;
     let min = format_duration(Duration::from_micros(*mm.min().unwrap() as u64));
     let max = format_duration(Duration::from_micros(*mm.max().unwrap() as u64));
-    println!("min: {}\nmax: {}", min, mx);
+    println!("min: {}\nmax: {}", min, max);
 
     let median = format_duration(Duration::from_micros(samples.median().unwrap() as u64));
     println!("mean: {} median: {}", online.mean(), median);
