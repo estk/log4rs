@@ -10,7 +10,7 @@ keywords = ["log", "logger", "logging", "log4"]
 edition = '2018'
 
 [features]
-default = ["all_components", "file", "yaml_format"]
+default = ["all_components", "file", "yaml_format", "gzip"]
 
 file = ["humantime", "serde", "serde_derive", "serde-value", "typemap", "log/serde"]
 yaml_format = ["serde_yaml"]
