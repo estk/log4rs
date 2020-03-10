@@ -159,13 +159,11 @@ impl Deserialize for FileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
-
     use super::*;
 
     #[test]
     fn create_directories() {
-        let tempdir = TempDir::new("create_directories").unwrap();
+        let tempdir = tempfile::tempdir().unwrap();
 
         FileAppender::builder()
             .build(tempdir.path().join("foo").join("bar").join("baz.log"))
@@ -174,7 +172,7 @@ mod test {
 
     #[test]
     fn append_false() {
-        let tempdir = TempDir::new("append_false").unwrap();
+        let tempdir = tempfile::tempdir().unwrap();
         FileAppender::builder()
             .append(false)
             .build(tempdir.path().join("foo.log"))

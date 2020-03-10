@@ -349,7 +349,6 @@ mod test {
         fs::File,
         io::{Read, Write},
     };
-    use tempdir::TempDir;
 
     use super::*;
     use crate::append::rolling_file::policy::Policy;
@@ -359,7 +358,7 @@ mod test {
     fn deserialize() {
         use crate::file::{Deserializers, RawConfig};
 
-        let dir = TempDir::new("deserialize").unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
         let config = format!(
             "
@@ -407,7 +406,7 @@ appenders:
 
     #[test]
     fn append() {
-        let dir = TempDir::new("rolling-file-append").unwrap();
+        let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
         RollingFileAppender::builder()
             .append(true)
@@ -430,7 +429,7 @@ appenders:
 
     #[test]
     fn truncate() {
-        let dir = TempDir::new("rolling-file-truncate").unwrap();
+        let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("truncate.log");
         RollingFileAppender::builder()
             .append(false)
