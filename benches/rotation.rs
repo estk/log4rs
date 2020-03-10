@@ -46,14 +46,14 @@ fn bench_find_anomalies() {
         mm.add(dur.as_micros());
     }
 
-        use humantime::format_duration;
-        let min = format_duration(Duration::from_micros(*mm.min().unwrap() as u64));
-        let max = format_duration(Duration::from_micros(*mm.max().unwrap() as u64));
-        println!("min: {}\nmax: {}", min, mx);
+    use humantime::format_duration;
+    let min = format_duration(Duration::from_micros(*mm.min().unwrap() as u64));
+    let max = format_duration(Duration::from_micros(*mm.max().unwrap() as u64));
+    println!("min: {}\nmax: {}", min, mx);
 
-        let median = format_duration(Duration::from_micros(samples.median().unwrap() as u64));
-        println!("mean: {} median: {}", online.mean(), median);
-        println!("standard deviation: {}", online.stddev());
+    let median = format_duration(Duration::from_micros(samples.median().unwrap() as u64));
+    println!("mean: {} median: {}", online.mean(), median);
+    println!("standard deviation: {}", online.stddev());
     if !anomalies.is_empty() {
         println!("anomalies: {:?}", anomalies);
     }
