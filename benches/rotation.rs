@@ -1,6 +1,4 @@
-use std::{
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use lazy_static::lazy_static;
 use tempfile::{tempdir, TempDir};
