@@ -1,5 +1,7 @@
 //! Policies.
-use std::{error::Error, fmt};
+use std::fmt;
+
+use failure::Error;
 
 use crate::append::rolling_file::LogFile;
 #[cfg(feature = "file")]
@@ -14,7 +16,7 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     ///
     /// This method is called after each log event. It is provided a reference
     /// to the current log file.
-    fn process(&self, log: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>>;
+    fn process(&self, log: &mut LogFile) -> Result<(), Error>;
 }
 
 #[cfg(feature = "file")]

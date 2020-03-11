@@ -25,12 +25,13 @@ use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
 use std::{
-    error::Error,
     fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
+
+use failure::Error;
 
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
@@ -169,7 +170,7 @@ impl fmt::Debug for RollingFileAppender {
 }
 
 impl Append for RollingFileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Error> {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
@@ -326,7 +327,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         &self,
         config: RollingFileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Append>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Append>, Error> {
         let mut builder = RollingFileAppender::builder();
         if let Some(append) = config.append {
             builder = builder.append(append);
@@ -345,10 +346,11 @@ impl Deserialize for RollingFileAppenderDeserializer {
 #[cfg(test)]
 mod test {
     use std::{
-        error::Error,
         fs::File,
         io::{Read, Write},
     };
+
+    use failure::Error;
 
     use super::*;
     use crate::append::rolling_file::policy::Policy;
@@ -399,7 +401,7 @@ appenders:
     struct NopPolicy;
 
     impl Policy for NopPolicy {
-        fn process(&self, _: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
+        fn process(&self, _: &mut LogFile) -> Result<(), Error> {
             Ok(())
         }
     }

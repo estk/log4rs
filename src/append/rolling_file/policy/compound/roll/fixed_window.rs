@@ -9,10 +9,11 @@ use serde_derive::Deserialize;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 use std::{
-    error::Error,
     fs, io,
     path::{Path, PathBuf},
 };
+
+use failure::{err_msg, Error};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
@@ -102,7 +103,7 @@ impl FixedWindowRoller {
 
 impl Roll for FixedWindowRoller {
     #[cfg(not(feature = "background_rotation"))]
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> Result<(), Error> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -119,7 +120,7 @@ impl Roll for FixedWindowRoller {
     }
 
     #[cfg(feature = "background_rotation")]
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> Result<(), Error> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -257,13 +258,9 @@ impl FixedWindowRollerBuilder {
     ///
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
-    pub fn build(
-        self,
-        pattern: &str,
-        count: u32,
-    ) -> Result<FixedWindowRoller, Box<dyn Error + Sync + Send>> {
+    pub fn build(self, pattern: &str, count: u32) -> Result<FixedWindowRoller, Error> {
         if !pattern.contains("{}") {
-            return Err("pattern does not contain `{}`".into());
+            return Err(err_msg("pattern does not contain `{}`"));
         }
 
         let compression = match Path::new(pattern).extension() {
@@ -271,7 +268,7 @@ impl FixedWindowRollerBuilder {
             Some(e) if e == "gz" => Compression::Gzip,
             #[cfg(not(feature = "gzip"))]
             Some(e) if e == "gz" => {
-                return Err("gzip compression requires the `gzip` feature".into());
+                return Err(err_msg("gzip compression requires the `gzip` feature"));
             }
             _ => Compression::None,
         };
@@ -320,7 +317,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
         &self,
         config: FixedWindowRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Roll>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Roll>, Error> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = config.base {
             builder = builder.base(base);

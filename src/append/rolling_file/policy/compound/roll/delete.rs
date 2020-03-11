@@ -4,7 +4,9 @@
 
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::{error::Error, fs, path::Path};
+use std::{fs, path::Path};
+
+use failure::Error;
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "file")]
@@ -24,7 +26,7 @@ pub struct DeleteRollerConfig {
 pub struct DeleteRoller(());
 
 impl Roll for DeleteRoller {
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> Result<(), Error> {
         fs::remove_file(file).map_err(Into::into)
     }
 }
@@ -56,7 +58,7 @@ impl Deserialize for DeleteRollerDeserializer {
         &self,
         _: DeleteRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Roll>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Roll>, Error> {
         Ok(Box::new(DeleteRoller::default()))
     }
 }
