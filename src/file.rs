@@ -299,40 +299,6 @@ enum DeserializingConfigError {
     Filter(String, Error),
 }
 
-/// A raw deserializable log4rs configuration for xml.
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-#[derive(Deserialize, Clone, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct RawConfigXml {
-    #[serde(deserialize_with = "de_duration", default)]
-    refresh_rate: Option<Duration>,
-    #[serde(default)]
-    root: Root,
-    #[serde(default)]
-    appenders: HashMap<String, AppenderConfig>,
-    #[serde(rename = "loggers", default)]
-    loggers: LoggersXml,
-}
-
-/// Loggers section wrapper for xml configuration
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct LoggersXml {
-    #[serde(rename = "logger", default)]
-    loggers: Vec<LoggerXml>,
-}
-
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-impl Default for LoggersXml {
-    fn default() -> Self {
-        Self { loggers: vec![] }
-    }
-}
-
 /// A raw deserializable log4rs configuration.
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -401,23 +367,6 @@ impl RawConfig {
     }
 }
 
-#[cfg(feature = "xml_format")]
-impl ::std::convert::From<RawConfigXml> for RawConfig {
-    fn from(cfg: RawConfigXml) -> Self {
-        Self {
-            refresh_rate: cfg.refresh_rate,
-            root: cfg.root,
-            appenders: cfg.appenders,
-            loggers: cfg
-                .loggers
-                .loggers
-                .into_iter()
-                .map(|l| (l.name.clone(), l.into()))
-                .collect(),
-        }
-    }
-}
-
 fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -475,24 +424,6 @@ fn root_level_default() -> LevelFilter {
     LevelFilter::Debug
 }
 
-/// logger struct for xml configuration
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-struct LoggerXml {
-    /// explicit field "name" for xml config
-    name: String,
-
-    level: LevelFilter,
-
-    #[serde(default)]
-    appenders: Vec<String>,
-
-    #[serde(default = "logger_additive_default")]
-    additive: bool,
-}
-
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct Logger {
@@ -501,17 +432,6 @@ struct Logger {
     appenders: Vec<String>,
     #[serde(default = "logger_additive_default")]
     additive: bool,
-}
-
-#[cfg(feature = "xml_format")]
-impl ::std::convert::From<LoggerXml> for Logger {
-    fn from(logger_xml: LoggerXml) -> Self {
-        Logger {
-            level: logger_xml.level,
-            appenders: logger_xml.appenders,
-            additive: logger_xml.additive,
-        }
-    }
 }
 
 fn logger_additive_default() -> bool {
@@ -563,38 +483,5 @@ loggers:
     #[cfg(feature = "yaml_format")]
     fn empty() {
         ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
-    }
-
-    #[test]
-    #[cfg(feature = "xml_format")]
-    fn full_deserialize_xml() {
-        let cfg = r#"
-<?xml version="1.0" encoding="utf-8"?>
-<configuration refresh_rate="30 seconds">
-    <appenders>
-        <stdout kind="console"/>
-        <requests kind="file" path="/tmp/requests.log">
-            <encoder pattern="{d} - {m}{n}" />
-        </requests>
-    </appenders>
-    <root level="warn">
-        <appenders>stdout</appenders>
-    </root>
-    <loggers>
-        <logger name="foo::bar::baz" level="trace" additive="false" >
-            <appenders>requests</appenders>
-        </logger>
-    </loggers>
-</configuration>
-"#;
-        let config: RawConfigXml = ::serde_xml_rs::from_reader(cfg.as_bytes()).unwrap();
-        let config: RawConfig = config.into();
-        let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
-        assert!(errors.is_empty());
-        assert_eq!(config.refresh_rate, Some(Duration::from_secs(30)));
-
-        let logger = config.loggers.get("foo::bar::baz").unwrap();
-        assert_eq!(logger.appenders[0], "requests");
     }
 }

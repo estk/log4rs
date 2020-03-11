@@ -6,10 +6,8 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use failure::{err_msg, Error, Fail};
+use failure::{Error, Fail};
 
-#[cfg(feature = "xml_format")]
-use crate::file::RawConfigXml;
 use crate::{
     config::Config,
     file::{Deserializers, RawConfig},
@@ -110,9 +108,6 @@ enum Format {
     Json,
     #[cfg(feature = "toml_format")]
     Toml,
-    #[cfg(feature = "xml_format")]
-    #[deprecated(since = "0.11.0")]
-    Xml,
 }
 
 impl Format {
@@ -133,11 +128,6 @@ impl Format {
             #[cfg(not(feature = "toml_format"))]
             Some("toml") => Err(FormatError::TomlFeatureFlagRequired.into()),
 
-            #[cfg(feature = "xml_format")]
-            Some("xml") => Ok(Format::Xml),
-            #[cfg(not(feature = "xml_format"))]
-            Some("xml") => Err(FormatError::XmlFeatureFlagRequired.into()),
-
             Some(f) => Err(FormatError::UnsupportedFormat(f.to_string()).into()),
             None => Err(FormatError::UnknownFormat.into()),
         }
@@ -151,10 +141,6 @@ impl Format {
             Format::Json => ::serde_json::from_str(source).map_err(Into::into),
             #[cfg(feature = "toml_format")]
             Format::Toml => ::toml::from_str(source).map_err(Into::into),
-            #[cfg(feature = "xml_format")]
-            Format::Xml => ::serde_xml_rs::from_reader::<_, RawConfigXml>(source.as_bytes())
-                .map(Into::into)
-                .map_err(|e| err_msg(e.to_string())),
         }
     }
 }
