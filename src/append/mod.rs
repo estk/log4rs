@@ -7,7 +7,9 @@ use serde::{de, Deserialize, Deserializer};
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::{error::Error, fmt};
+use std::fmt;
+
+use failure::Error;
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;
@@ -27,7 +29,7 @@ pub mod rolling_file;
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `Record`.
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>>;
+    fn append(&self, record: &Record) -> Result<(), Error>;
 
     /// Flushes all in-flight records.
     fn flush(&self);
@@ -41,7 +43,7 @@ impl Deserializable for dyn Append {
 }
 
 impl<T: Log + fmt::Debug + 'static> Append for T {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Error> {
         self.log(record);
         Ok(())
     }

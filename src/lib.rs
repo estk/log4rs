@@ -188,11 +188,11 @@ use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::{
-    cmp, collections::HashMap, error, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
+    cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
 };
 
 #[cfg(feature = "file")]
-pub use crate::priv_file::{init_file, load_config_file, Error};
+pub use crate::priv_file::{init_file, load_config_file, FormatError};
 
 use crate::{append::Append, config::Config, filter::Filter};
 
@@ -279,7 +279,7 @@ impl ConfiguredLogger {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
-                    handle_error(&*err);
+                    handle_error(&err);
                 }
             }
         }
@@ -292,7 +292,7 @@ struct Appender {
 }
 
 impl Appender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn error::Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), failure::Error> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
@@ -401,7 +401,7 @@ impl log::Log for Logger {
     }
 }
 
-fn handle_error<E: error::Error + ?Sized>(e: &E) {
+fn handle_error(e: &failure::Error) {
     let _ = writeln!(io::stderr(), "log4rs: {}", e);
 }
 

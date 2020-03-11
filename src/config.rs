@@ -1,9 +1,11 @@
 //! log4rs configuration
 
 use log::LevelFilter;
-use std::{collections::HashSet, error, fmt, iter::IntoIterator};
+use std::{collections::HashSet, fmt, iter::IntoIterator};
 
 use crate::{append::Append, filter::Filter, ConfigPrivateExt, PrivateConfigAppenderExt};
+
+use failure::{Error, Fail};
 
 /// Configuration for the root logger.
 #[derive(Debug)]
@@ -323,7 +325,7 @@ impl ConfigBuilder {
             if appender_names.insert(appender.name.clone()) {
                 ok_appenders.push(appender);
             } else {
-                errors.push(Error::DuplicateAppenderName(appender.name));
+                errors.push(ConfigError::DuplicateAppenderName(appender.name).into());
             }
         }
 
@@ -332,7 +334,7 @@ impl ConfigBuilder {
             if appender_names.contains(&appender) {
                 ok_root_appenders.push(appender);
             } else {
-                errors.push(Error::NonexistentAppender(appender));
+                errors.push(ConfigError::NonexistentAppender(appender).into());
             }
         }
         root.appenders = ok_root_appenders;
@@ -341,7 +343,7 @@ impl ConfigBuilder {
         let mut logger_names = HashSet::new();
         for mut logger in loggers {
             if !logger_names.insert(logger.name.clone()) {
-                errors.push(Error::DuplicateLoggerName(logger.name));
+                errors.push(ConfigError::DuplicateLoggerName(logger.name).into());
                 continue;
             }
 
@@ -355,7 +357,7 @@ impl ConfigBuilder {
                 if appender_names.contains(&appender) {
                     ok_logger_appenders.push(appender);
                 } else {
-                    errors.push(Error::NonexistentAppender(appender));
+                    errors.push(ConfigError::NonexistentAppender(appender).into());
                 }
             }
             logger.appenders = ok_logger_appenders;
@@ -385,7 +387,7 @@ impl ConfigBuilder {
 
 fn check_logger_name(name: &str) -> Result<(), Error> {
     if name.is_empty() {
-        return Err(Error::InvalidLoggerName(name.to_owned()));
+        return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
     }
 
     let mut streak = 0;
@@ -393,18 +395,18 @@ fn check_logger_name(name: &str) -> Result<(), Error> {
         if ch == ':' {
             streak += 1;
             if streak > 2 {
-                return Err(Error::InvalidLoggerName(name.to_owned()));
+                return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
             }
         } else {
             if streak > 0 && streak != 2 {
-                return Err(Error::InvalidLoggerName(name.to_owned()));
+                return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
             }
             streak = 0;
         }
     }
 
     if streak > 0 {
-        Err(Error::InvalidLoggerName(name.to_owned()))
+        Err(ConfigError::InvalidLoggerName(name.to_owned().into()).into())
     } else {
         Ok(())
     }
@@ -422,7 +424,7 @@ impl ConfigPrivateExt for Config {
 }
 
 /// Errors encountered when validating a log4rs `Config`.
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub struct Errors {
     errors: Vec<Error>,
 }
@@ -443,45 +445,24 @@ impl fmt::Display for Errors {
     }
 }
 
-impl error::Error for Errors {
-    fn description(&self) -> &str {
-        "Errors encountered when validating a log4rs `Config`"
-    }
-}
-
 /// An error validating a log4rs `Config`.
-#[derive(Debug)]
-pub enum Error {
+#[derive(Debug, Fail)]
+pub enum ConfigError {
     /// Multiple appenders were registered with the same name.
+    #[fail(display = "Duplicate appender name `{}`", 0)]
     DuplicateAppenderName(String),
     /// A reference to a nonexistant appender.
+    #[fail(display = "Reference to nonexistent appender: `{}`", 0)]
     NonexistentAppender(String),
     /// Multiple loggers were registered with the same name.
+    #[fail(display = "Duplicate logger name `{}`", 0)]
     DuplicateLoggerName(String),
     /// A logger name was invalid.
+    #[fail(display = "Invalid logger name `{}`", 0)]
     InvalidLoggerName(String),
     #[doc(hidden)]
+    #[fail(display = "Reserved for future use")]
     __Extensible,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::DuplicateAppenderName(ref n) => write!(fmt, "Duplicate appender name `{}`", n),
-            Error::NonexistentAppender(ref n) => {
-                write!(fmt, "Reference to nonexistent appender: `{}`", n)
-            }
-            Error::DuplicateLoggerName(ref n) => write!(fmt, "Duplicate logger name `{}`", n),
-            Error::InvalidLoggerName(ref n) => write!(fmt, "Invalid logger name `{}`", n),
-            Error::__Extensible => unreachable!(),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "An error constructing a log4rs `Config`"
-    }
 }
 
 #[cfg(test)]

@@ -6,11 +6,13 @@
 use serde::de;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::error::Error;
 #[cfg(feature = "file")]
 use std::fmt;
 
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
+
+use failure::Error;
+
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 
@@ -116,7 +118,7 @@ impl SizeTrigger {
 }
 
 impl Trigger for SizeTrigger {
-    fn trigger(&self, file: &LogFile) -> Result<bool, Box<dyn Error + Sync + Send>> {
+    fn trigger(&self, file: &LogFile) -> Result<bool, Error> {
         Ok(file.len_estimate() > self.limit)
     }
 }
@@ -146,7 +148,7 @@ impl Deserialize for SizeTriggerDeserializer {
         &self,
         config: SizeTriggerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Trigger>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Trigger>, Error> {
         Ok(Box::new(SizeTrigger::new(config.limit)))
     }
 }

@@ -1,6 +1,8 @@
 //! Rollers
 
-use std::{error::Error, fmt, path::Path};
+use std::{fmt, path::Path};
+
+use failure::Error;
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;
@@ -19,7 +21,7 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     ///
     /// If this method returns successfully, there *must* no longer be a file
     /// at the specified location.
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>>;
+    fn roll(&self, file: &Path) -> Result<(), Error>;
 }
 
 #[cfg(feature = "file")]
