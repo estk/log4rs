@@ -184,9 +184,7 @@
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
-use std::{
-    cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
-};
+use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 
 #[cfg(feature = "config_parsing")]
 pub use crate::priv_file::{init_file, load_config_file, FormatError};
