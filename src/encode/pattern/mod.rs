@@ -122,13 +122,16 @@ use chrono::{Local, Utc};
 use log::{Level, Record};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
-use std::{default::Default, error::Error, fmt, io, process, thread};
+use std::{default::Default, fmt, io, process, thread};
 
 use crate::encode::{
     self,
     pattern::parser::{Alignment, Parameters, Parser, Piece},
     Color, Encode, Style, NEWLINE,
 };
+
+use failure::Error;
+
 #[cfg(feature = "file")]
 use crate::file::{Deserialize, Deserializers};
 
@@ -618,11 +621,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(
-        &self,
-        w: &mut dyn encode::Write,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> Result<(), Error> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
@@ -666,7 +665,7 @@ impl Deserialize for PatternEncoderDeserializer {
         &self,
         config: PatternEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Encode>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Encode>, Error> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),

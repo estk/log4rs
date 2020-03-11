@@ -6,10 +6,11 @@ use log::Record;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::{
-    error::Error,
     fmt,
     io::{self, Write},
 };
+
+use failure::Error;
 
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
@@ -123,7 +124,7 @@ impl fmt::Debug for ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Error> {
         let mut writer = self.writer.lock();
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;
@@ -221,7 +222,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
         &self,
         config: ConsoleAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Append>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Append>, failure::Error> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = config.target {
             let target = match target {

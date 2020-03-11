@@ -9,7 +9,8 @@ use serde_derive::Deserialize;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::error::Error;
+
+use failure::Error;
 
 use crate::append::rolling_file::{
     policy::{compound::roll::Roll, Policy},
@@ -101,7 +102,7 @@ impl CompoundPolicy {
 }
 
 impl Policy for CompoundPolicy {
-    fn process(&self, log: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn process(&self, log: &mut LogFile) -> Result<(), Error> {
         if self.trigger.trigger(log)? {
             log.roll();
             self.roller.roll(log.path())?;
@@ -149,7 +150,7 @@ impl Deserialize for CompoundPolicyDeserializer {
         &self,
         config: CompoundPolicyConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Policy>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Policy>, Error> {
         let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))

@@ -7,7 +7,9 @@ use serde::de;
 use serde_value::Value;
 #[cfg(feature = "file")]
 use std::collections::BTreeMap;
-use std::{error::Error, fmt, io};
+use std::{fmt, io};
+
+use failure::Error;
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;
@@ -32,11 +34,7 @@ const NEWLINE: &str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `Record` into bytes and writes them.
-    fn encode(
-        &self,
-        w: &mut dyn Write,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>>;
+    fn encode(&self, w: &mut dyn Write, record: &Record) -> Result<(), Error>;
 }
 
 #[cfg(feature = "file")]

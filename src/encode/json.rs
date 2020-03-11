@@ -34,7 +34,9 @@ use serde::ser::{self, Serialize, SerializeMap};
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use std::{error::Error, fmt, option, thread};
+use std::{fmt, option, thread};
+
+use failure::Error;
 
 use crate::encode::{Encode, Write, NEWLINE};
 #[cfg(feature = "file")]
@@ -66,7 +68,7 @@ impl JsonEncoder {
         w: &mut dyn Write,
         time: DateTime<Local>,
         record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>> {
+    ) -> Result<(), Error> {
         let thread = thread::current();
         let message = Message {
             time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
@@ -87,11 +89,7 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(
-        &self,
-        w: &mut dyn Write,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn encode(&self, w: &mut dyn Write, record: &Record) -> Result<(), Error> {
         self.encode_inner(w, Local::now(), record)
     }
 }
@@ -164,7 +162,7 @@ impl Deserialize for JsonEncoderDeserializer {
         &self,
         _: JsonEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Encode>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<dyn Encode>, Error> {
         Ok(Box::new(JsonEncoder::default()))
     }
 }

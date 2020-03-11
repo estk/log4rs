@@ -7,12 +7,13 @@ use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::{
-    error::Error,
     fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
+
+use failure::Error;
 
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
@@ -50,7 +51,7 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> Result<(), Error> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
@@ -145,7 +146,7 @@ impl Deserialize for FileAppenderDeserializer {
         &self,
         config: FileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn Error + Sync + Send>> {
+    ) -> Result<Box<Self::Trait>, Error> {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);

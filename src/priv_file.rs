@@ -1,12 +1,12 @@
-#![allow(deprecated)]
-
-use log::SetLoggerError;
 use std::{
-    error, fmt, fs,
+    fs::{self, File},
+    io::Read,
     path::{Path, PathBuf},
     thread,
     time::{Duration, SystemTime},
 };
+
+use failure::{err_msg, Error, Fail};
 
 #[cfg(feature = "xml_format")]
 use crate::file::RawConfigXml;
@@ -25,7 +25,7 @@ use crate::{
 /// reported to stderr.
 ///
 /// Requires the `file` feature (enabled by default).
-pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), Error>
+pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), failure::Error>
 where
     P: AsRef<Path>,
 {
@@ -62,7 +62,7 @@ where
 ///
 /// Unlike `init_file`, this function does not initialize the logger; it only
 /// loads the `Config` and returns it.
-pub fn load_config_file<P>(path: P, deserializers: Deserializers) -> Result<Config, Error>
+pub fn load_config_file<P>(path: P, deserializers: Deserializers) -> Result<Config, failure::Error>
 where
     P: AsRef<Path>,
 {
@@ -74,52 +74,35 @@ where
     Ok(deserialize(&config, &deserializers))
 }
 
-/// An error initializing the logging framework from a file.
+/// The various types of formatting errors that can be generated.
+#[derive(Debug, Fail)]
+pub enum FormatError {
+    /// The YAML feature flag was missing.
+    #[fail(display = "the `yaml_format` feature is required for YAML support")]
+    YamlFeatureFlagRequired,
+
+    /// The JSON feature flag was missing.
+    #[fail(display = "the `json_format` feature is required for JSON support")]
+    JsonFeatureFlagRequired,
+
+    /// The TOML feature flag was missing.
+    #[fail(display = "the `toml_format` feature is required for TOML support")]
+    TomlFeatureFlagRequired,
+
+    /// The XML feature flag was missing.
+    #[fail(display = "the `xml_format` feature is required for XML support")]
+    XmlFeatureFlagRequired,
+
+    /// An unsupported format was specified.
+    #[fail(display = "unsupported file format `{}`", 0)]
+    UnsupportedFormat(String),
+
+    /// Log4rs could not determine the file format.
+    #[fail(display = "unable to determine the file format")]
+    UnknownFormat,
+}
+
 #[derive(Debug)]
-pub enum Error {
-    /// An error from the log crate
-    Log(SetLoggerError),
-    /// A fatal error initializing the log4rs config.
-    Log4rs(Box<dyn error::Error + Sync + Send>),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::Log(ref e) => fmt::Display::fmt(e, fmt),
-            Error::Log4rs(ref e) => fmt::Display::fmt(e, fmt),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Log(ref e) => error::Error::description(e),
-            Error::Log4rs(ref e) => error::Error::description(&**e),
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        match *self {
-            Error::Log(ref e) => Some(e),
-            Error::Log4rs(ref e) => Some(&**e),
-        }
-    }
-}
-
-impl From<SetLoggerError> for Error {
-    fn from(t: SetLoggerError) -> Error {
-        Error::Log(t)
-    }
-}
-
-impl From<Box<dyn error::Error + Sync + Send>> for Error {
-    fn from(t: Box<dyn error::Error + Sync + Send>) -> Error {
-        Error::Log4rs(t)
-    }
-}
-
 enum Format {
     #[cfg(feature = "yaml_format")]
     Yaml,
@@ -133,36 +116,34 @@ enum Format {
 }
 
 impl Format {
-    fn from_path(path: &Path) -> Result<Format, Box<dyn error::Error + Sync + Send>> {
+    fn from_path(path: &Path) -> Result<Format, Error> {
         match path.extension().and_then(|s| s.to_str()) {
             #[cfg(feature = "yaml_format")]
             Some("yaml") | Some("yml") => Ok(Format::Yaml),
             #[cfg(not(feature = "yaml_format"))]
-            Some("yaml") | Some("yml") => {
-                Err("the `yaml_format` feature is required for YAML support".into())
-            }
+            Some("yaml") | Some("yml") => Err(FormatError::YamlFeatureFlagRequired.into()),
+
             #[cfg(feature = "json_format")]
             Some("json") => Ok(Format::Json),
             #[cfg(not(feature = "json_format"))]
-            Some("json") => Err("the `json_format` feature is required for JSON support".into()),
+            Some("json") => Err(FormatError::JsonFeatureFlagRequired.into()),
 
             #[cfg(feature = "toml_format")]
             Some("toml") => Ok(Format::Toml),
             #[cfg(not(feature = "toml_format"))]
-            Some("toml") => Err("the `toml_format` feature is required for TOML support".into()),
+            Some("toml") => Err(FormatError::TomlFeatureFlagRequired.into()),
 
             #[cfg(feature = "xml_format")]
             Some("xml") => Ok(Format::Xml),
             #[cfg(not(feature = "xml_format"))]
-            Some("xml") => Err("the `xml_format` feature is required for XML support".into()),
+            Some("xml") => Err(FormatError::XmlFeatureFlagRequired.into()),
 
-            Some(f) => Err(format!("unsupported file format `{}`", f).into()),
-            None => Err("unable to determine the file format".into()),
+            Some(f) => Err(FormatError::UnsupportedFormat(f.to_string()).into()),
+            None => Err(FormatError::UnknownFormat.into()),
         }
     }
 
-    #[allow(unused_variables)]
-    fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Send + Sync>> {
+    fn parse(&self, source: &str) -> Result<RawConfig, failure::Error> {
         match *self {
             #[cfg(feature = "yaml_format")]
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
@@ -173,13 +154,15 @@ impl Format {
             #[cfg(feature = "xml_format")]
             Format::Xml => ::serde_xml_rs::from_reader::<_, RawConfigXml>(source.as_bytes())
                 .map(Into::into)
-                .map_err(|e| e.to_string().into()),
+                .map_err(|e| err_msg(e.to_string())),
         }
     }
 }
 
-fn read_config(path: &Path) -> Result<String, Box<dyn error::Error + Sync + Send>> {
-    let s = fs::read_to_string(path)?;
+fn read_config(path: &Path) -> Result<String, failure::Error> {
+    let mut file = File::open(path)?;
+    let mut s = String::new();
+    file.read_to_string(&mut s)?;
     Ok(s)
 }
 
@@ -241,15 +224,12 @@ impl ConfigReloader {
             match self.run_once(rate) {
                 Ok(Some(r)) => rate = r,
                 Ok(None) => break,
-                Err(e) => handle_error(&*e),
+                Err(e) => handle_error(&e),
             }
         }
     }
 
-    fn run_once(
-        &mut self,
-        rate: Duration,
-    ) -> Result<Option<Duration>, Box<dyn error::Error + Sync + Send>> {
+    fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, failure::Error> {
         if let Some(last_modified) = self.modified {
             let modified = fs::metadata(&self.path).and_then(|m| m.modified())?;
             if last_modified == modified {
