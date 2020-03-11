@@ -11,16 +11,34 @@
 //! An appender takes a log record and logs it somewhere, for example, to a
 //! file, the console, or the syslog.
 //!
+//! Implementations:
+//!   - [console](append/console/struct.ConsoleAppenderDeserializer.html#configuration): requires the `console_appender` feature.
+//!   - [file](append/file/struct.FileAppenderDeserializer.html#configuration): requires the `file_appender` feature.
+//!   - [rolling_file](append/rolling_file/struct.RollingFileAppenderDeserializer.html#configuration): requires the `rolling_file_appender` feature and can be configured with the `compound_policy`.
+//!     - [compound](append/rolling_file/policy/compound/struct.CompoundPolicyDeserializer.html#configuration): requires the `compound_policy` feature
+//!       - Rollers
+//!         - [delete](append/rolling_file/policy/compound/roll/delete/struct.DeleteRollerDeserializer.html#configuration): requires the `delete_roller` feature
+//!         - [fixed_window](append/rolling_file/policy/compound/roll/fixed_window/struct.FixedWindowRollerDeserializer.html#configuration): requires the `fixed_window_roller` feature
+//!       - Triggers
+//!         - [size](append/rolling_file/policy/compound/trigger/size/struct.SizeTriggerDeserializer.html#configuration): requires the `size_trigger` feature
+//!
 //! ## Encoders
 //!
 //! An encoder is responsible for taking a log record, transforming it into the
 //! appropriate output format, and writing it out. An appender will normally
 //! use an encoder internally.
 //!
+//! Implementations:
+//!   - [pattern](encode/pattern/struct.PatternEncoderDeserializer.html#configuration): requires the `pattern_encoder` feature
+//!   - [json](encode/json/struct.JsonEncoderDeserializer.html#configuration): requires the `json_encoder` feature
+//!
 //! ## Filters
 //!
 //! Filters are associated with appenders and, like the name would suggest,
 //! filter log events coming into that appender.
+//!
+//! Implementations:
+//!   - [threshold](filter/threshold/struct.ThresholdFilterDeserializer.html#configuration): requires the `threshold_filter` feature
 //!
 //! ## Loggers
 //!
@@ -75,7 +93,7 @@
 //!
 //! # Examples
 //!
-//! Configuration via a YAML file:
+//! ## Configuration via a YAML file
 //!
 //! ```yaml
 //! # Scan this file for changes every 30 seconds
@@ -113,6 +131,8 @@
 //!     additive: false
 //! ```
 //!
+//! Add the following in your application initialization.
+//!
 //! ```no_run
 //! # #[cfg(feature = "file")]
 //! # fn f() {
@@ -120,7 +140,7 @@
 //! # }
 //! ```
 //!
-//! Programmatically constructing a configuration:
+//! ## Programmatically constructing a configuration:
 //!
 //! ```no_run
 //! # #[cfg(all(feature = "console_appender",
@@ -160,27 +180,10 @@
 //! # fn main() {}
 //! ```
 //!
-//! # Additional Configuration
+//! For more examples see the (examples)[https://github.com/estk/log4rs/tree/master/examples] in the source.
 //!
-//! - Appenders
-//!   - [console](append/console/struct.ConsoleAppenderDeserializer.html#configuration): requires the `console_appender` feature
-//!   - [file](append/file/struct.FileAppenderDeserializer.html#configuration): requires the `file_appender` feature
-//!   - [rolling_file](append/rolling_file/struct.RollingFileAppenderDeserializer.html#configuration): requires the `rolling_file_appender` feature
-//! - Encoders
-//!   - [pattern](encode/pattern/struct.PatternEncoderDeserializer.html#configuration): requires the `pattern_encoder` feature
-//!   - [json](encode/json/struct.JsonEncoderDeserializer.html#configuration): requires the `json_encoder` feature
-//! - Filters
-//!   - [threshold](filter/threshold/struct.ThresholdFilterDeserializer.html#configuration): requires the `threshold_filter` feature
-//! - Policies
-//!   - [compound](append/rolling_file/policy/compound/struct.CompoundPolicyDeserializer.html#configuration): requires the `compound_policy` feature
-//! - Rollers
-//!   - [delete](append/rolling_file/policy/compound/roll/delete/struct.DeleteRollerDeserializer.html#configuration): requires the `delete_roller` feature
-//!   - [fixed_window](append/rolling_file/policy/compound/roll/fixed_window/struct.FixedWindowRollerDeserializer.html#configuration): requires the `fixed_window_roller` feature
-//! - Triggers
-//!   - [size](append/rolling_file/policy/compound/trigger/size/struct.SizeTriggerDeserializer.html#configuration): requires the `size_trigger` feature
-#![doc(html_root_url = "https://docs.rs/log4rs/0.8")]
-#![warn(missing_docs)]
 
+#![warn(missing_docs)]
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};

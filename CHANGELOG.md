@@ -8,6 +8,25 @@
 
 ### Fixed
 
+## [0.11.0]
+
+A performance issue was discovered with gzip and rolling logs, the `background_rotation` feature was
+added to mitigate this by spawning a background thread to perform the rotation in. Shout out to @yakov-bakhmatov
+for the PR!
+
+### New
+
+* `background_rotation` feature which rotates and compresses log archives in a background thread.
+
+### Changed
+
+* Deprecate xml feature in preparation for removal.
+* Simplify and increase visibility of docs.
+* Swap some synchronization primitives to use `parking_lot` implementations.
+
+### Fixed
+
+
 ## [0.10.0]
 
 This is a big  release as we're moving to rust 2018 edition!
