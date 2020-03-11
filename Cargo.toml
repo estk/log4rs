@@ -10,9 +10,9 @@ keywords = ["log", "logger", "logging", "log4"]
 edition = '2018'
 
 [features]
-default = ["all_components", "file", "yaml_format", "gzip"]
+default = ["all_components", "config_parsing", "yaml_format"]
 
-file = ["humantime", "serde", "serde_derive", "serde-value", "typemap", "log/serde"]
+config_parsing = ["humantime", "serde", "serde-value", "typemap", "log/serde"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
@@ -24,7 +24,7 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "serde_derive", "log/serde", "thread-id"]
+json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "log/serde", "thread-id"]
 pattern_encoder = ["chrono", "log-mdc", "thread-id"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
@@ -54,22 +54,19 @@ harness = false
 [dependencies]
 arc-swap = "0.4"
 chrono = { version = "0.4", optional = true }
-failure_derive = "0.1.6"
 failure = "0.1.6"
 flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
-humantime = { version = "1.0", optional = true }
+humantime = { version = "2.0", optional = true }
 log = { version = "0.4.0", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
-serde = { version = "1.0", optional = true }
-serde_derive = { version = "1.0", optional = true }
+serde = { version = "1.0", optional = true, features = ["derive"] }
 serde-value = { version = "0.6", optional = true }
 thread-id = { version = "3.3", optional = true }
 typemap = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.8.4", optional = true }
 toml = { version = "0.5", optional = true }
-serde-xml-rs = { version = "0.4", optional = true }
 parking_lot = { version = "0.11.0", optional = true }
 
 [target.'cfg(windows)'.dependencies]
@@ -81,7 +78,7 @@ libc = { version = "0.2", optional = true }
 [dev-dependencies]
 lazy_static = "1.4"
 streaming-stats = "0.2.3"
-humantime = "1.0.0"
+humantime = "2.0"
 tempfile = "3.1.0"
 
 [[example]]

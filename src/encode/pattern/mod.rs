@@ -119,9 +119,8 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Local, Utc};
+use failure::Error;
 use log::{Level, Record};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{default::Default, fmt, io, process, thread};
 
 use crate::encode::{
@@ -130,16 +129,14 @@ use crate::encode::{
     Color, Encode, Style, NEWLINE,
 };
 
-use failure::Error;
-
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
 
 mod parser;
 
 /// The pattern encoder's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
@@ -652,10 +649,10 @@ impl PatternEncoder {
 /// # "{d} {l} {t} - {m}{n}".
 /// pattern: "{d} {l} {t} - {m}{n}"
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct PatternEncoderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for PatternEncoderDeserializer {
     type Trait = dyn Encode;
 
