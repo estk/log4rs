@@ -15,6 +15,7 @@ pub struct Formatter<'a> {
     pub args: Vec<Vec<Piece<'a>>>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Parameters {
     pub fill: char,
     pub align: Alignment,
@@ -22,7 +23,7 @@ pub struct Parameters {
     pub max_width: Option<usize>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Alignment {
     Left,
     Right,

@@ -1,7 +1,7 @@
 //! The compound rolling policy.
 //!
 //! Requires the `compound_policy` feature.
-use chrono::{DateTime, Local, TimeZone};
+use chrono::Local;
 #[cfg(feature = "file")]
 use serde::{self, de};
 #[cfg(feature = "file")]

@@ -3,6 +3,17 @@
 //! Requires the `time_based_roller` feature.
 
 #[cfg(feature = "background_rotation")]
+use super::make_temp_file_name;
+#[cfg(feature = "background_rotation")]
+use super::move_file;
+use super::Compression;
+use crate::append::rolling_file::policy::compound::now_string;
+use crate::append::rolling_file::policy::compound::roll::Roll;
+use crate::encode::pattern::log_path::{parse_to_chunk, Chunk};
+#[cfg(feature = "file")]
+use crate::file::{Deserialize, Deserializers};
+use chrono::{NaiveDate, NaiveDateTime};
+#[cfg(feature = "background_rotation")]
 use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
@@ -13,13 +24,6 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 
-use chrono::{NaiveDate, NaiveDateTime};
-
-use crate::append::rolling_file::policy::compound::now_string;
-use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
-
 /// Configuration for the time based window roller.
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
@@ -27,39 +31,6 @@ use crate::file::{Deserialize, Deserializers};
 pub struct TimeBasedRollerConfig {
     pattern: String,
     count: u32,
-    fmt: String,
-}
-
-#[derive(Clone, Debug)]
-enum Compression {
-    None,
-    #[cfg(feature = "gzip")]
-    Gzip,
-}
-
-impl Compression {
-    fn compress(&self, src: &Path, dst: &str) -> io::Result<()> {
-        match *self {
-            Compression::None => move_file(src, dst),
-            #[cfg(feature = "gzip")]
-            Compression::Gzip => {
-                #[cfg(feature = "flate2")]
-                use flate2::write::GzEncoder;
-                use std::fs::File;
-
-                let mut i = File::open(src)?;
-
-                let o = File::create(dst)?;
-                let mut o = GzEncoder::new(o, flate2::Compression::default());
-
-                io::copy(&mut i, &mut o)?;
-                drop(o.finish()?);
-                drop(i); // needs to happen before remove_file call on Windows
-
-                fs::remove_file(src)
-            }
-        }
-    }
 }
 
 /// A roller which maintains a time based of archived log files.
@@ -84,7 +55,6 @@ pub struct TimeBasedRoller {
     count: u32,
     #[cfg(feature = "background_rotation")]
     lock: Arc<Mutex<()>>,
-    mock_time: Option<String>,
 }
 
 impl TimeBasedRoller {
@@ -145,40 +115,6 @@ impl Roll for TimeBasedRoller {
 
         Ok(())
     }
-}
-
-fn move_file<P, Q>(src: P, dst: Q) -> io::Result<()>
-where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-{
-    // first try a rename
-    match fs::rename(src.as_ref(), dst.as_ref()) {
-        Ok(()) => return Ok(()),
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-        Err(_) => {}
-    }
-
-    // fall back to a copy and delete if src and dst are on different mounts
-    fs::copy(src.as_ref(), dst.as_ref()).and_then(|_| fs::remove_file(src.as_ref()))
-}
-
-#[cfg(feature = "background_rotation")]
-fn make_temp_file_name<P>(file: P) -> PathBuf
-where
-    P: AsRef<Path>,
-{
-    let mut n = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
-        .as_secs();
-    let mut temp = file.as_ref().to_path_buf();
-    temp.set_extension(format!("{}", n));
-    while temp.exists() {
-        n += 1;
-        temp.set_extension(format!("{}", n));
-    }
-    temp
 }
 
 fn rotate(
@@ -303,13 +239,36 @@ impl TimeBasedRollerBuilder {
         self,
         pattern: &str,
         count: u32,
-        fmt: &str,
     ) -> Result<TimeBasedRoller, Box<dyn Error + Sync + Send>> {
-        if !pattern.contains("{}") {
-            return Err("pattern does not contain `{}`".into());
+        let chunks: Vec<Chunk> = parse_to_chunk(pattern);
+        let mut pattern_vec: Vec<String> = vec![];
+        let mut fmt = "%Y%m%d".to_owned();
+        let mut has_brackets = false;
+        let mut merged_count = count;
+        for chunk in chunks {
+            match chunk {
+                Chunk::Text(s) => pattern_vec.push(s),
+                Chunk::Time(t) => {
+                    fmt = t;
+                    if !has_brackets {
+                        has_brackets = true;
+                    } else {
+                        return Err("only support one {} in pattern".into());
+                    }
+                    pattern_vec.push("{}".to_string());
+                }
+                Chunk::Count(c) => merged_count = c.count,
+                _ => return Err("invalid pattern".into()),
+            }
         }
 
-        let compression = match Path::new(pattern).extension() {
+        let p = pattern_vec.join("");
+
+        if !has_brackets {
+            return Err("pattern does not contain `{d()}`".into());
+        }
+
+        let compression = match Path::new(&p).extension() {
             #[cfg(feature = "gzip")]
             Some(e) if e == "gz" => Compression::Gzip,
             #[cfg(not(feature = "gzip"))]
@@ -320,13 +279,12 @@ impl TimeBasedRollerBuilder {
         };
 
         Ok(TimeBasedRoller {
-            pattern: pattern.to_owned(),
+            pattern: p,
             compression,
             fmt: fmt.to_owned(),
-            count,
+            count: merged_count,
             #[cfg(feature = "background_rotation")]
             lock: Arc::new(Mutex::new(())),
-            mock_time: Option::None,
         })
     }
 }
@@ -364,11 +322,7 @@ impl Deserialize for TimeBasedRollerDeserializer {
         _: &Deserializers,
     ) -> Result<Box<dyn Roll>, Box<dyn Error + Sync + Send>> {
         let builder = TimeBasedRoller::builder();
-        Ok(Box::new(builder.build(
-            &config.pattern,
-            config.count,
-            &config.fmt,
-        )?))
+        Ok(Box::new(builder.build(&config.pattern, config.count)?))
     }
 }
 
@@ -399,7 +353,10 @@ mod test {
 
         let pattern = dir.path().join("foo.log");
         let roller = TimeBasedRoller::builder()
-            .build(&format!("{}.{{}}", pattern.to_str().unwrap()), 2, TIME_FMT)
+            .build(
+                &format!("{}.{{d({})}}", pattern.to_str().unwrap(), TIME_FMT),
+                2,
+            )
             .unwrap();
         set_mock_time("2020-03-07");
         let file = dir.path().join("foo.log");
@@ -460,9 +417,9 @@ mod test {
         let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
-        let pattern = base.join("foo.{}.log");
+        let pattern = base.join(format!("foo.{{d({})}}.log", TIME_FMT));
         let roller = TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
+            .build(pattern.to_str().unwrap(), 2)
             .unwrap();
 
         let file = dir.path().join("foo.log");
@@ -490,9 +447,9 @@ mod test {
         let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
-        let pattern = base.join("{}").join("foo.log");
+        let pattern = base.join(format!("{{d({})}}", TIME_FMT)).join("foo.log");
         let roller = TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
+            .build(pattern.to_str().unwrap(), 2)
             .unwrap();
 
         let file = dir.path().join("foo.log");
@@ -530,9 +487,9 @@ mod test {
     fn unsupported_gzip() {
         let dir = tempfile::tempdir().unwrap();
 
-        let pattern = dir.path().join("{}.gz");
+        let pattern = dir.path().join(format!("foo.log.{{d({})}}.gz", TIME_FMT));
         assert!(TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
+            .build(pattern.to_str().unwrap(), 2)
             .is_err());
     }
 
@@ -543,9 +500,9 @@ mod test {
     fn supported_gzip() {
         let dir = tempfile::tempdir().unwrap();
 
-        let pattern = dir.path().join("{}.gz");
+        let pattern = dir.path().join(format!("foo.log.{{d({})}}.gz", TIME_FMT));
         let roller = TimeBasedRoller::builder()
-            .build(pattern.to_str().unwrap(), 2, TIME_FMT)
+            .build(pattern.to_str().unwrap(), 2)
             .unwrap();
 
         let contents = (0..10000).map(|i| i as u8).collect::<Vec<_>>();
@@ -558,12 +515,12 @@ mod test {
         wait_for_roller(&roller);
 
         assert!(Command::new("gunzip")
-            .arg(dir.path().join("2020-03-09.gz"))
+            .arg(dir.path().join("foo.log.2020-03-09.gz"))
             .status()
             .unwrap()
             .success());
 
-        let mut file = File::open(dir.path().join("2020-03-09")).unwrap();
+        let mut file = File::open(dir.path().join("foo.log.2020-03-09")).unwrap();
         let mut actual = vec![];
         file.read_to_end(&mut actual).unwrap();
 

@@ -30,8 +30,7 @@ appenders:
       roller:
         kind: time_based
         count: 2
-        fmt: "%Y-%m-%d"
-        pattern: "log/request.log.{}"
+        pattern: "log/request.log.{d(%Y%m%d)}"
   backend:
     kind: file
     path: "log/backend.log"
