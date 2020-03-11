@@ -3,8 +3,6 @@
 //! Requires the `console_appender` feature.
 
 use log::Record;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{
     fmt,
     io::{self, Write},
@@ -12,10 +10,10 @@ use std::{
 
 use failure::Error;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
 use crate::{
     append::Append,
     encode::{
@@ -31,16 +29,16 @@ use crate::{
 };
 
 /// The console appender's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
 }
 
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 enum ConfigTarget {
     #[serde(rename = "stdout")]
     Stdout,
@@ -209,10 +207,10 @@ pub enum Target {
 /// encoder:
 ///   kind: pattern
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct ConsoleAppenderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for ConsoleAppenderDeserializer {
     type Trait = dyn Append;
 

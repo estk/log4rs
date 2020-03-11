@@ -4,8 +4,6 @@
 
 use log::Record;
 use parking_lot::Mutex;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{
     fmt,
     fs::{self, File, OpenOptions},
@@ -15,18 +13,19 @@ use std::{
 
 use failure::Error;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+
 use crate::{
     append::Append,
     encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
 };
 
 /// The file appender's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FileAppenderConfig {
     path: String,
@@ -133,10 +132,10 @@ impl FileAppenderBuilder {
 /// encoder:
 ///   kind: pattern
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct FileAppenderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for FileAppenderDeserializer {
     type Trait = dyn Append;
 

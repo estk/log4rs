@@ -90,11 +90,9 @@
 //! ```
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
-use serde_derive::Deserialize;
 use serde_value::Value;
 use std::{
-    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc,
-    time::Duration,
+    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
 };
 
 use failure::{err_msg, Error, Fail};
@@ -300,7 +298,7 @@ enum DeserializingConfigError {
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
@@ -402,7 +400,7 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
@@ -424,7 +422,7 @@ fn root_level_default() -> LevelFilter {
     LevelFilter::Debug
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct Logger {
     level: LevelFilter,

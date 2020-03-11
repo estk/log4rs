@@ -2,19 +2,17 @@
 //!
 //! Requires the `delete_roller` feature.
 
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{fs, path::Path};
 
 use failure::Error;
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
 
 /// Configuration for the delete roller.
-#[cfg(feature = "file")]
-#[derive(Deserialize, Clone)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteRollerConfig {
     #[serde(skip_deserializing)]
@@ -45,10 +43,10 @@ impl DeleteRoller {
 /// ```yaml
 /// kind: delete
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct DeleteRollerDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for DeleteRollerDeserializer {
     type Trait = dyn Roll;
 

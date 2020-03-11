@@ -114,7 +114,7 @@
 //! ```
 //!
 //! ```no_run
-//! # #[cfg(feature = "file")]
+//! # #[cfg(feature = "config_parsing")]
 //! # fn f() {
 //! log4rs::init_file("log4rs.yml", Default::default()).unwrap();
 //! # }
@@ -188,7 +188,7 @@ use std::{
     cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
 };
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub use crate::priv_file::{init_file, load_config_file, FormatError};
 
 use crate::{append::Append, config::Config, filter::Filter};
@@ -196,11 +196,13 @@ use crate::{append::Append, config::Config, filter::Filter};
 pub mod append;
 pub mod config;
 pub mod encode;
-#[cfg(feature = "file")]
-pub mod file;
 pub mod filter;
-#[cfg(feature = "file")]
+
+#[cfg(feature = "config_parsing")]
+pub mod config_parsing;
+#[cfg(feature = "config_parsing")]
 mod priv_file;
+
 #[cfg(feature = "console_writer")]
 mod priv_io;
 

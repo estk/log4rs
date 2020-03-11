@@ -3,16 +3,14 @@
 //! Requires the `threshold_filter` feature.
 
 use log::{LevelFilter, Record};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
 use crate::filter::{Filter, Response};
 
 /// The threshold filter's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 pub struct ThresholdFilterConfig {
     level: LevelFilter,
 }
@@ -50,10 +48,10 @@ impl Filter for ThresholdFilter {
 /// # The threshold log level to filter at. Required
 /// level: warn
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct ThresholdFilterDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for ThresholdFilterDeserializer {
     type Trait = dyn Filter;
 

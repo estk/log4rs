@@ -1,18 +1,18 @@
 //! Encoders
 
 use log::Record;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde::de;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde_value::Value;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
 use std::{fmt, io};
 
 use failure::Error;
 
-#[cfg(feature = "file")]
-use crate::file::Deserializable;
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::Deserializable;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -37,7 +37,7 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
     fn encode(&self, w: &mut dyn Write, record: &Record) -> Result<(), Error>;
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Encode {
     fn name() -> &'static str {
         "encoder"
@@ -45,7 +45,7 @@ impl Deserializable for dyn Encode {
 }
 
 /// Configuration for an encoder.
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct EncoderConfig {
     /// The encoder's kind.
     pub kind: String,
@@ -54,7 +54,7 @@ pub struct EncoderConfig {
     pub config: Value,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl<'de> de::Deserialize<'de> for EncoderConfig {
     fn deserialize<D>(d: D) -> Result<EncoderConfig, D::Error>
     where

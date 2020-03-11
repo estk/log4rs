@@ -4,8 +4,8 @@ use std::fmt;
 use failure::Error;
 
 use crate::append::rolling_file::LogFile;
-#[cfg(feature = "file")]
-use crate::file::Deserializable;
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::Deserializable;
 
 #[cfg(feature = "compound_policy")]
 pub mod compound;
@@ -19,7 +19,7 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     fn process(&self, log: &mut LogFile) -> Result<(), Error>;
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Policy {
     fn name() -> &'static str {
         "policy"

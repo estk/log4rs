@@ -4,8 +4,6 @@
 
 #[cfg(feature = "background_rotation")]
 use parking_lot::{Condvar, Mutex};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 use std::{
@@ -16,12 +14,12 @@ use std::{
 use failure::{err_msg, Error};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FixedWindowRollerConfig {
     pattern: String,
@@ -304,10 +302,10 @@ impl FixedWindowRollerBuilder {
 /// # The base value for archived log indices. Defaults to 0.
 /// base: 1
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct FixedWindowRollerDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for FixedWindowRollerDeserializer {
     type Trait = dyn Roll;
 
