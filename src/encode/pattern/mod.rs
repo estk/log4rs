@@ -21,13 +21,14 @@
 //!
 //! # Special characters
 //!
-//! The `{`, `}`, `(`, `)`, and `\` characters are part of the pattern syntax;
+//! The `{`, `}`, `(`, `)` (all platform), and `\` (not windows)
+//! characters are part of the pattern syntax;
 //! they must be escaped to appear in output. Like with Rust's string
 //! formatting syntax, type the character twice to escape it. That is, `{{`
 //! will be rendered as `{` in output and `))` will be rendered as `)`.
 //!
-//! In addition, these characters may also be escaped by prefixing them with a
-//! `\` character. That is, `\{` will be rendered as `{`.
+//! In addition, when not windows, these characters may also be escaped by prefixing them with a
+//! `\` character. That is, `\{` will be rendered as `{`. windows use `\` as path seperator.
 //!
 //! # Formatters
 //!

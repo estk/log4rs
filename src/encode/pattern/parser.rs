@@ -1,6 +1,7 @@
 // cribbed to a large extent from libfmt_macros
 use std::{iter::Peekable, str::CharIndices};
 
+#[derive(Debug)]
 pub enum Piece<'a> {
     Text(&'a str),
     Argument {
@@ -10,12 +11,13 @@ pub enum Piece<'a> {
     Error(String),
 }
 
+#[derive(Debug)]
 pub struct Formatter<'a> {
     pub name: &'a str,
     pub args: Vec<Vec<Piece<'a>>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Parameters {
     pub fill: char,
     pub align: Alignment,
@@ -23,7 +25,7 @@ pub struct Parameters {
     pub max_width: Option<usize>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone)]
 pub enum Alignment {
     Left,
     Right,
@@ -178,6 +180,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[cfg(not(target_os = "windows"))]
     fn text(&mut self, start: usize) -> Piece<'a> {
         while let Some(&(pos, ch)) = self.it.peek() {
             match ch {
@@ -188,6 +191,29 @@ impl<'a> Parser<'a> {
             }
         }
         Piece::Text(&self.pattern[start..])
+    }
+
+    #[cfg(target_os = "windows")]
+    fn text(&mut self, start: usize) -> Piece<'a> {
+        while let Some(&(pos, ch)) = self.it.peek() {
+            match ch {
+                '{' | '}' | '(' | ')' => return Piece::Text(&self.pattern[start..pos]),
+                _ => {
+                    self.it.next();
+                }
+            }
+        }
+        Piece::Text(&self.pattern[start..])
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn process_double_back_slash() -> Option<Piece<'a>> {
+        Some(Piece::Error("unexpected '\\'".to_owned()))
+    }
+
+    #[cfg(target_os = "windows")]
+    fn process_double_back_slash() -> Option<Piece<'a>> {
+        Some(Piece::Text("\\"))
     }
 }
 
@@ -257,7 +283,7 @@ impl<'a> Iterator for Parser<'a> {
                         self.it.next();
                         Some(Piece::Text("\\"))
                     }
-                    _ => Some(Piece::Error("unexpected '\\'".to_owned())),
+                    _ => Parser::process_double_back_slash(),
                 }
             }
             Some(&(pos, _)) => Some(self.text(pos)),

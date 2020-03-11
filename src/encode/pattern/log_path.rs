@@ -123,12 +123,32 @@ mod tests {
     use crate::encode::pattern::parser::Parser;
 
     #[test]
-    fn test_simple_parse() {
-        let file = "foo.log.";
+    fn test_simple_nix_parse() {
+        let file = "/some_dir/foo.log.";
         let pattern = format!("{}{{}}", file);
         let chunks: Vec<Chunk> = Parser::new(&pattern).map(From::from).collect();
         let text = chunks.get(0).unwrap();
         let count = chunks.get(1).unwrap();
+
+        match text {
+            Chunk::Text(str) => assert_eq!(str, file),
+            _ => assert_eq!(true, false),
+        }
+        match count {
+            Chunk::Count(c) => assert_eq!(*c, Count { base: 0, count: 0 }),
+            _ => assert_eq!(true, false),
+        }
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_simple_win_parse() {
+        let file = "c:\\some_dir\\foo.log.";
+        let pattern = format!("{}{{}}", file);
+        let chunks: Vec<Chunk> = Parser::new(&pattern).map(From::from).collect();
+        let text = chunks.get(0).unwrap();
+        let count = chunks.get(1).unwrap();
+
         match text {
             Chunk::Text(str) => assert_eq!(str, file),
             _ => assert_eq!(true, false),
@@ -146,6 +166,7 @@ mod tests {
         let chunks: Vec<Chunk> = Parser::new(&pattern).map(From::from).collect();
         let text = chunks.get(0).unwrap();
         let count = chunks.get(1).unwrap();
+
         match text {
             Chunk::Text(str) => assert_eq!(str, file),
             _ => assert_eq!(true, false),
@@ -164,6 +185,7 @@ mod tests {
         let chunks: Vec<Chunk> = Parser::new(&pattern).map(From::from).collect();
         let text = chunks.get(0).unwrap();
         let time = chunks.get(1).unwrap();
+
         match text {
             Chunk::Text(str) => assert_eq!(str, file),
             _ => assert_eq!(true, false),
