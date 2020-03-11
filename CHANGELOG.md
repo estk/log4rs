@@ -22,7 +22,7 @@ for the PR!
 
 * Deprecate xml feature in preparation for removal.
 * Simplify and increase visibility of docs.
-* Swapped some synchronization primitives to use `parking_lot` implementations.
+* Swap some synchronization primitives to use `parking_lot` implementations.
 
 ### Fixed
 
