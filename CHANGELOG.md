@@ -6,6 +6,10 @@
 
 ### Changed
 
+* Drop XML config support
+* Rename feature `file` to `config_parsing`
+* Expose errors as `failure::Error`
+
 ### Fixed
 
 ## [0.11.0]
