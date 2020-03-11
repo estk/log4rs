@@ -4,8 +4,8 @@ use std::{fmt, path::Path};
 
 use failure::Error;
 
-#[cfg(feature = "file")]
-use crate::file::Deserializable;
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::Deserializable;
 
 #[cfg(feature = "delete_roller")]
 pub mod delete;
@@ -24,7 +24,7 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     fn roll(&self, file: &Path) -> Result<(), Error>;
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Roll {
     fn name() -> &'static str {
         "roller"

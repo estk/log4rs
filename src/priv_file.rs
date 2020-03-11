@@ -10,7 +10,7 @@ use failure::{Error, Fail};
 
 use crate::{
     config::Config,
-    file::{Deserializers, RawConfig},
+    config_parsing::{Deserializers, RawConfig},
     handle_error, init_config, Handle,
 };
 

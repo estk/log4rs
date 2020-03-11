@@ -1,19 +1,19 @@
 //! Appenders
 
 use log::{Log, Record};
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde::{de, Deserialize, Deserializer};
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde_value::Value;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
 use std::fmt;
 
 use failure::Error;
 
-#[cfg(feature = "file")]
-use crate::file::Deserializable;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::Deserializable;
+#[cfg(feature = "config_parsing")]
 use crate::filter::FilterConfig;
 
 #[cfg(feature = "console_appender")]
@@ -35,7 +35,7 @@ pub trait Append: fmt::Debug + Send + Sync + 'static {
     fn flush(&self);
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Append {
     fn name() -> &'static str {
         "appender"
@@ -54,7 +54,7 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
 }
 
 /// Configuration for an appender.
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct AppenderConfig {
     /// The appender kind.
@@ -65,7 +65,7 @@ pub struct AppenderConfig {
     pub config: Value,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl<'de> Deserialize<'de> for AppenderConfig {
     fn deserialize<D>(d: D) -> Result<AppenderConfig, D::Error>
     where

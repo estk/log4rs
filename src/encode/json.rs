@@ -31,20 +31,17 @@ use chrono::{
 };
 use log::{Level, Record};
 use serde::ser::{self, Serialize, SerializeMap};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-use serde_derive::Serialize;
 use std::{fmt, option, thread};
 
 use failure::Error;
 
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
 use crate::encode::{Encode, Write, NEWLINE};
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
 
 /// The JSON encoder's configuration
-#[cfg(feature = "file")]
-#[derive(Deserialize, Clone)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct JsonEncoderConfig {
     #[serde(skip_deserializing)]
@@ -94,7 +91,7 @@ impl Encode for JsonEncoder {
     }
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct Message<'a> {
     #[serde(serialize_with = "ser_display")]
     time: DelayedFormat<option::IntoIter<Item<'a>>>,
@@ -149,10 +146,10 @@ impl ser::Serialize for Mdc {
 /// ```yaml
 /// kind: json
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct JsonEncoderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for JsonEncoderDeserializer {
     type Trait = dyn Encode;
 

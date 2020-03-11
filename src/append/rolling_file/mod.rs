@@ -18,11 +18,9 @@
 
 use log::Record;
 use parking_lot::Mutex;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde_value::Value;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
 use std::{
     fmt,
@@ -33,10 +31,10 @@ use std::{
 
 use failure::Error;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+use crate::config_parsing::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
 use crate::{
     append::Append,
     encode::{self, pattern::PatternEncoder, Encode},
@@ -45,8 +43,8 @@ use crate::{
 pub mod policy;
 
 /// Configuration for the rolling file appender.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RollingFileAppenderConfig {
     path: String,
@@ -55,13 +53,13 @@ pub struct RollingFileAppenderConfig {
     policy: Policy,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 struct Policy {
     kind: String,
     config: Value,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl<'de> serde::Deserialize<'de> for Policy {
     fn deserialize<D>(d: D) -> Result<Policy, D::Error>
     where
@@ -314,10 +312,10 @@ impl RollingFileAppenderBuilder {
 ///   roller:
 ///     kind: delete
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 pub struct RollingFileAppenderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for RollingFileAppenderDeserializer {
     type Trait = dyn Append;
 
@@ -358,7 +356,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use crate::file::{Deserializers, RawConfig};
+        use crate::config_parsing::{Deserializers, RawConfig};
 
         let dir = tempfile::tempdir().unwrap();
 
