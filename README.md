@@ -22,7 +22,7 @@ The methods to mitigate this are as follows.
 1. Disable the `gzip` feature with `--no-default-features`.
 1. Ensure the archives are small enough that the compression time is acceptable.
 
-For more information see the PR that added (`background_rotation`)[https://github.com/estk/log4rs/pull/117].
+For more information see the PR that added [`background_rotation`](https://github.com/estk/log4rs/pull/117).
 
 ## Quick Start
 
