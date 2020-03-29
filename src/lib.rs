@@ -189,8 +189,13 @@ use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 
+use failure::{Error, Fail};
+
 #[cfg(feature = "config_parsing")]
 pub use crate::priv_file::{init_file, load_config_file, FormatError};
+
+#[cfg(feature = "config_parsing")]
+pub use crate::config_parsing::{Deserializers, RawConfig};
 
 use crate::{append::Append, config::Config, filter::Filter};
 
@@ -206,6 +211,11 @@ mod priv_file;
 
 #[cfg(feature = "console_writer")]
 mod priv_io;
+
+/// Collects the set of errors that occur when deserializing the appenders.
+#[derive(Debug, Fail)]
+#[fail(display = "Errors on initialization: {:#?}", _0)]
+pub struct InitErrors(Vec<Error>);
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
@@ -418,6 +428,26 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
     log::set_boxed_logger(Box::new(logger)).map(|()| handle)
 }
 
+/// Initializes the global logger as a log4rs logger using the provided raw config.
+///
+/// This will return errors if the appenders configuration is malformed or if we fail to set the global logger.
+#[cfg(feature = "config_parsing")]
+pub fn init_raw_config(config: RawConfig) -> Result<(), Error> {
+    let (appenders, errors) = config.appenders_lossy(&Deserializers::default());
+    if errors.len() > 0 {
+        return Err(InitErrors(errors).into());
+    }
+    let config = Config::builder()
+        .appenders(appenders)
+        .loggers(config.loggers())
+        .build(config.root())?;
+    let logger = Logger::new(config);
+    let logger = Box::new(logger);
+    log::set_max_level(log::LevelFilter::Info);
+    log::set_boxed_logger(logger)?;
+    Ok(())
+}
+
 /// A handle to the active logger.
 pub struct Handle {
     shared: Arc<ArcSwap<SharedLogger>>,
@@ -449,6 +479,30 @@ mod test {
     use log::{Level, LevelFilter, Log};
 
     use super::*;
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn init_from_raw_config() {
+        let cfg = r#"
+refresh_rate: 60 seconds
+
+appenders:
+  console:
+    kind: console
+    filters:
+      - kind: threshold
+        level: debug
+root:
+  appenders:
+    - console
+  level: info
+"#;
+        let config = ::serde_yaml::from_str::<config_parsing::RawConfig>(cfg).unwrap();
+        if let Err(e) = init_raw_config(config) {
+            panic!(e);
+        }
+        //TODO(ram): Make test better.
+    }
 
     #[test]
     fn enabled() {
