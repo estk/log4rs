@@ -490,7 +490,7 @@ mod test {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
 
-        let cfg = json!({
+        let cfg = serde_json::json!({
             "refresh_rate": "60 seconds",
             "root" : {
                 "appenders": ["baz"],
@@ -506,7 +506,7 @@ mod test {
                 }
             },
         });
-        let config = ::serde_json::from_str::<config_parsing::RawConfig>(&cfg).unwrap();
+        let config = serde_json::from_str::<config_parsing::RawConfig>(&cfg).unwrap();
         if let Err(e) = init_raw_config(config) {
             panic!(e);
         }
