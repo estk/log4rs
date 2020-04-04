@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use log::SetLoggerError;
 use std::{
     error, fmt,

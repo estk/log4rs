@@ -88,6 +88,8 @@
 //!     Default: true
 //!     additive: false
 //! ```
+#![allow(deprecated)]
+
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_derive::Deserialize;
