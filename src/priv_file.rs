@@ -2,9 +2,7 @@
 
 use log::SetLoggerError;
 use std::{
-    error, fmt,
-    fs::{self, File},
-    io::Read,
+    error, fmt, fs,
     path::{Path, PathBuf},
     thread,
     time::{Duration, SystemTime},
@@ -163,6 +161,7 @@ impl Format {
         }
     }
 
+    #[allow(unused_variables)]
     fn parse(&self, source: &str) -> Result<RawConfig, Box<dyn error::Error + Send + Sync>> {
         match *self {
             #[cfg(feature = "yaml_format")]
@@ -180,9 +179,7 @@ impl Format {
 }
 
 fn read_config(path: &Path) -> Result<String, Box<dyn error::Error + Sync + Send>> {
-    let mut file = File::open(path)?;
-    let mut s = String::new();
-    file.read_to_string(&mut s)?;
+    let s = fs::read_to_string(path)?;
     Ok(s)
 }
 
