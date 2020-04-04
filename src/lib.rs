@@ -489,9 +489,22 @@ mod test {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
 
-        let cfg = format!(
-            "{{\"refresh_rate\":\"60 seconds\",\"appenders\":{{\"baz\":{{\"kind\":\"file\",\"path\":\"{}\",\"encoder\":{{\"pattern\":\"{{m}}\"}}}}}},\"root\":{{\"appenders\":[\"baz\"],\"level\":\"info\"}}}}",
-            path.display());
+        let cfg = json!({
+            "refresh_rate": "60 seconds",
+            "root" : {
+                "appenders": ["baz"],
+                "level": "info",
+            }
+            "appenders": {
+                "baz": {
+                    "kind": "file",
+                    "path": path,
+                    "encoder": {
+                        "pattern": "{m}"
+                    }
+                }
+            },
+        });
         let config = ::serde_json::from_str::<config_parsing::RawConfig>(&cfg).unwrap();
         if let Err(e) = init_raw_config(config) {
             panic!(e);
