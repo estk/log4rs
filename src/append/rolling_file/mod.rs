@@ -250,6 +250,10 @@ impl RollingFileAppenderBuilder {
     }
 
     /// Constructs a `RollingFileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path.
     pub fn build<P>(
         self,
         path: P,
@@ -258,9 +262,10 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
+        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
-            path: path.as_ref().to_owned(),
+            path,
             append: self.append,
             encoder: self
                 .encoder
@@ -287,6 +292,10 @@ impl RollingFileAppenderBuilder {
 /// kind: rolling_file
 ///
 /// # The path of the log file. Required.
+/// # The path can contain environment variables of the form $ENV{name_here},
+/// # where 'name_here' will be the name of the environment variable that
+/// # will be resolved. Note that if the variable fails to resolve,
+/// # $ENV{name_here} will NOT be replaced in the path.
 /// path: log/foo.log
 ///
 /// # Specifies if the appender should append to or truncate the log file if it
