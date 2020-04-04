@@ -494,7 +494,7 @@ mod test {
             "root" : {
                 "appenders": ["baz"],
                 "level": "info",
-            }
+            },
             "appenders": {
                 "baz": {
                     "kind": "file",
