@@ -1,6 +1,6 @@
+#![allow(deprecated)]
 use std::{
-    fs::{self, File},
-    io::Read,
+    fs,
     path::{Path, PathBuf},
     thread,
     time::{Duration, SystemTime},
@@ -133,6 +133,7 @@ impl Format {
         }
     }
 
+    #[allow(unused_variables)]
     fn parse(&self, source: &str) -> Result<RawConfig, failure::Error> {
         match *self {
             #[cfg(feature = "yaml_format")]
@@ -146,9 +147,7 @@ impl Format {
 }
 
 fn read_config(path: &Path) -> Result<String, failure::Error> {
-    let mut file = File::open(path)?;
-    let mut s = String::new();
-    file.read_to_string(&mut s)?;
+    let s = fs::read_to_string(path)?;
     Ok(s)
 }
 

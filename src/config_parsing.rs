@@ -88,6 +88,8 @@
 //!     Default: true
 //!     additive: false
 //! ```
+#![allow(deprecated)]
+
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
@@ -99,10 +101,17 @@ use failure::{err_msg, Error, Fail};
 
 use typemap::{Key, ShareCloneMap};
 
-use crate::{
-    append::{self, AppenderConfig},
-    config, encode, filter,
-};
+use crate::{append::AppenderConfig, config};
+
+#[allow(unused_imports)]
+use crate::append;
+
+#[cfg(feature = "json_encoder")]
+#[cfg(feature = "pattern_encoder")]
+use crate::encode;
+
+#[cfg(feature = "threshold_filter")]
+use crate::filter;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: 'static {
@@ -168,6 +177,7 @@ pub struct Deserializers(ShareCloneMap);
 
 impl Default for Deserializers {
     fn default() -> Deserializers {
+        #[allow(unused_mut)]
         let mut d = Deserializers::empty();
 
         #[cfg(feature = "console_appender")]

@@ -331,7 +331,6 @@ mod test {
     use std::{
         fs::File,
         io::{Read, Write},
-        process::Command,
     };
 
     use super::*;
@@ -523,6 +522,8 @@ mod test {
     // or should we force windows user to install gunzip
     #[cfg(not(windows))]
     fn supported_gzip() {
+        use std::process::Command;
+
         let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.gz");
