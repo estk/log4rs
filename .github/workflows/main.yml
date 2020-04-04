@@ -26,7 +26,9 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Run clippy
-        run: RUSTFLAGS='-D warnings' cargo clippy --all-features
+        run: cargo clippy --all-features
+        env:
+          RUSTFLAGS: -D warnings
 
   test:
     name: Test
@@ -48,7 +50,9 @@ jobs:
         run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
 
       - name: test lib
-        run: RUSTFLAGS='-D warnings' cargo test --all-features
+        run: cargo test --all-features
+        env:
+          RUSTFLAGS: -D warnings
 
   features:
     name: Test Individual Features
