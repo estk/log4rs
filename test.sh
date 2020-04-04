@@ -8,8 +8,10 @@ function main {
     fi
     for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
         echo building with feature "$feature"
+        cargo clippy --no-default-features --features "$feature"
         echo cross test $target_arg  --no-default-features --features "$feature"
         cross test $target_arg  --no-default-features --features "$feature"
+
     done
 }
 
