@@ -26,7 +26,7 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Run clippy
-        run: bash -e .github/workflows/lint_each_feature.sh
+        run: RUSTFLAGS='-D warnings' cargo clippy --all-features
 
   test:
     name: Test
@@ -48,7 +48,7 @@ jobs:
         run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
 
       - name: test lib
-        run: bash -e .github/workflows/test_each_feature.sh
+        run: RUSTFLAGS='-D warnings' cargo test --all-features
 
   features:
     name: Test Individual Features
@@ -67,7 +67,7 @@ jobs:
         run: |
           for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
             echo building with feature "$feature"
-            cargo test --no-default-features --features "$feature"
+            RUSTFLAGS='-D warnings' cargo test --no-default-features --features "$feature"
           done
 
   bench:

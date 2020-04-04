@@ -176,7 +176,7 @@ pub struct Deserializers(ShareCloneMap);
 
 impl Default for Deserializers {
     fn default() -> Deserializers {
-        #[allow(unused_mut, clippy::let_and_return)]
+        #[allow(unused_mut)]
         let mut d = Deserializers::empty();
 
         #[cfg(feature = "console_appender")]
