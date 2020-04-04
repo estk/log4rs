@@ -183,7 +183,9 @@
 //! For more examples see the (examples)[https://github.com/estk/log4rs/tree/master/examples] in the source.
 //!
 
+#![allow(where_clauses_object_safety)]
 #![warn(missing_docs)]
+
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};

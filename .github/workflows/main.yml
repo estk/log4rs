@@ -26,9 +26,9 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Run clippy
-        run: cargo clippy --all --all-features
-        # when the typemap stuff gets resolved
-        # run: cargo clippy --all --all-features -- -Dwarnings
+        run: cargo clippy --all-features
+        env:
+          RUSTFLAGS: -D warnings
 
   test:
     name: Test
@@ -37,7 +37,6 @@ jobs:
       matrix:
         rust_versions: ["stable", "1.38.0"]
         os: [ubuntu-latest, windows-latest]
-        cargo_build_flags: ["--all-features"]
     steps:
       - name: Checkout the source code
         uses: actions/checkout@master
@@ -51,7 +50,9 @@ jobs:
         run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
 
       - name: test lib
-        run: cargo test ${{ matrix.cargo_build_flags }} -- ${{ matrix.test_flags }}
+        run: cargo test --all-features
+        env:
+          RUSTFLAGS: -D warnings
 
   features:
     name: Test Individual Features
@@ -70,7 +71,7 @@ jobs:
         run: |
           for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
             echo building with feature "$feature"
-            cargo test --no-default-features --features "$feature"
+            RUSTFLAGS='-D warnings' cargo test --no-default-features --features "$feature"
           done
 
   bench:
