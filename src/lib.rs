@@ -443,10 +443,10 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), Error> {
         .appenders(appenders)
         .loggers(config.loggers())
         .build(config.root())?;
+
     let logger = Logger::new(config);
-    let logger = Box::new(logger);
     log::set_max_level(log::LevelFilter::Info);
-    log::set_boxed_logger(logger)?;
+    log::set_boxed_logger(Box::new(logger))?;
     Ok(())
 }
 
