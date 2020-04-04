@@ -485,7 +485,6 @@ mod test {
 
     #[test]
     #[cfg(all(feature = "config_parsing", feature = "json_format"))]
-    #[cfg(target_os = "linux")]
     fn init_from_raw_config() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
@@ -506,7 +505,7 @@ mod test {
                 }
             },
         });
-        let config = serde_json::from_str::<config_parsing::RawConfig>(&cfg).unwrap();
+        let config = serde_json::from_str::<config_parsing::RawConfig>(&cfg.to_string()).unwrap();
         if let Err(e) = init_raw_config(config) {
             panic!(e);
         }
