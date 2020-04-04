@@ -436,7 +436,7 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
 #[cfg(feature = "config_parsing")]
 pub fn init_raw_config(config: RawConfig) -> Result<(), Error> {
     let (appenders, errors) = config.appenders_lossy(&Deserializers::default());
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         return Err(InitErrors(errors).into());
     }
     let config = Config::builder()
@@ -491,7 +491,7 @@ mod test {
         let path = dir.path().join("append.log");
 
         let cfg = format!(
-            "{{\"refresh_rate\":\"60 seconds\",\"appenders\":{{\"baz\":{{\"kind\":\"file\",\"path\":\"{}\",\"encoder\":{{\"pattern\":\"{{m}}\"}}}}}},\"root\":{{\"appenders\":[\"baz\"],\"level\":\"info\"}}}}", 
+            "{{\"refresh_rate\":\"60 seconds\",\"appenders\":{{\"baz\":{{\"kind\":\"file\",\"path\":\"{}\",\"encoder\":{{\"pattern\":\"{{m}}\"}}}}}},\"root\":{{\"appenders\":[\"baz\"],\"level\":\"info\"}}}}",
             path.display());
         let config = ::serde_json::from_str::<config_parsing::RawConfig>(&cfg).unwrap();
         if let Err(e) = init_raw_config(config) {

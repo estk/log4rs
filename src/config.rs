@@ -406,7 +406,7 @@ fn check_logger_name(name: &str) -> Result<(), Error> {
     }
 
     if streak > 0 {
-        Err(ConfigError::InvalidLoggerName(name.to_owned().into()).into())
+        Err(ConfigError::InvalidLoggerName(name.to_owned()).into())
     } else {
         Ok(())
     }
