@@ -4,6 +4,8 @@
 
 ### New
 
+* Allow parsing of config from string
+
 ### Changed
 
 * Drop XML config support
