@@ -87,10 +87,6 @@ pub enum FormatError {
     #[fail(display = "the `toml_format` feature is required for TOML support")]
     TomlFeatureFlagRequired,
 
-    /// The XML feature flag was missing.
-    #[fail(display = "the `xml_format` feature is required for XML support")]
-    XmlFeatureFlagRequired,
-
     /// An unsupported format was specified.
     #[fail(display = "unsupported file format `{}`", 0)]
     UnsupportedFormat(String),
