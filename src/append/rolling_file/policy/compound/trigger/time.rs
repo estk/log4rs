@@ -82,7 +82,7 @@ impl TimeTrigger {
 }
 
 impl Trigger for TimeTrigger {
-    fn trigger(&self, _file: Option<&LogFile>) -> Result<bool, Box<dyn Error + Sync + Send>> {
+    fn trigger(&self, _file: &LogFile) -> Result<bool, Box<dyn Error + Sync + Send>> {
         let now_string = now_string(&self.fmt);
         let mut time_string = self.time_string.write().unwrap();
         let is_trigger = *time_string != now_string;
@@ -126,10 +126,16 @@ mod test {
 
     #[test]
     fn trigger() {
+        let file = tempfile::tempdir().unwrap();
+        let logfile = LogFile {
+            writer: &mut None,
+            path: file.path(),
+            len: 0,
+        };
         set_mock_time("2020-03-07");
         let trigger = TimeTrigger::new("%Y%m%d");
-        assert_eq!(false, trigger.trigger(Option::None).unwrap());
+        assert_eq!(false, trigger.trigger(&logfile).unwrap());
         set_mock_time("2020-03-08");
-        assert_eq!(true, trigger.trigger(Option::None).unwrap());
+        assert_eq!(true, trigger.trigger(&logfile).unwrap());
     }
 }

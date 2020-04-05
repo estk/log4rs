@@ -30,10 +30,7 @@ impl<'a> From<Piece<'a>> for Chunk {
         match piece {
             Piece::Text(text) => Chunk::Text(text.to_owned()),
             Piece::Error(err) => Chunk::Error(err),
-            Piece::Argument {
-                formatter,
-                parameters: _,
-            } => match formatter.name {
+            Piece::Argument { formatter, .. } => match formatter.name {
                 "d" | "date" => {
                     if formatter.args.len() > 1 {
                         return Chunk::Error("expected at most two arguments".to_owned());

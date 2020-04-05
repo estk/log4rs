@@ -1,6 +1,7 @@
 //! The compound rolling policy.
 //!
 //! Requires the `compound_policy` feature.
+#[cfg(not(test))]
 use chrono::Local;
 #[cfg(feature = "file")]
 use serde::{self, de};
@@ -103,7 +104,7 @@ impl CompoundPolicy {
 
 impl Policy for CompoundPolicy {
     fn process(&self, log: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
-        if self.trigger.trigger(Some(log))? {
+        if self.trigger.trigger(log)? {
             log.roll();
             self.roller.roll(log.path())?;
         }
@@ -165,6 +166,8 @@ fn now_string(fmt: &str) -> String {
 #[cfg(test)]
 use std::cell::RefCell;
 
+// MOCK_TIME_STR will changed by `set_mock_time` function
+// RefCell is safe to change when it is `thread_local`
 #[cfg(test)]
 thread_local! {
     static MOCK_TIME_STR: RefCell<Option<String>> = RefCell::new(None);

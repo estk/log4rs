@@ -139,7 +139,7 @@ fn rotate(
         _ => false, // Only case that can actually happen is (None, None)
     };
 
-    let _ = rm_outdated_pattern_files(&dst_0, pattern, fmt, count, parent_varies)?;
+    rm_outdated_pattern_files(&dst_0, pattern, fmt, count, parent_varies)?;
 
     compression.compress(&file, &dst_0)?;
     Ok(())
@@ -281,7 +281,7 @@ impl TimeBasedRollerBuilder {
         Ok(TimeBasedRoller {
             pattern: p,
             compression,
-            fmt: fmt.to_owned(),
+            fmt,
             count: merged_count,
             #[cfg(feature = "background_rotation")]
             lock: Arc::new(Mutex::new(())),
@@ -330,6 +330,7 @@ impl Deserialize for TimeBasedRollerDeserializer {
 mod test {
     use std::fs::File;
     use std::io::{Read, Write};
+    #[cfg(not(windows))]
     use std::process::Command;
 
     use super::*;
