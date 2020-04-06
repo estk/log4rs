@@ -36,7 +36,7 @@ use std::{fmt, option, thread};
 use failure::Error;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 use crate::encode::{Encode, Write, NEWLINE};
 
 /// The JSON encoder's configuration

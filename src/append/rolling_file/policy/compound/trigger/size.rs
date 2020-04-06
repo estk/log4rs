@@ -12,7 +12,7 @@ use failure::Error;
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]

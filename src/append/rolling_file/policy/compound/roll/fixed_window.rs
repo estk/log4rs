@@ -15,7 +15,7 @@ use failure::{err_msg, Error};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "config_parsing")]

@@ -1,11 +1,169 @@
 //! log4rs configuration
 
+use failure::{Error, Fail};
 use log::LevelFilter;
 use std::{collections::HashSet, fmt, iter::IntoIterator};
 
-use crate::{append::Append, filter::Filter, ConfigPrivateExt, PrivateConfigAppenderExt};
+use crate::{append::Append, filter::Filter};
 
-use failure::{Error, Fail};
+/// A log4rs configuration.
+#[derive(Debug)]
+pub struct Config {
+    appenders: Vec<Appender>,
+    root: Root,
+    loggers: Vec<Logger>,
+}
+
+impl Config {
+    /// Creates a new `ConfigBuilder`.
+    pub fn builder() -> ConfigBuilder {
+        ConfigBuilder {
+            appenders: vec![],
+            loggers: vec![],
+        }
+    }
+
+    /// Returns the `Appender`s associated with the `Config`.
+    pub fn appenders(&self) -> &[Appender] {
+        &self.appenders
+    }
+
+    /// Returns the `Root` associated with the `Config`.
+    pub fn root(&self) -> &Root {
+        &self.root
+    }
+
+    /// Returns a mutable handle for the `Root` associated with the `Config`.
+    pub fn root_mut(&mut self) -> &mut Root {
+        &mut self.root
+    }
+
+    /// Returns the `Logger`s associated with the `Config`.
+    pub fn loggers(&self) -> &[Logger] {
+        &self.loggers
+    }
+
+    pub(crate) fn unpack(self) -> (Vec<Appender>, Root, Vec<Logger>) {
+        let Config {
+            appenders,
+            root,
+            loggers,
+        } = self;
+        (appenders, root, loggers)
+    }
+}
+
+/// A builder for `Config`s.
+pub struct ConfigBuilder {
+    appenders: Vec<Appender>,
+    loggers: Vec<Logger>,
+}
+
+impl ConfigBuilder {
+    /// Adds an appender.
+    pub fn appender(mut self, appender: Appender) -> ConfigBuilder {
+        self.appenders.push(appender);
+        self
+    }
+
+    /// Adds appenders.
+    pub fn appenders<I>(mut self, appenders: I) -> ConfigBuilder
+    where
+        I: IntoIterator<Item = Appender>,
+    {
+        self.appenders.extend(appenders);
+        self
+    }
+
+    /// Adds a logger.
+    pub fn logger(mut self, logger: Logger) -> ConfigBuilder {
+        self.loggers.push(logger);
+        self
+    }
+
+    /// Adds loggers.
+    pub fn loggers<I>(mut self, loggers: I) -> ConfigBuilder
+    where
+        I: IntoIterator<Item = Logger>,
+    {
+        self.loggers.extend(loggers);
+        self
+    }
+
+    /// Consumes the `ConfigBuilder`, returning the `Config`.
+    ///
+    /// Unlike `build`, this method will always return a `Config` by stripping
+    /// portions of the configuration that are incorrect.
+    pub fn build_lossy(self, mut root: Root) -> (Config, Vec<Error>) {
+        let mut errors = vec![];
+
+        let ConfigBuilder { appenders, loggers } = self;
+
+        let mut ok_appenders = vec![];
+        let mut appender_names = HashSet::new();
+        for appender in appenders {
+            if appender_names.insert(appender.name.clone()) {
+                ok_appenders.push(appender);
+            } else {
+                errors.push(ConfigError::DuplicateAppenderName(appender.name).into());
+            }
+        }
+
+        let mut ok_root_appenders = vec![];
+        for appender in root.appenders {
+            if appender_names.contains(&appender) {
+                ok_root_appenders.push(appender);
+            } else {
+                errors.push(ConfigError::NonexistentAppender(appender).into());
+            }
+        }
+        root.appenders = ok_root_appenders;
+
+        let mut ok_loggers = vec![];
+        let mut logger_names = HashSet::new();
+        for mut logger in loggers {
+            if !logger_names.insert(logger.name.clone()) {
+                errors.push(ConfigError::DuplicateLoggerName(logger.name).into());
+                continue;
+            }
+
+            if let Err(err) = check_logger_name(&logger.name) {
+                errors.push(err);
+                continue;
+            }
+
+            let mut ok_logger_appenders = vec![];
+            for appender in logger.appenders {
+                if appender_names.contains(&appender) {
+                    ok_logger_appenders.push(appender);
+                } else {
+                    errors.push(ConfigError::NonexistentAppender(appender).into());
+                }
+            }
+            logger.appenders = ok_logger_appenders;
+
+            ok_loggers.push(logger);
+        }
+
+        let config = Config {
+            appenders: ok_appenders,
+            root,
+            loggers: ok_loggers,
+        };
+
+        (config, errors)
+    }
+
+    /// Consumes the `ConfigBuilder`, returning the `Config`.
+    pub fn build(self, root: Root) -> Result<Config, Errors> {
+        let (config, errors) = self.build_lossy(root);
+        if errors.is_empty() {
+            Ok(config)
+        } else {
+            Err(Errors { errors })
+        }
+    }
+}
 
 /// Configuration for the root logger.
 #[derive(Debug)]
@@ -99,10 +257,8 @@ impl Appender {
     pub fn filters(&self) -> &[Box<dyn Filter>] {
         &self.filters
     }
-}
 
-impl PrivateConfigAppenderExt for Appender {
-    fn unpack(self) -> (String, Box<dyn Append>, Vec<Box<dyn Filter>>) {
+    pub(crate) fn unpack(self) -> (String, Box<dyn Append>, Vec<Box<dyn Filter>>) {
         let Appender {
             name,
             appender,
@@ -235,156 +391,6 @@ impl LoggerBuilder {
     }
 }
 
-/// A log4rs configuration.
-#[derive(Debug)]
-pub struct Config {
-    appenders: Vec<Appender>,
-    root: Root,
-    loggers: Vec<Logger>,
-}
-
-impl Config {
-    /// Creates a new `ConfigBuilder`.
-    pub fn builder() -> ConfigBuilder {
-        ConfigBuilder {
-            appenders: vec![],
-            loggers: vec![],
-        }
-    }
-
-    /// Returns the `Appender`s associated with the `Config`.
-    pub fn appenders(&self) -> &[Appender] {
-        &self.appenders
-    }
-
-    /// Returns the `Root` associated with the `Config`.
-    pub fn root(&self) -> &Root {
-        &self.root
-    }
-
-    /// Returns a mutable handle for the `Root` associated with the `Config`.
-    pub fn root_mut(&mut self) -> &mut Root {
-        &mut self.root
-    }
-
-    /// Returns the `Logger`s associated with the `Config`.
-    pub fn loggers(&self) -> &[Logger] {
-        &self.loggers
-    }
-}
-
-/// A builder for `Config`s.
-pub struct ConfigBuilder {
-    appenders: Vec<Appender>,
-    loggers: Vec<Logger>,
-}
-
-impl ConfigBuilder {
-    /// Adds an appender.
-    pub fn appender(mut self, appender: Appender) -> ConfigBuilder {
-        self.appenders.push(appender);
-        self
-    }
-
-    /// Adds appenders.
-    pub fn appenders<I>(mut self, appenders: I) -> ConfigBuilder
-    where
-        I: IntoIterator<Item = Appender>,
-    {
-        self.appenders.extend(appenders);
-        self
-    }
-
-    /// Adds a logger.
-    pub fn logger(mut self, logger: Logger) -> ConfigBuilder {
-        self.loggers.push(logger);
-        self
-    }
-
-    /// Adds loggers.
-    pub fn loggers<I>(mut self, loggers: I) -> ConfigBuilder
-    where
-        I: IntoIterator<Item = Logger>,
-    {
-        self.loggers.extend(loggers);
-        self
-    }
-
-    /// Consumes the `ConfigBuilder`, returning the `Config`.
-    ///
-    /// Unlike `build`, this method will always return a `Config` by stripping
-    /// portions of the configuration that are incorrect.
-    pub fn build_lossy(self, mut root: Root) -> (Config, Vec<Error>) {
-        let mut errors = vec![];
-
-        let ConfigBuilder { appenders, loggers } = self;
-
-        let mut ok_appenders = vec![];
-        let mut appender_names = HashSet::new();
-        for appender in appenders {
-            if appender_names.insert(appender.name.clone()) {
-                ok_appenders.push(appender);
-            } else {
-                errors.push(ConfigError::DuplicateAppenderName(appender.name).into());
-            }
-        }
-
-        let mut ok_root_appenders = vec![];
-        for appender in root.appenders {
-            if appender_names.contains(&appender) {
-                ok_root_appenders.push(appender);
-            } else {
-                errors.push(ConfigError::NonexistentAppender(appender).into());
-            }
-        }
-        root.appenders = ok_root_appenders;
-
-        let mut ok_loggers = vec![];
-        let mut logger_names = HashSet::new();
-        for mut logger in loggers {
-            if !logger_names.insert(logger.name.clone()) {
-                errors.push(ConfigError::DuplicateLoggerName(logger.name).into());
-                continue;
-            }
-
-            if let Err(err) = check_logger_name(&logger.name) {
-                errors.push(err);
-                continue;
-            }
-
-            let mut ok_logger_appenders = vec![];
-            for appender in logger.appenders {
-                if appender_names.contains(&appender) {
-                    ok_logger_appenders.push(appender);
-                } else {
-                    errors.push(ConfigError::NonexistentAppender(appender).into());
-                }
-            }
-            logger.appenders = ok_logger_appenders;
-
-            ok_loggers.push(logger);
-        }
-
-        let config = Config {
-            appenders: ok_appenders,
-            root,
-            loggers: ok_loggers,
-        };
-
-        (config, errors)
-    }
-
-    /// Consumes the `ConfigBuilder`, returning the `Config`.
-    pub fn build(self, root: Root) -> Result<Config, Errors> {
-        let (config, errors) = self.build_lossy(root);
-        if errors.is_empty() {
-            Ok(config)
-        } else {
-            Err(Errors { errors })
-        }
-    }
-}
-
 fn check_logger_name(name: &str) -> Result<(), Error> {
     if name.is_empty() {
         return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
@@ -409,17 +415,6 @@ fn check_logger_name(name: &str) -> Result<(), Error> {
         Err(ConfigError::InvalidLoggerName(name.to_owned()).into())
     } else {
         Ok(())
-    }
-}
-
-impl ConfigPrivateExt for Config {
-    fn unpack(self) -> (Vec<Appender>, Root, Vec<Logger>) {
-        let Config {
-            appenders,
-            root,
-            loggers,
-        } = self;
-        (appenders, root, loggers)
     }
 }
 

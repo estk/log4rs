@@ -15,7 +15,7 @@ use crate::append::rolling_file::{
     LogFile,
 };
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 
 pub mod roll;
 pub mod trigger;

@@ -5,7 +5,7 @@
 use log::{LevelFilter, Record};
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 use crate::filter::{Filter, Response};
 
 /// The threshold filter's configuration.

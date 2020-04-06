@@ -12,7 +12,7 @@ use std::fmt;
 use failure::Error;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::Deserializable;
+use crate::config::Deserializable;
 #[cfg(feature = "config_parsing")]
 use crate::filter::FilterConfig;
 
@@ -117,7 +117,7 @@ mod test {
     #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
     fn expand_env_vars_tests() {
         set_var("HELLO_WORLD", "GOOD BYE");
-        #[cfg(target_os = "linux")]
+        #[cfg(not(target_os = "windows"))]
         let test_cases = vec![
             ("$ENV{HOME}", PathBuf::from(var("HOME").unwrap())),
             (
