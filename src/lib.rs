@@ -192,6 +192,7 @@ use log::{Level, LevelFilter, Metadata, Record};
 use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 
 pub mod append;
+#[allow(missing_docs)] // TODO: remove
 pub mod config;
 pub mod encode;
 pub mod filter;
