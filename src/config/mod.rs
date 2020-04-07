@@ -2,25 +2,25 @@ use crate::Handle;
 use failure::{Error, Fail};
 use log::SetLoggerError;
 
-mod config;
+pub mod runtime;
+
 #[cfg(feature = "config_parsing")]
 mod file;
 #[cfg(feature = "config_parsing")]
 mod raw;
 
-pub use config::{Appender, Config, Logger, Root};
+pub use runtime::{Appender, Config, Logger, Root};
 
 #[cfg(feature = "config_parsing")]
-pub use self::{
-    file::{init_file, load_config_file, FormatError},
-    raw::{Deserializable, Deserialize, Deserializers, RawConfig},
-};
+pub use self::file::{init_file, load_config_file, FormatError};
+#[cfg(feature = "config_parsing")]
+pub use self::raw::{Deserializable, Deserialize, Deserializers, RawConfig};
 
 /// Initializes the global logger as a log4rs logger with the provided config.
 ///
 /// A `Handle` object is returned which can be used to adjust the logging
 /// configuration.
-pub fn init_config(config: config::Config) -> Result<crate::Handle, SetLoggerError> {
+pub fn init_config(config: runtime::Config) -> Result<crate::Handle, SetLoggerError> {
     let logger = crate::Logger::new(config);
     log::set_max_level(logger.max_log_level());
     let handle = Handle {
