@@ -185,6 +185,8 @@
 
 #![allow(where_clauses_object_safety)]
 #![warn(missing_docs)]
+// TODO: need to remove before merge
+#![allow(missing_docs, clippy::module_inception)]
 
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
@@ -192,14 +194,16 @@ use log::{Level, LevelFilter, Metadata, Record};
 use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 
 pub mod append;
-#[allow(missing_docs)] // TODO: remove
 pub mod config;
 pub mod encode;
 pub mod filter;
 #[cfg(feature = "console_writer")]
 mod priv_io;
 
-pub use config::{init_config, init_file, init_raw_config, Config};
+pub use config::{init_config, Config};
+
+#[cfg(feature = "config_parsing")]
+pub use config::{init_file, init_raw_config};
 
 use self::{append::Append, filter::Filter};
 
@@ -445,7 +449,7 @@ mod test {
                 }
             },
         });
-        let config = serde_json::from_str::<config_parsing::RawConfig>(&cfg.to_string()).unwrap();
+        let config = serde_json::from_str::<config::RawConfig>(&cfg.to_string()).unwrap();
         if let Err(e) = init_raw_config(config) {
             panic!(e);
         }
