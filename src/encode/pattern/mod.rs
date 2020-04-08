@@ -53,7 +53,7 @@
 //!     the default style for all other levels.
 //!     * `{h(the level is {l})}` -
 //!         <code style="color: red; font-weight: bold">the level is ERROR</code>
-//! * `l``, level` - The log level.
+//! * `l`, `level` - The log level.
 //! * `L`, `line` - The line that the log message came from, or `???` if not
 //!     provided.
 //! * `m`, `message` - The log message.
