@@ -1,8 +1,8 @@
 //! log4rs configuration
 
-use thiserror::Error;
 use log::LevelFilter;
 use std::{collections::HashSet, fmt, iter::IntoIterator};
+use thiserror::Error;
 
 use crate::{append::Append, filter::Filter};
 

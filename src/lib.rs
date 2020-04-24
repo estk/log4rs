@@ -208,7 +208,6 @@ pub use config::{init_file, init_raw_config};
 
 use self::{append::Append, filter::Filter};
 
-
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
 struct ConfiguredLogger {
