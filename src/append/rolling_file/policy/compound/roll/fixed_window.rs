@@ -2,6 +2,7 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
+use anyhow::bail;
 #[cfg(feature = "background_rotation")]
 use parking_lot::{Condvar, Mutex};
 #[cfg(feature = "background_rotation")]
@@ -10,8 +11,6 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
-
-use failure::{err_msg, Error};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
@@ -101,7 +100,7 @@ impl FixedWindowRoller {
 
 impl Roll for FixedWindowRoller {
     #[cfg(not(feature = "background_rotation"))]
-    fn roll(&self, file: &Path) -> Result<(), Error> {
+    fn roll(&self, file: &Path) -> anyhow::Result<()> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -118,7 +117,7 @@ impl Roll for FixedWindowRoller {
     }
 
     #[cfg(feature = "background_rotation")]
-    fn roll(&self, file: &Path) -> Result<(), Error> {
+    fn roll(&self, file: &Path) -> anyhow::Result<()> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -256,9 +255,9 @@ impl FixedWindowRollerBuilder {
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
-    pub fn build(self, pattern: &str, count: u32) -> Result<FixedWindowRoller, Error> {
+    pub fn build(self, pattern: &str, count: u32) -> anyhow::Result<FixedWindowRoller> {
         if !pattern.contains("{}") {
-            return Err(err_msg("pattern does not contain `{}`"));
+            bail!("pattern does not contain `{}`");
         }
 
         let compression = match Path::new(pattern).extension() {
@@ -266,7 +265,7 @@ impl FixedWindowRollerBuilder {
             Some(e) if e == "gz" => Compression::Gzip,
             #[cfg(not(feature = "gzip"))]
             Some(e) if e == "gz" => {
-                return Err(err_msg("gzip compression requires the `gzip` feature"));
+                bail!("gzip compression requires the `gzip` feature");
             }
             _ => Compression::None,
         };
@@ -316,7 +315,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
         &self,
         config: FixedWindowRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Roll>, Error> {
+    ) -> anyhow::Result<Box<dyn Roll>> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = config.base {
             builder = builder.base(base);

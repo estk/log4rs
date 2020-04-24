@@ -9,8 +9,6 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::{fmt, io};
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
 
@@ -34,7 +32,7 @@ const NEWLINE: &str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `Record` into bytes and writes them.
-    fn encode(&self, w: &mut dyn Write, record: &Record) -> Result<(), Error>;
+    fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()>;
 }
 
 #[cfg(feature = "config_parsing")]

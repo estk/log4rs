@@ -61,7 +61,7 @@ impl Deserialize for ThresholdFilterDeserializer {
         &self,
         config: ThresholdFilterConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Filter>, failure::Error> {
+    ) -> anyhow::Result<Box<dyn Filter>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

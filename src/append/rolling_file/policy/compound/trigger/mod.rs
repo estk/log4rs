@@ -2,8 +2,6 @@
 
 use std::fmt;
 
-use failure::Error;
-
 use crate::append::rolling_file::LogFile;
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
@@ -14,7 +12,7 @@ pub mod size;
 /// A trait which identifies if the active log file should be rolled over.
 pub trait Trigger: fmt::Debug + Send + Sync + 'static {
     /// Determines if the active log file should be rolled over.
-    fn trigger(&self, file: &LogFile) -> Result<bool, Error>;
+    fn trigger(&self, file: &LogFile) -> anyhow::Result<bool>;
 }
 
 #[cfg(feature = "config_parsing")]

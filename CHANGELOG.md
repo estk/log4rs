@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+
 ### New
 
 * Allow parsing of config from string
@@ -11,7 +12,7 @@
 
 * Drop XML config support
 * Rename feature `file` to `config_parsing`
-* Expose errors as `failure::Error`
+* Use `thiserror`/`anyhow` for errors
 
 ### Fixed
 
