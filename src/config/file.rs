@@ -8,11 +8,8 @@ use std::{
 
 use failure::{Error, Fail};
 
-use crate::{
-    config::Config,
-    config_parsing::{Deserializers, RawConfig},
-    handle_error, init_config, Handle,
-};
+use super::{init_config, Config, Deserializers, Handle, RawConfig};
+use crate::handle_error;
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///

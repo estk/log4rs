@@ -5,7 +5,7 @@ use failure::Error;
 
 use crate::append::rolling_file::LogFile;
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::Deserializable;
+use crate::config::Deserializable;
 
 #[cfg(feature = "compound_policy")]
 pub mod compound;

@@ -5,6 +5,7 @@
 ### New
 
 * Allow parsing of config from string
+* Expand env vars in file path of file and RollingFile appenders PR#155
 
 ### Changed
 

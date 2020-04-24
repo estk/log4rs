@@ -12,7 +12,7 @@ use std::{fmt, io};
 use failure::Error;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::Deserializable;
+use crate::config::Deserializable;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;

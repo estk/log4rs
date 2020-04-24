@@ -130,7 +130,7 @@ use crate::encode::{
 };
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 
 mod parser;
 
