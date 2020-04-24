@@ -32,7 +32,7 @@ use std::{
 use failure::Error;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 use crate::{
@@ -365,7 +365,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use crate::config_parsing::{Deserializers, RawConfig};
+        use crate::config::{Deserializers, RawConfig};
 
         let dir = tempfile::tempdir().unwrap();
 

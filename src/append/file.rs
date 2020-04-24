@@ -14,7 +14,7 @@ use std::{
 use failure::Error;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::{Deserialize, Deserializers};
+use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 

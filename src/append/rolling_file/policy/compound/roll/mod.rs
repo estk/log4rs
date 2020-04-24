@@ -5,7 +5,7 @@ use std::{fmt, path::Path};
 use failure::Error;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::Deserializable;
+use crate::config::Deserializable;
 
 #[cfg(feature = "delete_roller")]
 pub mod delete;

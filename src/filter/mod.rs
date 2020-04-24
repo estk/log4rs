@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 #[cfg(feature = "config_parsing")]
-use crate::config_parsing::Deserializable;
+use crate::config::Deserializable;
 
 #[cfg(feature = "threshold_filter")]
 pub mod threshold;
