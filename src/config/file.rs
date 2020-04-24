@@ -6,7 +6,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use failure::{Error, Fail};
+use thiserror::Error;
 
 use super::{init_config, Config, Deserializers, Handle, RawConfig};
 use crate::handle_error;
@@ -20,7 +20,7 @@ use crate::handle_error;
 /// reported to stderr.
 ///
 /// Requires the `file` feature (enabled by default).
-pub fn init_file<P>(path: P, deserializers: Deserializers) -> Result<(), failure::Error>
+pub fn init_file<P>(path: P, deserializers: Deserializers) -> anyhow::Result<()>
 where
     P: AsRef<Path>,
 {
@@ -57,7 +57,7 @@ where
 ///
 /// Unlike `init_file`, this function does not initialize the logger; it only
 /// loads the `Config` and returns it.
-pub fn load_config_file<P>(path: P, deserializers: Deserializers) -> Result<Config, failure::Error>
+pub fn load_config_file<P>(path: P, deserializers: Deserializers) -> anyhow::Result<Config>
 where
     P: AsRef<Path>,
 {
@@ -70,26 +70,26 @@ where
 }
 
 /// The various types of formatting errors that can be generated.
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum FormatError {
     /// The YAML feature flag was missing.
-    #[fail(display = "the `yaml_format` feature is required for YAML support")]
+    #[error("the `yaml_format` feature is required for YAML support")]
     YamlFeatureFlagRequired,
 
     /// The JSON feature flag was missing.
-    #[fail(display = "the `json_format` feature is required for JSON support")]
+    #[error("the `json_format` feature is required for JSON support")]
     JsonFeatureFlagRequired,
 
     /// The TOML feature flag was missing.
-    #[fail(display = "the `toml_format` feature is required for TOML support")]
+    #[error("the `toml_format` feature is required for TOML support")]
     TomlFeatureFlagRequired,
 
     /// An unsupported format was specified.
-    #[fail(display = "unsupported file format `{}`", 0)]
+    #[error("unsupported file format `{0}`")]
     UnsupportedFormat(String),
 
     /// Log4rs could not determine the file format.
-    #[fail(display = "unable to determine the file format")]
+    #[error("unable to determine the file format")]
     UnknownFormat,
 }
 
@@ -104,7 +104,7 @@ enum Format {
 }
 
 impl Format {
-    fn from_path(path: &Path) -> Result<Format, Error> {
+    fn from_path(path: &Path) -> anyhow::Result<Format> {
         match path.extension().and_then(|s| s.to_str()) {
             #[cfg(feature = "yaml_format")]
             Some("yaml") | Some("yml") => Ok(Format::Yaml),
@@ -127,7 +127,7 @@ impl Format {
     }
 
     #[allow(unused_variables)]
-    fn parse(&self, source: &str) -> Result<RawConfig, failure::Error> {
+    fn parse(&self, source: &str) -> anyhow::Result<RawConfig> {
         match *self {
             #[cfg(feature = "yaml_format")]
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
@@ -139,7 +139,7 @@ impl Format {
     }
 }
 
-fn read_config(path: &Path) -> Result<String, failure::Error> {
+fn read_config(path: &Path) -> anyhow::Result<String> {
     let s = fs::read_to_string(path)?;
     Ok(s)
 }
@@ -207,7 +207,7 @@ impl ConfigReloader {
         }
     }
 
-    fn run_once(&mut self, rate: Duration) -> Result<Option<Duration>, failure::Error> {
+    fn run_once(&mut self, rate: Duration) -> anyhow::Result<Option<Duration>> {
         if let Some(last_modified) = self.modified {
             let modified = fs::metadata(&self.path).and_then(|m| m.modified())?;
             if last_modified == modified {

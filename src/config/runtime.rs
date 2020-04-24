@@ -1,6 +1,6 @@
 //! log4rs configuration
 
-use failure::{Error, Fail};
+use thiserror::Error;
 use log::LevelFilter;
 use std::{collections::HashSet, fmt, iter::IntoIterator};
 
@@ -94,7 +94,7 @@ impl ConfigBuilder {
     ///
     /// Unlike `build`, this method will always return a `Config` by stripping
     /// portions of the configuration that are incorrect.
-    pub fn build_lossy(self, mut root: Root) -> (Config, Vec<Error>) {
+    pub fn build_lossy(self, mut root: Root) -> (Config, Vec<anyhow::Error>) {
         let mut errors = vec![];
 
         let ConfigBuilder { appenders, loggers } = self;
@@ -391,7 +391,7 @@ impl LoggerBuilder {
     }
 }
 
-fn check_logger_name(name: &str) -> Result<(), Error> {
+fn check_logger_name(name: &str) -> Result<(), anyhow::Error> {
     if name.is_empty() {
         return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
     }
@@ -419,14 +419,14 @@ fn check_logger_name(name: &str) -> Result<(), Error> {
 }
 
 /// Errors encountered when validating a log4rs `Config`.
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub struct Errors {
-    errors: Vec<Error>,
+    errors: Vec<anyhow::Error>,
 }
 
 impl Errors {
     /// Returns a slice of `Error`s.
-    pub fn errors(&self) -> &[Error] {
+    pub fn errors(&self) -> &[anyhow::Error] {
         &self.errors
     }
 }
@@ -441,22 +441,22 @@ impl fmt::Display for Errors {
 }
 
 /// An error validating a log4rs `Config`.
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum ConfigError {
     /// Multiple appenders were registered with the same name.
-    #[fail(display = "Duplicate appender name `{}`", 0)]
+    #[error("Duplicate appender name `{0}`")]
     DuplicateAppenderName(String),
     /// A reference to a nonexistant appender.
-    #[fail(display = "Reference to nonexistent appender: `{}`", 0)]
+    #[error("Reference to nonexistent appender: `{0}`")]
     NonexistentAppender(String),
     /// Multiple loggers were registered with the same name.
-    #[fail(display = "Duplicate logger name `{}`", 0)]
+    #[error("Duplicate logger name `{0}`")]
     DuplicateLoggerName(String),
     /// A logger name was invalid.
-    #[fail(display = "Invalid logger name `{}`", 0)]
+    #[error("Invalid logger name `{0}`")]
     InvalidLoggerName(String),
     #[doc(hidden)]
-    #[fail(display = "Reserved for future use")]
+    #[error("Reserved for future use")]
     __Extensible,
 }
 

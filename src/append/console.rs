@@ -8,8 +8,6 @@ use std::{
     io::{self, Write},
 };
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
@@ -122,7 +120,7 @@ impl fmt::Debug for ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&self, record: &Record) -> Result<(), Error> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         let mut writer = self.writer.lock();
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;
@@ -220,7 +218,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
         &self,
         config: ConsoleAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Append>, failure::Error> {
+    ) -> anyhow::Result<Box<dyn Append>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = config.target {
             let target = match target {

@@ -188,10 +188,11 @@
 // TODO: need to remove before merge
 #![allow(missing_docs, clippy::module_inception)]
 
+use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
+
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
 use log::{Level, LevelFilter, Metadata, Record};
-use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 
 pub mod append;
 pub mod config;
@@ -206,6 +207,7 @@ pub use config::{init_config, Config};
 pub use config::{init_file, init_raw_config};
 
 use self::{append::Append, filter::Filter};
+
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
@@ -292,7 +294,7 @@ struct Appender {
 }
 
 impl Appender {
-    fn append(&self, record: &Record) -> Result<(), failure::Error> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
@@ -400,9 +402,10 @@ impl log::Log for Logger {
     }
 }
 
-pub(crate) fn handle_error(e: &failure::Error) {
+pub(crate) fn handle_error(e: &anyhow::Error) {
     let _ = writeln!(io::stderr(), "log4rs: {}", e);
 }
+
 /// A handle to the active logger.
 pub struct Handle {
     shared: Arc<ArcSwap<SharedLogger>>,

@@ -8,8 +8,6 @@ use serde_value::Value;
 #[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
 
-use failure::Error;
-
 use crate::append::rolling_file::{
     policy::{compound::roll::Roll, Policy},
     LogFile,
@@ -100,7 +98,7 @@ impl CompoundPolicy {
 }
 
 impl Policy for CompoundPolicy {
-    fn process(&self, log: &mut LogFile) -> Result<(), Error> {
+    fn process(&self, log: &mut LogFile) -> anyhow::Result<()> {
         if self.trigger.trigger(log)? {
             log.roll();
             self.roller.roll(log.path())?;
@@ -148,7 +146,7 @@ impl Deserialize for CompoundPolicyDeserializer {
         &self,
         config: CompoundPolicyConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Policy>, Error> {
+    ) -> anyhow::Result<Box<dyn Policy>> {
         let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))

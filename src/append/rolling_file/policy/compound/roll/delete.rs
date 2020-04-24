@@ -4,8 +4,6 @@
 
 use std::{fs, path::Path};
 
-use failure::Error;
-
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -24,7 +22,7 @@ pub struct DeleteRollerConfig {
 pub struct DeleteRoller(());
 
 impl Roll for DeleteRoller {
-    fn roll(&self, file: &Path) -> Result<(), Error> {
+    fn roll(&self, file: &Path) -> anyhow::Result<()> {
         fs::remove_file(file).map_err(Into::into)
     }
 }
@@ -56,7 +54,7 @@ impl Deserialize for DeleteRollerDeserializer {
         &self,
         _: DeleteRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Roll>, Error> {
+    ) -> anyhow::Result<Box<dyn Roll>> {
         Ok(Box::new(DeleteRoller::default()))
     }
 }
