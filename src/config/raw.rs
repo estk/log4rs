@@ -94,12 +94,12 @@ use std::{
     borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
 };
 
+use anyhow::anyhow;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
-use typemap::{Key, ShareCloneMap};
 use thiserror::Error;
-use anyhow::anyhow;
+use typemap::{Key, ShareCloneMap};
 
 use crate::{append::AppenderConfig, config};
 
@@ -300,8 +300,7 @@ impl Deserializers {
 enum DeserializingConfigError {
     #[error("error deserializing appender {0}: {1}")]
     Appender(String, anyhow::Error),
-    #[error(
-        "error deserializing filter attached to appender {0}: {1}")]
+    #[error("error deserializing filter attached to appender {0}: {1}")]
     Filter(String, anyhow::Error),
 }
 

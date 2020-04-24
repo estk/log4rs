@@ -2,6 +2,7 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
+use anyhow::bail;
 #[cfg(feature = "background_rotation")]
 use parking_lot::{Condvar, Mutex};
 #[cfg(feature = "background_rotation")]
@@ -10,7 +11,6 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
-use anyhow::bail;
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
