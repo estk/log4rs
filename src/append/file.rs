@@ -11,8 +11,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
@@ -50,7 +48,7 @@ impl fmt::Debug for FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &Record) -> Result<(), Error> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
@@ -153,7 +151,7 @@ impl Deserialize for FileAppenderDeserializer {
         &self,
         config: FileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Error> {
+    ) -> anyhow::Result<Box<Self::Trait>> {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);

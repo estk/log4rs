@@ -119,7 +119,6 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Local, Utc};
-use failure::Error;
 use log::{Level, Record};
 use std::{default::Default, fmt, io, process, thread};
 
@@ -618,7 +617,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> Result<(), Error> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> anyhow::Result<()> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
@@ -662,7 +661,7 @@ impl Deserialize for PatternEncoderDeserializer {
         &self,
         config: PatternEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Encode>, Error> {
+    ) -> anyhow::Result<Box<dyn Encode>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),

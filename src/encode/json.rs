@@ -33,8 +33,6 @@ use log::{Level, Record};
 use serde::ser::{self, Serialize, SerializeMap};
 use std::{fmt, option, thread};
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 use crate::encode::{Encode, Write, NEWLINE};
@@ -65,7 +63,7 @@ impl JsonEncoder {
         w: &mut dyn Write,
         time: DateTime<Local>,
         record: &Record,
-    ) -> Result<(), Error> {
+    ) -> anyhow::Result<()> {
         let thread = thread::current();
         let message = Message {
             time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
@@ -86,7 +84,7 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut dyn Write, record: &Record) -> Result<(), Error> {
+    fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()> {
         self.encode_inner(w, Local::now(), record)
     }
 }
@@ -159,7 +157,7 @@ impl Deserialize for JsonEncoderDeserializer {
         &self,
         _: JsonEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Encode>, Error> {
+    ) -> anyhow::Result<Box<dyn Encode>> {
         Ok(Box::new(JsonEncoder::default()))
     }
 }

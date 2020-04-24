@@ -29,8 +29,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
@@ -168,7 +166,7 @@ impl fmt::Debug for RollingFileAppender {
 }
 
 impl Append for RollingFileAppender {
-    fn append(&self, record: &Record) -> Result<(), Error> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
@@ -334,7 +332,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         &self,
         config: RollingFileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Append>, Error> {
+    ) -> anyhow::Result<Box<dyn Append>> {
         let mut builder = RollingFileAppender::builder();
         if let Some(append) = config.append {
             builder = builder.append(append);
@@ -356,8 +354,6 @@ mod test {
         fs::File,
         io::{Read, Write},
     };
-
-    use failure::Error;
 
     use super::*;
     use crate::append::rolling_file::policy::Policy;
@@ -408,7 +404,7 @@ appenders:
     struct NopPolicy;
 
     impl Policy for NopPolicy {
-        fn process(&self, _: &mut LogFile) -> Result<(), Error> {
+        fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
             Ok(())
         }
     }

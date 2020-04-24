@@ -90,15 +90,15 @@
 //! ```
 #![allow(deprecated)]
 
-use log::LevelFilter;
-use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
-use serde_value::Value;
 use std::{
     borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
 };
 
-use failure::{err_msg, Error, Fail};
-
+use anyhow::anyhow;
+use log::LevelFilter;
+use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
+use serde_value::Value;
+use thiserror::Error;
 use typemap::{Key, ShareCloneMap};
 
 use crate::{append::AppenderConfig, config};
@@ -133,7 +133,7 @@ pub trait Deserialize: Send + Sync + 'static {
         &self,
         config: Self::Config,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Error>;
+    ) -> anyhow::Result<Box<Self::Trait>>;
 }
 
 trait ErasedDeserialize: Send + Sync + 'static {
@@ -143,7 +143,7 @@ trait ErasedDeserialize: Send + Sync + 'static {
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Error>;
+    ) -> anyhow::Result<Box<Self::Trait>>;
 }
 
 struct DeserializeEraser<T>(T);
@@ -158,7 +158,7 @@ where
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Error> {
+    ) -> anyhow::Result<Box<Self::Trait>> {
         let config = config.deserialize_into()?;
         self.0.deserialize(config, deserializers)
     }
@@ -280,30 +280,27 @@ impl Deserializers {
     }
 
     /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> Result<Box<T>, Error>
+    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
     where
         T: Deserializable,
     {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
-            None => Err(err_msg(format!(
+            None => Err(anyhow!(
                 "no {} deserializer for kind `{}` registered",
                 T::name(),
                 kind
-            ))),
+            )),
         }
     }
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 enum DeserializingConfigError {
-    #[fail(display = "error deserializing appender {}: {}", 0, 1)]
-    Appender(String, Error),
-    #[fail(
-        display = "error deserializing filter attached to appender {}: {}",
-        0, 1
-    )]
-    Filter(String, Error),
+    #[error("error deserializing appender {0}: {1}")]
+    Appender(String, anyhow::Error),
+    #[error("error deserializing filter attached to appender {0}: {1}")]
+    Filter(String, anyhow::Error),
 }
 
 /// A raw deserializable log4rs configuration.
@@ -347,7 +344,7 @@ impl RawConfig {
     pub fn appenders_lossy(
         &self,
         deserializers: &Deserializers,
-    ) -> (Vec<config::Appender>, Vec<Error>) {
+    ) -> (Vec<config::Appender>, Vec<anyhow::Error>) {
         let mut appenders = vec![];
         let mut errors = vec![];
 

@@ -9,8 +9,6 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 use std::fmt;
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
 #[cfg(feature = "config_parsing")]
@@ -43,7 +41,7 @@ mod env_util {
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `Record`.
-    fn append(&self, record: &Record) -> Result<(), Error>;
+    fn append(&self, record: &Record) -> anyhow::Result<()>;
 
     /// Flushes all in-flight records.
     fn flush(&self);
@@ -57,7 +55,7 @@ impl Deserializable for dyn Append {
 }
 
 impl<T: Log + fmt::Debug + 'static> Append for T {
-    fn append(&self, record: &Record) -> Result<(), Error> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         self.log(record);
         Ok(())
     }

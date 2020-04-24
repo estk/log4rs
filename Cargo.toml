@@ -54,7 +54,6 @@ harness = false
 [dependencies]
 arc-swap = "0.4"
 chrono = { version = "0.4", optional = true }
-failure = "0.1.6"
 flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
 humantime = { version = "2.0", optional = true }
@@ -69,6 +68,8 @@ serde_yaml = { version = "0.8.4", optional = true }
 toml = { version = "0.5", optional = true }
 parking_lot = { version = "0.11.0", optional = true }
 regex = { version = "1", optional = true }
+thiserror = "1.0.15"
+anyhow = "1.0.28"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }

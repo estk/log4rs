@@ -2,8 +2,6 @@
 
 use std::{fmt, path::Path};
 
-use failure::Error;
-
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
 
@@ -21,7 +19,7 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     ///
     /// If this method returns successfully, there *must* no longer be a file
     /// at the specified location.
-    fn roll(&self, file: &Path) -> Result<(), Error>;
+    fn roll(&self, file: &Path) -> anyhow::Result<()>;
 }
 
 #[cfg(feature = "config_parsing")]
