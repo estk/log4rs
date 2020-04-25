@@ -2,7 +2,6 @@ use log::SetLoggerError;
 use thiserror::Error;
 
 use crate::Handle;
-use crate::config::raw::AppenderErrors;
 
 pub mod runtime;
 
@@ -39,7 +38,7 @@ pub fn init_config(config: runtime::Config) -> Result<crate::Handle, SetLoggerEr
 pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
     let (appenders, errors) = config.appenders_lossy(&Deserializers::default());
     if !errors.is_empty() {
-        return Err(InitError::DeserializingErrors(errors));
+        return Err(InitError::Deserializing(errors));
     }
     let config = Config::builder()
         .appenders(appenders)
@@ -55,12 +54,12 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
 #[derive(Debug, Error)]
 pub enum InitError{
     #[error("Errors found when deserializing the config: {0:#?}")]
-    DeserializingErrors(#[from] AppenderErrors),
+    Deserializing(#[from] raw::AppenderErrors),
 
     #[error("Config building errors: {0:#?}")]
-    BuildConfig(#[from] runtime::Errors),
+    BuildConfig(#[from] runtime::ConfigErrors),
 
     #[error("Error setting the logger: {0:#?}")]
-    SetLoggerError(#[from] log::SetLoggerError)
+    SetLogger(#[from] log::SetLoggerError)
 }
 
