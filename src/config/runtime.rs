@@ -421,12 +421,10 @@ fn check_logger_name(name: &str) -> Result<(), ConfigError> {
 /// Errors encountered when validating a log4rs `Config`.
 #[derive(Debug, Error)]
 #[error("Configuration errors: {0:#?}")]
-pub struct ConfigErrors (
-    Vec<ConfigError>,
-);
+pub struct ConfigErrors(Vec<ConfigError>);
 
 impl ConfigErrors {
-    pub fn is_empty(&self) -> bool{
+    pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
     /// Returns a slice of `Error`s.
@@ -437,7 +435,6 @@ impl ConfigErrors {
         for e in self.0.drain(..) {
             crate::handle_error(&e.into());
         }
-
     }
 }
 

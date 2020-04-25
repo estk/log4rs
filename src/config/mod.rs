@@ -12,7 +12,6 @@ mod raw;
 
 pub use runtime::{Appender, Config, Logger, Root};
 
-
 #[cfg(feature = "config_parsing")]
 pub use self::file::{init_file, load_config_file, FormatError};
 #[cfg(feature = "config_parsing")]
@@ -52,7 +51,7 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
 }
 
 #[derive(Debug, Error)]
-pub enum InitError{
+pub enum InitError {
     #[error("Errors found when deserializing the config: {0:#?}")]
     Deserializing(#[from] raw::AppenderErrors),
 
@@ -60,6 +59,5 @@ pub enum InitError{
     BuildConfig(#[from] runtime::ConfigErrors),
 
     #[error("Error setting the logger: {0:#?}")]
-    SetLogger(#[from] log::SetLoggerError)
+    SetLogger(#[from] log::SetLoggerError),
 }
-
