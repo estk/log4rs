@@ -421,6 +421,7 @@ pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
 }
 
 /// A handle to the active logger.
+#[derive(Clone)]
 pub struct Handle {
     shared: Arc<ArcSwap<SharedLogger>>,
 }
