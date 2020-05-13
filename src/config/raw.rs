@@ -372,12 +372,12 @@ impl RawConfig {
             for filter in &appender.filters {
                 match deserializers.deserialize(&filter.kind, filter.config.clone()) {
                     Ok(filter) => builder = builder.filter(filter),
-                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e).into()),
+                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e)),
                 }
             }
             match deserializers.deserialize(&appender.kind, appender.config.clone()) {
                 Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
-                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e).into()),
+                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e)),
             }
         }
 

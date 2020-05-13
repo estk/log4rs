@@ -105,7 +105,7 @@ impl ConfigBuilder {
             if appender_names.insert(appender.name.clone()) {
                 ok_appenders.push(appender);
             } else {
-                errors.push(ConfigError::DuplicateAppenderName(appender.name).into());
+                errors.push(ConfigError::DuplicateAppenderName(appender.name));
             }
         }
 
@@ -114,7 +114,7 @@ impl ConfigBuilder {
             if appender_names.contains(&appender) {
                 ok_root_appenders.push(appender);
             } else {
-                errors.push(ConfigError::NonexistentAppender(appender).into());
+                errors.push(ConfigError::NonexistentAppender(appender));
             }
         }
         root.appenders = ok_root_appenders;
@@ -123,7 +123,7 @@ impl ConfigBuilder {
         let mut logger_names = HashSet::new();
         for mut logger in loggers {
             if !logger_names.insert(logger.name.clone()) {
-                errors.push(ConfigError::DuplicateLoggerName(logger.name).into());
+                errors.push(ConfigError::DuplicateLoggerName(logger.name));
                 continue;
             }
 
@@ -137,7 +137,7 @@ impl ConfigBuilder {
                 if appender_names.contains(&appender) {
                     ok_logger_appenders.push(appender);
                 } else {
-                    errors.push(ConfigError::NonexistentAppender(appender).into());
+                    errors.push(ConfigError::NonexistentAppender(appender));
                 }
             }
             logger.appenders = ok_logger_appenders;

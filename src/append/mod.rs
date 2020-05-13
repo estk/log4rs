@@ -23,6 +23,7 @@ pub mod rolling_file;
 
 #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
 mod env_util {
+    #[allow(clippy::redundant_clone)]
     pub fn expand_env_vars(path: std::path::PathBuf) -> std::path::PathBuf {
         let mut path: String = path.to_string_lossy().into();
         let matcher = regex::Regex::new(r#"\$ENV\{([\w][\w|\d|\.|_]*)\}"#).unwrap();

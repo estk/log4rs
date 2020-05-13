@@ -53,6 +53,7 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
 #[derive(Debug, Error)]
 pub enum InitError {
     #[error("Errors found when deserializing the config: {0:#?}")]
+    #[cfg(feature = "config_parsing")]
     Deserializing(#[from] raw::AppenderErrors),
 
     #[error("Config building errors: {0:#?}")]
