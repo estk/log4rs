@@ -105,8 +105,7 @@ use crate::{append::AppenderConfig, config};
 #[allow(unused_imports)]
 use crate::append;
 
-#[cfg(feature = "json_encoder")]
-#[cfg(feature = "pattern_encoder")]
+#[cfg(any(feature = "json_encoder", feature = "pattern_encoder"))]
 use crate::encode;
 
 #[cfg(feature = "threshold_filter")]
