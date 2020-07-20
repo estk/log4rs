@@ -59,7 +59,7 @@
 //! Loggers are also associated with a set of appenders. Appenders can be
 //! associated directly with a logger. In addition, the appenders of the
 //! logger's parent will be associated with the logger unless the logger has
-//! its *additivity* set to `false`. Log events sent to the logger that are not
+//! its *additive* set to `false`. Log events sent to the logger that are not
 //! filtered out by the logger's maximum log level will be sent to all
 //! associated appenders.
 //!
