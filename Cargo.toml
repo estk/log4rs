@@ -68,7 +68,7 @@ typemap = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.8.4", optional = true }
 toml = { version = "0.5", optional = true }
-serde-xml-rs = { version = "0.3", optional = true }
+serde-xml-rs = { version = "0.4", optional = true }
 parking_lot = { version = "0.10.0", optional = true }
 
 [target.'cfg(windows)'.dependencies]
