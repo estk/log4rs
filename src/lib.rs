@@ -183,7 +183,7 @@
 //! For more examples see the (examples)[https://github.com/estk/log4rs/tree/master/examples] in the source.
 //!
 
-#![allow(where_clauses_object_safety)]
+#![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
 #![warn(missing_docs)]
 
 use arc_swap::ArcSwap;
