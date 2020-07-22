@@ -18,15 +18,15 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct FixedWindowRollerConfig {
     pattern: String,
     base: Option<u32>,
     count: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 enum Compression {
     None,
     #[cfg(feature = "gzip")]
@@ -81,7 +81,7 @@ impl Compression {
 /// Note that this roller will have to rename every archived file every time the
 /// log rolls over. Performance may be negatively impacted by specifying a large
 /// count.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FixedWindowRoller {
     pattern: String,
     compression: Compression,
@@ -233,6 +233,7 @@ fn rotate(
 }
 
 /// A builder for the `FixedWindowRoller`.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FixedWindowRollerBuilder {
     base: u32,
 }
@@ -303,6 +304,7 @@ impl FixedWindowRollerBuilder {
 /// base: 1
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FixedWindowRollerDeserializer;
 
 #[cfg(feature = "config_parsing")]

@@ -10,15 +10,15 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the delete roller.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct DeleteRollerConfig {
     #[serde(skip_deserializing)]
     _p: (),
 }
 
 /// A roller which deletes the log file.
-#[derive(Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct DeleteRoller(());
 
 impl Roll for DeleteRoller {
@@ -42,6 +42,7 @@ impl DeleteRoller {
 /// kind: delete
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct DeleteRollerDeserializer;
 
 #[cfg(feature = "config_parsing")]

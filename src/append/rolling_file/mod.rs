@@ -42,8 +42,8 @@ pub mod policy;
 
 /// Configuration for the rolling file appender.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
@@ -52,6 +52,7 @@ pub struct RollingFileAppenderConfig {
 }
 
 #[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct Policy {
     kind: String,
     config: Value,
@@ -77,6 +78,7 @@ impl<'de> serde::Deserialize<'de> for Policy {
     }
 }
 
+#[derive(Debug)]
 struct LogWriter {
     file: BufWriter<File>,
     len: u64,
@@ -98,6 +100,7 @@ impl io::Write for LogWriter {
 impl encode::Write for LogWriter {}
 
 /// Information about the active log file.
+#[derive(Debug)]
 pub struct LogFile<'a> {
     writer: &'a mut Option<LogWriter>,
     path: &'a Path,
@@ -320,6 +323,7 @@ impl RollingFileAppenderBuilder {
 ///     kind: delete
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct RollingFileAppenderDeserializer;
 
 #[cfg(feature = "config_parsing")]

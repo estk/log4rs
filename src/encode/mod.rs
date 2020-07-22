@@ -44,6 +44,7 @@ impl Deserializable for dyn Encode {
 
 /// Configuration for an encoder.
 #[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct EncoderConfig {
     /// The encoder's kind.
     pub kind: String,

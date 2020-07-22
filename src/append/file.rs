@@ -23,8 +23,8 @@ use crate::{
 
 /// The file appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
@@ -139,6 +139,7 @@ impl FileAppenderBuilder {
 ///   kind: pattern
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FileAppenderDeserializer;
 
 #[cfg(feature = "config_parsing")]
