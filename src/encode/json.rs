@@ -39,7 +39,7 @@ use crate::encode::{Encode, Write, NEWLINE};
 
 /// The JSON encoder's configuration
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize, Clone)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JsonEncoderConfig {
     #[serde(skip_deserializing)]
@@ -47,7 +47,7 @@ pub struct JsonEncoderConfig {
 }
 
 /// An `Encode`r which writes a JSON object.
-#[derive(Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct JsonEncoder(());
 
 impl JsonEncoder {
@@ -145,6 +145,7 @@ impl ser::Serialize for Mdc {
 /// kind: json
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct JsonEncoderDeserializer;
 
 #[cfg(feature = "config_parsing")]

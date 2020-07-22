@@ -1,6 +1,7 @@
 // cribbed to a large extent from libfmt_macros
 use std::{iter::Peekable, str::CharIndices};
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Piece<'a> {
     Text(&'a str),
     Argument {
@@ -10,11 +11,13 @@ pub enum Piece<'a> {
     Error(String),
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Formatter<'a> {
     pub name: &'a str,
     pub args: Vec<Vec<Piece<'a>>>,
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Parameters {
     pub fill: char,
     pub align: Alignment,
@@ -22,12 +25,13 @@ pub struct Parameters {
     pub max_width: Option<usize>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Alignment {
     Left,
     Right,
 }
 
+#[derive(Clone, Debug)]
 pub struct Parser<'a> {
     pattern: &'a str,
     it: Peekable<CharIndices<'a>>,

@@ -1,13 +1,15 @@
 //! Encoders
 
+use derivative::Derivative;
 use log::Record;
+use std::{fmt, io};
+
 #[cfg(feature = "config_parsing")]
 use serde::de;
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
-use std::{fmt, io};
 
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
@@ -21,6 +23,7 @@ pub mod writer;
 #[allow(dead_code)]
 #[cfg(windows)]
 const NEWLINE: &'static str = "\r\n";
+
 #[allow(dead_code)]
 #[cfg(not(windows))]
 const NEWLINE: &str = "\n";
@@ -74,8 +77,8 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
 }
 
 /// A text or background color.
-#[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Color {
     Black,
     Red,
@@ -91,7 +94,9 @@ pub enum Color {
 ///
 /// Any fields set to `None` will be set to their default format, as defined
 /// by the `Write`r.
-#[derive(Clone, Default)]
+#[derive(Derivative)]
+#[derivative(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Default)]
 pub struct Style {
     /// The text (or foreground) color.
     pub text: Option<Color>,
@@ -99,17 +104,8 @@ pub struct Style {
     pub background: Option<Color>,
     /// True if the text should have increased intensity.
     pub intense: Option<bool>,
+    #[derivative(Debug = "ignore")]
     _p: (),
-}
-
-impl fmt::Debug for Style {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Style")
-            .field("text", &self.text)
-            .field("background", &self.background)
-            .field("intense", &self.intense)
-            .finish()
-    }
 }
 
 impl Style {

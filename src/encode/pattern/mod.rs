@@ -119,8 +119,9 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Local, Utc};
+use derivative::Derivative;
 use log::{Level, Record};
-use std::{default::Default, fmt, io, process, thread};
+use std::{default::Default, io, process, thread};
 
 use crate::encode::{
     self,
@@ -135,8 +136,8 @@ mod parser;
 
 /// The pattern encoder's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
 }
@@ -292,6 +293,7 @@ impl<W: encode::Write> encode::Write for RightAlignWriter<W> {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Chunk {
     Text(String),
     Formatted {
@@ -520,11 +522,13 @@ fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chu
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Timezone {
     Utc,
     Local,
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum FormattedChunk {
     Time(String, Timezone),
     Level,
@@ -596,17 +600,13 @@ impl FormattedChunk {
 }
 
 /// An `Encode`r configured via a format string.
+#[derive(Derivative)]
+#[derivative(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PatternEncoder {
+    #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
     pattern: String,
-}
-
-impl fmt::Debug for PatternEncoder {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("PatternEncoder")
-            .field("pattern", &self.pattern)
-            .finish()
-    }
 }
 
 /// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.
@@ -649,6 +649,7 @@ impl PatternEncoder {
 /// pattern: "{d} {l} {t} - {m}{n}"
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct PatternEncoderDeserializer;
 
 #[cfg(feature = "config_parsing")]
