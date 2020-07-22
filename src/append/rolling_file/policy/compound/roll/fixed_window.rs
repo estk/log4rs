@@ -136,7 +136,7 @@ impl Roll for FixedWindowRoller {
         drop(ready);
 
         let pattern = self.pattern.clone();
-        let compression = self.compression.clone();
+        let compression = self.compression;
         let base = self.base;
         let count = self.count;
         let cond_pair = self.cond_pair.clone();
