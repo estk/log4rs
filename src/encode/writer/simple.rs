@@ -7,7 +7,7 @@ use std::{fmt, io};
 
 /// An `encode::Write`r that simply delegates to an `io::Write`r and relies
 /// on the default implementations of `encode::Write`r methods.
-#[derive(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct SimpleWriter<W>(pub W);
 
 impl<W: io::Write> io::Write for SimpleWriter<W> {

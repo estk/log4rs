@@ -16,34 +16,36 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
-#[cfg(feature = "config_parsing")]
-use serde_value::Value;
-#[cfg(feature = "config_parsing")]
-use std::collections::BTreeMap;
 use std::{
-    fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
 #[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+use serde_value::Value;
 #[cfg(feature = "config_parsing")]
-use crate::encode::EncoderConfig;
+use std::collections::BTreeMap;
+
 use crate::{
     append::Append,
     encode::{self, pattern::PatternEncoder, Encode},
 };
 
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::encode::EncoderConfig;
+
 pub mod policy;
 
 /// Configuration for the rolling file appender.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
@@ -52,6 +54,7 @@ pub struct RollingFileAppenderConfig {
 }
 
 #[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct Policy {
     kind: String,
     config: Value,
@@ -77,6 +80,7 @@ impl<'de> serde::Deserialize<'de> for Policy {
     }
 }
 
+#[derive(Debug)]
 struct LogWriter {
     file: BufWriter<File>,
     len: u64,
@@ -98,6 +102,7 @@ impl io::Write for LogWriter {
 impl encode::Write for LogWriter {}
 
 /// Information about the active log file.
+#[derive(Debug)]
 pub struct LogFile<'a> {
     writer: &'a mut Option<LogWriter>,
     path: &'a Path,
@@ -146,23 +151,15 @@ impl<'a> LogFile<'a> {
 }
 
 /// An appender which archives log files in a configurable strategy.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct RollingFileAppender {
+    #[derivative(Debug = "ignore")]
     writer: Mutex<Option<LogWriter>>,
     path: PathBuf,
     append: bool,
     encoder: Box<dyn Encode>,
     policy: Box<dyn policy::Policy>,
-}
-
-impl fmt::Debug for RollingFileAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("RollingFileAppender")
-            .field("path", &self.path)
-            .field("append", &self.append)
-            .field("encoder", &self.encoder)
-            .field("policy", &self.policy)
-            .finish()
-    }
 }
 
 impl Append for RollingFileAppender {
@@ -320,6 +317,7 @@ impl RollingFileAppenderBuilder {
 ///     kind: delete
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct RollingFileAppenderDeserializer;
 
 #[cfg(feature = "config_parsing")]

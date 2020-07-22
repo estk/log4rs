@@ -2,6 +2,7 @@
 //!
 //! Requires the `console_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
 use std::{
     fmt,
@@ -28,15 +29,15 @@ use crate::{
 
 /// The console appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Debug, serde::Deserialize)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
 }
 
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 enum ConfigTarget {
     #[serde(rename = "stdout")]
     Stdout,
@@ -106,17 +107,12 @@ impl<'a> encode::Write for WriterLock<'a> {
 ///
 /// It supports output styling if standard out is a console buffer on Windows
 /// or is a TTY on Unix.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct ConsoleAppender {
+    #[derivative(Debug = "ignore")]
     writer: Writer,
     encoder: Box<dyn Encode>,
-}
-
-impl fmt::Debug for ConsoleAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("ConsoleAppender")
-            .field("encoder", &self.encoder)
-            .finish()
-    }
 }
 
 impl Append for ConsoleAppender {
@@ -184,6 +180,7 @@ impl ConsoleAppenderBuilder {
 }
 
 /// The stream to log to.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Target {
     /// Standard output.
     Stdout,
@@ -206,6 +203,7 @@ pub enum Target {
 ///   kind: pattern
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct ConsoleAppenderDeserializer;
 
 #[cfg(feature = "config_parsing")]

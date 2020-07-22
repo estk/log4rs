@@ -1,3 +1,5 @@
+//! All things pertaining to log4rs config. See the docs root for examples.
+
 use log::SetLoggerError;
 use thiserror::Error;
 
@@ -50,15 +52,19 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
     Ok(())
 }
 
+/// Errors found when initializing.
 #[derive(Debug, Error)]
 pub enum InitError {
+    /// There was an error deserializing.
     #[error("Errors found when deserializing the config: {0:#?}")]
     #[cfg(feature = "config_parsing")]
     Deserializing(#[from] raw::AppenderErrors),
 
+    /// There was an error building the handle.
     #[error("Config building errors: {0:#?}")]
     BuildConfig(#[from] runtime::ConfigErrors),
 
+    /// There was an error setting the global logger.
     #[error("Error setting the logger: {0:#?}")]
     SetLogger(#[from] log::SetLoggerError),
 }

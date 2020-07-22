@@ -10,13 +10,13 @@ use crate::filter::{Filter, Response};
 
 /// The threshold filter's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct ThresholdFilterConfig {
     level: LevelFilter,
 }
 
 /// A filter that rejects all events at a level below a provided threshold.
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ThresholdFilter {
     level: LevelFilter,
 }
@@ -49,6 +49,7 @@ impl Filter for ThresholdFilter {
 /// level: warn
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ThresholdFilterDeserializer;
 
 #[cfg(feature = "config_parsing")]

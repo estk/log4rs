@@ -185,8 +185,6 @@
 
 #![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
 #![warn(missing_docs)]
-// TODO: need to remove before merge
-#![allow(missing_docs, clippy::module_inception)]
 
 use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 
@@ -210,6 +208,7 @@ use self::{append::Append, filter::Filter};
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
+#[derive(Debug)]
 struct ConfiguredLogger {
     level: LevelFilter,
     appenders: Vec<usize>,
@@ -287,6 +286,7 @@ impl ConfiguredLogger {
     }
 }
 
+#[derive(Debug)]
 struct Appender {
     appender: Box<dyn Append>,
     filters: Vec<Box<dyn Filter>>,
@@ -310,6 +310,7 @@ impl Appender {
     }
 }
 
+#[derive(Debug)]
 struct SharedLogger {
     root: ConfiguredLogger,
     appenders: Vec<Appender>,
@@ -363,6 +364,7 @@ impl SharedLogger {
 
 /// The fully configured log4rs Logger which is appropriate
 /// to use with the `log::set_boxed_logger` function.
+#[derive(Debug)]
 pub struct Logger(Arc<ArcSwap<SharedLogger>>);
 
 impl Logger {
@@ -406,7 +408,7 @@ pub(crate) fn handle_error(e: &anyhow::Error) {
 }
 
 /// A handle to the active logger.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Handle {
     shared: Arc<ArcSwap<SharedLogger>>,
 }

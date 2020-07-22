@@ -54,6 +54,7 @@ impl Config {
 }
 
 /// A builder for `Config`s.
+#[derive(Debug, Default)]
 pub struct ConfigBuilder {
     appenders: Vec<Appender>,
     loggers: Vec<Logger>,
@@ -195,7 +196,7 @@ impl Root {
 }
 
 /// A builder for `Root`s.
-#[derive(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct RootBuilder {
     appenders: Vec<String>,
 }
@@ -304,7 +305,7 @@ impl AppenderBuilder {
 }
 
 /// Configuration for a logger.
-#[derive(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Logger {
     name: String,
     level: LevelFilter,
@@ -345,7 +346,7 @@ impl Logger {
 }
 
 /// A builder for `Logger`s.
-#[derive(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct LoggerBuilder {
     appenders: Vec<String>,
     additive: bool,
@@ -424,6 +425,7 @@ fn check_logger_name(name: &str) -> Result<(), ConfigError> {
 pub struct ConfigErrors(Vec<ConfigError>);
 
 impl ConfigErrors {
+    /// There were no config errors.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -431,6 +433,7 @@ impl ConfigErrors {
     pub fn errors(&self) -> &[ConfigError] {
         &self.0
     }
+    /// Handle non-fatal errors (by logging them to stderr.)
     pub fn handle(&mut self) {
         for e in self.0.drain(..) {
             crate::handle_error(&e.into());

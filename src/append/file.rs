@@ -2,10 +2,10 @@
 //!
 //! Requires the `file_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
 use std::{
-    fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
@@ -23,8 +23,8 @@ use crate::{
 
 /// The file appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
@@ -32,19 +32,13 @@ pub struct FileAppenderConfig {
 }
 
 /// An appender which logs to a file.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct FileAppender {
     path: PathBuf,
+    #[derivative(Debug = "ignore")]
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
-}
-
-impl fmt::Debug for FileAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("FileAppender")
-            .field("file", &self.path)
-            .field("encoder", &self.encoder)
-            .finish()
-    }
 }
 
 impl Append for FileAppender {
@@ -139,6 +133,7 @@ impl FileAppenderBuilder {
 ///   kind: pattern
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FileAppenderDeserializer;
 
 #[cfg(feature = "config_parsing")]

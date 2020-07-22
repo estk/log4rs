@@ -50,8 +50,8 @@ pub enum Response {
 }
 
 /// Configuration for a filter.
-#[derive(PartialEq, Eq, Debug, Clone)]
 #[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct FilterConfig {
     /// The filter kind.
     pub kind: String,
