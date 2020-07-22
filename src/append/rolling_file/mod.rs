@@ -16,27 +16,29 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
-#[cfg(feature = "config_parsing")]
-use serde_value::Value;
-#[cfg(feature = "config_parsing")]
-use std::collections::BTreeMap;
 use std::{
-    fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
 #[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+use serde_value::Value;
 #[cfg(feature = "config_parsing")]
-use crate::encode::EncoderConfig;
+use std::collections::BTreeMap;
+
 use crate::{
     append::Append,
     encode::{self, pattern::PatternEncoder, Encode},
 };
+
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::encode::EncoderConfig;
 
 pub mod policy;
 
@@ -149,23 +151,15 @@ impl<'a> LogFile<'a> {
 }
 
 /// An appender which archives log files in a configurable strategy.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct RollingFileAppender {
+    #[derivative(Debug = "ignore")]
     writer: Mutex<Option<LogWriter>>,
     path: PathBuf,
     append: bool,
     encoder: Box<dyn Encode>,
     policy: Box<dyn policy::Policy>,
-}
-
-impl fmt::Debug for RollingFileAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("RollingFileAppender")
-            .field("path", &self.path)
-            .field("append", &self.append)
-            .field("encoder", &self.encoder)
-            .field("policy", &self.policy)
-            .finish()
-    }
 }
 
 impl Append for RollingFileAppender {

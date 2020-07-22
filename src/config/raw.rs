@@ -95,6 +95,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use derivative::Derivative;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
@@ -304,8 +305,8 @@ pub enum DeserializingConfigError {
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,
@@ -424,22 +425,15 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Derivative, serde::Deserialize)]
+#[derivative(Default)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
+    #[derivative(Default(value = "root_level_default()"))]
     level: LevelFilter,
     #[serde(default)]
     appenders: Vec<String>,
-}
-
-impl Default for Root {
-    fn default() -> Root {
-        Root {
-            level: root_level_default(),
-            appenders: vec![],
-        }
-    }
 }
 
 fn root_level_default() -> LevelFilter {
