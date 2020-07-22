@@ -1,6 +1,7 @@
-use crate::Handle;
 use log::SetLoggerError;
 use thiserror::Error;
+
+use crate::Handle;
 
 pub mod runtime;
 
@@ -33,10 +34,10 @@ pub fn init_config(config: runtime::Config) -> Result<crate::Handle, SetLoggerEr
 ///
 /// This will return errors if the appenders configuration is malformed or if we fail to set the global logger.
 #[cfg(feature = "config_parsing")]
-pub fn init_raw_config(config: RawConfig) -> anyhow::Result<()> {
+pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
     let (appenders, errors) = config.appenders_lossy(&Deserializers::default());
     if !errors.is_empty() {
-        return Err(InitErrors(errors).into());
+        return Err(InitError::Deserializing(errors));
     }
     let config = Config::builder()
         .appenders(appenders)
@@ -49,7 +50,15 @@ pub fn init_raw_config(config: RawConfig) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Collects the set of errors that occur when deserializing the appenders.
 #[derive(Debug, Error)]
-#[error("Errors on initialization: {0:#?}")]
-pub struct InitErrors(Vec<anyhow::Error>);
+pub enum InitError {
+    #[error("Errors found when deserializing the config: {0:#?}")]
+    #[cfg(feature = "config_parsing")]
+    Deserializing(#[from] raw::AppenderErrors),
+
+    #[error("Config building errors: {0:#?}")]
+    BuildConfig(#[from] runtime::ConfigErrors),
+
+    #[error("Error setting the logger: {0:#?}")]
+    SetLogger(#[from] log::SetLoggerError),
+}

@@ -296,7 +296,7 @@ impl Deserializers {
 }
 
 #[derive(Debug, Error)]
-enum DeserializingConfigError {
+pub enum DeserializingConfigError {
     #[error("error deserializing appender {0}: {1}")]
     Appender(String, anyhow::Error),
     #[error("error deserializing filter attached to appender {0}: {1}")]
@@ -309,12 +309,30 @@ enum DeserializingConfigError {
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,
+
     #[serde(default)]
     root: Root,
+
     #[serde(default)]
     appenders: HashMap<String, AppenderConfig>,
+
     #[serde(default)]
     loggers: HashMap<String, Logger>,
+}
+
+#[derive(Debug, Error)]
+#[error("errors deserializing appenders {0:#?}")]
+pub struct AppenderErrors(Vec<DeserializingConfigError>);
+
+impl AppenderErrors {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    pub fn handle(&mut self) {
+        for error in self.0.drain(..) {
+            crate::handle_error(&error.into());
+        }
+    }
 }
 
 impl RawConfig {
@@ -344,7 +362,7 @@ impl RawConfig {
     pub fn appenders_lossy(
         &self,
         deserializers: &Deserializers,
-    ) -> (Vec<config::Appender>, Vec<anyhow::Error>) {
+    ) -> (Vec<config::Appender>, AppenderErrors) {
         let mut appenders = vec![];
         let mut errors = vec![];
 
@@ -353,16 +371,16 @@ impl RawConfig {
             for filter in &appender.filters {
                 match deserializers.deserialize(&filter.kind, filter.config.clone()) {
                     Ok(filter) => builder = builder.filter(filter),
-                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e).into()),
+                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e)),
                 }
             }
             match deserializers.deserialize(&appender.kind, appender.config.clone()) {
                 Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
-                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e).into()),
+                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e)),
             }
         }
 
-        (appenders, errors)
+        (appenders, AppenderErrors(errors))
     }
 
     /// Returns the requested refresh rate.

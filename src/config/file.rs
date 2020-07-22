@@ -145,18 +145,15 @@ fn read_config(path: &Path) -> anyhow::Result<String> {
 }
 
 fn deserialize(config: &RawConfig, deserializers: &Deserializers) -> Config {
-    let (appenders, errors) = config.appenders_lossy(deserializers);
-    for error in &errors {
-        handle_error(error);
-    }
+    let (appenders, mut errors) = config.appenders_lossy(deserializers);
+    errors.handle();
 
-    let (config, errors) = Config::builder()
+    let (config, mut errors) = Config::builder()
         .appenders(appenders)
         .loggers(config.loggers())
         .build_lossy(config.root());
-    for error in &errors {
-        handle_error(error);
-    }
+
+    errors.handle();
 
     config
 }

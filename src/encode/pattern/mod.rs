@@ -403,16 +403,17 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let timezone = match formatter.args.get(1) {
                         Some(arg) => {
-                            if arg.len() != 1 {
-                                return Chunk::Error("invalid timezone".to_owned());
-                            }
-                            match arg[0] {
-                                Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
-                                Piece::Text(ref z) if *z == "local" => Timezone::Local,
-                                Piece::Text(ref z) => {
-                                    return Chunk::Error(format!("invalid timezone `{}`", z));
+                            if let Some(arg) = arg.get(0) {
+                                match arg {
+                                    Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
+                                    Piece::Text(ref z) if *z == "local" => Timezone::Local,
+                                    Piece::Text(ref z) => {
+                                        return Chunk::Error(format!("invalid timezone `{}`", z));
+                                    }
+                                    _ => return Chunk::Error("invalid timezone".to_owned()),
                                 }
-                                _ => return Chunk::Error("invalid timezone".to_owned()),
+                            } else {
+                                return Chunk::Error("invalid timezone".to_owned());
                             }
                         }
                         None => Timezone::Local,
@@ -457,13 +458,14 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let key = match formatter.args.get(0) {
                         Some(arg) => {
-                            if arg.len() != 1 {
+                            if let Some(arg) = arg.get(0) {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
+                                }
+                            } else {
                                 return Chunk::Error("invalid MDC key".to_owned());
-                            }
-                            match arg[0] {
-                                Piece::Text(key) => key.to_owned(),
-                                Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                _ => return Chunk::Error("invalid MDC key".to_owned()),
                             }
                         }
                         None => return Chunk::Error("missing MDC key".to_owned()),
@@ -471,20 +473,21 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let default = match formatter.args.get(1) {
                         Some(arg) => {
-                            if arg.len() != 1 {
+                            if let Some(arg) = arg.get(0) {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
+                                }
+                            } else {
                                 return Chunk::Error("invalid MDC default".to_owned());
                             }
-                            match arg[0] {
-                                Piece::Text(key) => key.to_owned(),
-                                Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                _ => return Chunk::Error("invalid MDC default".to_owned()),
-                            }
                         }
-                        None => "".to_owned(),
+                        None => "",
                     };
 
                     Chunk::Formatted {
-                        chunk: FormattedChunk::Mdc(key, default),
+                        chunk: FormattedChunk::Mdc(key.into(), default.into()),
                         params: parameters,
                     }
                 }

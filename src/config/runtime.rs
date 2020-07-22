@@ -1,7 +1,7 @@
 //! log4rs configuration
 
 use log::LevelFilter;
-use std::{collections::HashSet, fmt, iter::IntoIterator};
+use std::{collections::HashSet, iter::IntoIterator};
 use thiserror::Error;
 
 use crate::{append::Append, filter::Filter};
@@ -94,8 +94,8 @@ impl ConfigBuilder {
     ///
     /// Unlike `build`, this method will always return a `Config` by stripping
     /// portions of the configuration that are incorrect.
-    pub fn build_lossy(self, mut root: Root) -> (Config, Vec<anyhow::Error>) {
-        let mut errors = vec![];
+    pub fn build_lossy(self, mut root: Root) -> (Config, ConfigErrors) {
+        let mut errors: Vec<ConfigError> = vec![];
 
         let ConfigBuilder { appenders, loggers } = self;
 
@@ -105,7 +105,7 @@ impl ConfigBuilder {
             if appender_names.insert(appender.name.clone()) {
                 ok_appenders.push(appender);
             } else {
-                errors.push(ConfigError::DuplicateAppenderName(appender.name).into());
+                errors.push(ConfigError::DuplicateAppenderName(appender.name));
             }
         }
 
@@ -114,7 +114,7 @@ impl ConfigBuilder {
             if appender_names.contains(&appender) {
                 ok_root_appenders.push(appender);
             } else {
-                errors.push(ConfigError::NonexistentAppender(appender).into());
+                errors.push(ConfigError::NonexistentAppender(appender));
             }
         }
         root.appenders = ok_root_appenders;
@@ -123,7 +123,7 @@ impl ConfigBuilder {
         let mut logger_names = HashSet::new();
         for mut logger in loggers {
             if !logger_names.insert(logger.name.clone()) {
-                errors.push(ConfigError::DuplicateLoggerName(logger.name).into());
+                errors.push(ConfigError::DuplicateLoggerName(logger.name));
                 continue;
             }
 
@@ -137,7 +137,7 @@ impl ConfigBuilder {
                 if appender_names.contains(&appender) {
                     ok_logger_appenders.push(appender);
                 } else {
-                    errors.push(ConfigError::NonexistentAppender(appender).into());
+                    errors.push(ConfigError::NonexistentAppender(appender));
                 }
             }
             logger.appenders = ok_logger_appenders;
@@ -151,16 +151,16 @@ impl ConfigBuilder {
             loggers: ok_loggers,
         };
 
-        (config, errors)
+        (config, ConfigErrors(errors))
     }
 
     /// Consumes the `ConfigBuilder`, returning the `Config`.
-    pub fn build(self, root: Root) -> Result<Config, Errors> {
+    pub fn build(self, root: Root) -> Result<Config, ConfigErrors> {
         let (config, errors) = self.build_lossy(root);
         if errors.is_empty() {
             Ok(config)
         } else {
-            Err(Errors { errors })
+            Err(errors)
         }
     }
 }
@@ -391,9 +391,9 @@ impl LoggerBuilder {
     }
 }
 
-fn check_logger_name(name: &str) -> Result<(), anyhow::Error> {
+fn check_logger_name(name: &str) -> Result<(), ConfigError> {
     if name.is_empty() {
-        return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
+        return Err(ConfigError::InvalidLoggerName(name.to_owned()));
     }
 
     let mut streak = 0;
@@ -401,18 +401,18 @@ fn check_logger_name(name: &str) -> Result<(), anyhow::Error> {
         if ch == ':' {
             streak += 1;
             if streak > 2 {
-                return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
+                return Err(ConfigError::InvalidLoggerName(name.to_owned()));
             }
         } else {
             if streak > 0 && streak != 2 {
-                return Err(ConfigError::InvalidLoggerName(name.to_owned()).into());
+                return Err(ConfigError::InvalidLoggerName(name.to_owned()));
             }
             streak = 0;
         }
     }
 
     if streak > 0 {
-        Err(ConfigError::InvalidLoggerName(name.to_owned()).into())
+        Err(ConfigError::InvalidLoggerName(name.to_owned()))
     } else {
         Ok(())
     }
@@ -420,23 +420,21 @@ fn check_logger_name(name: &str) -> Result<(), anyhow::Error> {
 
 /// Errors encountered when validating a log4rs `Config`.
 #[derive(Debug, Error)]
-pub struct Errors {
-    errors: Vec<anyhow::Error>,
-}
+#[error("Configuration errors: {0:#?}")]
+pub struct ConfigErrors(Vec<ConfigError>);
 
-impl Errors {
-    /// Returns a slice of `Error`s.
-    pub fn errors(&self) -> &[anyhow::Error] {
-        &self.errors
+impl ConfigErrors {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
-}
-
-impl fmt::Display for Errors {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        for error in &self.errors {
-            writeln!(fmt, "{}", error)?;
+    /// Returns a slice of `Error`s.
+    pub fn errors(&self) -> &[ConfigError] {
+        &self.0
+    }
+    pub fn handle(&mut self) {
+        for e in self.0.drain(..) {
+            crate::handle_error(&e.into());
         }
-        Ok(())
     }
 }
 
@@ -446,15 +444,19 @@ pub enum ConfigError {
     /// Multiple appenders were registered with the same name.
     #[error("Duplicate appender name `{0}`")]
     DuplicateAppenderName(String),
+
     /// A reference to a nonexistant appender.
     #[error("Reference to nonexistent appender: `{0}`")]
     NonexistentAppender(String),
+
     /// Multiple loggers were registered with the same name.
     #[error("Duplicate logger name `{0}`")]
     DuplicateLoggerName(String),
+
     /// A logger name was invalid.
     #[error("Invalid logger name `{0}`")]
     InvalidLoggerName(String),
+
     #[doc(hidden)]
     #[error("Reserved for future use")]
     __Extensible,
