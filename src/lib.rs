@@ -185,8 +185,6 @@
 
 #![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
 #![warn(missing_docs)]
-// TODO: need to remove before merge
-#![allow(missing_docs, clippy::module_inception)]
 
 use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
 

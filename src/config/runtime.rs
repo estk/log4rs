@@ -425,6 +425,7 @@ fn check_logger_name(name: &str) -> Result<(), ConfigError> {
 pub struct ConfigErrors(Vec<ConfigError>);
 
 impl ConfigErrors {
+    /// There were no config errors.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -432,6 +433,7 @@ impl ConfigErrors {
     pub fn errors(&self) -> &[ConfigError] {
         &self.0
     }
+    /// Handle non-fatal errors (by logging them to stderr.)
     pub fn handle(&mut self) {
         for e in self.0.drain(..) {
             crate::handle_error(&e.into());
