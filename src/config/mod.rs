@@ -50,6 +50,6 @@ pub fn init_raw_config(config: RawConfig) -> anyhow::Result<()> {
 }
 
 /// Collects the set of errors that occur when deserializing the appenders.
-#[derive(Debug, Error)]
+#[derive(Debug, Default, Error)]
 #[error("Errors on initialization: {0:#?}")]
 pub struct InitErrors(Vec<anyhow::Error>);

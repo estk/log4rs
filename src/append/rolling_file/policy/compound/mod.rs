@@ -20,14 +20,15 @@ pub mod trigger;
 
 /// Configuration for the compound policy.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct CompoundPolicyConfig {
     trigger: Trigger,
     roller: Roller,
 }
 
 #[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct Trigger {
     kind: String,
     config: Value,
@@ -54,6 +55,7 @@ impl<'de> serde::Deserialize<'de> for Trigger {
 }
 
 #[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct Roller {
     kind: String,
     config: Value,
@@ -134,6 +136,7 @@ impl Policy for CompoundPolicy {
 ///   # deserializer, and will vary based on the kind of roller.
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct CompoundPolicyDeserializer;
 
 #[cfg(feature = "config_parsing")]

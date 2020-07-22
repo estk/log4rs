@@ -14,8 +14,8 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]
-#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct SizeTriggerConfig {
     #[serde(deserialize_with = "deserialize_limit")]
     limit: u64,
@@ -100,7 +100,7 @@ where
 }
 
 /// A trigger which rolls the log once it has passed a certain size.
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTrigger {
     limit: u64,
 }
@@ -132,6 +132,7 @@ impl Trigger for SizeTrigger {
 /// limit: 10 mb
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTriggerDeserializer;
 
 #[cfg(feature = "config_parsing")]

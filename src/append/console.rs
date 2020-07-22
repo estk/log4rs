@@ -184,6 +184,7 @@ impl ConsoleAppenderBuilder {
 }
 
 /// The stream to log to.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Target {
     /// Standard output.
     Stdout,
@@ -206,6 +207,7 @@ pub enum Target {
 ///   kind: pattern
 /// ```
 #[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct ConsoleAppenderDeserializer;
 
 #[cfg(feature = "config_parsing")]
