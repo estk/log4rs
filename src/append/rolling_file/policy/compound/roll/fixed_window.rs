@@ -107,7 +107,7 @@ impl Roll for FixedWindowRoller {
 
         rotate(
             self.pattern.clone(),
-            self.compression.clone(),
+            self.compression,
             self.base,
             self.count,
             file.to_path_buf(),
