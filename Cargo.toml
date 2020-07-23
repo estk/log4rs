@@ -1,6 +1,6 @@
 [package]
 name = "log4rs"
-version = "0.13.0"
+version = "1.0.0-alpha-1"
 authors = ["Steven Fackler <sfackler@gmail.com>", "Evan Simmons <esims89@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT/Apache-2.0"
