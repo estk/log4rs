@@ -17,6 +17,7 @@ pub struct Config {
 /// Any structs that impl this trait can be consumed by ConfigBuilder to make
 /// build a config
 pub trait ConfigBuildable {
+    /// Unwraps the stuct into structs the builder can build from
     fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root);
 }
 
@@ -60,11 +61,14 @@ impl Config {
 }
 
 impl ConfigBuildable for Config {
-    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root) { 
+    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root) {
         (
-            Some(ConfigBuilder{ appenders: self.appenders, loggers: self.loggers }),
-            self.root
-        ) 
+            Some(ConfigBuilder {
+                appenders: self.appenders,
+                loggers: self.loggers,
+            }),
+            self.root,
+        )
     }
 }
 
@@ -181,7 +185,10 @@ impl ConfigBuilder {
 
         let (config, errors) = if let Some(config_builder) = config_builder {
             self.combine(config_builder)
-        } else { self }.build_lossy(root);
+        } else {
+            self
+        }
+        .build_lossy(root);
 
         if errors.is_empty() {
             Ok(config)
@@ -221,7 +228,7 @@ impl Root {
 }
 
 impl ConfigBuildable for Root {
-    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root) { 
+    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root) {
         (None, self)
     }
 }
