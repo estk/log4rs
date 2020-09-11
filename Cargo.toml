@@ -32,7 +32,8 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
-windbg = []
+
+
 
 all_components = [
     "console_appender",
@@ -48,6 +49,9 @@ all_components = [
 ]
 
 gzip = ["flate2"]
+
+#[target.'cfg(windows)'.features]
+windbg = ["winapi"]
 
 [[bench]]
 name = "rotation"
