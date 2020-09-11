@@ -20,7 +20,8 @@ pub mod console;
 pub mod file;
 #[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
-#[cfg(feature = "windbg")]
+
+#[cfg(all(target_os = "windows", feature = "windbg"))]
 pub mod windbg;
 pub mod dedup;
 /// A trait implemented by log4rs appenders.

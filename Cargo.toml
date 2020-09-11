@@ -50,8 +50,7 @@ all_components = [
 
 gzip = ["flate2"]
 
-#[target.'cfg(windows)'.features]
-windbg = ["winapi"]
+windbg = []
 
 [[bench]]
 name = "rotation"
