@@ -11,7 +11,7 @@ use std::{
     fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
-    path::{Path, PathBuf}
+    path::{Path, PathBuf},
 };
 
 #[cfg(feature = "file")]
@@ -34,7 +34,6 @@ pub struct FileAppenderConfig {
     encoder: Option<EncoderConfig>,
     append: Option<bool>,
     dedup: Option<bool>,
-
 }
 
 /// An appender which logs to a file.
@@ -42,7 +41,7 @@ pub struct FileAppender {
     path: PathBuf,
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
-    deduper: Option<Mutex<DeDuper>>
+    deduper: Option<Mutex<DeDuper>>,
 }
 
 impl fmt::Debug for FileAppender {
@@ -57,10 +56,9 @@ impl fmt::Debug for FileAppender {
 impl Append for FileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut file = self.file.lock();
-        if let Some(dd) = &self.deduper{
-            if dd.lock().
-            dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip{
-                return Ok(())
+        if let Some(dd) = &self.deduper {
+            if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
+                return Ok(());
             }
         }
 
@@ -124,17 +122,16 @@ impl FileAppenderBuilder {
             .create(true)
             .open(&path)?;
         let deduper = {
-            if self.dedup{
+            if self.dedup {
                 Some(Mutex::new(DeDuper::default()))
-            }
-            else {
+            } else {
                 None
             }
         };
         Ok(FileAppender {
             path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            deduper:deduper,
+            deduper: deduper,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),

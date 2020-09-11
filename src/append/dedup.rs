@@ -5,7 +5,7 @@ use crate::append::Error;
 use crate::encode::{Encode, Write};
 use log::Record;
 
-const REPEAT_COUNT:i32 = 1000;
+const REPEAT_COUNT: i32 = 1000;
 
 #[derive(Default)]
 /// The file appender.
@@ -29,7 +29,6 @@ pub enum DedupResult {
     Write,
 }
 impl DeDuper {
-
     // emits the extra line saying 'last line repeated n times'
     fn say(
         w: &mut dyn Write,
@@ -49,9 +48,9 @@ impl DeDuper {
                 .build(),
         )
     }
-/// The file appender.
-///
-/// Requires the `file_appender` feature.
+    /// The file appender.
+    ///
+    /// Requires the `file_appender` feature.
     pub fn dedup(
         &mut self,
         w: &mut dyn Write,
@@ -63,7 +62,7 @@ impl DeDuper {
             self.count += 1;
 
             // every now and then keep saying we saw lots of dups
-            if self.count % REPEAT_COUNT == 0{
+            if self.count % REPEAT_COUNT == 0 {
                 Self::say(w, encoder, record, self.count)?;
             }
             return Ok(DedupResult::Skip);
