@@ -1,3 +1,6 @@
+//! The file appender.
+//!
+//! Requires the `file_appender` feature.
 use crate::append::Error;
 use crate::encode::{Encode, Write};
 use log::Record;
@@ -5,14 +8,24 @@ use log::Record;
 const REPEAT_COUNT:i32 = 1000;
 
 #[derive(Default)]
+/// The file appender.
+///
+/// Requires the `file_appender` feature.
+
 pub struct DeDuper {
     count: i32,
     last: String,
 }
-
 #[derive(PartialEq)]
+
+/// The file appender.
+///
+/// Requires the `file_appender` feature.
+
 pub enum DedupResult {
+    /// skip
     Skip,
+    /// write
     Write,
 }
 impl DeDuper {
@@ -36,7 +49,9 @@ impl DeDuper {
                 .build(),
         )
     }
-
+/// The file appender.
+///
+/// Requires the `file_appender` feature.
     pub fn dedup(
         &mut self,
         w: &mut dyn Write,

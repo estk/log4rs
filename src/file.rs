@@ -189,7 +189,11 @@ impl Default for Deserializers {
             "rolling_file",
             append::rolling_file::RollingFileAppenderDeserializer,
         );
-
+        #[cfg(feature = "windbg")]
+        d.insert(
+            "windbg",
+            append::windbg::WinDbgAppenderDeserializer,
+        );
         #[cfg(feature = "compound_policy")]
         d.insert(
             "compound",

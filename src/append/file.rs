@@ -11,8 +11,7 @@ use std::{
     fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
-    path::{Path, PathBuf},
-    cell::{RefCell}
+    path::{Path, PathBuf}
 };
 
 #[cfg(feature = "file")]
@@ -43,7 +42,7 @@ pub struct FileAppender {
     path: PathBuf,
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
-    deduper: Option<Mutex<RefCell<DeDuper>>>
+    deduper: Option<Mutex<DeDuper>>
 }
 
 impl fmt::Debug for FileAppender {
@@ -59,7 +58,10 @@ impl Append for FileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut file = self.file.lock();
         if let Some(dd) = &self.deduper{
-            if dd.lock().borrow_mut().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip{return Ok(())}
+            if dd.lock().
+            dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip{
+                return Ok(())
+            }
         }
 
         self.encoder.encode(&mut *file, record)?;
@@ -123,7 +125,7 @@ impl FileAppenderBuilder {
             .open(&path)?;
         let deduper = {
             if self.dedup{
-                Some(Mutex::new(RefCell::new(DeDuper::default())))
+                Some(Mutex::new(DeDuper::default()))
             }
             else {
                 None
