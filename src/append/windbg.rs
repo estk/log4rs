@@ -42,11 +42,7 @@ impl Append for WinDbgAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut wr = self.writer.lock();
         if let Some(dd) = &self.deduper {
-            if dd
-                .lock()
-                .dedup(&mut *wr, &*self.encoder, record)?
-                == DedupResult::Skip
-            {
+            if dd.lock().dedup(&mut *wr, &*self.encoder, record)? == DedupResult::Skip {
                 return Ok(());
             }
         }
