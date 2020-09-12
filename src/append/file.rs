@@ -1,11 +1,11 @@
 //! The file appender.
 //!
 //! Requires the `file_appender` feature.
-use std::any::Any;
 use log::Record;
 use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
+use std::any::Any;
 use std::{
     error::Error,
     fmt,
@@ -67,7 +67,9 @@ impl Append for FileAppender {
         Ok(())
     }
     fn flush(&self) {}
-    fn as_any(&self)->&dyn Any{self}
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl FileAppender {

@@ -52,7 +52,9 @@ impl Append for WinDbgAppender {
         Ok(())
     }
     fn flush(&self) {}
-    fn as_any(&self)->&dyn Any{self}
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl std::fmt::Debug for WinDbgAppender {
