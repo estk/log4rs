@@ -194,7 +194,6 @@ impl Default for Deserializers {
 
         #[cfg(feature = "closure")]
         d.insert("closure", append::closure::ClosureAppenderDeserializer);
-        
         #[cfg(feature = "compound_policy")]
         d.insert(
             "compound",
