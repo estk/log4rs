@@ -192,7 +192,9 @@ impl Default for Deserializers {
         #[cfg(all(target_os = "windows", feature = "windbg"))]
         d.insert("windbg", append::windbg::WinDbgAppenderDeserializer);
 
+        #[cfg(feature = "closure")]
         d.insert("closure", append::closure::ClosureAppenderDeserializer);
+        
         #[cfg(feature = "compound_policy")]
         d.insert(
             "compound",

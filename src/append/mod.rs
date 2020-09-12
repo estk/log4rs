@@ -14,15 +14,15 @@ use crate::file::Deserializable;
 #[cfg(feature = "file")]
 use crate::filter::FilterConfig;
 
+#[cfg(feature = "closure")]
+pub mod closure;
 #[cfg(feature = "console_appender")]
 pub mod console;
+pub mod dedup;
 #[cfg(feature = "file_appender")]
 pub mod file;
 #[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
-
-pub mod closure;
-pub mod dedup;
 #[cfg(all(target_os = "windows", feature = "windbg"))]
 pub mod windbg;
 /// A trait implemented by log4rs appenders.

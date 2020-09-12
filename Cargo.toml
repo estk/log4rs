@@ -32,7 +32,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
-closure=["file"]
+closure=["file", "parking_lot", "pattern_encoder"]
 
 
 all_components = [
