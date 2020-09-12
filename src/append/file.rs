@@ -1,7 +1,7 @@
 //! The file appender.
 //!
 //! Requires the `file_appender` feature.
-
+use std::any::Any;
 use log::Record;
 use parking_lot::Mutex;
 #[cfg(feature = "file")]
@@ -67,6 +67,7 @@ impl Append for FileAppender {
         Ok(())
     }
     fn flush(&self) {}
+    fn as_any(&self)->&dyn Any{self}
 }
 
 impl FileAppender {

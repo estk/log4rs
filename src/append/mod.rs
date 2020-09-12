@@ -1,5 +1,5 @@
 //! Appenders
-
+use std::any::Any;
 use log::{Log, Record};
 #[cfg(feature = "file")]
 use serde::{de, Deserialize, Deserializer};
@@ -22,6 +22,7 @@ pub mod file;
 pub mod rolling_file;
 
 pub mod dedup;
+pub mod closure;
 #[cfg(all(target_os = "windows", feature = "windbg"))]
 pub mod windbg;
 /// A trait implemented by log4rs appenders.
@@ -34,6 +35,8 @@ pub trait Append: fmt::Debug + Send + Sync + 'static {
 
     /// Flushes all in-flight records.
     fn flush(&self);
+    /// private
+    fn as_any(&self)->&dyn Any;
 }
 
 #[cfg(feature = "file")]
@@ -52,6 +55,7 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
     fn flush(&self) {
         Log::flush(self)
     }
+    fn as_any(&self)->&dyn Any{self}
 }
 
 /// Configuration for an appender.

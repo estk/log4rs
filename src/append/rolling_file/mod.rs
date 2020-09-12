@@ -15,7 +15,7 @@
 //! reaches 50 megabytes, and to preserve the last 10 log files.
 //!
 //! Requires the `rolling_file_appender` feature.
-
+use std::any::Any;
 use log::Record;
 use parking_lot::Mutex;
 #[cfg(feature = "file")]
@@ -192,6 +192,7 @@ impl Append for RollingFileAppender {
     }
 
     fn flush(&self) {}
+    fn as_any(&self)->&dyn Any{self}
 }
 
 impl RollingFileAppender {

@@ -1,7 +1,7 @@
 //! The console appender.
 //!
 //! Requires the `console_appender` feature.
-
+use std::any::Any;
 use log::Record;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
@@ -131,6 +131,7 @@ impl Append for ConsoleAppender {
     }
 
     fn flush(&self) {}
+    fn as_any(&self)->&dyn Any{self}
 }
 
 impl ConsoleAppender {
