@@ -65,7 +65,7 @@ impl DeDuper {
             if self.count % REPEAT_COUNT == 0 {
                 Self::say(w, encoder, record, self.count)?;
             }
-            return Ok(DedupResult::Skip);
+            Ok(DedupResult::Skip)
         } else {
             self.last = msg;
             let svct = self.count;
@@ -73,7 +73,7 @@ impl DeDuper {
             if svct > 0 {
                 Self::say(w, encoder, record, svct)?;
             }
-            return Ok(DedupResult::Write);
+            Ok(DedupResult::Write)
         }
     }
 }

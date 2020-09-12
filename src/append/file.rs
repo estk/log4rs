@@ -131,7 +131,7 @@ impl FileAppenderBuilder {
         Ok(FileAppender {
             path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            deduper: deduper,
+            deduper,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
