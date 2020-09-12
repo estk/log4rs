@@ -3,11 +3,11 @@
 //! send output to an arbitray closure
 //!
 //!
-//! 
+//!
 use std::any::Any;
-use std::io::Write;
 use std::cell::RefCell;
 use std::error::Error;
+use std::io::Write;
 
 use crate::append::dedup::{DeDuper, DedupResult};
 use crate::append::Append;
@@ -38,7 +38,7 @@ impl ClosureAppender {
         }
     }
     /// programmatically set the closue if using a config file
-    /// 
+    ///
     pub fn closure(conf: &crate::config::Config, name: &str, func: LogFunc) {
         let apps = conf.appenders();
         if let Some(c) = apps.iter().find(|&x| x.name() == name) {
@@ -174,7 +174,7 @@ impl ClosureAppenderBuilder {
             }
         };
         Ok(ClosureAppender {
-            deduper: deduper,
+            deduper,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
