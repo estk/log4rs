@@ -208,11 +208,12 @@ use self::{append::Append, filter::Filter};
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 struct ConfiguredLogger {
     level: LevelFilter,
     appenders: Vec<usize>,
     children: FnvHashMap<String, ConfiguredLogger>,
+    error_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
 }
 
 impl ConfiguredLogger {
@@ -279,7 +280,7 @@ impl ConfiguredLogger {
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
-                    handle_error(&err);
+                    self.error_handler(&err);
                 }
             }
         }
@@ -317,6 +318,12 @@ struct SharedLogger {
 }
 impl SharedLogger {
     fn new(config: config::Config) -> SharedLogger {
+        Self::new_with_err_handler(config, |&e| handle_error(e))
+    }
+    fn new_with_err_handler(
+        config: config::Config,
+        error_handler: impl Fn(&anyhow::Error),
+    ) -> SharedLogger {
         let (appenders, root, mut loggers) = config.unpack();
 
         let root = {
@@ -327,6 +334,7 @@ impl SharedLogger {
                 .collect::<HashMap<_, _>>();
 
             let mut root = ConfiguredLogger {
+                error_handler,
                 level: root.level(),
                 appenders: root
                     .appenders()
@@ -417,6 +425,16 @@ impl Handle {
     /// Sets the logging configuration.
     pub fn set_config(&self, config: Config) {
         let shared = SharedLogger::new(config);
+        log::set_max_level(shared.root.max_log_level());
+        self.shared.store(Arc::new(shared));
+    }
+    /// Sets the logging configuration and error handler
+    pub fn set_config_with_err_handler(
+        &self,
+        config: Config,
+        err_handler: impl Fn(&anyhow::Error),
+    ) {
+        let shared = SharedLogger::new_with_err_handler(config, err_handler);
         log::set_max_level(shared.root.max_log_level());
         self.shared.store(Arc::new(shared));
     }

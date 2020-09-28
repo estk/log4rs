@@ -5,11 +5,13 @@
 
 ### New
 
+* Custom error handling
 * Allow parsing of config from string
 * Expand env vars in file path of file and RollingFile appenders PR#155
 
 ### Changed
 
+* Colors changed to match `env_logger`
 * Drop XML config support
 * Rename feature `file` to `config_parsing`
 * Use `thiserror`/`anyhow` for errors
