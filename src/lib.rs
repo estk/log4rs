@@ -398,7 +398,7 @@ impl SharedLogger {
 
 /// The fully configured log4rs Logger which is appropriate
 /// to use with the `log::set_boxed_logger` function.
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct Logger(Arc<ArcSwap<SharedLogger>>);
 
 impl Logger {
