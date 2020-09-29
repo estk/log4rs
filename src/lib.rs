@@ -406,6 +406,15 @@ impl Logger {
     pub fn new(config: config::Config) -> Logger {
         Logger(Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))))
     }
+    /// Create a new `Logger` given a configuration and err handler.
+    pub fn new_with_err_handler(
+        config: config::Config,
+        err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+    ) -> Logger {
+        Logger(Arc::new(ArcSwap::new(Arc::new(
+            SharedLogger::new_with_err_handler(config, err_handler),
+        ))))
+    }
 
     /// Set the max log level above which everything will be filtered.
     pub fn max_log_level(&self) -> LevelFilter {

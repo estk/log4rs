@@ -32,6 +32,22 @@ pub fn init_config(config: runtime::Config) -> Result<crate::Handle, SetLoggerEr
     log::set_boxed_logger(Box::new(logger)).map(|()| handle)
 }
 
+/// Initializes the global logger as a log4rs logger with the provided config and error handler.
+///
+/// A `Handle` object is returned which can be used to adjust the logging
+/// configuration.
+pub fn init_config_with_err_handler(
+    config: runtime::Config,
+    err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+) -> Result<crate::Handle, SetLoggerError> {
+    let logger = crate::Logger::new_with_err_handler(config, err_handler);
+    log::set_max_level(logger.max_log_level());
+    let handle = Handle {
+        shared: logger.0.clone(),
+    };
+    log::set_boxed_logger(Box::new(logger)).map(|()| handle)
+}
+
 /// Initializes the global logger as a log4rs logger using the provided raw config.
 ///
 /// This will return errors if the appenders configuration is malformed or if we fail to set the global logger.
