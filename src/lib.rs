@@ -186,7 +186,9 @@
 #![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
 #![warn(missing_docs)]
 
-use std::{cmp, collections::HashMap, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc};
+use std::{
+    cmp, collections::HashMap, fmt, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
+};
 
 use arc_swap::ArcSwap;
 use fnv::FnvHasher;
@@ -275,13 +277,20 @@ impl ConfiguredLogger {
         self.level >= level
     }
 
-    fn log(&self, record: &log::Record, appenders: &[Appender]) {
+    fn log(&self, record: &log::Record, appenders: &[Appender]) -> Result<(), Vec<anyhow::Error>> {
+        let mut errors = vec![];
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
-                    handle_error(&err);
+                    errors.push(err);
                 }
             }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 }
@@ -310,13 +319,34 @@ impl Appender {
     }
 }
 
-#[derive(Debug)]
 struct SharedLogger {
     root: ConfiguredLogger,
     appenders: Vec<Appender>,
+    err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
 }
+
+impl fmt::Debug for SharedLogger {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SharedLogger")
+            .field("root", &self.root)
+            .field("appenders", &self.appenders)
+            .finish()
+    }
+}
+
 impl SharedLogger {
     fn new(config: config::Config) -> SharedLogger {
+        Self::new_with_err_handler(
+            config,
+            Box::new(|e: &anyhow::Error| {
+                let _ = writeln!(io::stderr(), "log4rs: {}", e);
+            }),
+        )
+    }
+    fn new_with_err_handler(
+        config: config::Config,
+        err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+    ) -> SharedLogger {
         let (appenders, root, mut loggers) = config.unpack();
 
         let root = {
@@ -358,7 +388,11 @@ impl SharedLogger {
             })
             .collect();
 
-        SharedLogger { root, appenders }
+        SharedLogger {
+            root,
+            appenders,
+            err_handler,
+        }
     }
 }
 
@@ -371,6 +405,15 @@ impl Logger {
     /// Create a new `Logger` given a configuration.
     pub fn new(config: config::Config) -> Logger {
         Logger(Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))))
+    }
+    /// Create a new `Logger` given a configuration and err handler.
+    pub fn new_with_err_handler(
+        config: config::Config,
+        err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+    ) -> Logger {
+        Logger(Arc::new(ArcSwap::new(Arc::new(
+            SharedLogger::new_with_err_handler(config, err_handler),
+        ))))
     }
 
     /// Set the max log level above which everything will be filtered.
@@ -390,10 +433,15 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         let shared = self.0.load();
-        shared
+        if let Err(errs) = shared
             .root
             .find(record.target())
-            .log(record, &shared.appenders);
+            .log(record, &shared.appenders)
+        {
+            for e in errs {
+                (shared.err_handler)(&e)
+            }
+        }
     }
 
     fn flush(&self) {
