@@ -584,7 +584,7 @@ impl FormattedChunk {
                     }
                     Level::Warn => w.set_style(Style::new().text(Color::Yellow))?,
                     Level::Info => w.set_style(Style::new().text(Color::Green))?,
-                    Level::Trace => w.set_style(Style::new().text(Color::Black).intense(true))?,
+                    Level::Trace => w.set_style(Style::new().text(Color::Cyan))?,
                     _ => {}
                 }
                 for chunk in chunks {
