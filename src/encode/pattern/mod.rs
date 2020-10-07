@@ -584,6 +584,7 @@ impl FormattedChunk {
                     }
                     Level::Warn => w.set_style(Style::new().text(Color::Yellow))?,
                     Level::Info => w.set_style(Style::new().text(Color::Green))?,
+                    Level::Debug => w.set_style(Style::new().text(Color::Blue))?,
                     Level::Trace => w.set_style(Style::new().text(Color::Cyan))?,
                     _ => {}
                 }
