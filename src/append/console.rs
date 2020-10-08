@@ -3,6 +3,7 @@
 //! Requires the `console_appender` feature.
 
 use log::Record;
+use parking_lot::Mutex;
 #[cfg(feature = "file")]
 use serde_derive::Deserialize;
 use std::{
@@ -28,7 +29,7 @@ use crate::{
     },
     priv_io::{StdWriter, StdWriterLock},
 };
-
+use crate::append::dedup::*;
 /// The console appender's configuration.
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
@@ -36,6 +37,7 @@ use crate::{
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
+    dedup: Option<bool>,
 }
 
 #[cfg(feature = "file")]
@@ -112,6 +114,7 @@ impl<'a> encode::Write for WriterLock<'a> {
 pub struct ConsoleAppender {
     writer: Writer,
     encoder: Box<dyn Encode>,
+    deduper: Option<Mutex<DeDuper>>,
 }
 
 impl fmt::Debug for ConsoleAppender {
@@ -125,6 +128,11 @@ impl fmt::Debug for ConsoleAppender {
 impl Append for ConsoleAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut writer = self.writer.lock();
+        if let Some(dd) = &self.deduper {
+            if dd.lock().dedup(&mut writer, &*self.encoder, record)? == DedupResult::Skip {
+                return Ok(());
+            }
+        }
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;
         Ok(())
@@ -139,6 +147,7 @@ impl ConsoleAppender {
         ConsoleAppenderBuilder {
             encoder: None,
             target: Target::Stdout,
+            dedup:false
         }
     }
 }
@@ -147,6 +156,7 @@ impl ConsoleAppender {
 pub struct ConsoleAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     target: Target,
+    dedup:bool
 }
 
 impl ConsoleAppenderBuilder {
@@ -163,6 +173,13 @@ impl ConsoleAppenderBuilder {
         self.target = target;
         self
     }
+    /// Determines if the appender will reject and count duplicate messages.
+    ///
+    /// Defaults to `false`.
+    pub fn dedup(mut self, dedup: bool) -> ConsoleAppenderBuilder {
+        self.dedup = dedup;
+        self
+    }
 
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
@@ -176,12 +193,19 @@ impl ConsoleAppenderBuilder {
                 None => Writer::Raw(StdWriter::stdout()),
             },
         };
-
+        let deduper = {
+            if self.dedup {
+                Some(Mutex::new(DeDuper::default()))
+            } else {
+                None
+            }
+        };
         ConsoleAppender {
             writer,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+                deduper
         }
     }
 }
@@ -232,6 +256,9 @@ impl Deserialize for ConsoleAppenderDeserializer {
         }
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
+        }
+        if let Some(dedup) = config.dedup {
+            appender = appender.dedup(dedup);
         }
         Ok(Box::new(appender.build()))
     }

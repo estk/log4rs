@@ -23,6 +23,8 @@ use crate::{
     encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
 };
 
+use crate::append::dedup::*;
+
 /// The file appender's configuration.
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
@@ -31,6 +33,7 @@ pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
     append: Option<bool>,
+    dedup: Option<bool>,
 }
 
 /// An appender which logs to a file.
@@ -38,6 +41,7 @@ pub struct FileAppender {
     path: PathBuf,
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
+    deduper: Option<Mutex<DeDuper>>,
 }
 
 impl fmt::Debug for FileAppender {
@@ -52,11 +56,16 @@ impl fmt::Debug for FileAppender {
 impl Append for FileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut file = self.file.lock();
+        if let Some(dd) = &self.deduper {
+            if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
+                return Ok(());
+            }
+        }
+
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
         Ok(())
     }
-
     fn flush(&self) {}
 }
 
@@ -66,6 +75,7 @@ impl FileAppender {
         FileAppenderBuilder {
             encoder: None,
             append: true,
+            dedup: false,
         }
     }
 }
@@ -74,6 +84,7 @@ impl FileAppender {
 pub struct FileAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     append: bool,
+    dedup: bool,
 }
 
 impl FileAppenderBuilder {
@@ -90,6 +101,13 @@ impl FileAppenderBuilder {
         self.append = append;
         self
     }
+    /// Determines if the appender will reject and count duplicate messages.
+    ///
+    /// Defaults to `false`.
+    pub fn dedup(mut self, dedup: bool) -> FileAppenderBuilder {
+        self.dedup = dedup;
+        self
+    }
 
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
@@ -103,10 +121,17 @@ impl FileAppenderBuilder {
             .truncate(!self.append)
             .create(true)
             .open(&path)?;
-
+        let deduper = {
+            if self.dedup {
+                Some(Mutex::new(DeDuper::default()))
+            } else {
+                None
+            }
+        };
         Ok(FileAppender {
             path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
+            deduper,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
@@ -149,6 +174,9 @@ impl Deserialize for FileAppenderDeserializer {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);
+        }
+        if let Some(dedup) = config.dedup {
+            appender = appender.dedup(dedup);
         }
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);

@@ -20,7 +20,7 @@ pub mod console;
 pub mod file;
 #[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
-
+mod dedup;
 /// A trait implemented by log4rs appenders.
 ///
 /// Appenders take a log record and processes them, for example, by writing it
