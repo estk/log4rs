@@ -12,6 +12,7 @@ use std::{
     io::{self, Write},
 };
 
+use crate::append::dedup::*;
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
 #[cfg(feature = "file")]
@@ -29,7 +30,6 @@ use crate::{
     },
     priv_io::{StdWriter, StdWriterLock},
 };
-use crate::append::dedup::*;
 /// The console appender's configuration.
 #[cfg(feature = "file")]
 #[derive(Deserialize)]
@@ -147,7 +147,7 @@ impl ConsoleAppender {
         ConsoleAppenderBuilder {
             encoder: None,
             target: Target::Stdout,
-            dedup:false
+            dedup: false,
         }
     }
 }
@@ -156,7 +156,7 @@ impl ConsoleAppender {
 pub struct ConsoleAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     target: Target,
-    dedup:bool
+    dedup: bool,
 }
 
 impl ConsoleAppenderBuilder {
@@ -205,7 +205,7 @@ impl ConsoleAppenderBuilder {
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
-                deduper
+            deduper,
         }
     }
 }

@@ -1,6 +1,5 @@
-//! The file appender.
+//! The dedup common handler
 //!
-//! Requires the `file_appender` feature.
 use crate::append::Error;
 use crate::encode::{Encode, Write};
 use log::Record;
@@ -8,21 +7,13 @@ use log::Record;
 const REPEAT_COUNT: i32 = 1000;
 
 #[derive(Default)]
-/// The file appender.
-///
-/// Requires the `file_appender` feature.
-
-pub struct DeDuper {
+pub(crate) struct DeDuper {
     count: i32,
     last: String,
 }
 #[derive(PartialEq)]
 
-/// The file appender.
-///
-/// Requires the `file_appender` feature.
-
-pub enum DedupResult {
+pub(crate) enum DedupResult {
     /// skip
     Skip,
     /// write
@@ -48,10 +39,12 @@ impl DeDuper {
                 .build(),
         )
     }
-    /// The file appender.
-    ///
-    /// Requires the `file_appender` feature.
-    pub fn dedup(
+
+    // appender calls this.
+    // If it retunrs Skip then appender should not write
+    // if Write then the appender should write as per normal
+
+    pub(crate) fn dedup(
         &mut self,
         w: &mut dyn Write,
         encoder: &dyn Encode,
