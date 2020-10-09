@@ -5,15 +5,25 @@ use crate::encode::{Encode, Write};
 use log::Record;
 
 const REPEAT_COUNT: i32 = 1000;
-
+/// dedup object to be used by deduping appender
+/// internals are private to dedup
 #[derive(Default)]
-pub(crate) struct DeDuper {
+pub struct DeDuper {
     count: i32,
     last: String,
 }
 #[derive(PartialEq)]
+/// used by an appender that uses dedup 
+/// indicates whther or not the currect message should be output
+/// sample use from console appender
+///         if let Some(dd) = &self.deduper {
+///              if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
+///                  return Ok(());
+///             }
+///     ... output the message
 
-pub(crate) enum DedupResult {
+
+pub enum DedupResult {
     /// skip
     Skip,
     /// write
@@ -40,11 +50,11 @@ impl DeDuper {
         )
     }
 
-    // appender calls this.
-    // If it retunrs Skip then appender should not write
-    // if Write then the appender should write as per normal
+    /// appender calls this.
+    /// If it retunrs Skip then appender should not write
+    /// if Write then the appender should write as per normal
 
-    pub(crate) fn dedup(
+    pub fn dedup(
         &mut self,
         w: &mut dyn Write,
         encoder: &dyn Encode,
