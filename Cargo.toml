@@ -18,7 +18,7 @@ json_format = ["serde_json"]
 toml_format = ["toml"]
 xml_format = ["serde-xml-rs"]
 
-console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
+console_appender = ["parking_lot","console_writer", "simple_writer", "pattern_encoder"]
 file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 compound_policy = []
