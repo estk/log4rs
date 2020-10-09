@@ -13,7 +13,7 @@ pub struct DeDuper {
     last: String,
 }
 #[derive(PartialEq)]
-/// used by an appender that uses dedup 
+/// used by an appender that uses dedup
 /// indicates whther or not the currect message should be output
 /// sample use from console appender
 ///         if let Some(dd) = &self.deduper {
@@ -21,7 +21,6 @@ pub struct DeDuper {
 ///                  return Ok(());
 ///             }
 ///     ... output the message
-
 
 pub enum DedupResult {
     /// skip
