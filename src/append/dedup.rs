@@ -36,17 +36,32 @@ impl DeDuper {
         record: &Record,
         n: i32,
     ) -> Result<(), Box<dyn Error + Sync + Send>> {
-        encoder.encode(
-            w,
-            &Record::builder()
-                .args(format_args!("last message repeated {} times", n))
-                .level(record.level())
-                .target(record.target())
-                .module_path_static(None)
-                .file_static(None)
-                .line(None)
-                .build(),
-        )
+
+        if n == 1 {
+            encoder.encode(
+                w,
+                &Record::builder()
+                    .args(format_args!("last message repeated, suppressing dups"))
+                    .level(record.level())
+                    .target(record.target())
+                    .module_path_static(None)
+                    .file_static(None)
+                    .line(None)
+                    .build(),
+            )
+        } else {
+            encoder.encode(
+                w,
+                &Record::builder()
+                    .args(format_args!("last message repeated {} times", n))
+                    .level(record.level())
+                    .target(record.target())
+                    .module_path_static(None)
+                    .file_static(None)
+                    .line(None)
+                    .build(),
+            )
+        }
     }
 
     /// appender calls this.
@@ -63,7 +78,7 @@ impl DeDuper {
             self.count += 1;
 
             // every now and then keep saying we saw lots of dups
-            if self.count % REPEAT_COUNT == 0 {
+            if self.count % REPEAT_COUNT == 0 || self.count == 1 {
                 Self::write(w, encoder, record, self.count)?;
             }
             Ok(DedupResult::Skip)
@@ -71,7 +86,7 @@ impl DeDuper {
             self.last = msg;
             let svct = self.count;
             self.count = 0;
-            if svct > 0 {
+            if svct > 1 {
                 Self::write(w, encoder, record, svct)?;
             }
             Ok(DedupResult::Write)
