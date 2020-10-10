@@ -5,7 +5,7 @@ use crate::encode::{Encode, Write};
 use log::Record;
 
 const REPEAT_COUNT: i32 = 1000;
-/// dedup object to be used by deduping appender
+/// dedup object to be used by deduping appender.
 /// internals are private to dedup
 #[derive(Default)]
 pub struct DeDuper {
@@ -13,8 +13,9 @@ pub struct DeDuper {
     last: String,
 }
 #[derive(PartialEq)]
-/// used by an appender that uses dedup
-/// indicates whther or not the currect message should be output
+/// Used by an appender that uses dedup.
+/// Indicates whether or not the current message should be output.
+/// 
 /// sample use from console appender
 ///         if let Some(dd) = &self.deduper {
 ///              if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
