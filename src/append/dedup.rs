@@ -36,7 +36,6 @@ impl DeDuper {
         record: &Record,
         n: i32,
     ) -> Result<(), Box<dyn Error + Sync + Send>> {
-
         if n == 1 {
             encoder.encode(
                 w,
