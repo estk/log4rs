@@ -21,7 +21,6 @@ pub struct DeDuper {
 ///                  return Ok(());
 ///             }
 ///     ... output the message
-
 pub enum DedupResult {
     /// skip
     Skip,
@@ -30,7 +29,7 @@ pub enum DedupResult {
 }
 impl DeDuper {
     // emits the extra line saying 'last line repeated n times'
-    fn say(
+    fn write(
         w: &mut dyn Write,
         encoder: &dyn Encode,
         record: &Record,
@@ -50,9 +49,8 @@ impl DeDuper {
     }
 
     /// appender calls this.
-    /// If it retunrs Skip then appender should not write
-    /// if Write then the appender should write as per normal
-
+    /// If it returns Skip then appender should not write
+    /// If it returns Write then the appender should write as per normal
     pub fn dedup(
         &mut self,
         w: &mut dyn Write,
@@ -65,7 +63,7 @@ impl DeDuper {
 
             // every now and then keep saying we saw lots of dups
             if self.count % REPEAT_COUNT == 0 {
-                Self::say(w, encoder, record, self.count)?;
+                Self::write(w, encoder, record, self.count)?;
             }
             Ok(DedupResult::Skip)
         } else {
@@ -73,7 +71,7 @@ impl DeDuper {
             let svct = self.count;
             self.count = 0;
             if svct > 0 {
-                Self::say(w, encoder, record, svct)?;
+                Self::write(w, encoder, record, svct)?;
             }
             Ok(DedupResult::Write)
         }
