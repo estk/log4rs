@@ -133,11 +133,13 @@ impl Append for ConsoleAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut writer = self.writer.lock();
         #[cfg(feature = "dedup")]
-        if let Some(dd) = &self.deduper {
-            if dd.lock().dedup(&mut writer, &*self.encoder, record)? == DedupResult::Skip {
-                return Ok(());
+        let _ = {
+            if let Some(dd) = &self.deduper {
+                if dd.lock().dedup(&mut writer, &*self.encoder, record)? == DedupResult::Skip {
+                    return Ok(());
+                }
             }
-        }
+        };
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;
         Ok(())
@@ -270,9 +272,11 @@ impl Deserialize for ConsoleAppenderDeserializer {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
         #[cfg(feature = "dedup")]
-        if let Some(dedup) = config.dedup {
-            appender = appender.dedup(dedup);
-        }
+        let _ = {
+            if let Some(dedup) = config.dedup {
+                appender = appender.dedup(dedup);
+            }
+        };
         Ok(Box::new(appender.build()))
     }
 }

@@ -59,12 +59,13 @@ impl Append for FileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut file = self.file.lock();
         #[cfg(feature = "dedup")]
-        if let Some(dd) = &self.deduper {
-            if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
-                return Ok(());
+        let _ = {
+            if let Some(dd) = &self.deduper {
+                if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
+                    return Ok(());
+                }
             }
-        }
-
+        };
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
         Ok(())
@@ -187,9 +188,11 @@ impl Deserialize for FileAppenderDeserializer {
             appender = appender.append(append);
         }
         #[cfg(feature = "dedup")]
-        if let Some(dedup) = config.dedup {
-            appender = appender.dedup(dedup);
-        }
+        let _ = {
+            if let Some(dedup) = config.dedup {
+                appender = appender.dedup(dedup);
+            }
+        };
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
