@@ -14,6 +14,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(feature = "dedup")]
+use crate::append::dedup::*;
 #[cfg(feature = "file")]
 use crate::encode::EncoderConfig;
 #[cfg(feature = "file")]
@@ -31,6 +33,8 @@ pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
     append: Option<bool>,
+    #[cfg(feature = "dedup")]
+    dedup: Option<bool>,
 }
 
 /// An appender which logs to a file.
@@ -38,6 +42,8 @@ pub struct FileAppender {
     path: PathBuf,
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
+    #[cfg(feature = "dedup")]
+    deduper: Option<Mutex<DeDuper>>,
 }
 
 impl fmt::Debug for FileAppender {
@@ -52,6 +58,14 @@ impl fmt::Debug for FileAppender {
 impl Append for FileAppender {
     fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
         let mut file = self.file.lock();
+        #[cfg(feature = "dedup")]
+        let _ = {
+            if let Some(dd) = &self.deduper {
+                if dd.lock().dedup(&mut *file, &*self.encoder, record)? == DedupResult::Skip {
+                    return Ok(());
+                }
+            }
+        };
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
         Ok(())
@@ -66,6 +80,8 @@ impl FileAppender {
         FileAppenderBuilder {
             encoder: None,
             append: true,
+            #[cfg(feature = "dedup")]
+            dedup: false,
         }
     }
 }
@@ -74,6 +90,8 @@ impl FileAppender {
 pub struct FileAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     append: bool,
+    #[cfg(feature = "dedup")]
+    dedup: bool,
 }
 
 impl FileAppenderBuilder {
@@ -91,6 +109,15 @@ impl FileAppenderBuilder {
         self
     }
 
+    /// Determines if the appender will reject and count duplicate messages.
+    ///
+    /// Defaults to `false`.
+    #[cfg(feature = "dedup")]
+    pub fn dedup(mut self, dedup: bool) -> FileAppenderBuilder {
+        self.dedup = dedup;
+        self
+    }
+
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let path = path.as_ref().to_owned();
@@ -104,9 +131,19 @@ impl FileAppenderBuilder {
             .create(true)
             .open(&path)?;
 
+        #[cfg(feature = "dedup")]
+        let deduper = {
+            if self.dedup {
+                Some(Mutex::new(DeDuper::default()))
+            } else {
+                None
+            }
+        };
         Ok(FileAppender {
             path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
+            #[cfg(feature = "dedup")]
+            deduper,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
@@ -150,6 +187,12 @@ impl Deserialize for FileAppenderDeserializer {
         if let Some(append) = config.append {
             appender = appender.append(append);
         }
+        #[cfg(feature = "dedup")]
+        let _ = {
+            if let Some(dedup) = config.dedup {
+                appender = appender.dedup(dedup);
+            }
+        };
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }

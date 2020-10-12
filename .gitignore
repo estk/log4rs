@@ -4,3 +4,4 @@ Cargo.lock
 .idea/
 *.iml
 .vscode/
+log4rs.code-workspace
