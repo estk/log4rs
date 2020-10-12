@@ -63,7 +63,7 @@ impl DeDuper {
         }
     }
 
-    /// appender calls this.
+    /// Appender calls this.
     /// If it returns Skip then appender should not write
     /// If it returns Write then the appender should write as per normal
     pub fn dedup(

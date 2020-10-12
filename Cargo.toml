@@ -32,7 +32,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
-
+dedup=[]
 all_components = [
     "console_appender",
     "file_appender",

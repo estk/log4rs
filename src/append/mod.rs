@@ -16,11 +16,13 @@ use crate::filter::FilterConfig;
 
 #[cfg(feature = "console_appender")]
 pub mod console;
+#[cfg(feature = "dedup")]
 pub mod dedup;
 #[cfg(feature = "file_appender")]
 pub mod file;
 #[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
+
 /// A trait implemented by log4rs appenders.
 ///
 /// Appenders take a log record and processes them, for example, by writing it
