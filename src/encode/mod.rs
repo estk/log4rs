@@ -11,6 +11,8 @@ use std::{error::Error, fmt, io};
 
 #[cfg(feature = "file")]
 use crate::file::Deserializable;
+#[cfg(feature = "file")]
+use serde_derive::Deserialize;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -77,6 +79,20 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
 }
 
 /// A text or background color.
+#[cfg(feature = "file")]
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[allow(missing_docs)]
+pub enum Color {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+}
+#[cfg(not(feature = "file"))]
 #[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
 pub enum Color {
