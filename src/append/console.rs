@@ -2,19 +2,17 @@
 //!
 //! Requires the `console_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{
-    error::Error,
     fmt,
     io::{self, Write},
 };
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
 use crate::{
     append::Append,
     encode::{
@@ -30,16 +28,16 @@ use crate::{
 };
 
 /// The console appender's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Debug, serde::Deserialize)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
 }
 
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(Debug, serde::Deserialize)]
 enum ConfigTarget {
     #[serde(rename = "stdout")]
     Stdout,
@@ -109,21 +107,16 @@ impl<'a> encode::Write for WriterLock<'a> {
 ///
 /// It supports output styling if standard out is a console buffer on Windows
 /// or is a TTY on Unix.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct ConsoleAppender {
+    #[derivative(Debug = "ignore")]
     writer: Writer,
     encoder: Box<dyn Encode>,
 }
 
-impl fmt::Debug for ConsoleAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("ConsoleAppender")
-            .field("encoder", &self.encoder)
-            .finish()
-    }
-}
-
 impl Append for ConsoleAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         let mut writer = self.writer.lock();
         self.encoder.encode(&mut writer, record)?;
         writer.flush()?;
@@ -187,6 +180,7 @@ impl ConsoleAppenderBuilder {
 }
 
 /// The stream to log to.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Target {
     /// Standard output.
     Stdout,
@@ -208,10 +202,11 @@ pub enum Target {
 /// encoder:
 ///   kind: pattern
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct ConsoleAppenderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for ConsoleAppenderDeserializer {
     type Trait = dyn Append;
 
@@ -221,7 +216,7 @@ impl Deserialize for ConsoleAppenderDeserializer {
         &self,
         config: ConsoleAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Append>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Append>> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = config.target {
             let target = match target {

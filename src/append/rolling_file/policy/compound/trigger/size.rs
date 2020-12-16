@@ -2,28 +2,26 @@
 //!
 //! Requires the `size_trigger` feature.
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde::de;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-use std::error::Error;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use std::fmt;
 
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the size trigger.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct SizeTriggerConfig {
     #[serde(deserialize_with = "deserialize_limit")]
     limit: u64,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 fn deserialize_limit<'de, D>(d: D) -> Result<u64, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -102,7 +100,7 @@ where
 }
 
 /// A trigger which rolls the log once it has passed a certain size.
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTrigger {
     limit: u64,
 }
@@ -116,7 +114,7 @@ impl SizeTrigger {
 }
 
 impl Trigger for SizeTrigger {
-    fn trigger(&self, file: &LogFile) -> Result<bool, Box<dyn Error + Sync + Send>> {
+    fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
         Ok(file.len_estimate() > self.limit)
     }
 }
@@ -133,10 +131,11 @@ impl Trigger for SizeTrigger {
 /// # bytes if not specified. Required.
 /// limit: 10 mb
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTriggerDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for SizeTriggerDeserializer {
     type Trait = dyn Trigger;
 
@@ -146,7 +145,7 @@ impl Deserialize for SizeTriggerDeserializer {
         &self,
         config: SizeTriggerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Trigger>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Trigger>> {
         Ok(Box::new(SizeTrigger::new(config.limit)))
     }
 }

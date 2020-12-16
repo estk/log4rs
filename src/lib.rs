@@ -59,7 +59,7 @@
 //! Loggers are also associated with a set of appenders. Appenders can be
 //! associated directly with a logger. In addition, the appenders of the
 //! logger's parent will be associated with the logger unless the logger has
-//! its *additivity* set to `false`. Log events sent to the logger that are not
+//! its *additive* set to `false`. Log events sent to the logger that are not
 //! filtered out by the logger's maximum log level will be sent to all
 //! associated appenders.
 //!
@@ -134,7 +134,7 @@
 //! Add the following in your application initialization.
 //!
 //! ```no_run
-//! # #[cfg(feature = "file")]
+//! # #[cfg(feature = "config_parsing")]
 //! # fn f() {
 //! log4rs::init_file("log4rs.yml", Default::default()).unwrap();
 //! # }
@@ -186,31 +186,31 @@
 #![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
 #![warn(missing_docs)]
 
-use arc_swap::ArcSwap;
-use fnv::FnvHasher;
-use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::{
-    cmp, collections::HashMap, error, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
+    cmp, collections::HashMap, fmt, hash::BuildHasherDefault, io, io::prelude::*, sync::Arc,
 };
 
-#[cfg(feature = "file")]
-pub use crate::priv_file::{init_file, load_config_file, Error};
-
-use crate::{append::Append, config::Config, filter::Filter};
+use arc_swap::ArcSwap;
+use fnv::FnvHasher;
+use log::{Level, LevelFilter, Metadata, Record};
 
 pub mod append;
 pub mod config;
 pub mod encode;
-#[cfg(feature = "file")]
-pub mod file;
 pub mod filter;
-#[cfg(feature = "file")]
-mod priv_file;
 #[cfg(feature = "console_writer")]
 mod priv_io;
 
+pub use config::{init_config, Config};
+
+#[cfg(feature = "config_parsing")]
+pub use config::{init_file, init_raw_config};
+
+use self::{append::Append, filter::Filter};
+
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
+#[derive(Debug)]
 struct ConfiguredLogger {
     level: LevelFilter,
     appenders: Vec<usize>,
@@ -277,24 +277,32 @@ impl ConfiguredLogger {
         self.level >= level
     }
 
-    fn log(&self, record: &log::Record, appenders: &[Appender]) {
+    fn log(&self, record: &log::Record, appenders: &[Appender]) -> Result<(), Vec<anyhow::Error>> {
+        let mut errors = vec![];
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
                 if let Err(err) = appenders[idx].append(record) {
-                    handle_error(&*err);
+                    errors.push(err);
                 }
             }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 }
 
+#[derive(Debug)]
 struct Appender {
     appender: Box<dyn Append>,
     filters: Vec<Box<dyn Filter>>,
 }
 
 impl Appender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn error::Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
@@ -314,10 +322,31 @@ impl Appender {
 struct SharedLogger {
     root: ConfiguredLogger,
     appenders: Vec<Appender>,
+    err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+}
+
+impl fmt::Debug for SharedLogger {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SharedLogger")
+            .field("root", &self.root)
+            .field("appenders", &self.appenders)
+            .finish()
+    }
 }
 
 impl SharedLogger {
     fn new(config: config::Config) -> SharedLogger {
+        Self::new_with_err_handler(
+            config,
+            Box::new(|e: &anyhow::Error| {
+                let _ = writeln!(io::stderr(), "log4rs: {}", e);
+            }),
+        )
+    }
+    fn new_with_err_handler(
+        config: config::Config,
+        err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+    ) -> SharedLogger {
         let (appenders, root, mut loggers) = config.unpack();
 
         let root = {
@@ -359,18 +388,32 @@ impl SharedLogger {
             })
             .collect();
 
-        SharedLogger { root, appenders }
+        SharedLogger {
+            root,
+            appenders,
+            err_handler,
+        }
     }
 }
 
 /// The fully configured log4rs Logger which is appropriate
 /// to use with the `log::set_boxed_logger` function.
+#[derive(Debug)]
 pub struct Logger(Arc<ArcSwap<SharedLogger>>);
 
 impl Logger {
     /// Create a new `Logger` given a configuration.
     pub fn new(config: config::Config) -> Logger {
         Logger(Arc::new(ArcSwap::new(Arc::new(SharedLogger::new(config)))))
+    }
+    /// Create a new `Logger` given a configuration and err handler.
+    pub fn new_with_err_handler(
+        config: config::Config,
+        err_handler: Box<dyn Send + Sync + Fn(&anyhow::Error)>,
+    ) -> Logger {
+        Logger(Arc::new(ArcSwap::new(Arc::new(
+            SharedLogger::new_with_err_handler(config, err_handler),
+        ))))
     }
 
     /// Set the max log level above which everything will be filtered.
@@ -390,10 +433,15 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         let shared = self.0.load();
-        shared
+        if let Err(errs) = shared
             .root
             .find(record.target())
-            .log(record, &shared.appenders);
+            .log(record, &shared.appenders)
+        {
+            for e in errs {
+                (shared.err_handler)(&e)
+            }
+        }
     }
 
     fn flush(&self) {
@@ -403,25 +451,12 @@ impl log::Log for Logger {
     }
 }
 
-fn handle_error<E: error::Error + ?Sized>(e: &E) {
+pub(crate) fn handle_error(e: &anyhow::Error) {
     let _ = writeln!(io::stderr(), "log4rs: {}", e);
 }
 
-/// Initializes the global logger as a log4rs logger with the provided config.
-///
-/// A `Handle` object is returned which can be used to adjust the logging
-/// configuration.
-pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
-    let logger = Logger::new(config);
-    log::set_max_level(logger.max_log_level());
-    let handle = Handle {
-        shared: logger.0.clone(),
-    };
-    log::set_boxed_logger(Box::new(logger)).map(|()| handle)
-}
-
 /// A handle to the active logger.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Handle {
     shared: Arc<ArcSwap<SharedLogger>>,
 }
@@ -439,19 +474,48 @@ trait ErrorInternals {
     fn new(message: String) -> Self;
 }
 
-trait ConfigPrivateExt {
-    fn unpack(self) -> (Vec<config::Appender>, config::Root, Vec<config::Logger>);
-}
-
-trait PrivateConfigAppenderExt {
-    fn unpack(self) -> (String, Box<dyn Append>, Vec<Box<dyn Filter>>);
-}
-
 #[cfg(test)]
 mod test {
     use log::{Level, LevelFilter, Log};
 
     use super::*;
+
+    #[test]
+    #[cfg(all(feature = "config_parsing", feature = "json_format"))]
+    fn init_from_raw_config() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("append.log");
+
+        let cfg = serde_json::json!({
+            "refresh_rate": "60 seconds",
+            "root" : {
+                "appenders": ["baz"],
+                "level": "info",
+            },
+            "appenders": {
+                "baz": {
+                    "kind": "file",
+                    "path": path,
+                    "encoder": {
+                        "pattern": "{m}"
+                    }
+                }
+            },
+        });
+        let config = serde_json::from_str::<config::RawConfig>(&cfg.to_string()).unwrap();
+        if let Err(e) = init_raw_config(config) {
+            panic!(e);
+        }
+        assert!(path.exists());
+        log::info!("init_from_raw_config");
+
+        let mut contents = String::new();
+        std::fs::File::open(&path)
+            .unwrap()
+            .read_to_string(&mut contents)
+            .unwrap();
+        assert_eq!(contents, "init_from_raw_config");
+    }
 
     #[test]
     fn enabled() {

@@ -2,31 +2,29 @@
 //!
 //! Requires the `file_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{
-    error::Error,
-    fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+
 use crate::{
     append::Append,
     encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
 };
 
 /// The file appender's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
@@ -34,23 +32,17 @@ pub struct FileAppenderConfig {
 }
 
 /// An appender which logs to a file.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct FileAppender {
     path: PathBuf,
+    #[derivative(Debug = "ignore")]
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
 }
 
-impl fmt::Debug for FileAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("FileAppender")
-            .field("file", &self.path)
-            .field("encoder", &self.encoder)
-            .finish()
-    }
-}
-
 impl Append for FileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
@@ -92,8 +84,12 @@ impl FileAppenderBuilder {
     }
 
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
-        let path = path.as_ref().to_owned();
+        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -122,6 +118,10 @@ impl FileAppenderBuilder {
 /// kind: file
 ///
 /// # The path of the log file. Required.
+/// # The path can contain environment variables of the form $ENV{name_here},
+/// # where 'name_here' will be the name of the environment variable that
+/// # will be resolved. Note that if the variable fails to resolve,
+/// # $ENV{name_here} will NOT be replaced in the path.
 /// path: log/foo.log
 ///
 /// # Specifies if the appender should append to or truncate the log file if it
@@ -132,10 +132,11 @@ impl FileAppenderBuilder {
 /// encoder:
 ///   kind: pattern
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FileAppenderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for FileAppenderDeserializer {
     type Trait = dyn Append;
 
@@ -145,7 +146,7 @@ impl Deserialize for FileAppenderDeserializer {
         &self,
         config: FileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<Self::Trait>> {
         let mut appender = FileAppender::builder();
         if let Some(append) = config.append {
             appender = appender.append(append);

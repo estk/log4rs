@@ -2,33 +2,31 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
+use anyhow::bail;
 #[cfg(feature = "background_rotation")]
 use parking_lot::{Condvar, Mutex};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 use std::{
-    error::Error,
     fs, io,
     path::{Path, PathBuf},
 };
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct FixedWindowRollerConfig {
     pattern: String,
     base: Option<u32>,
     count: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 enum Compression {
     None,
     #[cfg(feature = "gzip")]
@@ -83,7 +81,7 @@ impl Compression {
 /// Note that this roller will have to rename every archived file every time the
 /// log rolls over. Performance may be negatively impacted by specifying a large
 /// count.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FixedWindowRoller {
     pattern: String,
     compression: Compression,
@@ -102,14 +100,14 @@ impl FixedWindowRoller {
 
 impl Roll for FixedWindowRoller {
     #[cfg(not(feature = "background_rotation"))]
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> anyhow::Result<()> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
 
         rotate(
             self.pattern.clone(),
-            self.compression.clone(),
+            self.compression,
             self.base,
             self.count,
             file.to_path_buf(),
@@ -119,7 +117,7 @@ impl Roll for FixedWindowRoller {
     }
 
     #[cfg(feature = "background_rotation")]
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> anyhow::Result<()> {
         if self.count == 0 {
             return fs::remove_file(file).map_err(Into::into);
         }
@@ -138,7 +136,7 @@ impl Roll for FixedWindowRoller {
         drop(ready);
 
         let pattern = self.pattern.clone();
-        let compression = self.compression.clone();
+        let compression = self.compression;
         let base = self.base;
         let count = self.count;
         let cond_pair = self.cond_pair.clone();
@@ -235,6 +233,7 @@ fn rotate(
 }
 
 /// A builder for the `FixedWindowRoller`.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FixedWindowRollerBuilder {
     base: u32,
 }
@@ -257,13 +256,9 @@ impl FixedWindowRollerBuilder {
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
-    pub fn build(
-        self,
-        pattern: &str,
-        count: u32,
-    ) -> Result<FixedWindowRoller, Box<dyn Error + Sync + Send>> {
+    pub fn build(self, pattern: &str, count: u32) -> anyhow::Result<FixedWindowRoller> {
         if !pattern.contains("{}") {
-            return Err("pattern does not contain `{}`".into());
+            bail!("pattern does not contain `{}`");
         }
 
         let compression = match Path::new(pattern).extension() {
@@ -271,7 +266,7 @@ impl FixedWindowRollerBuilder {
             Some(e) if e == "gz" => Compression::Gzip,
             #[cfg(not(feature = "gzip"))]
             Some(e) if e == "gz" => {
-                return Err("gzip compression requires the `gzip` feature".into());
+                bail!("gzip compression requires the `gzip` feature");
             }
             _ => Compression::None,
         };
@@ -308,10 +303,11 @@ impl FixedWindowRollerBuilder {
 /// # The base value for archived log indices. Defaults to 0.
 /// base: 1
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FixedWindowRollerDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for FixedWindowRollerDeserializer {
     type Trait = dyn Roll;
 
@@ -321,7 +317,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
         &self,
         config: FixedWindowRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Roll>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Roll>> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = config.base {
             builder = builder.base(base);

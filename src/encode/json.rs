@@ -31,18 +31,15 @@ use chrono::{
 };
 use log::{Level, Record};
 use serde::ser::{self, Serialize, SerializeMap};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-use serde_derive::Serialize;
-use std::{error::Error, fmt, option, thread};
+use std::{fmt, option, thread};
 
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
 use crate::encode::{Encode, Write, NEWLINE};
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
 
 /// The JSON encoder's configuration
-#[cfg(feature = "file")]
-#[derive(Deserialize, Clone)]
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JsonEncoderConfig {
     #[serde(skip_deserializing)]
@@ -50,7 +47,7 @@ pub struct JsonEncoderConfig {
 }
 
 /// An `Encode`r which writes a JSON object.
-#[derive(Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct JsonEncoder(());
 
 impl JsonEncoder {
@@ -66,7 +63,7 @@ impl JsonEncoder {
         w: &mut dyn Write,
         time: DateTime<Local>,
         record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<()> {
         let thread = thread::current();
         let message = Message {
             time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
@@ -87,16 +84,12 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(
-        &self,
-        w: &mut dyn Write,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()> {
         self.encode_inner(w, Local::now(), record)
     }
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct Message<'a> {
     #[serde(serialize_with = "ser_display")]
     time: DelayedFormat<option::IntoIter<Item<'a>>>,
@@ -151,10 +144,11 @@ impl ser::Serialize for Mdc {
 /// ```yaml
 /// kind: json
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct JsonEncoderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for JsonEncoderDeserializer {
     type Trait = dyn Encode;
 
@@ -164,7 +158,7 @@ impl Deserialize for JsonEncoderDeserializer {
         &self,
         _: JsonEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Encode>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Encode>> {
         Ok(Box::new(JsonEncoder::default()))
     }
 }

@@ -1,16 +1,18 @@
 //! Encoders
 
+use derivative::Derivative;
 use log::Record;
-#[cfg(feature = "file")]
-use serde::de;
-#[cfg(feature = "file")]
-use serde_value::Value;
-#[cfg(feature = "file")]
-use std::collections::BTreeMap;
-use std::{error::Error, fmt, io};
+use std::{fmt, io};
 
-#[cfg(feature = "file")]
-use crate::file::Deserializable;
+#[cfg(feature = "config_parsing")]
+use serde::de;
+#[cfg(feature = "config_parsing")]
+use serde_value::Value;
+#[cfg(feature = "config_parsing")]
+use std::collections::BTreeMap;
+
+#[cfg(feature = "config_parsing")]
+use crate::config::Deserializable;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -21,6 +23,7 @@ pub mod writer;
 #[allow(dead_code)]
 #[cfg(windows)]
 const NEWLINE: &'static str = "\r\n";
+
 #[allow(dead_code)]
 #[cfg(not(windows))]
 const NEWLINE: &str = "\n";
@@ -32,14 +35,10 @@ const NEWLINE: &str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `Record` into bytes and writes them.
-    fn encode(
-        &self,
-        w: &mut dyn Write,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>>;
+    fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()>;
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Encode {
     fn name() -> &'static str {
         "encoder"
@@ -47,7 +46,8 @@ impl Deserializable for dyn Encode {
 }
 
 /// Configuration for an encoder.
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct EncoderConfig {
     /// The encoder's kind.
     pub kind: String,
@@ -56,7 +56,7 @@ pub struct EncoderConfig {
     pub config: Value,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl<'de> de::Deserialize<'de> for EncoderConfig {
     fn deserialize<D>(d: D) -> Result<EncoderConfig, D::Error>
     where
@@ -77,8 +77,8 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
 }
 
 /// A text or background color.
-#[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Color {
     Black,
     Red,
@@ -94,7 +94,9 @@ pub enum Color {
 ///
 /// Any fields set to `None` will be set to their default format, as defined
 /// by the `Write`r.
-#[derive(Clone, Default)]
+#[derive(Derivative)]
+#[derivative(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Default)]
 pub struct Style {
     /// The text (or foreground) color.
     pub text: Option<Color>,
@@ -102,17 +104,8 @@ pub struct Style {
     pub background: Option<Color>,
     /// True if the text should have increased intensity.
     pub intense: Option<bool>,
+    #[derivative(Debug = "ignore")]
     _p: (),
-}
-
-impl fmt::Debug for Style {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Style")
-            .field("text", &self.text)
-            .field("background", &self.background)
-            .field("intense", &self.intense)
-            .finish()
-    }
 }
 
 impl Style {

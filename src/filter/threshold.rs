@@ -3,24 +3,20 @@
 //! Requires the `threshold_filter` feature.
 
 use log::{LevelFilter, Record};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-#[cfg(feature = "file")]
-use std::error::Error;
 
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
 use crate::filter::{Filter, Response};
 
 /// The threshold filter's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct ThresholdFilterConfig {
     level: LevelFilter,
 }
 
 /// A filter that rejects all events at a level below a provided threshold.
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ThresholdFilter {
     level: LevelFilter,
 }
@@ -52,10 +48,11 @@ impl Filter for ThresholdFilter {
 /// # The threshold log level to filter at. Required
 /// level: warn
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ThresholdFilterDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for ThresholdFilterDeserializer {
     type Trait = dyn Filter;
 
@@ -65,7 +62,7 @@ impl Deserialize for ThresholdFilterDeserializer {
         &self,
         config: ThresholdFilterConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Filter>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Filter>> {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }

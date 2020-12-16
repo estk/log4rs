@@ -119,25 +119,25 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Local, Utc};
+use derivative::Derivative;
 use log::{Level, Record};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-use std::{default::Default, error::Error, fmt, io, process, thread};
+use std::{default::Default, io, process, thread};
 
 use crate::encode::{
     self,
     pattern::parser::{Alignment, Parameters, Parser, Piece},
     Color, Encode, Style, NEWLINE,
 };
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
 
 mod parser;
 
 /// The pattern encoder's configuration.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
 }
@@ -293,6 +293,7 @@ impl<W: encode::Write> encode::Write for RightAlignWriter<W> {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Chunk {
     Text(String),
     Formatted {
@@ -404,16 +405,17 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let timezone = match formatter.args.get(1) {
                         Some(arg) => {
-                            if arg.len() != 1 {
-                                return Chunk::Error("invalid timezone".to_owned());
-                            }
-                            match arg[0] {
-                                Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
-                                Piece::Text(ref z) if *z == "local" => Timezone::Local,
-                                Piece::Text(ref z) => {
-                                    return Chunk::Error(format!("invalid timezone `{}`", z));
+                            if let Some(arg) = arg.get(0) {
+                                match arg {
+                                    Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
+                                    Piece::Text(ref z) if *z == "local" => Timezone::Local,
+                                    Piece::Text(ref z) => {
+                                        return Chunk::Error(format!("invalid timezone `{}`", z));
+                                    }
+                                    _ => return Chunk::Error("invalid timezone".to_owned()),
                                 }
-                                _ => return Chunk::Error("invalid timezone".to_owned()),
+                            } else {
+                                return Chunk::Error("invalid timezone".to_owned());
                             }
                         }
                         None => Timezone::Local,
@@ -458,13 +460,14 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let key = match formatter.args.get(0) {
                         Some(arg) => {
-                            if arg.len() != 1 {
+                            if let Some(arg) = arg.get(0) {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
+                                }
+                            } else {
                                 return Chunk::Error("invalid MDC key".to_owned());
-                            }
-                            match arg[0] {
-                                Piece::Text(key) => key.to_owned(),
-                                Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                _ => return Chunk::Error("invalid MDC key".to_owned()),
                             }
                         }
                         None => return Chunk::Error("missing MDC key".to_owned()),
@@ -472,20 +475,21 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let default = match formatter.args.get(1) {
                         Some(arg) => {
-                            if arg.len() != 1 {
+                            if let Some(arg) = arg.get(0) {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
+                                }
+                            } else {
                                 return Chunk::Error("invalid MDC default".to_owned());
                             }
-                            match arg[0] {
-                                Piece::Text(key) => key.to_owned(),
-                                Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                _ => return Chunk::Error("invalid MDC default".to_owned()),
-                            }
                         }
-                        None => "".to_owned(),
+                        None => "",
                     };
 
                     Chunk::Formatted {
-                        chunk: FormattedChunk::Mdc(key, default),
+                        chunk: FormattedChunk::Mdc(key.into(), default.into()),
                         params: parameters,
                     }
                 }
@@ -521,11 +525,13 @@ fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chu
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Timezone {
     Utc,
     Local,
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum FormattedChunk {
     Time(String, Timezone),
     Level,
@@ -576,15 +582,18 @@ impl FormattedChunk {
                     Level::Error => {
                         w.set_style(Style::new().text(Color::Red).intense(true))?;
                     }
-                    Level::Warn => w.set_style(Style::new().text(Color::Red))?,
-                    Level::Info => w.set_style(Style::new().text(Color::Blue))?,
+                    Level::Warn => w.set_style(Style::new().text(Color::Yellow))?,
+                    Level::Info => w.set_style(Style::new().text(Color::Green))?,
+                    Level::Trace => w.set_style(Style::new().text(Color::Cyan))?,
                     _ => {}
                 }
                 for chunk in chunks {
                     chunk.encode(w, record)?;
                 }
                 match record.level() {
-                    Level::Error | Level::Warn | Level::Info => w.set_style(&Style::new())?,
+                    Level::Error | Level::Warn | Level::Info | Level::Trace => {
+                        w.set_style(&Style::new())?
+                    }
                     _ => {}
                 }
                 Ok(())
@@ -597,17 +606,13 @@ impl FormattedChunk {
 }
 
 /// An `Encode`r configured via a format string.
+#[derive(Derivative)]
+#[derivative(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PatternEncoder {
+    #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
     pattern: String,
-}
-
-impl fmt::Debug for PatternEncoder {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("PatternEncoder")
-            .field("pattern", &self.pattern)
-            .finish()
-    }
 }
 
 /// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.
@@ -618,11 +623,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(
-        &self,
-        w: &mut dyn encode::Write,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> anyhow::Result<()> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
@@ -653,10 +654,11 @@ impl PatternEncoder {
 /// # "{d} {l} {t} - {m}{n}".
 /// pattern: "{d} {l} {t} - {m}{n}"
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct PatternEncoderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for PatternEncoderDeserializer {
     type Trait = dyn Encode;
 
@@ -666,7 +668,7 @@ impl Deserialize for PatternEncoderDeserializer {
         &self,
         config: PatternEncoderConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Encode>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Encode>> {
         let encoder = match config.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),

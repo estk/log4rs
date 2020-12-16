@@ -7,7 +7,7 @@ use std::{fmt, io};
 
 /// An `encode::Write`r that wraps an `io::Write`r, emitting ANSI escape codes
 /// for text style.
-#[derive(Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AnsiWriter<W>(pub W);
 
 impl<W: io::Write> io::Write for AnsiWriter<W> {

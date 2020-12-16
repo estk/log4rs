@@ -16,37 +16,36 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
+use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-#[cfg(feature = "file")]
-use serde_value::Value;
-#[cfg(feature = "file")]
-use std::collections::BTreeMap;
 use std::{
-    error::Error,
-    fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
-#[cfg(feature = "file")]
-use crate::encode::EncoderConfig;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use serde_value::Value;
+#[cfg(feature = "config_parsing")]
+use std::collections::BTreeMap;
+
 use crate::{
     append::Append,
     encode::{self, pattern::PatternEncoder, Encode},
 };
 
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::encode::EncoderConfig;
+
 pub mod policy;
 
 /// Configuration for the rolling file appender.
-#[cfg(feature = "file")]
-#[derive(Deserialize)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
@@ -54,13 +53,14 @@ pub struct RollingFileAppenderConfig {
     policy: Policy,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct Policy {
     kind: String,
     config: Value,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl<'de> serde::Deserialize<'de> for Policy {
     fn deserialize<D>(d: D) -> Result<Policy, D::Error>
     where
@@ -80,6 +80,7 @@ impl<'de> serde::Deserialize<'de> for Policy {
     }
 }
 
+#[derive(Debug)]
 struct LogWriter {
     file: BufWriter<File>,
     len: u64,
@@ -101,6 +102,7 @@ impl io::Write for LogWriter {
 impl encode::Write for LogWriter {}
 
 /// Information about the active log file.
+#[derive(Debug)]
 pub struct LogFile<'a> {
     writer: &'a mut Option<LogWriter>,
     path: &'a Path,
@@ -149,7 +151,10 @@ impl<'a> LogFile<'a> {
 }
 
 /// An appender which archives log files in a configurable strategy.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct RollingFileAppender {
+    #[derivative(Debug = "ignore")]
     writer: Mutex<Option<LogWriter>>,
     path: PathBuf,
     append: bool,
@@ -157,19 +162,8 @@ pub struct RollingFileAppender {
     policy: Box<dyn policy::Policy>,
 }
 
-impl fmt::Debug for RollingFileAppender {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("RollingFileAppender")
-            .field("path", &self.path)
-            .field("append", &self.append)
-            .field("encoder", &self.encoder)
-            .field("policy", &self.policy)
-            .finish()
-    }
-}
-
 impl Append for RollingFileAppender {
-    fn append(&self, record: &Record) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn append(&self, record: &Record) -> anyhow::Result<()> {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
@@ -251,6 +245,10 @@ impl RollingFileAppenderBuilder {
     }
 
     /// Constructs a `RollingFileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path.
     pub fn build<P>(
         self,
         path: P,
@@ -259,9 +257,10 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
+        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
-            path: path.as_ref().to_owned(),
+            path,
             append: self.append,
             encoder: self
                 .encoder
@@ -288,6 +287,10 @@ impl RollingFileAppenderBuilder {
 /// kind: rolling_file
 ///
 /// # The path of the log file. Required.
+/// # The path can contain environment variables of the form $ENV{name_here},
+/// # where 'name_here' will be the name of the environment variable that
+/// # will be resolved. Note that if the variable fails to resolve,
+/// # $ENV{name_here} will NOT be replaced in the path.
 /// path: log/foo.log
 ///
 /// # Specifies if the appender should append to or truncate the log file if it
@@ -313,10 +316,11 @@ impl RollingFileAppenderBuilder {
 ///   roller:
 ///     kind: delete
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct RollingFileAppenderDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for RollingFileAppenderDeserializer {
     type Trait = dyn Append;
 
@@ -326,7 +330,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         &self,
         config: RollingFileAppenderConfig,
         deserializers: &Deserializers,
-    ) -> Result<Box<dyn Append>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Append>> {
         let mut builder = RollingFileAppender::builder();
         if let Some(append) = config.append {
             builder = builder.append(append);
@@ -345,7 +349,6 @@ impl Deserialize for RollingFileAppenderDeserializer {
 #[cfg(test)]
 mod test {
     use std::{
-        error::Error,
         fs::File,
         io::{Read, Write},
     };
@@ -356,7 +359,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use crate::file::{Deserializers, RawConfig};
+        use crate::config::{Deserializers, RawConfig};
 
         let dir = tempfile::tempdir().unwrap();
 
@@ -399,7 +402,7 @@ appenders:
     struct NopPolicy;
 
     impl Policy for NopPolicy {
-        fn process(&self, _: &mut LogFile) -> Result<(), Box<dyn Error + Sync + Send>> {
+        fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
             Ok(())
         }
     }

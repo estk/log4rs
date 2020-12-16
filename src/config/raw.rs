@@ -90,14 +90,16 @@
 //! ```
 #![allow(deprecated)]
 
+use std::{
+    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
+};
+
+use anyhow::anyhow;
+use derivative::Derivative;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
-use serde_derive::Deserialize;
 use serde_value::Value;
-use std::{
-    borrow::ToOwned, collections::HashMap, error, fmt, marker::PhantomData, sync::Arc,
-    time::Duration,
-};
+use thiserror::Error;
 use typemap::{Key, ShareCloneMap};
 
 use crate::{append::AppenderConfig, config};
@@ -132,7 +134,7 @@ pub trait Deserialize: Send + Sync + 'static {
         &self,
         config: Self::Config,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>>;
+    ) -> anyhow::Result<Box<Self::Trait>>;
 }
 
 trait ErasedDeserialize: Send + Sync + 'static {
@@ -142,7 +144,7 @@ trait ErasedDeserialize: Send + Sync + 'static {
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>>;
+    ) -> anyhow::Result<Box<Self::Trait>>;
 }
 
 struct DeserializeEraser<T>(T);
@@ -157,7 +159,7 @@ where
         &self,
         config: Value,
         deserializers: &Deserializers,
-    ) -> Result<Box<Self::Trait>, Box<dyn error::Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<Self::Trait>> {
         let config = config.deserialize_into()?;
         self.0.deserialize(config, deserializers)
     }
@@ -279,107 +281,59 @@ impl Deserializers {
     }
 
     /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(
-        &self,
-        kind: &str,
-        config: Value,
-    ) -> Result<Box<T>, Box<dyn error::Error + Sync + Send>>
+    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
     where
         T: Deserializable,
     {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
-            None => Err(format!(
+            None => Err(anyhow!(
                 "no {} deserializer for kind `{}` registered",
                 T::name(),
                 kind
-            )
-            .into()),
+            )),
         }
     }
 }
 
-/// An error deserializing a configuration into a log4rs `Config`.
-#[derive(Debug)]
-pub struct Error(ErrorKind, Box<dyn error::Error + Sync + Send>);
-
-#[derive(Debug)]
-enum ErrorKind {
-    Appender(String),
-    Filter(String),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            ErrorKind::Appender(ref name) => {
-                write!(fmt, "error deserializing appender {}: {}", name, self.1)
-            }
-            ErrorKind::Filter(ref name) => write!(
-                fmt,
-                "error deserializing filter attached to appender {}: {}",
-                name, self.1
-            ),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "error deserializing a log4rs `Config`"
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        Some(&*self.1)
-    }
-}
-
-/// A raw deserializable log4rs configuration for xml.
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-#[derive(Deserialize, Clone, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct RawConfigXml {
-    #[serde(deserialize_with = "de_duration", default)]
-    refresh_rate: Option<Duration>,
-    #[serde(default)]
-    root: Root,
-    #[serde(default)]
-    appenders: HashMap<String, AppenderConfig>,
-    #[serde(rename = "loggers", default)]
-    loggers: LoggersXml,
-}
-
-/// Loggers section wrapper for xml configuration
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct LoggersXml {
-    #[serde(rename = "logger", default)]
-    loggers: Vec<LoggerXml>,
-}
-
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-impl Default for LoggersXml {
-    fn default() -> Self {
-        Self { loggers: vec![] }
-    }
+#[derive(Debug, Error)]
+pub enum DeserializingConfigError {
+    #[error("error deserializing appender {0}: {1}")]
+    Appender(String, anyhow::Error),
+    #[error("error deserializing filter attached to appender {0}: {1}")]
+    Filter(String, anyhow::Error),
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,
+
     #[serde(default)]
     root: Root,
+
     #[serde(default)]
     appenders: HashMap<String, AppenderConfig>,
+
     #[serde(default)]
     loggers: HashMap<String, Logger>,
+}
+
+#[derive(Debug, Error)]
+#[error("errors deserializing appenders {0:#?}")]
+pub struct AppenderErrors(Vec<DeserializingConfigError>);
+
+impl AppenderErrors {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    pub fn handle(&mut self) {
+        for error in self.0.drain(..) {
+            crate::handle_error(&error.into());
+        }
+    }
 }
 
 impl RawConfig {
@@ -409,7 +363,7 @@ impl RawConfig {
     pub fn appenders_lossy(
         &self,
         deserializers: &Deserializers,
-    ) -> (Vec<config::Appender>, Vec<Error>) {
+    ) -> (Vec<config::Appender>, AppenderErrors) {
         let mut appenders = vec![];
         let mut errors = vec![];
 
@@ -418,38 +372,21 @@ impl RawConfig {
             for filter in &appender.filters {
                 match deserializers.deserialize(&filter.kind, filter.config.clone()) {
                     Ok(filter) => builder = builder.filter(filter),
-                    Err(e) => errors.push(Error(ErrorKind::Filter(name.clone()), e)),
+                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e)),
                 }
             }
             match deserializers.deserialize(&appender.kind, appender.config.clone()) {
                 Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
-                Err(e) => errors.push(Error(ErrorKind::Appender(name.clone()), e)),
+                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e)),
             }
         }
 
-        (appenders, errors)
+        (appenders, AppenderErrors(errors))
     }
 
     /// Returns the requested refresh rate.
     pub fn refresh_rate(&self) -> Option<Duration> {
         self.refresh_rate
-    }
-}
-
-#[cfg(feature = "xml_format")]
-impl ::std::convert::From<RawConfigXml> for RawConfig {
-    fn from(cfg: RawConfigXml) -> Self {
-        Self {
-            refresh_rate: cfg.refresh_rate,
-            root: cfg.root,
-            appenders: cfg.appenders,
-            loggers: cfg
-                .loggers
-                .loggers
-                .into_iter()
-                .map(|l| (l.name.clone(), l.into()))
-                .collect(),
-        }
     }
 }
 
@@ -488,47 +425,22 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Derivative, serde::Deserialize)]
+#[derivative(Default)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
+    #[derivative(Default(value = "root_level_default()"))]
     level: LevelFilter,
     #[serde(default)]
     appenders: Vec<String>,
-}
-
-impl Default for Root {
-    fn default() -> Root {
-        Root {
-            level: root_level_default(),
-            appenders: vec![],
-        }
-    }
 }
 
 fn root_level_default() -> LevelFilter {
     LevelFilter::Debug
 }
 
-/// logger struct for xml configuration
-#[cfg(feature = "xml_format")]
-#[deprecated(since = "0.11.0")]
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-struct LoggerXml {
-    /// explicit field "name" for xml config
-    name: String,
-
-    level: LevelFilter,
-
-    #[serde(default)]
-    appenders: Vec<String>,
-
-    #[serde(default = "logger_additive_default")]
-    additive: bool,
-}
-
-#[derive(Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 struct Logger {
     level: LevelFilter,
@@ -536,17 +448,6 @@ struct Logger {
     appenders: Vec<String>,
     #[serde(default = "logger_additive_default")]
     additive: bool,
-}
-
-#[cfg(feature = "xml_format")]
-impl ::std::convert::From<LoggerXml> for Logger {
-    fn from(logger_xml: LoggerXml) -> Self {
-        Logger {
-            level: logger_xml.level,
-            appenders: logger_xml.appenders,
-            additive: logger_xml.additive,
-        }
-    }
 }
 
 fn logger_additive_default() -> bool {
@@ -598,38 +499,5 @@ loggers:
     #[cfg(feature = "yaml_format")]
     fn empty() {
         ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
-    }
-
-    #[test]
-    #[cfg(feature = "xml_format")]
-    fn full_deserialize_xml() {
-        let cfg = r#"
-<?xml version="1.0" encoding="utf-8"?>
-<configuration refresh_rate="30 seconds">
-    <appenders>
-        <stdout kind="console"/>
-        <requests kind="file" path="/tmp/requests.log">
-            <encoder pattern="{d} - {m}{n}" />
-        </requests>
-    </appenders>
-    <root level="warn">
-        <appenders>stdout</appenders>
-    </root>
-    <loggers>
-        <logger name="foo::bar::baz" level="trace" additive="false" >
-            <appenders>requests</appenders>
-        </logger>
-    </loggers>
-</configuration>
-"#;
-        let config: RawConfigXml = ::serde_xml_rs::from_reader(cfg.as_bytes()).unwrap();
-        let config: RawConfig = config.into();
-        let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
-        assert!(errors.is_empty());
-        assert_eq!(config.refresh_rate, Some(Duration::from_secs(30)));
-
-        let logger = config.loggers.get("foo::bar::baz").unwrap();
-        assert_eq!(logger.appenders[0], "requests");
     }
 }

@@ -2,29 +2,27 @@
 //!
 //! Requires the `delete_roller` feature.
 
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
-use std::{error::Error, fs, path::Path};
+use std::{fs, path::Path};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "file")]
-use crate::file::{Deserialize, Deserializers};
+#[cfg(feature = "config_parsing")]
+use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the delete roller.
-#[cfg(feature = "file")]
-#[derive(Deserialize, Clone)]
+#[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct DeleteRollerConfig {
     #[serde(skip_deserializing)]
     _p: (),
 }
 
 /// A roller which deletes the log file.
-#[derive(Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct DeleteRoller(());
 
 impl Roll for DeleteRoller {
-    fn roll(&self, file: &Path) -> Result<(), Box<dyn Error + Sync + Send>> {
+    fn roll(&self, file: &Path) -> anyhow::Result<()> {
         fs::remove_file(file).map_err(Into::into)
     }
 }
@@ -43,10 +41,11 @@ impl DeleteRoller {
 /// ```yaml
 /// kind: delete
 /// ```
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct DeleteRollerDeserializer;
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserialize for DeleteRollerDeserializer {
     type Trait = dyn Roll;
 
@@ -56,7 +55,7 @@ impl Deserialize for DeleteRollerDeserializer {
         &self,
         _: DeleteRollerConfig,
         _: &Deserializers,
-    ) -> Result<Box<dyn Roll>, Box<dyn Error + Sync + Send>> {
+    ) -> anyhow::Result<Box<dyn Roll>> {
         Ok(Box::new(DeleteRoller::default()))
     }
 }

@@ -1,16 +1,16 @@
 //! Filters
 
 use log::Record;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde::de;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use serde_value::Value;
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
 use std::fmt;
 
-#[cfg(feature = "file")]
-use crate::file::Deserializable;
+#[cfg(feature = "config_parsing")]
+use crate::config::Deserializable;
 
 #[cfg(feature = "threshold_filter")]
 pub mod threshold;
@@ -24,7 +24,7 @@ pub trait Filter: fmt::Debug + Send + Sync + 'static {
     fn filter(&self, record: &Record) -> Response;
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Filter {
     fn name() -> &'static str {
         "filter"
@@ -50,8 +50,8 @@ pub enum Response {
 }
 
 /// Configuration for a filter.
-#[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct FilterConfig {
     /// The filter kind.
     pub kind: String,
@@ -59,7 +59,7 @@ pub struct FilterConfig {
     pub config: Value,
 }
 
-#[cfg(feature = "file")]
+#[cfg(feature = "config_parsing")]
 impl<'de> de::Deserialize<'de> for FilterConfig {
     fn deserialize<D>(d: D) -> Result<FilterConfig, D::Error>
     where
