@@ -14,6 +14,13 @@ pub struct Config {
     loggers: Vec<Logger>,
 }
 
+/// Any structs that impl this trait can be consumed by ConfigBuilder to make
+/// build a config
+pub trait ConfigBuildable {
+    /// Unwraps the stuct into structs the builder can build from
+    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root);
+}
+
 impl Config {
     /// Creates a new `ConfigBuilder`.
     pub fn builder() -> ConfigBuilder {
@@ -53,6 +60,18 @@ impl Config {
     }
 }
 
+impl ConfigBuildable for Config {
+    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root) {
+        (
+            Some(ConfigBuilder {
+                appenders: self.appenders,
+                loggers: self.loggers,
+            }),
+            self.root,
+        )
+    }
+}
+
 /// A builder for `Config`s.
 #[derive(Debug, Default)]
 pub struct ConfigBuilder {
@@ -89,6 +108,11 @@ impl ConfigBuilder {
     {
         self.loggers.extend(loggers);
         self
+    }
+
+    /// Consumes two `ConfigBuilders` and combines them into one
+    pub fn combine(self, ConfigBuilder { appenders, loggers }: ConfigBuilder) -> ConfigBuilder {
+        self.appenders(appenders).loggers(loggers)
     }
 
     /// Consumes the `ConfigBuilder`, returning the `Config`.
@@ -156,8 +180,16 @@ impl ConfigBuilder {
     }
 
     /// Consumes the `ConfigBuilder`, returning the `Config`.
-    pub fn build(self, root: Root) -> Result<Config, ConfigErrors> {
-        let (config, errors) = self.build_lossy(root);
+    pub fn build(self, buildable: impl ConfigBuildable) -> Result<Config, ConfigErrors> {
+        let (config_builder, root) = buildable.builder_unwrap();
+
+        let (config, errors) = if let Some(config_builder) = config_builder {
+            self.combine(config_builder)
+        } else {
+            self
+        }
+        .build_lossy(root);
+
         if errors.is_empty() {
             Ok(config)
         } else {
@@ -192,6 +224,12 @@ impl Root {
     /// Sets the minimum level of log messages that the root logger will accept.
     pub fn set_level(&mut self, level: LevelFilter) {
         self.level = level;
+    }
+}
+
+impl ConfigBuildable for Root {
+    fn builder_unwrap(self) -> (Option<ConfigBuilder>, Root) {
+        (None, self)
     }
 }
 
