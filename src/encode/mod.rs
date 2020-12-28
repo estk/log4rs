@@ -13,6 +13,8 @@ use std::collections::BTreeMap;
 
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
+#[cfg(feature = "file")]
+use crate::file::Deserializable;
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -77,8 +79,10 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
 }
 
 /// A text or background color.
+#[cfg_attr(feature = "config_parsing", derive(serde::Deserialize))] 
+//#[cfg(feature = "config_parsing")]
+#[derive(Copy, Clone, Debug, Eq, PartialEq,Hash)]
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Color {
     Black,
     Red,

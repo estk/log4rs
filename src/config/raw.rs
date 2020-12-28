@@ -476,6 +476,9 @@ appenders:
     path: /tmp/baz.log
     encoder:
       pattern: "%m"
+      color_map:
+        INFO: Blue
+        TRACE: Black
 
 root:
   appenders:
