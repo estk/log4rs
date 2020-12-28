@@ -623,7 +623,9 @@ impl FormattedChunk {
                     chunk.encode(w, record, color_map)?;
                 }
                 match record.level() {
-                    Level::Error | Level::Warn | Level::Info => w.set_style(&Style::new())?,
+                    Level::Error | Level::Warn | Level::Info | Level::Trace => {
+                        w.set_style(&Style::new())?
+                    }
                     _ => {}
                 }
                 Ok(())

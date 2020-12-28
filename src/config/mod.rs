@@ -63,7 +63,7 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
         .build(config.root())?;
 
     let logger = crate::Logger::new(config);
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(logger.max_log_level());
     log::set_boxed_logger(Box::new(logger))?;
     Ok(())
 }
