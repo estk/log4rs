@@ -79,9 +79,9 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
 }
 
 /// A text or background color.
-#[cfg_attr(feature = "config_parsing", derive(serde::Deserialize))] 
+#[cfg_attr(feature = "config_parsing", derive(serde::Deserialize))]
 //#[cfg(feature = "config_parsing")]
-#[derive(Copy, Clone, Debug, Eq, PartialEq,Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 #[allow(missing_docs)]
 pub enum Color {
     Black,
