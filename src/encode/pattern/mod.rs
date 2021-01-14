@@ -667,11 +667,6 @@ impl Encode for PatternEncoder {
 #[cfg(feature = "file")]
 impl From<PatternEncoderConfig> for PatternEncoder {
     fn from(pattern_config: PatternEncoderConfig) -> Self {
-        // Merge default color_map with user-configured color_map
-        let mut color_map = default_color_map();
-        for (k, v) in pattern_config.color_map {
-            color_map.insert(k, v);
-        }
         PatternEncoder::new_with_colormap(&pattern_config.pattern, color_map)
     }
 }
@@ -691,14 +686,35 @@ impl PatternEncoder {
     /// Creates a `PatternEncoder` from a pattern string and color hashmap.
     ///
     /// The pattern string syntax is documented in the `pattern` module.
+    ///
+    ///
+    ///! ```no_run
+    ///! # #[cfg(all(feature = "console_appender",
+    ///! #           feature = "file_appender",
+    ///! #           feature = "pattern_encoder"))]
+    ///! # fn f() {
+    ///! // Change color of Info level msgs, other msgs will be the default color
+    ///! let mut log_color_map = HashMap::new();
+    ///! log_color_map.insert(log::Level::Info, Some(log4rs::encode::Color::Cyan));
+    ///! let pattern_encoder = PatternEncoder::new_with_colormap("{d} - {m}{n}", log_color_map);
+    ///!
+    ///! }
+    ///! # }
+    ///! # fn main() {}
+    ///! ```
     pub fn new_with_colormap(
         pattern: &str,
         color_map: HashMap<Level, Option<Color>>,
     ) -> PatternEncoder {
+        // Merge default color_map with user-configured color_map
+        let mut color_map_def = default_color_map();
+        for (k, v) in color_map {
+            color_map_def.insert(k, v);
+        }
         PatternEncoder {
             chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
-            color_map,
+            color_map: color_map_def,
         }
     }
 }
