@@ -121,8 +121,6 @@
 use chrono::{Local, Utc};
 use derivative::Derivative;
 use log::{Level, Record};
-#[cfg(feature = "file")]
-use serde_derive::Deserialize;
 use std::{collections::HashMap, default::Default, io, process, thread};
 
 use crate::encode::{
@@ -154,7 +152,7 @@ fn default_color_map() -> HashMap<Level, Option<Color>> {
 /// The pattern encoder's configuration.
 #[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
-#[derive(Clone, Eq, PartialEq, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 pub struct PatternEncoderConfig {
     #[serde(default = "default_pattern")]
     pattern: Option<String>,
@@ -640,7 +638,7 @@ impl FormattedChunk {
 /// An `Encode`r configured via a format string.
 #[derive(Derivative)]
 #[derivative(Debug)]
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PatternEncoder {
     #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
