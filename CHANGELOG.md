@@ -8,6 +8,7 @@
 * Custom error handling
 * Allow parsing of config from string
 * Expand env vars in file path of file and RollingFile appenders PR#155
+* Console appender can be configured to only write output when it's a TTY
 
 ### Changed
 
