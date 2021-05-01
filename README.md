@@ -69,7 +69,7 @@ fn main() {
 
 Since version `0.10.0` the minimum version for rust is `1.38.0` and is verified via CI.
 `1.38.0` is required for windows due to the [backtrace](https://github.com/rust-lang/backtrace-rs/issues/276) crate.
-`1.34.0` may work for unix environments although it is not officially supported.
+`1.40.0` is required for the `memchr` crate due to `#[non_exhaustive]`.
 
 ## Building for Dev
 
