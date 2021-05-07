@@ -30,8 +30,7 @@ mod os {
             if self.current < self.as_bytes.len() {
                 rv = Some(self.as_bytes[self.current]);
                 self.current += 1;
-            }
-            else {
+            } else {
                 rv = None;
             }
             rv
@@ -95,9 +94,7 @@ mod os {
     impl CodeUnitsFromReplacement {
         pub fn new(replacement: &str) -> Self {
             let replacement: Vec<CodeUnit> = OsStr::new(replacement).encode_wide().collect();
-            Self {
-                replacement,
-            }
+            Self { replacement }
         }
         pub fn len(&self) -> usize {
             self.replacement.len()
@@ -115,7 +112,7 @@ mod os {
 #[derive(Clone, Debug)]
 enum Fragment {
     Literal(Vec<os::CodeUnit>),
-    ReplacementMarker
+    ReplacementMarker,
 }
 
 #[derive(Clone, Debug)]
@@ -209,7 +206,8 @@ impl SegmentsBuilder {
     }
     fn add_clean_pattern(&mut self, segment: &str) {
         self.push_pending();
-        self.segments.push(Segment::CleanPattern(segment.to_string()));
+        self.segments
+            .push(Segment::CleanPattern(segment.to_string()));
     }
     fn add_dirty_pattern(&mut self, segment: Fragments) {
         self.push_pending();
@@ -276,33 +274,29 @@ impl PatternPathBuf {
                         ScanningState::HaveNothing => {
                             if code_unit == LEFT_CURLY {
                                 scanning_state = ScanningState::HaveLeftCurly;
-                            }
-                            else {
+                            } else {
                                 fragments_builder.add_code_unit(code_unit);
                             }
-                        },
+                        }
                         ScanningState::HaveLeftCurly => {
                             if code_unit == RIGHT_CURLY {
                                 fragments_builder.add_replacement_marker();
-                            }
-                            else {
+                            } else {
                                 fragments_builder.add_code_unit(LEFT_CURLY);
                                 fragments_builder.add_code_unit(code_unit);
                             }
                             scanning_state = ScanningState::HaveNothing;
-                        },
+                        }
                     }
                 }
                 match scanning_state {
-                    ScanningState::HaveLeftCurly =>
-                        fragments_builder.add_code_unit(LEFT_CURLY),
-                    _ => {},
+                    ScanningState::HaveLeftCurly => fragments_builder.add_code_unit(LEFT_CURLY),
+                    _ => {}
                 }
                 if fragments_builder.has_replacement_marker() {
                     segments_builder.add_dirty_pattern(fragments_builder.into());
                     has_pattern = true;
-                }
-                else {
+                } else {
                     segments_builder.add_literal(segment);
                 }
             }
@@ -432,12 +426,34 @@ mod unit_tests {
         }
 
         fn simple_bad_string_with_marker() -> OsString {
-            let source = vec![0x66, 0x6f, 0x80, 0x6f, LEFT_CURLY, RIGHT_CURLY, 0x62, 0x61, 0x72];
+            let source = vec![
+                0x66,
+                0x6f,
+                0x80,
+                0x6f,
+                LEFT_CURLY,
+                RIGHT_CURLY,
+                0x62,
+                0x61,
+                0x72,
+            ];
             OsString::from_vec(source)
         }
 
         fn crazy_bad_string_with_marker() -> OsString {
-            let source = vec![LEFT_CURLY, 0x66, 0x6f, 0x80, 0x6f, LEFT_CURLY, RIGHT_CURLY, 0x62, 0x61, 0x72, LEFT_CURLY];
+            let source = vec![
+                LEFT_CURLY,
+                0x66,
+                0x6f,
+                0x80,
+                0x6f,
+                LEFT_CURLY,
+                RIGHT_CURLY,
+                0x62,
+                0x61,
+                0x72,
+                LEFT_CURLY,
+            ];
             OsString::from_vec(source)
         }
 
@@ -452,11 +468,14 @@ mod unit_tests {
         #[test]
         fn mix_is_ok() {
             let tm = PatternPathBuf::new(
-                "/var/log/gremlin/Agent{}/Middle{}Insert/daemon.log.{}.gz/pointless/tail");
+                "/var/log/gremlin/Agent{}/Middle{}Insert/daemon.log.{}.gz/pointless/tail",
+            );
             assert!(tm.segments.len() == 5);
             let r = tm.resolve("0");
-            assert!(r.to_str() == Some(
-                "/var/log/gremlin/Agent0/Middle0Insert/daemon.log.0.gz/pointless/tail"));
+            assert!(
+                r.to_str()
+                    == Some("/var/log/gremlin/Agent0/Middle0Insert/daemon.log.0.gz/pointless/tail")
+            );
         }
 
         #[test]
@@ -515,12 +534,34 @@ mod unit_tests {
         }
 
         fn simple_bad_string_with_marker() -> OsString {
-            let source = [0x0066, 0x006f, 0xD800, 0x006f, LEFT_CURLY, RIGHT_CURLY, 0x0062, 0x0061, 0x0072];
+            let source = [
+                0x0066,
+                0x006f,
+                0xD800,
+                0x006f,
+                LEFT_CURLY,
+                RIGHT_CURLY,
+                0x0062,
+                0x0061,
+                0x0072,
+            ];
             OsString::from_wide(&source[..])
         }
 
         fn crazy_bad_string_with_marker() -> OsString {
-            let source = [LEFT_CURLY, 0x0066, 0x006f, 0xD800, 0x006f, LEFT_CURLY, RIGHT_CURLY, 0x0062, 0x0061, 0x0072, LEFT_CURLY];
+            let source = [
+                LEFT_CURLY,
+                0x0066,
+                0x006f,
+                0xD800,
+                0x006f,
+                LEFT_CURLY,
+                RIGHT_CURLY,
+                0x0062,
+                0x0061,
+                0x0072,
+                LEFT_CURLY,
+            ];
             OsString::from_wide(&source[..])
         }
 

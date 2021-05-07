@@ -12,7 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::append::rolling_file::policy::compound::roll::{Roll, pattern::PatternPathBuf};
+use crate::append::rolling_file::policy::compound::roll::{pattern::PatternPathBuf, Roll};
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
@@ -215,7 +215,7 @@ fn rotate(
 
     for i in (base..base + count - 1).rev() {
         let src = pattern.resolve(i);
-        let dst = pattern.resolve(i+1);
+        let dst = pattern.resolve(i + 1);
 
         if parent_varies {
             if let Some(parent) = dst.parent() {
@@ -271,7 +271,11 @@ impl FixedWindowRollerBuilder {
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
-    pub fn build_from_pattern_path_buf(self, pattern: PatternPathBuf, count: u32) -> anyhow::Result<FixedWindowRoller> {
+    pub fn build_from_pattern_path_buf(
+        self,
+        pattern: PatternPathBuf,
+        count: u32,
+    ) -> anyhow::Result<FixedWindowRoller> {
         if !pattern.has_pattern() {
             bail!("pattern does not contain `{}`");
         }
