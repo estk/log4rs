@@ -9,6 +9,8 @@ use crate::config::Deserializable;
 pub mod delete;
 #[cfg(feature = "fixed_window_roller")]
 pub mod fixed_window;
+#[cfg(feature = "fixed_window_roller")]
+mod pattern;
 
 /// A trait which processes log files after they have been rolled over.
 pub trait Roll: fmt::Debug + Send + Sync + 'static {

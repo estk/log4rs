@@ -12,7 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::append::rolling_file::policy::compound::roll::Roll;
+use crate::append::rolling_file::policy::compound::roll::{Roll, pattern::PatternPathBuf};
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
@@ -34,7 +34,7 @@ enum Compression {
 }
 
 impl Compression {
-    fn compress(&self, src: &Path, dst: &str) -> io::Result<()> {
+    fn compress(&self, src: &Path, dst: &Path) -> io::Result<()> {
         match *self {
             Compression::None => move_file(src, dst),
             #[cfg(feature = "gzip")]
@@ -83,7 +83,7 @@ impl Compression {
 /// count.
 #[derive(Clone, Debug)]
 pub struct FixedWindowRoller {
-    pattern: String,
+    pattern: PatternPathBuf,
     compression: Compression,
     base: u32,
     count: u32,
@@ -193,31 +193,32 @@ where
 
 // TODO(eas): compress to tmp file then move into place once prev task is done
 fn rotate(
-    pattern: String,
+    pattern: PatternPathBuf,
     compression: Compression,
     base: u32,
     count: u32,
     file: PathBuf,
 ) -> io::Result<()> {
-    let dst_0 = pattern.replace("{}", &base.to_string());
+    let dst_0 = pattern.resolve(base);
+    let braces = pattern.resolve("{}");
 
-    if let Some(parent) = Path::new(&dst_0).parent() {
+    if let Some(parent) = dst_0.parent() {
         fs::create_dir_all(parent)?;
     }
 
     // In the common case, all of the archived files will be in the same
     // directory, so avoid extra filesystem calls in that case.
-    let parent_varies = match (Path::new(&dst_0).parent(), Path::new(&pattern).parent()) {
+    let parent_varies = match (dst_0.parent(), braces.parent()) {
         (Some(a), Some(b)) => a != b,
         _ => false, // Only case that can actually happen is (None, None)
     };
 
     for i in (base..base + count - 1).rev() {
-        let src = pattern.replace("{}", &i.to_string());
-        let dst = pattern.replace("{}", &(i + 1).to_string());
+        let src = pattern.resolve(i);
+        let dst = pattern.resolve(i+1);
 
         if parent_varies {
-            if let Some(parent) = Path::new(&dst).parent() {
+            if let Some(parent) = dst.parent() {
                 fs::create_dir_all(parent)?;
             }
         }
@@ -257,11 +258,27 @@ impl FixedWindowRollerBuilder {
     /// feature is enabled, the archive files will be gzip-compressed.
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
     pub fn build(self, pattern: &str, count: u32) -> anyhow::Result<FixedWindowRoller> {
-        if !pattern.contains("{}") {
+        self.build_from_pattern_path_buf(PatternPathBuf::new(pattern), count)
+    }
+
+    /// Constructs a new `FixedWindowRoller`.
+    ///
+    /// `pattern` references either an absolute path or lacking a leading `/`, relative
+    /// to the `cwd` of your application. The pattern must contain at least one
+    /// instance of `{}`, all of which will be replaced with an archived log file's index.
+    /// Being based on a `PathBuf`, illegal Unicode in `pattern` is correctly handled.
+    ///
+    /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
+    /// feature is enabled, the archive files will be gzip-compressed.
+    /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
+    pub fn build_from_pattern_path_buf(self, pattern: PatternPathBuf, count: u32) -> anyhow::Result<FixedWindowRoller> {
+        if !pattern.has_pattern() {
             bail!("pattern does not contain `{}`");
         }
 
-        let compression = match Path::new(pattern).extension() {
+        // Only after the extension.  "{}" is used just in case the extension is "g{}z".
+        let r = pattern.resolve("{}");
+        let compression = match r.extension() {
             #[cfg(feature = "gzip")]
             Some(e) if e == "gz" => Compression::Gzip,
             #[cfg(not(feature = "gzip"))]
@@ -272,7 +289,7 @@ impl FixedWindowRollerBuilder {
         };
 
         Ok(FixedWindowRoller {
-            pattern: pattern.to_owned(),
+            pattern,
             compression,
             base: self.base,
             count,
