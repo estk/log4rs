@@ -152,7 +152,7 @@ fn default_color_map() -> HashMap<Level, Option<Color>> {
 /// The pattern encoder's configuration.
 #[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, serde::Deserialize)]
 pub struct PatternEncoderConfig {
     #[serde(default = "default_pattern")]
     pattern: Option<String>,
@@ -638,7 +638,7 @@ impl FormattedChunk {
 /// An `Encode`r configured via a format string.
 #[derive(Derivative)]
 #[derivative(Debug)]
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct PatternEncoder {
     #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
@@ -1026,5 +1026,23 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+    #[test]
+    fn check_color_hash() {
+        // purpose of this test is to specify a single custom color.
+        //  - test the custom color
+        //  - test that default colors were intact
+        use std::collections::HashMap;
+        use crate::encode::Color;
+        use crate::encode::pattern::default_color_map;
+        let mut log_color_map = HashMap::new();
+        log_color_map.insert(log::Level::Info, Some( Color::Cyan ));
+        let encoder = Box::new(PatternEncoder::new_with_colormap(
+                "{d(%Y-%m-%d %H:%M:%S)(local)} {h({l} [{f}:{L} {T} {t}] {m})}{n}",
+                log_color_map ));
+        assert_eq!(encoder.color_map.get(&log::Level::Info), Some(&Some(Color::Cyan)));
+        assert_eq!(encoder.color_map.get(&log::Level::Warn), default_color_map().get(&log::Level::Warn));
+        assert_eq!(encoder.color_map.get(&log::Level::Error), default_color_map().get(&log::Level::Error));
+        assert_eq!(encoder.color_map.get(&log::Level::Debug), default_color_map().get(&log::Level::Debug));
     }
 }
