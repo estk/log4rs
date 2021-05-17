@@ -180,7 +180,7 @@
 //! # fn main() {}
 //! ```
 //!
-//! For more examples see the (examples)[https://github.com/estk/log4rs/tree/master/examples] in the source.
+//! For more examples see the [examples](https://github.com/estk/log4rs/tree/master/examples) in the source.
 //!
 
 #![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
@@ -504,7 +504,7 @@ mod test {
         });
         let config = serde_json::from_str::<config::RawConfig>(&cfg.to_string()).unwrap();
         if let Err(e) = init_raw_config(config) {
-            panic!(e);
+            panic!("{}", e);
         }
         assert!(path.exists());
         log::info!("init_from_raw_config");
