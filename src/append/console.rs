@@ -29,8 +29,8 @@ use crate::{
 
 /// The console appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
@@ -60,7 +60,12 @@ impl Writer {
     }
 
     fn is_tty(&self) -> bool {
-        matches!(self, Self::Tty(_))
+        // 1.40 compat
+        #[allow(clippy::match_like_matches_macro)]
+        match self {
+            Self::Tty(_) => true,
+            _ => false,
+        }
     }
 }
 
