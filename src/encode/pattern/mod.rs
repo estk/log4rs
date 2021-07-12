@@ -121,7 +121,7 @@
 use chrono::{Local, Utc};
 use derivative::Derivative;
 use log::{Level, Record};
-use std::{default::Default, io, process, thread};
+use std::{collections::HashMap, default::Default, io, process, thread};
 
 use crate::encode::{
     self,
@@ -134,12 +134,30 @@ use crate::config::{Deserialize, Deserializers};
 
 mod parser;
 
+const DEFAULT_PATTERN_ENCODER: &str = "{d} {l} {t} - {m}{n}";
+
+#[allow(dead_code)]
+fn default_pattern() -> Option<String> {
+    Some(DEFAULT_PATTERN_ENCODER.to_owned())
+}
+fn default_color_map() -> HashMap<Level, Option<Color>> {
+    let mut color_map = HashMap::new();
+    color_map.insert(Level::Info, Some(Color::Blue));
+    color_map.insert(Level::Debug, None);
+    color_map.insert(Level::Warn, Some(Color::Red));
+    color_map.insert(Level::Error, Some(Color::Red));
+    color_map
+}
+
 /// The pattern encoder's configuration.
 #[cfg(feature = "config_parsing")]
 #[serde(deny_unknown_fields)]
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, serde::Deserialize)]
 pub struct PatternEncoderConfig {
+    #[serde(default = "default_pattern")]
     pattern: Option<String>,
+    #[serde(default = "default_color_map")]
+    color_map: HashMap<Level, Option<Color>>,
 }
 
 fn is_char_boundary(b: u8) -> bool {
@@ -304,20 +322,25 @@ enum Chunk {
 }
 
 impl Chunk {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(
+        &self,
+        w: &mut dyn encode::Write,
+        record: &Record,
+        color_map: &HashMap<Level, Option<Color>>,
+    ) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted {
                 ref chunk,
                 ref params,
             } => match (params.min_width, params.max_width, params.align) {
-                (None, None, _) => chunk.encode(w, record),
+                (None, None, _) => chunk.encode(w, record, color_map),
                 (None, Some(max_width), _) => {
                     let mut w = MaxWidthWriter {
                         remaining: max_width,
                         w,
                     };
-                    chunk.encode(&mut w, record)
+                    chunk.encode(&mut w, record, color_map)
                 }
                 (Some(min_width), None, Alignment::Left) => {
                     let mut w = LeftAlignWriter {
@@ -325,7 +348,7 @@ impl Chunk {
                         fill: params.fill,
                         w,
                     };
-                    chunk.encode(&mut w, record)?;
+                    chunk.encode(&mut w, record, color_map)?;
                     w.finish()
                 }
                 (Some(min_width), None, Alignment::Right) => {
@@ -335,7 +358,7 @@ impl Chunk {
                         w,
                         buf: vec![],
                     };
-                    chunk.encode(&mut w, record)?;
+                    chunk.encode(&mut w, record, color_map)?;
                     w.finish()
                 }
                 (Some(min_width), Some(max_width), Alignment::Left) => {
@@ -347,7 +370,7 @@ impl Chunk {
                             w,
                         },
                     };
-                    chunk.encode(&mut w, record)?;
+                    chunk.encode(&mut w, record, color_map)?;
                     w.finish()
                 }
                 (Some(min_width), Some(max_width), Alignment::Right) => {
@@ -360,7 +383,7 @@ impl Chunk {
                         },
                         buf: vec![],
                     };
-                    chunk.encode(&mut w, record)?;
+                    chunk.encode(&mut w, record, color_map)?;
                     w.finish()
                 }
             },
@@ -550,7 +573,12 @@ enum FormattedChunk {
 }
 
 impl FormattedChunk {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(
+        &self,
+        w: &mut dyn encode::Write,
+        record: &Record,
+        color_map: &HashMap<Level, Option<Color>>,
+    ) -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
@@ -573,22 +601,24 @@ impl FormattedChunk {
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
                 for chunk in chunks {
-                    chunk.encode(w, record)?;
+                    chunk.encode(w, record, color_map)?;
                 }
                 Ok(())
             }
             FormattedChunk::Highlight(ref chunks) => {
-                match record.level() {
-                    Level::Error => {
-                        w.set_style(Style::new().text(Color::Red).intense(true))?;
+                if let Some(Some(color)) = color_map.get(&record.level()) {
+                    match record.level() {
+                        Level::Error => {
+                            w.set_style(Style::new().text(*color).intense(true))?;
+                        }
+                        Level::Warn => w.set_style(Style::new().text(*color))?,
+                        Level::Info => w.set_style(Style::new().text(*color))?,
+                        Level::Debug => w.set_style(Style::new().text(*color))?,
+                        _ => {}
                     }
-                    Level::Warn => w.set_style(Style::new().text(Color::Yellow))?,
-                    Level::Info => w.set_style(Style::new().text(Color::Green))?,
-                    Level::Trace => w.set_style(Style::new().text(Color::Cyan))?,
-                    _ => {}
                 }
                 for chunk in chunks {
-                    chunk.encode(w, record)?;
+                    chunk.encode(w, record, color_map)?;
                 }
                 match record.level() {
                     Level::Error | Level::Warn | Level::Info | Level::Trace => {
@@ -608,26 +638,34 @@ impl FormattedChunk {
 /// An `Encode`r configured via a format string.
 #[derive(Derivative)]
 #[derivative(Debug)]
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct PatternEncoder {
     #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
     pattern: String,
+    color_map: HashMap<Level, Option<Color>>,
 }
 
 /// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.
 impl Default for PatternEncoder {
     fn default() -> PatternEncoder {
-        PatternEncoder::new("{d} {l} {t} - {m}{n}")
+        PatternEncoder::new_with_colormap(DEFAULT_PATTERN_ENCODER, default_color_map())
     }
 }
 
 impl Encode for PatternEncoder {
     fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> anyhow::Result<()> {
         for chunk in &self.chunks {
-            chunk.encode(w, record)?;
+            chunk.encode(w, record, &self.color_map)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(feature = "file")]
+impl From<PatternEncoderConfig> for PatternEncoder {
+    fn from(pattern_config: PatternEncoderConfig) -> Self {
+        PatternEncoder::new_with_colormap(&pattern_config.pattern, color_map)
     }
 }
 
@@ -639,6 +677,42 @@ impl PatternEncoder {
         PatternEncoder {
             chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
+            color_map: default_color_map(),
+        }
+    }
+
+    /// Creates a `PatternEncoder` from a pattern string and color hashmap.
+    ///
+    /// The pattern string syntax is documented in the `pattern` module.
+    ///
+    ///
+    ///! ```no_run
+    ///! # #[cfg(all(feature = "console_appender",
+    ///! #           feature = "file_appender",
+    ///! #           feature = "pattern_encoder"))]
+    ///! # fn f() {
+    ///! // Change color of Info level msgs, other msgs will be the default color
+    ///! let mut log_color_map = HashMap::new();
+    ///! log_color_map.insert(log::Level::Info, Some(log4rs::encode::Color::Cyan));
+    ///! let pattern_encoder = PatternEncoder::new_with_colormap("{d} - {m}{n}", log_color_map);
+    ///!
+    ///! }
+    ///! # }
+    ///! # fn main() {}
+    ///! ```
+    pub fn new_with_colormap(
+        pattern: &str,
+        color_map: HashMap<Level, Option<Color>>,
+    ) -> PatternEncoder {
+        // Merge default color_map with user-configured color_map
+        let mut color_map_def = default_color_map();
+        for (k, v) in color_map {
+            color_map_def.insert(k, v);
+        }
+        PatternEncoder {
+            chunks: Parser::new(pattern).map(From::from).collect(),
+            pattern: pattern.to_owned(),
+            color_map: color_map_def,
         }
     }
 }
@@ -952,5 +1026,23 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+    #[test]
+    fn check_color_hash() {
+        // purpose of this test is to specify a single custom color.
+        //  - test the custom color
+        //  - test that default colors were intact
+        use std::collections::HashMap;
+        use crate::encode::Color;
+        use crate::encode::pattern::default_color_map;
+        let mut log_color_map = HashMap::new();
+        log_color_map.insert(log::Level::Info, Some( Color::Cyan ));
+        let encoder = Box::new(PatternEncoder::new_with_colormap(
+                "{d(%Y-%m-%d %H:%M:%S)(local)} {h({l} [{f}:{L} {T} {t}] {m})}{n}",
+                log_color_map ));
+        assert_eq!(encoder.color_map.get(&log::Level::Info), Some(&Some(Color::Cyan)));
+        assert_eq!(encoder.color_map.get(&log::Level::Warn), default_color_map().get(&log::Level::Warn));
+        assert_eq!(encoder.color_map.get(&log::Level::Error), default_color_map().get(&log::Level::Error));
+        assert_eq!(encoder.color_map.get(&log::Level::Debug), default_color_map().get(&log::Level::Debug));
     }
 }

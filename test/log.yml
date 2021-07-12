@@ -5,6 +5,9 @@ appenders:
     kind: console
     encoder:
       pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
+      color_map: 
+        Info: Cyan
+        Warn: Red
     filters:
     - kind: threshold
       level: error
