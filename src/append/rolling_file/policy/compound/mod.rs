@@ -20,8 +20,8 @@ pub mod trigger;
 
 /// Configuration for the compound policy.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CompoundPolicyConfig {
     trigger: Trigger,
     roller: Roller,

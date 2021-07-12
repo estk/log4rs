@@ -10,8 +10,8 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the delete roller.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeleteRollerConfig {
     #[serde(skip_deserializing)]
     _p: (),

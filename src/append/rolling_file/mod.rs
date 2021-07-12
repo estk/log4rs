@@ -44,8 +44,8 @@ pub mod policy;
 
 /// Configuration for the rolling file appender.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
