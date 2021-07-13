@@ -136,8 +136,8 @@ mod parser;
 
 /// The pattern encoder's configuration.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
 }

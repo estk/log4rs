@@ -18,8 +18,8 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FixedWindowRollerConfig {
     pattern: String,
     base: Option<u32>,
