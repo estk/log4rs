@@ -1,6 +1,6 @@
 use log::{error, info, trace};
-use serde_yaml;
 use log4rs;
+use serde_yaml;
 
 fn main() {
     let config_str = include_str!("sample_config.yml");
