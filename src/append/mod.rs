@@ -23,16 +23,43 @@ pub mod rolling_file;
 
 #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
 mod env_util {
-    #[allow(clippy::redundant_clone)]
+    const ENV_VAR_PREFIX: &str = "$ENV{";
+    const ENV_VAR_SUFFIX: char = '}';
+
     pub fn expand_env_vars(path: std::path::PathBuf) -> std::path::PathBuf {
-        let mut path: String = path.to_string_lossy().into();
-        let matcher = regex::Regex::new(r#"\$ENV\{([\w][\w|\d|\.|_]*)\}"#).unwrap();
-        matcher.captures_iter(&path.clone()).for_each(|c| {
-            if let Ok(s) = std::env::var(&c[1]) {
-                path = path.replace(&c[0], &s);
+        let path: String = path.to_string_lossy().into();
+        let mut outpath: String = path.clone();
+        'prefix_loop: for match_index in path.match_indices(ENV_VAR_PREFIX) {
+            let match_start = match_index.0;
+            let (_, tail) = path.split_at(match_start + ENV_VAR_PREFIX.len());
+            let mut cs = tail.chars();
+            // Check first character.
+            if let Some(ch) = cs.next() {
+                let mut env_name = String::new();
+                if ch.is_ascii_alphabetic() {
+                    env_name.push(ch);
+                    // Consume following characters.
+                    for ch in cs {
+                        match ch {
+                            ch if ch.is_ascii_alphanumeric() || ch == '_' || ch == '.' => {
+                                env_name.push(ch)
+                            }
+                            ENV_VAR_SUFFIX => break,
+                            _ => continue 'prefix_loop,
+                        }
+                    }
+                }
+                if let Ok(env_value) = std::env::var(&env_name) {
+                    let match_end =
+                        match_start + ENV_VAR_PREFIX.len() + env_name.len() + 1 /*ENV_VAR_SUFFIX*/;
+                    // This simply rewrites the entire outpath with all instances
+                    // of this var replaced. Could be done more efficiently by building
+                    // `outpath` as we go when processing `path`. Not critical.
+                    outpath = outpath.replace(&path[match_start..match_end], &env_value);
+                }
             }
-        });
-        path.into()
+        }
+        outpath.into()
     }
 }
 
