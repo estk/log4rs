@@ -90,3 +90,7 @@ required-features = ["json_encoder", "console_appender"]
 [[example]]
 name = "log_to_file"
 required-features = ["console_appender", "file_appender", "rolling_file_appender"]
+
+[[example]]
+name = "compile_time_config"
+required-features = ["yaml_format", "config_parsing"]
