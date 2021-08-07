@@ -29,8 +29,7 @@ mod env_util {
     pub fn expand_env_vars(path: std::path::PathBuf) -> std::path::PathBuf {
         let path: String = path.to_string_lossy().into();
         let mut outpath: String = path.clone();
-        'prefix_loop: for match_index in path.match_indices(ENV_VAR_PREFIX) {
-            let match_start = match_index.0;
+        'prefix_loop: for (match_start, _) in path.match_indices(ENV_VAR_PREFIX) {
             let (_, tail) = path.split_at(match_start + ENV_VAR_PREFIX.len());
             let mut cs = tail.chars();
             // Check first character.
