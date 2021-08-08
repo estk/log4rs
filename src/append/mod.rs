@@ -23,38 +23,52 @@ pub mod rolling_file;
 
 #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
 mod env_util {
-    const ENV_VAR_PREFIX: &str = "$ENV{";
-    const ENV_VAR_SUFFIX: char = '}';
+    const ENV_PREFIX: &str = "$ENV{";
+    const ENV_PREFIX_LEN: usize = ENV_PREFIX.len();
+    const ENV_SUFFIX: char = '}';
+    const ENV_SUFFIX_LEN: usize = 1;
+
+    fn is_env_var_start(c: char) -> bool {
+        // Close replacement for old [\w]
+        // Note that \w implied \d and '_' and non-ASCII letters/digits.
+        c.is_alphanumeric() || c == '_'
+    }
+
+    fn is_env_var_part(c: char) -> bool {
+        // Close replacement for old [\w\d_.]
+        c.is_alphanumeric() || c == '_' || c == '.'
+    }
 
     pub fn expand_env_vars(path: std::path::PathBuf) -> std::path::PathBuf {
         let path: String = path.to_string_lossy().into();
         let mut outpath: String = path.clone();
-        'prefix_loop: for (match_start, _) in path.match_indices(ENV_VAR_PREFIX) {
-            let (_, tail) = path.split_at(match_start + ENV_VAR_PREFIX.len());
+        for (match_start, _) in path.match_indices(ENV_PREFIX) {
+            let env_name_start = match_start + ENV_PREFIX_LEN;
+            let (_, tail) = path.split_at(env_name_start);
             let mut cs = tail.chars();
             // Check first character.
             if let Some(ch) = cs.next() {
-                let mut env_name = String::new();
-                if ch.is_ascii_alphabetic() {
+                if is_env_var_start(ch) {
+                    let mut env_name = String::new();
                     env_name.push(ch);
                     // Consume following characters.
-                    for ch in cs {
-                        match ch {
-                            ch if ch.is_ascii_alphanumeric() || ch == '_' || ch == '.' => {
-                                env_name.push(ch)
-                            }
-                            ENV_VAR_SUFFIX => break,
-                            _ => continue 'prefix_loop,
+                    let valid = loop {
+                        match cs.next() {
+                            Some(ch) if is_env_var_part(ch) => env_name.push(ch),
+                            Some(ENV_SUFFIX) => break true,
+                            _ => break false,
+                        }
+                    };
+                    // Try replacing properly terminated env var.
+                    if valid {
+                        if let Ok(env_value) = std::env::var(&env_name) {
+                            let match_end = env_name_start + env_name.len() + ENV_SUFFIX_LEN;
+                            // This simply rewrites the entire outpath with all instances
+                            // of this var replaced. Could be done more efficiently by building
+                            // `outpath` as we go when processing `path`. Not critical.
+                            outpath = outpath.replace(&path[match_start..match_end], &env_value);
                         }
                     }
-                }
-                if let Ok(env_value) = std::env::var(&env_name) {
-                    let match_end =
-                        match_start + ENV_VAR_PREFIX.len() + env_name.len() + 1 /*ENV_VAR_SUFFIX*/;
-                    // This simply rewrites the entire outpath with all instances
-                    // of this var replaced. Could be done more efficiently by building
-                    // `outpath` as we go when processing `path`. Not critical.
-                    outpath = outpath.replace(&path[match_start..match_end], &env_value);
                 }
             }
         }
@@ -188,6 +202,10 @@ mod test {
                     var("HOME").unwrap()
                 )),
             ),
+            (
+                "/unterminated/$ENV{USER",
+                PathBuf::from("/unterminated/$ENV{USER"),
+            ),
         ];
 
         #[cfg(target_os = "windows")]
@@ -235,6 +253,10 @@ mod test {
                     "{}/test/$ENV{{SHOULD_NOT_EXIST}}",
                     var("HOMEPATH").unwrap()
                 )),
+            ),
+            (
+                "/unterminated/$ENV{USERNAME",
+                PathBuf::from("/unterminated/$ENV{USERNAME"),
             ),
         ];
 
