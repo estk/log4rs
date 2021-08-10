@@ -406,10 +406,10 @@ impl<'a> From<Piece<'a>> for Chunk {
                     let timezone = match formatter.args.get(1) {
                         Some(arg) => {
                             if let Some(arg) = arg.get(0) {
-                                match arg {
-                                    Piece::Text(ref z) if *z == "utc" => Timezone::Utc,
-                                    Piece::Text(ref z) if *z == "local" => Timezone::Local,
-                                    Piece::Text(ref z) => {
+                                match *arg {
+                                    Piece::Text(z) if z == "utc" => Timezone::Utc,
+                                    Piece::Text(z) if z == "local" => Timezone::Local,
+                                    Piece::Text(z) => {
                                         return Chunk::Error(format!("invalid timezone `{}`", z));
                                     }
                                     _ => return Chunk::Error("invalid timezone".to_owned()),
