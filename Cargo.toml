@@ -18,8 +18,8 @@ json_format = ["serde_json"]
 toml_format = ["toml"]
 
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
-file_appender = ["parking_lot", "simple_writer", "pattern_encoder", "regex"]
-rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder", "regex"]
+file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
+rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 compound_policy = []
 delete_roller = []
 fixed_window_roller = []
@@ -67,7 +67,6 @@ serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.8.4", optional = true }
 toml = { version = "0.5", optional = true }
 parking_lot = { version = "0.11.0", optional = true }
-regex = { version = "1", optional = true }
 thiserror = "1.0.15"
 anyhow = "1.0.28"
 derivative = "2.1.1"
