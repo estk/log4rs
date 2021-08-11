@@ -61,8 +61,8 @@ where
     P: AsRef<Path>,
 {
     let path = path.as_ref();
-    let format = Format::from_path(&path)?;
-    let source = read_config(&path)?;
+    let format = Format::from_path(path)?;
+    let source = read_config(path)?;
     let config = format.parse(&source)?;
 
     Ok(deserialize(&config, &deserializers))
