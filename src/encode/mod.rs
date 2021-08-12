@@ -28,6 +28,11 @@ const NEWLINE: &'static str = "\r\n";
 #[cfg(not(windows))]
 const NEWLINE: &str = "\n";
 
+thread_local!(
+    /// Thread-locally cached thread ID.
+    pub(crate) static TID: u64 = gettid::gettid()
+);
+
 /// A trait implemented by types that can serialize a `Record` into a
 /// `Write`r.
 ///

@@ -60,10 +60,11 @@
 //! * `M`, `module` - The module that the log message came from, or `???` if not
 //!     provided.
 //! * `P`, `pid` - The current process id.
+//! * `i`, `tid` - The current system-wide unique thread ID.
 //! * `n` - A platform-specific newline.
 //! * `t`, `target` - The target of the log message.
 //! * `T`, `thread` - The name of the current thread.
-//! * `I`, `thread_id` - The ID of the current thread.
+//! * `I`, `thread_id` - The pthread ID of the current thread.
 //! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
 //!     the key, and the second argument specifies the default value if the
 //!     key is not present in the MDC. The second argument is optional, and
@@ -452,6 +453,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
                 "I" | "thread_id" => no_args(&formatter.args, parameters, FormattedChunk::ThreadId),
                 "P" | "pid" => no_args(&formatter.args, parameters, FormattedChunk::ProcessId),
+                "i" | "tid" => no_args(&formatter.args, parameters, FormattedChunk::SystemThreadId),
                 "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
                 "X" | "mdc" => {
                     if formatter.args.len() > 2 {
@@ -542,6 +544,7 @@ enum FormattedChunk {
     Thread,
     ThreadId,
     ProcessId,
+    SystemThreadId,
     Target,
     Newline,
     Align(Vec<Chunk>),
@@ -569,6 +572,9 @@ impl FormattedChunk {
             }
             FormattedChunk::ThreadId => w.write_all(thread_id::get().to_string().as_bytes()),
             FormattedChunk::ProcessId => w.write_all(process::id().to_string().as_bytes()),
+            FormattedChunk::SystemThreadId => {
+                super::TID.with(|tid| w.write_all(tid.to_string().as_bytes()))
+            }
             FormattedChunk::Target => w.write_all(record.target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
@@ -784,6 +790,18 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, process::id().to_string().as_bytes());
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn system_thread_id() {
+        let pw = PatternEncoder::new("{i}");
+        let mut buf = vec![];
+
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, gettid::gettid().to_string().as_bytes());
     }
 
     #[test]
