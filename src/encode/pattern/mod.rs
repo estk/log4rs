@@ -135,6 +135,11 @@ use crate::config::{Deserialize, Deserializers};
 
 mod parser;
 
+thread_local!(
+    /// Thread-locally cached thread ID.
+    static TID: u64 = palaver::thread::gettid()
+);
+
 /// The pattern encoder's configuration.
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
@@ -573,7 +578,7 @@ impl FormattedChunk {
             FormattedChunk::ThreadId => w.write_all(thread_id::get().to_string().as_bytes()),
             FormattedChunk::ProcessId => w.write_all(process::id().to_string().as_bytes()),
             FormattedChunk::SystemThreadId => {
-                super::TID.with(|tid| w.write_all(tid.to_string().as_bytes()))
+                TID.with(|tid| w.write_all(tid.to_string().as_bytes()))
             }
             FormattedChunk::Target => w.write_all(record.target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
@@ -801,7 +806,7 @@ mod tests {
         pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
             .unwrap();
 
-        assert_eq!(buf, gettid::gettid().to_string().as_bytes());
+        assert_eq!(buf, palaver::thread::gettid().to_string().as_bytes());
     }
 
     #[test]
