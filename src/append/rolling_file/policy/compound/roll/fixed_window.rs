@@ -258,7 +258,9 @@ impl FixedWindowRollerBuilder {
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
     pub fn build(self, pattern: &str, count: u32) -> anyhow::Result<FixedWindowRoller> {
         if !pattern.contains("{}") {
-            bail!("pattern does not contain `{}`");
+            // Hide {} in this error message from the formatting machinery in bail macro
+            let msg = "pattern does not contain `{}`";
+            bail!(msg);
         }
 
         let compression = match Path::new(pattern).extension() {
