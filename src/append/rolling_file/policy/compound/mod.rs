@@ -56,9 +56,9 @@ impl<'de> serde::Deserialize<'de> for Trigger {
 
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-struct Roller {
-    kind: String,
-    config: Value,
+pub(in crate::append::rolling_file) struct Roller {
+    pub(in crate::append::rolling_file) kind: String,
+    pub(in crate::append::rolling_file) config: Value,
 }
 
 #[cfg(feature = "config_parsing")]

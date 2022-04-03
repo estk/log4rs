@@ -31,7 +31,10 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 
 use crate::{
-    append::Append,
+    append::{
+        Append,
+        rolling_file::policy::compound::{roll, Roller},
+    },
     encode::{self, pattern::PatternEncoder, Encode},
 };
 
@@ -51,6 +54,7 @@ pub struct RollingFileAppenderConfig {
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
+    launch_roll: Option<Roller>,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -194,6 +198,7 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
+            launch_roll: None,
         }
     }
 
@@ -225,6 +230,7 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
+    launch_roll: Option<Box<dyn roll::Roll>>,
 }
 
 impl RollingFileAppenderBuilder {
@@ -233,6 +239,16 @@ impl RollingFileAppenderBuilder {
     /// Defaults to `true`.
     pub fn append(mut self, append: bool) -> RollingFileAppenderBuilder {
         self.append = append;
+        self
+    }
+
+    /// Sets the roller.
+    /// The roller's `roll` function is called, when this instance of the
+    /// [RollingFileAppenderBuilder] gets build.
+    ///
+    /// Defaults to not roll the file over.
+    pub fn launch_roll(mut self, roller: Box<dyn roll::Roll>) -> RollingFileAppenderBuilder {
+        self.launch_roll = Some(roller);
         self
     }
 
@@ -272,9 +288,44 @@ impl RollingFileAppenderBuilder {
             fs::create_dir_all(parent)?;
         }
 
-        // open the log file immediately
-        appender.get_writer(&mut appender.writer.lock())?;
+        // Create and open the log file immediately
+        if !&appender.path.exists() {
+            appender.get_writer(&mut appender.writer.lock())?;
+            return Ok(appender);
+        }
 
+        if let Some(roller) = self.launch_roll {
+            // Since appender is borrowed for the writer, release the writer when it's not used
+            // anymore, so the appender can be borrowed again.
+            {
+                let mut writer = appender.writer.lock();
+
+                let len = {
+                    let writer = appender.get_writer(&mut writer)?;
+                    writer.flush()?;
+                    writer.len
+                };
+
+                let mut file = LogFile {
+                    writer: &mut writer,
+                    path: &appender.path,
+                    len,
+                };
+
+                file.roll();
+            }
+
+            return match roller.roll(&appender.path) {
+                Ok(_) => Ok(appender),
+                Err(_) => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Log file could not be rolled over!",
+                )),
+            };
+        }
+
+        // Open the log file immediately
+        appender.get_writer(&mut appender.writer.lock())?;
         Ok(appender)
     }
 }
@@ -313,8 +364,12 @@ impl RollingFileAppenderBuilder {
 ///     kind: size
 ///     limit: 10 mb
 ///
-///   roller:
+///   roller: &pointer
 ///     kind: delete
+///
+/// # Rolls the log file over on launch. Do not set, to not roll the file over.
+/// # You can use YAML-Pointers to easily use another roller.
+/// launch_roll: *pointer
 /// ```
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
@@ -338,6 +393,10 @@ impl Deserialize for RollingFileAppenderDeserializer {
         if let Some(encoder) = config.encoder {
             let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
             builder = builder.encoder(encoder);
+        }
+        if let Some(launch_roll) = config.launch_roll {
+            let roller = deserializers.deserialize(&launch_roll.kind, launch_roll.config)?;
+            builder = builder.launch_roll(roller);
         }
 
         let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
@@ -383,11 +442,12 @@ appenders:
       trigger:
         kind: size
         limit: 5 mb
-      roller:
+      roller: &roll
         kind: fixed_window
         pattern: '{0}/foo.log.{{}}'
         base: 1
         count: 5
+    launch_roll: *roll
 ",
             dir.path().display()
         );
