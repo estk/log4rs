@@ -61,7 +61,7 @@ log = { version = "0.4.0", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde-value = { version = "0.7", optional = true }
-thread-id = { version = "3.3", optional = true }
+thread-id = { version = "4", optional = true }
 palaver = { version = "0.2", optional = true }
 typemap = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
