@@ -256,6 +256,8 @@ impl FixedWindowRollerBuilder {
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
+    ///
+    /// `count` is the maximum number of archived logs to maintain.
     pub fn build(self, pattern: &str, count: u32) -> anyhow::Result<FixedWindowRoller> {
         if !pattern.contains("{}") {
             bail!("pattern does not contain `{}`");
