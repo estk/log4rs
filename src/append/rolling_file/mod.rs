@@ -315,7 +315,7 @@ fn startup_roll(appender: &RollingFileAppender) -> anyhow::Result<()> {
     let len = {
         let writer = match appender.get_writer(&mut writer) {
             Ok(w) => w,
-            Err(why) => return Err(anyhow::anyhow!("Something went wrong: {}", why.kind())),
+            Err(_) => return Err(anyhow::anyhow!("Could not roll over log file on startup.")),
         };
         writer.flush()?;
         writer.len
