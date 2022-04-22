@@ -51,7 +51,16 @@ pub struct RollingFileAppenderConfig {
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
-    roll_on_startup: Option<bool>,
+    #[serde(default = "roll_on_startup_default")]
+    roll_on_startup: bool,
+}
+
+/// Function used to generate the default for RollingFileAppenderConfig::roll_on_startup
+/// **SHOULD ONLY BE USED BY THE CORRESPONDING STRUCT**
+#[cfg(feature = "config_parsing")]
+#[inline]
+fn roll_on_startup_default() -> bool {
+    false
 }
 
 #[cfg(feature = "config_parsing")]
@@ -195,7 +204,7 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
-            roll_on_startup: None,
+            roll_on_startup: false,
         }
     }
 
@@ -227,7 +236,7 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
-    roll_on_startup: Option<bool>,
+    roll_on_startup: bool,
 }
 
 impl RollingFileAppenderBuilder {
@@ -242,7 +251,7 @@ impl RollingFileAppenderBuilder {
     /// Sets the startup behavior: If `roll` is set to `true`, roll the
     /// log file when the policy gets built.
     pub fn roll_on_startup(mut self, roll: bool) -> RollingFileAppenderBuilder {
-        self.roll_on_startup = Some(roll);
+        self.roll_on_startup = roll;
         self
     }
 
@@ -285,10 +294,8 @@ impl RollingFileAppenderBuilder {
         // Open the log file immediately
         appender.get_writer(&mut appender.writer.lock())?;
 
-        if let Some(do_roll_on_startup) = self.roll_on_startup {
-            if do_roll_on_startup {
-                startup_roll(&appender).unwrap();
-            }
+        if self.roll_on_startup {
+            startup_roll(&appender).unwrap();
         }
 
         Ok(appender)
@@ -358,12 +365,11 @@ fn startup_roll(appender: &RollingFileAppender) -> anyhow::Result<()> {
 ///     kind: size
 ///     limit: 10 mb
 ///
-///   roller: &pointer
+///   roller:
 ///     kind: delete
 ///
-/// # Rolls the log file over on launch. Do not set, to not roll the file over.
-/// # You can use YAML-Pointers to easily use another roller.
-/// launch_roll: *pointer
+/// # Rolls the log file over on launch. Defaults to false.
+/// roll_on_launch: true
 /// ```
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
@@ -381,6 +387,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         deserializers: &Deserializers,
     ) -> anyhow::Result<Box<dyn Append>> {
         let mut builder = RollingFileAppender::builder();
+        builder = builder.roll_on_startup(config.roll_on_startup);
         if let Some(append) = config.append {
             builder = builder.append(append);
         }
@@ -388,10 +395,6 @@ impl Deserialize for RollingFileAppenderDeserializer {
             let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
             builder = builder.encoder(encoder);
         }
-        if let Some(launch_roll) = config.roll_on_startup {
-            builder = builder.roll_on_startup(launch_roll);
-        }
-
         let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
         let appender = builder.build(config.path, policy)?;
         Ok(Box::new(appender))
