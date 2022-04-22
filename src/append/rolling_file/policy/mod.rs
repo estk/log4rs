@@ -16,6 +16,13 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     /// This method is called after each log event. It is provided a reference
     /// to the current log file.
     fn process(&self, log: &mut LogFile) -> anyhow::Result<()>;
+
+    /// The function that gets called when the policy is built aka. when
+    /// the logger gets initialized.
+    fn startup(&self, _log: &mut LogFile) -> anyhow::Result<()> {
+        // Default implementation here for backwards compatibility reasons
+        Ok(())
+    }
 }
 
 #[cfg(feature = "config_parsing")]

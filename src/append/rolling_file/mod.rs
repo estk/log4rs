@@ -31,10 +31,7 @@ use serde_value::Value;
 use std::collections::BTreeMap;
 
 use crate::{
-    append::{
-        Append,
-        rolling_file::policy::compound::{roll, Roller},
-    },
+    append::Append,
     encode::{self, pattern::PatternEncoder, Encode},
 };
 
@@ -54,7 +51,7 @@ pub struct RollingFileAppenderConfig {
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
-    launch_roll: Option<Roller>,
+    roll_on_startup: Option<bool>,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -198,7 +195,7 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
-            launch_roll: None,
+            roll_on_startup: None,
         }
     }
 
@@ -230,7 +227,7 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
-    launch_roll: Option<Box<dyn roll::Roll>>,
+    roll_on_startup: Option<bool>,
 }
 
 impl RollingFileAppenderBuilder {
@@ -242,13 +239,10 @@ impl RollingFileAppenderBuilder {
         self
     }
 
-    /// Sets the roller.
-    /// The roller's `roll` function is called, when this instance of the
-    /// [RollingFileAppenderBuilder] gets build.
-    ///
-    /// Defaults to not roll the file over.
-    pub fn launch_roll(mut self, roller: Box<dyn roll::Roll>) -> RollingFileAppenderBuilder {
-        self.launch_roll = Some(roller);
+    /// Sets the startup behavior: If `roll` is set to `true`, roll the
+    /// log file when the policy gets built.
+    pub fn roll_on_startup(mut self, roll: bool) -> RollingFileAppenderBuilder {
+        self.roll_on_startup = Some(roll);
         self
     }
 
@@ -288,46 +282,46 @@ impl RollingFileAppenderBuilder {
             fs::create_dir_all(parent)?;
         }
 
-        // Create and open the log file immediately
-        if !&appender.path.exists() {
-            appender.get_writer(&mut appender.writer.lock())?;
-            return Ok(appender);
-        }
-
-        if let Some(roller) = self.launch_roll {
-            // Since appender is borrowed for the writer, release the writer when it's not used
-            // anymore, so the appender can be borrowed again.
-            {
-                let mut writer = appender.writer.lock();
-
-                let len = {
-                    let writer = appender.get_writer(&mut writer)?;
-                    writer.flush()?;
-                    writer.len
-                };
-
-                let mut file = LogFile {
-                    writer: &mut writer,
-                    path: &appender.path,
-                    len,
-                };
-
-                file.roll();
-            }
-
-            return match roller.roll(&appender.path) {
-                Ok(_) => Ok(appender),
-                Err(_) => Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Log file could not be rolled over!",
-                )),
-            };
-        }
-
         // Open the log file immediately
         appender.get_writer(&mut appender.writer.lock())?;
+
+        if let Some(do_roll_on_startup) = self.roll_on_startup {
+            if do_roll_on_startup {
+                startup_roll(&appender).unwrap();
+            }
+        }
+
         Ok(appender)
     }
+}
+
+/// The function to handle the first roll on startup.
+///
+/// # Arguments
+///
+/// * `appender`: The appender with which the roll will be done. Holds information about the LogFile
+///
+/// returns: Result<RollingFileAppender, Error>
+fn startup_roll(appender: &RollingFileAppender) -> anyhow::Result<()> {
+    let mut writer = appender.writer.lock();
+
+    let len = {
+        let writer = match appender.get_writer(&mut writer) {
+            Ok(w) => w,
+            Err(why) => return Err(anyhow::anyhow!("Something went wrong: {}", why.kind())),
+        };
+        writer.flush()?;
+        writer.len
+    };
+
+    let mut file = LogFile {
+        writer: &mut writer,
+        path: &appender.path,
+        len,
+    };
+
+    let _ = appender.policy.startup(&mut file);
+    Ok(())
 }
 
 /// A deserializer for the `RollingFileAppender`.
@@ -394,9 +388,8 @@ impl Deserialize for RollingFileAppenderDeserializer {
             let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
             builder = builder.encoder(encoder);
         }
-        if let Some(launch_roll) = config.launch_roll {
-            let roller = deserializers.deserialize(&launch_roll.kind, launch_roll.config)?;
-            builder = builder.launch_roll(roller);
+        if let Some(launch_roll) = config.roll_on_startup {
+            builder = builder.roll_on_startup(launch_roll);
         }
 
         let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
@@ -447,7 +440,7 @@ appenders:
         pattern: '{0}/foo.log.{{}}'
         base: 1
         count: 5
-    launch_roll: *roll
+    roll_on_startup: true
 ",
             dir.path().display()
         );
