@@ -137,7 +137,7 @@ mod parser;
 
 thread_local!(
     /// Thread-locally cached thread ID.
-    static TID: u64 = palaver::thread::gettid()
+    static TID: usize = thread_id::get()
 );
 
 /// The pattern encoder's configuration.
@@ -806,7 +806,7 @@ mod tests {
         pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
             .unwrap();
 
-        assert_eq!(buf, palaver::thread::gettid().to_string().as_bytes());
+        assert_eq!(buf, thread_id::get().to_string().as_bytes());
     }
 
     #[test]
