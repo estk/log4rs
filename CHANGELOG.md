@@ -1,4 +1,17 @@
 # Change Log
+
+## [1.1.1]
+
+## New
+
+## Changed
+* Removed palaver
+* Update `parking_lot` to `0.11`.
+* Update minimum supported rust to 1.49 for `parking_lot`
+
+## Fixed
+* #253
+
 ## [1.1.0]
 
 ### New
@@ -10,8 +23,6 @@
 ### Changed
 * Update `arc_swap` to `1.2`.
 * Update `thread_id` to `4`.
-* Update `parking_lot` to `0.11`.
-* Update minimum supported rust to 1.49 for `parking_lot`
 * Update docs for `FixedWindow::build`
 * Drop `Regex` dependency
 
