@@ -1055,17 +1055,30 @@ mod tests {
         // purpose of this test is to specify a single custom color.
         //  - test the custom color
         //  - test that default colors were intact
-        use std::collections::HashMap;
-        use crate::encode::Color;
         use crate::encode::pattern::default_color_map;
+        use crate::encode::Color;
+        use std::collections::HashMap;
         let mut log_color_map = HashMap::new();
-        log_color_map.insert(log::Level::Info, Some( Color::Cyan ));
+        log_color_map.insert(log::Level::Info, Some(Color::Cyan));
         let encoder = Box::new(PatternEncoder::new_with_colormap(
-                "{d(%Y-%m-%d %H:%M:%S)(local)} {h({l} [{f}:{L} {T} {t}] {m})}{n}",
-                log_color_map ));
-        assert_eq!(encoder.color_map.get(&log::Level::Info), Some(&Some(Color::Cyan)));
-        assert_eq!(encoder.color_map.get(&log::Level::Warn), default_color_map().get(&log::Level::Warn));
-        assert_eq!(encoder.color_map.get(&log::Level::Error), default_color_map().get(&log::Level::Error));
-        assert_eq!(encoder.color_map.get(&log::Level::Debug), default_color_map().get(&log::Level::Debug));
+            "{d(%Y-%m-%d %H:%M:%S)(local)} {h({l} [{f}:{L} {T} {t}] {m})}{n}",
+            log_color_map,
+        ));
+        assert_eq!(
+            encoder.color_map.get(&log::Level::Info),
+            Some(&Some(Color::Cyan))
+        );
+        assert_eq!(
+            encoder.color_map.get(&log::Level::Warn),
+            default_color_map().get(&log::Level::Warn)
+        );
+        assert_eq!(
+            encoder.color_map.get(&log::Level::Error),
+            default_color_map().get(&log::Level::Error)
+        );
+        assert_eq!(
+            encoder.color_map.get(&log::Level::Debug),
+            default_color_map().get(&log::Level::Debug)
+        );
     }
 }
