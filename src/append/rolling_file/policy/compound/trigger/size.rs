@@ -14,8 +14,8 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SizeTriggerConfig {
     #[serde(deserialize_with = "deserialize_limit")]
     limit: u64,

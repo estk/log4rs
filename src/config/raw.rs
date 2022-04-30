@@ -305,8 +305,8 @@ pub enum DeserializingConfigError {
 }
 
 /// A raw deserializable log4rs configuration.
-#[serde(deny_unknown_fields)]
 #[derive(Clone, Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,

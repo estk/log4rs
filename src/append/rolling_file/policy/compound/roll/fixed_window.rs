@@ -18,8 +18,8 @@ use crate::config::{Deserialize, Deserializers};
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FixedWindowRollerConfig {
     pattern: String,
     base: Option<u32>,
@@ -256,9 +256,13 @@ impl FixedWindowRollerBuilder {
     /// If the file extension of the pattern is `.gz` and the `gzip` Cargo
     /// feature is enabled, the archive files will be gzip-compressed.
     /// If the extension is `.gz` and the `gzip` feature is *not* enabled, an error will be returned.
+    ///
+    /// `count` is the maximum number of archived logs to maintain.
     pub fn build(self, pattern: &str, count: u32) -> anyhow::Result<FixedWindowRoller> {
         if !pattern.contains("{}") {
-            bail!("pattern does not contain `{}`");
+            // Hide {} in this error message from the formatting machinery in bail macro
+            let msg = "pattern does not contain `{}`";
+            bail!(msg);
         }
 
         let compression = match Path::new(pattern).extension() {

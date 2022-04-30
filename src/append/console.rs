@@ -29,11 +29,12 @@ use crate::{
 
 /// The console appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[serde(deny_unknown_fields)]
 #[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
+    tty_only: Option<bool>,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -55,6 +56,15 @@ impl Writer {
         match *self {
             Writer::Tty(ref w) => WriterLock::Tty(w.lock()),
             Writer::Raw(ref w) => WriterLock::Raw(SimpleWriter(w.lock())),
+        }
+    }
+
+    fn is_tty(&self) -> bool {
+        // 1.40 compat
+        #[allow(clippy::match_like_matches_macro)]
+        match self {
+            Self::Tty(_) => true,
+            _ => false,
         }
     }
 }
@@ -113,13 +123,16 @@ pub struct ConsoleAppender {
     #[derivative(Debug = "ignore")]
     writer: Writer,
     encoder: Box<dyn Encode>,
+    do_write: bool,
 }
 
 impl Append for ConsoleAppender {
     fn append(&self, record: &Record) -> anyhow::Result<()> {
-        let mut writer = self.writer.lock();
-        self.encoder.encode(&mut writer, record)?;
-        writer.flush()?;
+        if self.do_write {
+            let mut writer = self.writer.lock();
+            self.encoder.encode(&mut writer, record)?;
+            writer.flush()?;
+        }
         Ok(())
     }
 
@@ -132,6 +145,7 @@ impl ConsoleAppender {
         ConsoleAppenderBuilder {
             encoder: None,
             target: Target::Stdout,
+            tty_only: false,
         }
     }
 }
@@ -140,6 +154,7 @@ impl ConsoleAppender {
 pub struct ConsoleAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     target: Target,
+    tty_only: bool,
 }
 
 impl ConsoleAppenderBuilder {
@@ -157,6 +172,14 @@ impl ConsoleAppenderBuilder {
         self
     }
 
+    /// Sets the output to log only when it's a TTY.
+    ///
+    /// Defaults to `false`.
+    pub fn tty_only(mut self, tty_only: bool) -> ConsoleAppenderBuilder {
+        self.tty_only = tty_only;
+        self
+    }
+
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
         let writer = match self.target {
@@ -170,11 +193,14 @@ impl ConsoleAppenderBuilder {
             },
         };
 
+        let do_write = writer.is_tty() || !self.tty_only;
+
         ConsoleAppender {
             writer,
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            do_write,
         }
     }
 }
@@ -197,6 +223,9 @@ pub enum Target {
 ///
 /// # The output to write to. One of `stdout` or `stderr`. Defaults to `stdout`.
 /// target: stdout
+///
+/// # Set this boolean when the console appender must only write when the target is a TTY.
+/// tty_only: false
 ///
 /// # The encoder to use to format output. Defaults to `kind: pattern`.
 /// encoder:
@@ -224,6 +253,9 @@ impl Deserialize for ConsoleAppenderDeserializer {
                 ConfigTarget::Stderr => Target::Stderr,
             };
             appender = appender.target(target);
+        }
+        if let Some(tty_only) = config.tty_only {
+            appender = appender.tty_only(tty_only);
         }
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);

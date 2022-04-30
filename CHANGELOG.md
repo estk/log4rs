@@ -1,13 +1,43 @@
 # Change Log
 
-## [Unreleased]
+## [1.1.1]
 
+## New
+
+## Changed
+* Removed palaver
+* Update `parking_lot` to `0.11`.
+* Update minimum supported rust to 1.49 for `parking_lot`
+
+## Fixed
+* #253
+
+## [1.1.0]
+
+### New
+* Added example of compile-time config
+* Add gettid for `PatternEncoder`
+* Better rotation benchmark statistics
+* Add tty_only option to `ConsoleAppender`
+
+### Changed
+* Update `arc_swap` to `1.2`.
+* Update `thread_id` to `4`.
+* Update docs for `FixedWindow::build`
+* Drop `Regex` dependency
+
+### Fixed
+* Hide {} in error message from formatting machinery
+* Fix link in examples
+
+## [1.0.0]
 
 ### New
 
 * Custom error handling
 * Allow parsing of config from string
 * Expand env vars in file path of file and RollingFile appenders PR#155
+* Console appender can be configured to only write output when it's a TTY
 
 ### Changed
 

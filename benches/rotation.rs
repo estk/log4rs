@@ -1,3 +1,4 @@
+use std::thread;
 use std::time::{Duration, Instant};
 
 use lazy_static::lazy_static;
@@ -21,44 +22,30 @@ fn main() {
 // This has been tuned on the assumption that the application will not log faster than we can gzip the files.
 // This should fail with just gzip feature enabled, and succeed with features = gzip,background_rotation enabled.
 fn bench_find_anomalies() {
-    use std::thread;
     lazy_static::initialize(&HANDLE);
 
-    let mut samples = stats::Unsorted::default();
-    let mut mm = stats::MinMax::default();
-    let mut online = stats::OnlineStats::default();
-    let mut anomalies = vec![];
     let iters = 1000;
-    for i in 1..iters {
+    let mut measurements = vec![];
+    for _ in 1..iters {
         thread::sleep(Duration::from_millis(5));
         let now = Instant::now();
         a::write_log();
         let dur = now.elapsed();
 
-        if i > 100
-            && dur.as_millis() > 10
-            && dur.as_micros() as u64 > (online.mean() + (online.stddev() * 50_f64)).round() as u64
-        {
-            anomalies.push(dur);
-        }
-
-        online.add(dur.as_micros());
-        samples.add(dur.as_micros());
-        mm.add(dur.as_micros());
+        measurements.push(dur);
     }
+    let stats = Stats::new(&mut measurements);
+    let anomalies = stats.anomalies(&measurements);
+    println!("{:#?}", stats);
 
-    use humantime::format_duration;
-    let min = format_duration(Duration::from_micros(*mm.min().unwrap() as u64));
-    let max = format_duration(Duration::from_micros(*mm.max().unwrap() as u64));
-    println!("min: {}\nmax: {}", min, max);
-
-    let median = format_duration(Duration::from_micros(samples.median().unwrap() as u64));
-    println!("mean: {} median: {}", online.mean(), median);
-    println!("standard deviation: {}", online.stddev());
     if !anomalies.is_empty() {
         println!("anomalies: {:?}", anomalies);
     }
-    assert!(anomalies.is_empty(), "There should be no log anomalies");
+    assert!(
+        anomalies.is_empty(),
+        "There should be no log anomalies: {:?}",
+        anomalies
+    );
 }
 
 mod a {
@@ -104,4 +91,52 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
         )
         .build(Root::builder().appender("file").build(LevelFilter::Info))
         .unwrap()
+}
+
+#[derive(Debug)]
+struct Stats {
+    min: Duration,
+    max: Duration,
+    median: Duration,
+    mean_nanos: u128,
+    variance_nanos: f64,
+    stddev_nanos: f64,
+}
+impl Stats {
+    fn new(measurements: &mut [Duration]) -> Self {
+        measurements.sort();
+        let (mean_nanos, variance_nanos) =
+            measurements
+                .iter()
+                .fold((0, 0_f64), |(old_mean, old_variance), x| {
+                    let nanos = x.as_nanos();
+                    let size = measurements.len();
+
+                    let mean = old_mean + (nanos - old_mean) / (size as u128);
+                    let prevq = old_variance * (size as f64);
+                    let variance = (prevq + ((nanos - old_mean) as f64) * (nanos - mean) as f64)
+                        / (size as f64);
+
+                    (mean, variance)
+                });
+
+        Self {
+            min: measurements.first().unwrap().to_owned(),
+            max: measurements.last().unwrap().to_owned(),
+            median: measurements[measurements.len() / 2],
+            mean_nanos,
+            variance_nanos,
+            stddev_nanos: variance_nanos.sqrt(),
+        }
+    }
+    fn anomalies(&self, measurements: &[Duration]) -> Vec<Duration> {
+        let mut anomalies = vec![];
+        let thresh = self.mean_nanos + ((self.stddev_nanos * 50.0).round() as u128);
+        for dur in measurements {
+            if dur.as_nanos() as u128 > thresh {
+                anomalies.push(dur.clone());
+            }
+        }
+        anomalies
+    }
 }
