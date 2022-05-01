@@ -277,7 +277,8 @@ impl RollingFileAppenderBuilder {
         P: AsRef<Path>,
     {
         let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
-        let appender = RollingFileAppender {
+        let old_log_file_exists = path.exists();
+        let mut appender = RollingFileAppender {
             writer: Mutex::new(None),
             path,
             append: self.append,
@@ -294,8 +295,12 @@ impl RollingFileAppenderBuilder {
         // Open the log file immediately
         appender.get_writer(&mut appender.writer.lock())?;
 
-        if self.roll_on_startup {
+        if self.roll_on_startup && old_log_file_exists {
             startup_roll(&appender).unwrap();
+            // Reset the writer to avoid IO Errors.
+            // This recreates the file handle and fixes rolling issues.
+            appender.writer = Mutex::new(None);
+            appender.get_writer(&mut appender.writer.lock())?;
         }
 
         Ok(appender)
@@ -403,13 +408,18 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
+    use log::RecordBuilder;
     use std::{
         fs::File,
         io::{Read, Write},
     };
 
     use super::*;
-    use crate::append::rolling_file::policy::Policy;
+    use crate::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
+    use crate::append::rolling_file::policy::{
+        compound::{roll::delete::DeleteRoller, trigger::size::SizeTrigger, CompoundPolicy},
+        Policy,
+    };
 
     #[test]
     #[cfg(feature = "yaml_format")]
