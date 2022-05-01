@@ -508,4 +508,85 @@ appenders:
             .unwrap();
         assert_eq!(contents, b"");
     }
+
+    #[test]
+    fn startup_delete_roll() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("latest.log");
+
+        // First run creates the file, second run tests the roll on startup.
+        for _ in 0..2 {
+            {
+                let appender = RollingFileAppender::builder()
+                    .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+                    .roll_on_startup(true)
+                    .build(
+                        path.as_path(),
+                        Box::new(CompoundPolicy::new(
+                            Box::new(SizeTrigger::new(100)),
+                            Box::new(DeleteRoller::new()),
+                        )),
+                    )
+                    .unwrap();
+
+                for _ in 0..11 {
+                    let record_builder = RecordBuilder::new().args(format_args!("Test")).build();
+                    appender.append(&record_builder).unwrap();
+                }
+            }
+        }
+
+        let mut contents = String::new();
+        File::open(&path)
+            .unwrap()
+            .read_to_string(&mut contents)
+            .unwrap();
+        assert_eq!(contents, String::from("INFO - Test\nINFO - Test\n"));
+    }
+
+    #[test]
+    fn startup_fixed_window_roll() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("latest.log");
+        let pattern = dir.path().join("log-{}.log");
+
+        // First run creates the file, second run tests the roll on startup.
+        for _ in 0..2 {
+            let appender = RollingFileAppender::builder()
+                .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+                .roll_on_startup(true)
+                .build(
+                    path.as_path(),
+                    Box::new(CompoundPolicy::new(
+                        Box::new(SizeTrigger::new(100)),
+                        Box::new(
+                            FixedWindowRoller::builder()
+                                .build(pattern.to_str().unwrap(), 5)
+                                .unwrap(),
+                        ),
+                    )),
+                )
+                .unwrap();
+
+            for _ in 0..11 {
+                let record_builder = RecordBuilder::new().args(format_args!("Test")).build();
+                appender.append(&record_builder).unwrap();
+            }
+        }
+
+        let mut contents;
+        for (p, s) in [
+            (dir.path().join("latest.log"), "INFO - Test\nINFO - Test\n"),
+            (dir.path().join("log-0.log"), "INFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\n"),
+            (dir.path().join("log-1.log"), "INFO - Test\nINFO - Test\n"),
+            (dir.path().join("log-2.log"), "INFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\n"),
+        ] {
+            contents = String::new();
+            File::open(p)
+                .unwrap()
+                .read_to_string(&mut contents)
+                .unwrap();
+            assert_eq!(contents, String::from(s));
+        }
+    }
 }
