@@ -204,6 +204,7 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
+            #[cfg(feature = "compound_policy")]
             roll_on_startup: false,
         }
     }
@@ -236,6 +237,7 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
+    #[cfg(feature = "compound_policy")]
     roll_on_startup: bool,
 }
 
@@ -250,6 +252,7 @@ impl RollingFileAppenderBuilder {
 
     /// Sets the startup behavior: If `roll` is set to `true`, roll the
     /// log file when the policy gets built.
+    #[cfg(feature = "compound_policy")]
     pub fn roll_on_startup(mut self, roll: bool) -> RollingFileAppenderBuilder {
         self.roll_on_startup = roll;
         self
@@ -268,6 +271,43 @@ impl RollingFileAppenderBuilder {
     /// where 'name_here' will be the name of the environment variable that
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(not(feature = "compound_policy"))]
+    pub fn build<P>(
+        self,
+        path: P,
+        policy: Box<dyn policy::Policy>,
+    ) -> io::Result<RollingFileAppender>
+    where
+        P: AsRef<Path>,
+    {
+        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
+        let appender = RollingFileAppender {
+            writer: Mutex::new(None),
+            path,
+            append: self.append,
+            encoder: self
+                .encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            policy,
+        };
+
+        if let Some(parent) = appender.path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        // Open the log file immediately
+        appender.get_writer(&mut appender.writer.lock())?;
+
+        Ok(appender)
+    }
+
+    /// Constructs a `RollingFileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path. If set in the configuration, this
+    /// will roll the log file on startup as well.
+    #[cfg(feature = "compound_policy")]
     pub fn build<P>(
         self,
         path: P,
@@ -314,6 +354,7 @@ impl RollingFileAppenderBuilder {
 /// * `appender`: The appender with which the roll will be done. Holds information about the LogFile
 ///
 /// returns: Result<RollingFileAppender, Error>
+#[cfg(feature = "compound_policy")]
 fn startup_roll(appender: &RollingFileAppender) -> anyhow::Result<()> {
     let mut writer = appender.writer.lock();
 
@@ -408,18 +449,21 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
-    use log::RecordBuilder;
     use std::{
         fs::File,
         io::{Read, Write},
     };
 
-    use super::*;
-    use crate::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
-    use crate::append::rolling_file::policy::{
-        compound::{roll::delete::DeleteRoller, trigger::size::SizeTrigger, CompoundPolicy},
-        Policy,
+    #[cfg(feature = "compound_policy")]
+    use self::policy::compound::{
+        roll::{delete::DeleteRoller, fixed_window::FixedWindowRoller},
+        trigger::size::SizeTrigger,
+        CompoundPolicy,
     };
+    use super::*;
+    #[cfg(feature = "compound_policy")]
+    use log::RecordBuilder;
+    use policy::Policy;
 
     #[test]
     #[cfg(feature = "yaml_format")]
@@ -520,6 +564,7 @@ appenders:
     }
 
     #[test]
+    #[cfg(feature = "compound_policy")]
     fn startup_delete_roll() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("latest.log");
@@ -555,6 +600,7 @@ appenders:
     }
 
     #[test]
+    #[cfg(feature = "compound_policy")]
     fn startup_fixed_window_roll() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("latest.log");
