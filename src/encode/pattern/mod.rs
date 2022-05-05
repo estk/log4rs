@@ -141,9 +141,6 @@ const DEFAULT_PATTERN_ENCODER: &str = "{d} {l} {t} - {m}{n}";
 fn default_pattern() -> Option<String> {
     Some(DEFAULT_PATTERN_ENCODER.to_owned())
 }
-fn default_color_map() -> ColorMap {
-    ColorMap::default()
-}
 
 /// A simple color map struct
 ///
@@ -261,7 +258,7 @@ thread_local!(
 pub struct PatternEncoderConfig {
     #[serde(default = "default_pattern")]
     pattern: Option<String>,
-    #[serde(default = "default_color_map")]
+    #[serde(default = "ColorMap::default")]
     color_map: ColorMap,
 }
 
@@ -787,7 +784,7 @@ impl PatternEncoder {
         PatternEncoder {
             chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
-            color_map: default_color_map(),
+            color_map: ColorMap::default(),
         }
     }
 
@@ -811,11 +808,6 @@ impl PatternEncoder {
     ///! # fn main() {}
     ///! ```
     pub fn new_with_colormap(pattern: &str, color_map: ColorMap) -> PatternEncoder {
-        // Merge default color_map with user-configured color_map
-        //let mut color_map_def = default_color_map();
-        //for (k, v) in color_map {
-        //    color_map_def.insert(k, v);
-        // }
         PatternEncoder {
             chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
@@ -1161,7 +1153,6 @@ mod tests {
         // purpose of this test is to specify a single custom color.
         //  - test the custom color
         //  - test that default colors were intact
-        use crate::encode::pattern::default_color_map;
         use crate::encode::pattern::ColorMap;
         use crate::encode::Color;
         let mut log_color_map = ColorMap::default();
@@ -1174,15 +1165,15 @@ mod tests {
         assert_eq!(encoder.color_map.get(&log::Level::Info), Some(Color::Cyan));
         assert_eq!(
             encoder.color_map.get(&log::Level::Warn),
-            default_color_map().get(&log::Level::Warn)
+            ColorMap::default().get(&log::Level::Warn)
         );
         assert_eq!(
             encoder.color_map.get(&log::Level::Error),
-            default_color_map().get(&log::Level::Error)
+            ColorMap::default().get(&log::Level::Error)
         );
         assert_eq!(
             encoder.color_map.get(&log::Level::Debug),
-            default_color_map().get(&log::Level::Debug)
+            ColorMap::default().get(&log::Level::Debug)
         );
     }
 }
