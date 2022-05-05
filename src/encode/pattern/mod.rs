@@ -188,9 +188,9 @@ impl Default for ColorMap {
         ColorMap {
             trace: None, 
             debug: None, 
-            info:  Color::Blue, 
-            warn:  Color::Red, 
-            error: Color::Red, 
+            info:  Some(Color::Blue), 
+            warn:  Some(Color::Red), 
+            error: Some(Color::Red), 
         }
     }
 }
