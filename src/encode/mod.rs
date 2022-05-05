@@ -80,6 +80,7 @@ impl<'de> de::Deserialize<'de> for EncoderConfig {
 
 /// A text or background color.
 #[cfg_attr(feature = "config_parsing", derive(serde::Deserialize))]
+#[cfg_attr(feature = "config_parsing", derive(serde::Serialize))]
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Color {
@@ -92,6 +93,7 @@ pub enum Color {
     Cyan,
     White,
 }
+impl Default for Color { fn default() -> Self { Color::Black } }
 
 /// The style applied to text output.
 ///

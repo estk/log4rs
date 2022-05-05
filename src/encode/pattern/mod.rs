@@ -122,7 +122,7 @@
 use chrono::{Local, Utc};
 use derivative::Derivative;
 use log::{Level, Record};
-use std::{collections::HashMap, default::Default, io, process, thread};
+use std::{default::Default, io, process, thread};
 
 use crate::encode::{
     self,
@@ -141,14 +141,94 @@ const DEFAULT_PATTERN_ENCODER: &str = "{d} {l} {t} - {m}{n}";
 fn default_pattern() -> Option<String> {
     Some(DEFAULT_PATTERN_ENCODER.to_owned())
 }
-fn default_color_map() -> HashMap<Level, Option<Color>> {
-    let mut color_map = HashMap::new();
-    color_map.insert(Level::Info, Some(Color::Blue));
-    color_map.insert(Level::Debug, None);
-    color_map.insert(Level::Warn, Some(Color::Red));
-    color_map.insert(Level::Error, Some(Color::Red));
-    color_map
+fn default_color_map() -> ColorMap { 
+    ColorMap::default()
 }
+
+
+/// A simple color map struct
+///
+/// You can use this struct to define a custom color map.
+/// This can be done using a serializer (i.e. config file) or pragmatically.
+///
+/// It is part of the encoder
+///
+/// ```not_rust
+///   pattern: "%m"
+///   color_map:
+///     INFO: Blue
+///     TRACE: Black
+/// ```
+///
+/// Or progmatically in conjuction with PatternEncoder
+///! ```no_run
+///! # #[cfg(all(feature = "console_appender",
+///! #           feature = "file_appender",
+///! #           feature = "pattern_encoder"))]
+///! # fn f() {
+///! let mut log_color_map = ColorMap::default()
+///! log_color_map.info_color = Some(log4rs::encode::Color::Cyan);
+///! }
+///! # }
+///! # fn main() {}
+/// ```
+#[cfg_attr(feature = "config_parsing", derive(serde::Deserialize))]
+#[cfg_attr(feature = "config_parsing", serde(deny_unknown_fields))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorMap {
+    trace: Option<Color>,
+    debug: Option<Color>,
+    info:  Option<Color>,
+    warn:  Option<Color>,
+    error: Option<Color>,
+}
+impl Default for ColorMap {
+    fn default() -> Self {
+        ColorMap {
+            trace: None, 
+            debug: None, 
+            info:  None, 
+            warn:  None, 
+            error: None, 
+        }
+    }
+}
+
+impl ColorMap { 
+    /// Clear color styling for given log sevarity 
+    pub fn unset(&mut self, level: &Level) {
+        match level {
+            Level::Trace => { self.trace = None; }
+            Level::Debug => { self.debug = None; }
+            Level::Info  => { self.info  = None; }
+            Level::Warn  => { self.warn  = None; }
+            Level::Error => { self.error = None; }
+        }
+    }
+
+    /// Set color styling for given log sevarity 
+    pub fn set(&mut self, level: &Level, color: Color)  {
+        match level {
+            Level::Trace => { self.trace = Some(color); }
+            Level::Debug => { self.debug = Some(color); }
+            Level::Info  => { self.info  = Some(color); }
+            Level::Warn  => { self.warn  = Some(color); }
+            Level::Error => { self.error = Some(color); }
+        }
+    }
+
+    /// Get color styling for given log sevarity 
+    pub fn get(&self, level: &Level) -> Option<Color> {
+        match level {
+            Level::Trace => { self.trace } 
+            Level::Debug => { self.debug } 
+            Level::Info  => { self.info  } 
+            Level::Warn  => { self.warn  } 
+            Level::Error => { self.error } 
+        }
+    }
+}
+
 
 thread_local!(
     /// Thread-locally cached thread ID.
@@ -163,7 +243,7 @@ pub struct PatternEncoderConfig {
     #[serde(default = "default_pattern")]
     pattern: Option<String>,
     #[serde(default = "default_color_map")]
-    color_map: HashMap<Level, Option<Color>>,
+    color_map: ColorMap,
 }
 
 fn is_char_boundary(b: u8) -> bool {
@@ -332,7 +412,7 @@ impl Chunk {
         &self,
         w: &mut dyn encode::Write,
         record: &Record,
-        color_map: &HashMap<Level, Option<Color>>,
+        color_map: &ColorMap,
     ) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
@@ -585,7 +665,7 @@ impl FormattedChunk {
         &self,
         w: &mut dyn encode::Write,
         record: &Record,
-        color_map: &HashMap<Level, Option<Color>>,
+        color_map: &ColorMap,
     ) -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
@@ -617,14 +697,14 @@ impl FormattedChunk {
                 Ok(())
             }
             FormattedChunk::Highlight(ref chunks) => {
-                if let Some(Some(color)) = color_map.get(&record.level()) {
+                if let Some(color) = color_map.get(&record.level()) {
                     match record.level() {
                         Level::Error => {
-                            w.set_style(Style::new().text(*color).intense(true))?;
+                            w.set_style(Style::new().text(color).intense(true))?;
                         }
-                        Level::Warn => w.set_style(Style::new().text(*color))?,
-                        Level::Info => w.set_style(Style::new().text(*color))?,
-                        Level::Debug => w.set_style(Style::new().text(*color))?,
+                        Level::Warn => w.set_style(Style::new().text(color))?,
+                        Level::Info => w.set_style(Style::new().text(color))?,
+                        Level::Debug => w.set_style(Style::new().text(color))?,
                         _ => {}
                     }
                 }
@@ -654,13 +734,13 @@ pub struct PatternEncoder {
     #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
     pattern: String,
-    color_map: HashMap<Level, Option<Color>>,
+    color_map: ColorMap,
 }
 
 /// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.
 impl Default for PatternEncoder {
     fn default() -> PatternEncoder {
-        PatternEncoder::new_with_colormap(DEFAULT_PATTERN_ENCODER, default_color_map())
+        PatternEncoder::new(DEFAULT_PATTERN_ENCODER)
     }
 }
 
@@ -703,8 +783,8 @@ impl PatternEncoder {
     ///! #           feature = "pattern_encoder"))]
     ///! # fn f() {
     ///! // Change color of Info level msgs, other msgs will be the default color
-    ///! let mut log_color_map = HashMap::new();
-    ///! log_color_map.insert(log::Level::Info, Some(log4rs::encode::Color::Cyan));
+    ///! let mut log_color_map = ColorMap::default()
+    ///! log_color_map.info_color = Some(log4rs::encode::Color::Cyan);
     ///! let pattern_encoder = PatternEncoder::new_with_colormap("{d} - {m}{n}", log_color_map);
     ///!
     ///! }
@@ -713,17 +793,17 @@ impl PatternEncoder {
     ///! ```
     pub fn new_with_colormap(
         pattern: &str,
-        color_map: HashMap<Level, Option<Color>>,
+        color_map: ColorMap,
     ) -> PatternEncoder {
         // Merge default color_map with user-configured color_map
-        let mut color_map_def = default_color_map();
-        for (k, v) in color_map {
-            color_map_def.insert(k, v);
-        }
+        //let mut color_map_def = default_color_map();
+        //for (k, v) in color_map {
+        //    color_map_def.insert(k, v);
+       // }
         PatternEncoder {
             chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
-            color_map: color_map_def,
+            color_map,
         }
     }
 }
@@ -1050,6 +1130,17 @@ mod tests {
 
         assert_eq!(buf, b"missing value");
     }
+    #[cfg(feature = "config_parsing")]
+    #[test]
+    fn check_deserialize_color_hash() {
+
+        use crate::encode::pattern::ColorMap;
+        let serialized = r"
+    info: Blue
+    trace: Black
+        ";
+        let _deserialized: ColorMap = serde_yaml::from_str(&serialized).unwrap();
+    }
     #[test]
     fn check_color_hash() {
         // purpose of this test is to specify a single custom color.
@@ -1057,16 +1148,17 @@ mod tests {
         //  - test that default colors were intact
         use crate::encode::pattern::default_color_map;
         use crate::encode::Color;
-        use std::collections::HashMap;
-        let mut log_color_map = HashMap::new();
-        log_color_map.insert(log::Level::Info, Some(Color::Cyan));
+        use crate::encode::pattern::ColorMap;
+        let mut log_color_map = ColorMap::default();
+            
+        log_color_map.info = Some(Color::Cyan);
         let encoder = Box::new(PatternEncoder::new_with_colormap(
             "{d(%Y-%m-%d %H:%M:%S)(local)} {h({l} [{f}:{L} {T} {t}] {m})}{n}",
             log_color_map,
         ));
         assert_eq!(
             encoder.color_map.get(&log::Level::Info),
-            Some(&Some(Color::Cyan))
+            Some(Color::Cyan)
         );
         assert_eq!(
             encoder.color_map.get(&log::Level::Warn),
