@@ -477,8 +477,8 @@ appenders:
     encoder:
       pattern: "%m"
       color_map:
-        INFO: Blue
-        TRACE: Black
+        info: Blue
+        trace: Black
 
 root:
   appenders:

@@ -93,7 +93,11 @@ pub enum Color {
     Cyan,
     White,
 }
-impl Default for Color { fn default() -> Self { Color::Black } }
+impl Default for Color {
+    fn default() -> Self {
+        Color::Black
+    }
+}
 
 /// The style applied to text output.
 ///

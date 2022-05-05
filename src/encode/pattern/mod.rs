@@ -141,10 +141,9 @@ const DEFAULT_PATTERN_ENCODER: &str = "{d} {l} {t} - {m}{n}";
 fn default_pattern() -> Option<String> {
     Some(DEFAULT_PATTERN_ENCODER.to_owned())
 }
-fn default_color_map() -> ColorMap { 
+fn default_color_map() -> ColorMap {
     ColorMap::default()
 }
-
 
 /// A simple color map struct
 ///
@@ -177,59 +176,78 @@ fn default_color_map() -> ColorMap {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColorMap {
     // in future this represent other aspects of style, like bold/italics, etc.
-    trace: Option<Color>, 
+    trace: Option<Color>,
     debug: Option<Color>,
-    info:  Option<Color>,
-    warn:  Option<Color>,
+    info: Option<Color>,
+    warn: Option<Color>,
     error: Option<Color>,
 }
 impl Default for ColorMap {
     fn default() -> Self {
         ColorMap {
-            trace: None, 
-            debug: None, 
-            info:  Color::Blue, 
-            warn:  Color::Red, 
-            error: Color::Red, 
+            trace: None,
+            debug: None,
+            info: Some(Color::Blue),
+            warn: Some(Color::Red),
+            error: Some(Color::Red),
         }
     }
 }
 
-impl ColorMap { 
-    /// Clear color styling for given log sevarity 
+impl ColorMap {
+    /// Clear color styling for given log sevarity
     pub fn unset(&mut self, level: &Level) {
         match level {
-            Level::Trace => { self.trace = None; }
-            Level::Debug => { self.debug = None; }
-            Level::Info  => { self.info  = None; }
-            Level::Warn  => { self.warn  = None; }
-            Level::Error => { self.error = None; }
+            Level::Trace => {
+                self.trace = None;
+            }
+            Level::Debug => {
+                self.debug = None;
+            }
+            Level::Info => {
+                self.info = None;
+            }
+            Level::Warn => {
+                self.warn = None;
+            }
+            Level::Error => {
+                self.error = None;
+            }
         }
     }
 
-    /// Set color styling for given log sevarity 
-    pub fn set(&mut self, level: &Level, color: Color)  {
+    /// Set color styling for given log sevarity
+    pub fn set(&mut self, level: &Level, color: Color) {
         match level {
-            Level::Trace => { self.trace = Some(color); }
-            Level::Debug => { self.debug = Some(color); }
-            Level::Info  => { self.info  = Some(color); }
-            Level::Warn  => { self.warn  = Some(color); }
-            Level::Error => { self.error = Some(color); }
+            Level::Trace => {
+                self.trace = Some(color);
+            }
+            Level::Debug => {
+                self.debug = Some(color);
+            }
+            Level::Info => {
+                self.info = Some(color);
+            }
+            Level::Warn => {
+                self.warn = Some(color);
+            }
+            Level::Error => {
+                self.error = Some(color);
+            }
         }
     }
 
-    /// Get color styling for given log sevarity 
+    /// Get color styling for given log sevarity
     pub fn get(&self, level: &Level) -> Option<Color> {
         match level {
-            Level::Trace => { self.trace } 
-            Level::Debug => { self.debug } 
-            Level::Info  => { self.info  } 
-            Level::Warn  => { self.warn  } 
-            Level::Error => { self.error } 
+            Level::Trace => self.trace,
+            Level::Debug => self.debug,
+            Level::Info => self.info,
+            Level::Warn => self.warn,
+            Level::Error => self.error,
         }
     }
 }
-
 
 thread_local!(
     /// Thread-locally cached thread ID.
@@ -792,15 +810,12 @@ impl PatternEncoder {
     ///! # }
     ///! # fn main() {}
     ///! ```
-    pub fn new_with_colormap(
-        pattern: &str,
-        color_map: ColorMap,
-    ) -> PatternEncoder {
+    pub fn new_with_colormap(pattern: &str, color_map: ColorMap) -> PatternEncoder {
         // Merge default color_map with user-configured color_map
         //let mut color_map_def = default_color_map();
         //for (k, v) in color_map {
         //    color_map_def.insert(k, v);
-       // }
+        // }
         PatternEncoder {
             chunks: Parser::new(pattern).map(From::from).collect(),
             pattern: pattern.to_owned(),
@@ -1134,7 +1149,6 @@ mod tests {
     #[cfg(feature = "config_parsing")]
     #[test]
     fn check_deserialize_color_hash() {
-
         use crate::encode::pattern::ColorMap;
         let serialized = r"
     info: Blue
@@ -1148,19 +1162,16 @@ mod tests {
         //  - test the custom color
         //  - test that default colors were intact
         use crate::encode::pattern::default_color_map;
-        use crate::encode::Color;
         use crate::encode::pattern::ColorMap;
+        use crate::encode::Color;
         let mut log_color_map = ColorMap::default();
-            
+
         log_color_map.info = Some(Color::Cyan);
         let encoder = Box::new(PatternEncoder::new_with_colormap(
             "{d(%Y-%m-%d %H:%M:%S)(local)} {h({l} [{f}:{L} {T} {t}] {m})}{n}",
             log_color_map,
         ));
-        assert_eq!(
-            encoder.color_map.get(&log::Level::Info),
-            Some(Color::Cyan)
-        );
+        assert_eq!(encoder.color_map.get(&log::Level::Info), Some(Color::Cyan));
         assert_eq!(
             encoder.color_map.get(&log::Level::Warn),
             default_color_map().get(&log::Level::Warn)
