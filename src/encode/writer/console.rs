@@ -255,14 +255,14 @@ mod imp {
 
     impl Writer {
         pub fn stdout() -> Option<Writer> {
-            unsafe {
-                let handle = processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE);
+            
+                let handle = unsafe { processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE) };
                 if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
 
-                let mut info = mem::zeroed();
-                if wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
+                let mut info = unsafe { mem::zeroed() };
+                if unsafe { wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 }{
                     return None;
                 }
 
@@ -273,18 +273,18 @@ mod imp {
                     },
                     inner: StdWriter::stdout(),
                 })
-            }
+            
         }
 
         pub fn stderr() -> Option<Writer> {
-            unsafe {
-                let handle = processenv::GetStdHandle(winbase::STD_ERROR_HANDLE);
+            
+                let handle = unsafe { processenv::GetStdHandle(winbase::STD_ERROR_HANDLE) };
                 if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
 
-                let mut info = mem::zeroed();
-                if wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
+                let mut info = unsafe { mem::zeroed() };
+                if unsafe { wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 }{
                     return None;
                 }
 
@@ -295,7 +295,7 @@ mod imp {
                     },
                     inner: StdWriter::stderr(),
                 })
-            }
+            
         }
 
         pub fn lock<'a>(&'a self) -> WriterLock<'a> {
