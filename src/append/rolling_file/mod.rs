@@ -605,6 +605,11 @@ appenders:
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("latest.log");
         let pattern = dir.path().join("log-{}.log");
+        let roller = Box::new(
+            FixedWindowRoller::builder()
+                .build(pattern.to_str().unwrap(), 5)
+                .unwrap(),
+        );
 
         // First run creates the file, second run tests the roll on startup.
         for _ in 0..2 {
@@ -615,11 +620,7 @@ appenders:
                     path.as_path(),
                     Box::new(CompoundPolicy::new(
                         Box::new(SizeTrigger::new(100)),
-                        Box::new(
-                            FixedWindowRoller::builder()
-                                .build(pattern.to_str().unwrap(), 5)
-                                .unwrap(),
-                        ),
+                        roller.clone(),
                     )),
                 )
                 .unwrap();
@@ -629,6 +630,9 @@ appenders:
                 appender.append(&record_builder).unwrap();
             }
         }
+
+        #[cfg(feature = "background_rotation")]
+        policy::compound::roll::fixed_window::test::wait_for_roller(roller.as_ref());
 
         let mut contents;
         for (p, s) in [
