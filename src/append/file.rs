@@ -4,7 +4,7 @@
 
 use derivative::Derivative;
 use log::Record;
-use parking_lot::Mutex;
+use crate::sync::Mutex;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
@@ -43,7 +43,7 @@ pub struct FileAppender {
 
 impl Append for FileAppender {
     fn append(&self, record: &Record) -> anyhow::Result<()> {
-        let mut file = self.file.lock();
+        let mut file = self.file.lock()?;
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;
         Ok(())
