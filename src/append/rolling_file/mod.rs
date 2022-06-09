@@ -29,10 +29,12 @@ use std::{
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
+#[cfg(feature = "pattern_encoder")]
+use crate::encode::pattern::PatternEncoder;
 
 use crate::{
     append::Append,
-    encode::{self, pattern::PatternEncoder, Encode},
+    encode::{self, Encode},
 };
 
 #[cfg(feature = "config_parsing")]
@@ -193,6 +195,7 @@ impl RollingFileAppender {
     pub fn builder() -> RollingFileAppenderBuilder {
         RollingFileAppenderBuilder {
             append: true,
+            #[cfg(feature = "pattern_encoder")]
             encoder: None,
         }
     }
@@ -224,6 +227,7 @@ impl RollingFileAppender {
 /// A builder for the `RollingFileAppender`.
 pub struct RollingFileAppenderBuilder {
     append: bool,
+    #[cfg(feature = "pattern_encoder")]
     encoder: Option<Box<dyn Encode>>,
 }
 
@@ -239,6 +243,7 @@ impl RollingFileAppenderBuilder {
     /// Sets the encoder used by the appender.
     ///
     /// Defaults to a `PatternEncoder` with the default pattern.
+    #[cfg(feature = "pattern_encoder")]
     pub fn encoder(mut self, encoder: Box<dyn Encode>) -> RollingFileAppenderBuilder {
         self.encoder = Some(encoder);
         self
@@ -249,6 +254,7 @@ impl RollingFileAppenderBuilder {
     /// where 'name_here' will be the name of the environment variable that
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(feature = "pattern_encoder")]
     pub fn build<P>(
         self,
         path: P,
@@ -257,14 +263,52 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
-        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
+        self.build_internal(
+            path.as_ref(),
+            |this| this.encoder.take().unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            policy,
+        )
+    }
+
+    /// Constructs a `RollingFileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(not(feature = "pattern_encoder"))]
+    pub fn build<P>(
+        self,
+        path: P,
+        encoder: Box<dyn Encode>,
+        policy: Box<dyn policy::Policy>,
+    ) -> io::Result<RollingFileAppender>
+    where
+        P: AsRef<Path>,
+    {
+        self.build_internal(
+            path.as_ref(),
+            |_| encoder,
+            policy,
+        )
+    }
+
+    fn build_internal<F>(
+        mut self,
+        path: &Path,
+        encoder: F,
+        policy: Box<dyn policy::Policy>,
+    ) -> io::Result<RollingFileAppender>
+    where
+        F: FnOnce(&mut Self) -> Box<dyn Encode>,
+    {
+        let encoder = encoder(&mut self);
+        
+        let path = super::env_util::expand_env_vars(path.to_path_buf());
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
             path,
             append: self.append,
-            encoder: self
-                .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            encoder,
             policy,
         };
 

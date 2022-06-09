@@ -15,10 +15,12 @@ use std::{
 use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
+#[cfg(feature = "pattern_encoder")]
+use crate::encode::pattern::PatternEncoder;
 
 use crate::{
     append::Append,
-    encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
+    encode::{writer::simple::SimpleWriter, Encode},
 };
 
 /// The file appender's configuration.
@@ -31,13 +33,15 @@ pub struct FileAppenderConfig {
     append: Option<bool>,
 }
 
+type SharedFileWriter = Mutex<SimpleWriter<BufWriter<File>>>;
+
 /// An appender which logs to a file.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct FileAppender {
     path: PathBuf,
     #[derivative(Debug = "ignore")]
-    file: Mutex<SimpleWriter<BufWriter<File>>>,
+    file: SharedFileWriter,
     encoder: Box<dyn Encode>,
 }
 
@@ -88,11 +92,40 @@ impl FileAppenderBuilder {
     /// where 'name_here' will be the name of the environment variable that
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(feature = "pattern_encoder")]
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
-        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
+        self.build_internal(
+            path.as_ref(),
+            |this| {
+                this.encoder.take().unwrap_or_else(|| Box::new(PatternEncoder::default()))
+            },
+        )
+    }
+
+    /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(not(feature = "pattern_encoder"))]
+    pub fn build<P: AsRef<Path>>(self, path: P, encoder: Box<dyn Encode>) -> io::Result<FileAppender> {
+        self.build_internal(
+            path.as_ref(),
+            |_| encoder,
+        )
+    }
+
+    fn build_internal<F>(mut self, path: &Path, encoder: F) -> io::Result<FileAppender>
+    where
+        F: FnOnce(&mut Self) -> Box<dyn Encode>,
+    {
+        let encoder = encoder(&mut self);
+
+        let path = super::env_util::expand_env_vars(path.to_path_buf());
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
+
         let file = OpenOptions::new()
             .write(true)
             .append(self.append)
@@ -103,9 +136,7 @@ impl FileAppenderBuilder {
         Ok(FileAppender {
             path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
-            encoder: self
-                .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            encoder,
         })
     }
 }
