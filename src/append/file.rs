@@ -2,9 +2,9 @@
 //!
 //! Requires the `file_appender` feature.
 
+use crate::sync::Mutex;
 use chrono::prelude::Local;
 use log::Record;
-use parking_lot::Mutex;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
@@ -51,7 +51,7 @@ impl Append for FileAppender {
         // Formatting may log recursively, so encode before locking the file.
         let mut buffer = SimpleWriter(Vec::new());
         self.encoder.encode(&mut buffer, record)?;
-        let mut file = self.file.lock();
+        let mut file = self.file.lock()?;
         file.write_all(&buffer.0)?;
         file.flush()?;
         Ok(())

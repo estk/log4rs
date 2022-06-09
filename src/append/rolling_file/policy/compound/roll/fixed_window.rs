@@ -2,9 +2,9 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
-use anyhow::bail;
 #[cfg(feature = "background_rotation")]
-use parking_lot::{Condvar, Mutex};
+use crate::sync::{Condvar, Mutex};
+use anyhow::bail;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 use std::{
@@ -143,7 +143,7 @@ impl Roll for FixedWindowRoller {
 
         // Wait for the state to be ready to roll
         let (lock, cvar) = &*self.cond_pair.clone();
-        let mut ready = lock.lock();
+        let mut ready = lock.lock()?;
         if !*ready {
             cvar.wait(&mut ready);
         }
@@ -158,7 +158,14 @@ impl Roll for FixedWindowRoller {
         // rotate in the separate thread
         std::thread::spawn(move || {
             let (lock, cvar) = &*cond_pair;
-            let mut ready = lock.lock();
+            let mut ready = match lock.lock() {
+                Ok(guard) => guard,
+                Err(e) => {
+                    use std::io::Write;
+                    let _ = writeln!(io::stderr(), "log4rs, error rotating: {e}");
+                    return;
+                }
+            };
 
             if let Err(e) = rotate(pattern, compression, base, count, temp) {
                 use std::io::Write;
