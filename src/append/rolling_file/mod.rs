@@ -25,12 +25,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(feature = "pattern_encoder")]
+use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
-#[cfg(feature = "pattern_encoder")]
-use crate::encode::pattern::PatternEncoder;
 
 use crate::{
     append::Append,
@@ -263,11 +263,13 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
-        self.build_internal(
-            path.as_ref(),
-            |this| this.encoder.take().unwrap_or_else(|| Box::new(PatternEncoder::default())),
-            policy,
-        )
+        self.build_internal(path.as_ref(), policy, |this| {
+            let encoder = this
+                .encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default()));
+
+            (encoder, this.append)
+        })
     }
 
     /// Constructs a `RollingFileAppender`.
@@ -285,29 +287,25 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
-        self.build_internal(
-            path.as_ref(),
-            |_| encoder,
-            policy,
-        )
+        self.build_internal(path.as_ref(), policy, |this| (encoder, this.append))
     }
 
     fn build_internal<F>(
-        mut self,
+        self,
         path: &Path,
-        encoder: F,
         policy: Box<dyn policy::Policy>,
+        destructure: F,
     ) -> io::Result<RollingFileAppender>
     where
-        F: FnOnce(&mut Self) -> Box<dyn Encode>,
+        F: FnOnce(Self) -> (Box<dyn Encode>, bool),
     {
-        let encoder = encoder(&mut self);
-        
+        let (encoder, append) = destructure(self);
+
         let path = super::env_util::expand_env_vars(path.to_path_buf());
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
             path,
-            append: self.append,
+            append,
             encoder,
             policy,
         };
@@ -455,17 +453,11 @@ appenders:
     fn append() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
-        RollingFileAppender::builder()
-            .append(true)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(true), &path).unwrap();
         assert!(path.exists());
         File::create(&path).unwrap().write_all(b"hello").unwrap();
 
-        RollingFileAppender::builder()
-            .append(true)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(true), &path).unwrap();
         let mut contents = vec![];
         File::open(&path)
             .unwrap()
@@ -478,22 +470,28 @@ appenders:
     fn truncate() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("truncate.log");
-        RollingFileAppender::builder()
-            .append(false)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(false), &path).unwrap();
         assert!(path.exists());
         File::create(&path).unwrap().write_all(b"hello").unwrap();
 
-        RollingFileAppender::builder()
-            .append(false)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(false), &path).unwrap();
         let mut contents = vec![];
         File::open(&path)
             .unwrap()
             .read_to_end(&mut contents)
             .unwrap();
         assert_eq!(contents, b"");
+    }
+
+    #[cfg(feature = "pattern_encoder")]
+    fn build(builder: RollingFileAppenderBuilder, path: &Path) -> io::Result<RollingFileAppender> {
+        builder.build(path, Box::new(NopPolicy))
+    }
+
+    #[cfg(not(feature = "pattern_encoder"))]
+    fn build(builder: RollingFileAppenderBuilder, path: &Path) -> io::Result<RollingFileAppender> {
+        use crate::encode::tests::DummyEncoder;
+
+        builder.build(path, Box::new(DummyEncoder), Box::new(NopPolicy))
     }
 }

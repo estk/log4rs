@@ -11,10 +11,10 @@ use std::{
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
-#[cfg(feature = "config_parsing")]
-use crate::encode::EncoderConfig;
 #[cfg(feature = "pattern_encoder")]
 use crate::encode::pattern::PatternEncoder;
+#[cfg(feature = "config_parsing")]
+use crate::encode::EncoderConfig;
 use crate::{
     append::Append,
     encode::{
@@ -187,26 +187,28 @@ impl ConsoleAppenderBuilder {
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     #[cfg(feature = "pattern_encoder")]
     pub fn build(self) -> ConsoleAppender {
-        self.build_internal(
-            |this| {
-                this.encoder.take().unwrap_or_else(|| Box::new(PatternEncoder::default()))
-            }
-        )
+        self.build_internal(|this| {
+            let encoder = this
+                .encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default()));
+
+            (encoder, this.target, this.tty_only)
+        })
     }
 
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     #[cfg(not(feature = "pattern_encoder"))]
     pub fn build(self, encoder: Box<dyn Encode>) -> ConsoleAppender {
-        self.build_internal(|_| encoder)
+        self.build_internal(|this| (encoder, this.target, this.tty_only))
     }
 
-    fn build_internal<F>(mut self, encoder: F) -> ConsoleAppender
+    fn build_internal<F>(self, destructure: F) -> ConsoleAppender
     where
-        F: FnOnce(&mut Self) -> Box<dyn Encode>,
+        F: FnOnce(Self) -> (Box<dyn Encode>, Target, bool),
     {
-        let encoder = encoder(&mut self);
-        
-        let writer = match self.target {
+        let (encoder, target, tty_only) = destructure(self);
+
+        let writer = match target {
             Target::Stderr => match ConsoleWriter::stderr() {
                 Some(writer) => Writer::Tty(writer),
                 None => Writer::Raw(StdWriter::stderr()),
@@ -217,9 +219,13 @@ impl ConsoleAppenderBuilder {
             },
         };
 
-        let do_write = writer.is_tty() || !self.tty_only;
+        let do_write = writer.is_tty() || !tty_only;
 
-        ConsoleAppender { writer, encoder, do_write }
+        ConsoleAppender {
+            writer,
+            encoder,
+            do_write,
+        }
     }
 }
 

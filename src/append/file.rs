@@ -13,10 +13,10 @@ use std::{
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
-#[cfg(feature = "config_parsing")]
-use crate::encode::EncoderConfig;
 #[cfg(feature = "pattern_encoder")]
 use crate::encode::pattern::PatternEncoder;
+#[cfg(feature = "config_parsing")]
+use crate::encode::EncoderConfig;
 
 use crate::{
     append::Append,
@@ -94,12 +94,13 @@ impl FileAppenderBuilder {
     /// $ENV{name_here} will NOT be replaced in the path.
     #[cfg(feature = "pattern_encoder")]
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
-        self.build_internal(
-            path.as_ref(),
-            |this| {
-                this.encoder.take().unwrap_or_else(|| Box::new(PatternEncoder::default()))
-            },
-        )
+        self.build_internal(path.as_ref(), |this| {
+            let encoder = this
+                .encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default()));
+
+            (encoder, this.append)
+        })
     }
 
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
@@ -108,18 +109,19 @@ impl FileAppenderBuilder {
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
     #[cfg(not(feature = "pattern_encoder"))]
-    pub fn build<P: AsRef<Path>>(self, path: P, encoder: Box<dyn Encode>) -> io::Result<FileAppender> {
-        self.build_internal(
-            path.as_ref(),
-            |_| encoder,
-        )
+    pub fn build<P: AsRef<Path>>(
+        self,
+        path: P,
+        encoder: Box<dyn Encode>,
+    ) -> io::Result<FileAppender> {
+        self.build_internal(path.as_ref(), |this| (encoder, this.append))
     }
 
-    fn build_internal<F>(mut self, path: &Path, encoder: F) -> io::Result<FileAppender>
+    fn build_internal<F>(self, path: &Path, destructure: F) -> io::Result<FileAppender>
     where
-        F: FnOnce(&mut Self) -> Box<dyn Encode>,
+        F: FnOnce(Self) -> (Box<dyn Encode>, bool),
     {
-        let encoder = encoder(&mut self);
+        let (encoder, append) = destructure(self);
 
         let path = super::env_util::expand_env_vars(path.to_path_buf());
         if let Some(parent) = path.parent() {
@@ -128,8 +130,8 @@ impl FileAppenderBuilder {
 
         let file = OpenOptions::new()
             .write(true)
-            .append(self.append)
-            .truncate(!self.append)
+            .append(append)
+            .truncate(!append)
             .create(true)
             .open(&path)?;
 
@@ -197,17 +199,33 @@ mod test {
     fn create_directories() {
         let tempdir = tempfile::tempdir().unwrap();
 
-        FileAppender::builder()
-            .build(tempdir.path().join("foo").join("bar").join("baz.log"))
-            .unwrap();
+        build(
+            FileAppender::builder(),
+            tempdir.path().join("foo").join("bar").join("baz.log"),
+        )
+        .unwrap();
     }
 
     #[test]
     fn append_false() {
         let tempdir = tempfile::tempdir().unwrap();
-        FileAppender::builder()
-            .append(false)
-            .build(tempdir.path().join("foo.log"))
-            .unwrap();
+
+        build(
+            FileAppender::builder().append(false),
+            tempdir.path().join("foo.log"),
+        )
+        .unwrap();
+    }
+
+    #[cfg(feature = "pattern_encoder")]
+    fn build<P: AsRef<Path>>(builder: FileAppenderBuilder, path: P) -> io::Result<FileAppender> {
+        builder.build(path)
+    }
+
+    #[cfg(not(feature = "pattern_encoder"))]
+    fn build<P: AsRef<Path>>(builder: FileAppenderBuilder, path: P) -> io::Result<FileAppender> {
+        use crate::encode::tests::DummyEncoder;
+
+        builder.build(path, Box::new(DummyEncoder))
     }
 }
