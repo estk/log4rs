@@ -1,5 +1,7 @@
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 use lazy_static::lazy_static;
 use tempfile::{tempdir, TempDir};
@@ -95,13 +97,14 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
 
 #[derive(Debug)]
 struct Stats {
-    min: Duration,
-    max: Duration,
-    median: Duration,
+    _min: Duration,
+    _max: Duration,
+    _median: Duration,
     mean_nanos: u128,
-    variance_nanos: f64,
+    _variance_nanos: f64,
     stddev_nanos: f64,
 }
+
 impl Stats {
     fn new(measurements: &mut [Duration]) -> Self {
         measurements.sort();
@@ -121,11 +124,11 @@ impl Stats {
                 });
 
         Self {
-            min: measurements.first().unwrap().to_owned(),
-            max: measurements.last().unwrap().to_owned(),
-            median: measurements[measurements.len() / 2],
+            _min: measurements.first().unwrap().to_owned(),
+            _max: measurements.last().unwrap().to_owned(),
+            _median: measurements[measurements.len() / 2],
             mean_nanos,
-            variance_nanos,
+            _variance_nanos: variance_nanos,
             stddev_nanos: variance_nanos.sqrt(),
         }
     }
