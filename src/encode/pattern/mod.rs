@@ -71,6 +71,12 @@
 //!     defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
+//! * `XG`, `gmdc` - A global value from the [MDC][MDC]. The first argument specifies
+//!     the key, and the second argument specifies the default value if the
+//!     key is not present in the MDC. The second argument is optional, and
+//!     defaults to the empty string.
+//!     * `{XG(node_id)}` - `node-win-554488715635`
+//!     * `{XG(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -460,7 +466,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "P" | "pid" => no_args(&formatter.args, parameters, FormattedChunk::ProcessId),
                 "i" | "tid" => no_args(&formatter.args, parameters, FormattedChunk::SystemThreadId),
                 "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
-                "X" | "mdc" => {
+                "X" | "mdc" | "XG" | "gmdc" => {
                     if formatter.args.len() > 2 {
                         return Chunk::Error("expected at most two arguments".to_owned());
                     }
@@ -495,8 +501,13 @@ impl<'a> From<Piece<'a>> for Chunk {
                         None => "",
                     };
 
+                    let chunk = if formatter.name == "XG" || formatter.name == "gmdc" {
+                        FormattedChunk::MdcGlobal(key.into(), default.into())
+                    } else {
+                        FormattedChunk::Mdc(key.into(), default.into())
+                    };
                     Chunk::Formatted {
-                        chunk: FormattedChunk::Mdc(key.into(), default.into()),
+                        chunk: chunk,
                         params: parameters,
                     }
                 }
@@ -555,6 +566,7 @@ enum FormattedChunk {
     Align(Vec<Chunk>),
     Highlight(Vec<Chunk>),
     Mdc(String, String),
+    MdcGlobal(String, String),
 }
 
 impl FormattedChunk {
@@ -611,6 +623,9 @@ impl FormattedChunk {
             }
             FormattedChunk::Mdc(ref key, ref default) => {
                 log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
+            }
+            FormattedChunk::MdcGlobal(ref key, ref default) => {
+                log_mdc::global::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
             }
         }
     }
@@ -943,37 +958,38 @@ mod tests {
     #[test]
     #[cfg(feature = "simple_writer")]
     fn mdc() {
-        let pw = PatternEncoder::new("{X(user_id)}");
-        log_mdc::insert("user_id", "mdc value");
+        let pw = PatternEncoder::new("{XG(node_id)}-{X(user_id)}");
+        log_mdc::global::insert("node_id", "global mdc value");
+        log_mdc::insert("user_id", "local mdc value");
 
         let mut buf = vec![];
         pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
             .unwrap();
 
-        assert_eq!(buf, b"mdc value");
+        assert_eq!(buf, b"global mdc value-local mdc value");
     }
 
     #[test]
     #[cfg(feature = "simple_writer")]
     fn mdc_missing_default() {
-        let pw = PatternEncoder::new("{X(user_id)}");
+        let pw = PatternEncoder::new("{XG(app_id)}-{X(user_id)}");
 
         let mut buf = vec![];
         pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
             .unwrap();
 
-        assert_eq!(buf, b"");
+        assert_eq!(buf, b"-");
     }
 
     #[test]
     #[cfg(feature = "simple_writer")]
     fn mdc_missing_custom() {
-        let pw = PatternEncoder::new("{X(user_id)(missing value)}");
+        let pw = PatternEncoder::new("{XG(app_id)(missing value)}-{X(user_id)(missing value)}");
 
         let mut buf = vec![];
         pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
             .unwrap();
 
-        assert_eq!(buf, b"missing value");
+        assert_eq!(buf, b"missing value-missing value");
     }
 }
