@@ -51,16 +51,8 @@ pub struct RollingFileAppenderConfig {
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
-    #[serde(default = "roll_on_startup_default")]
+    #[serde(default)]
     roll_on_startup: bool,
-}
-
-/// Function used to generate the default for RollingFileAppenderConfig::roll_on_startup
-/// **SHOULD ONLY BE USED BY THE CORRESPONDING STRUCT**
-#[cfg(feature = "config_parsing")]
-#[inline]
-fn roll_on_startup_default() -> bool {
-    false
 }
 
 #[cfg(feature = "config_parsing")]
@@ -204,7 +196,6 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
-            #[cfg(feature = "compound_policy")]
             roll_on_startup: false,
         }
     }
@@ -237,7 +228,6 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
-    #[cfg(feature = "compound_policy")]
     roll_on_startup: bool,
 }
 
@@ -252,7 +242,6 @@ impl RollingFileAppenderBuilder {
 
     /// Sets the startup behavior: If `roll` is set to `true`, roll the
     /// log file when the policy gets built.
-    #[cfg(feature = "compound_policy")]
     pub fn roll_on_startup(mut self, roll: bool) -> RollingFileAppenderBuilder {
         self.roll_on_startup = roll;
         self
@@ -270,44 +259,8 @@ impl RollingFileAppenderBuilder {
     /// The path argument can contain environment variables of the form $ENV{name_here},
     /// where 'name_here' will be the name of the environment variable that
     /// will be resolved. Note that if the variable fails to resolve,
-    /// $ENV{name_here} will NOT be replaced in the path.
-    #[cfg(not(feature = "compound_policy"))]
-    pub fn build<P>(
-        self,
-        path: P,
-        policy: Box<dyn policy::Policy>,
-    ) -> io::Result<RollingFileAppender>
-    where
-        P: AsRef<Path>,
-    {
-        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
-        let appender = RollingFileAppender {
-            writer: Mutex::new(None),
-            path,
-            append: self.append,
-            encoder: self
-                .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
-            policy,
-        };
-
-        if let Some(parent) = appender.path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        // Open the log file immediately
-        appender.get_writer(&mut appender.writer.lock())?;
-
-        Ok(appender)
-    }
-
-    /// Constructs a `RollingFileAppender`.
-    /// The path argument can contain environment variables of the form $ENV{name_here},
-    /// where 'name_here' will be the name of the environment variable that
-    /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path. If set in the configuration, this
     /// will roll the log file on startup as well.
-    #[cfg(feature = "compound_policy")]
     pub fn build<P>(
         self,
         path: P,
@@ -336,7 +289,9 @@ impl RollingFileAppenderBuilder {
         appender.get_writer(&mut appender.writer.lock())?;
 
         if self.roll_on_startup && old_log_file_exists {
-            startup_roll(&appender).unwrap();
+            if let Err(why) = appender.policy.startup(&appender.path) {
+                return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", why)));
+            }
             // Reset the writer to avoid IO Errors.
             // This recreates the file handle and fixes rolling issues.
             appender.writer = Mutex::new(None);
@@ -345,36 +300,6 @@ impl RollingFileAppenderBuilder {
 
         Ok(appender)
     }
-}
-
-/// The function to handle the first roll on startup.
-///
-/// # Arguments
-///
-/// * `appender`: The appender with which the roll will be done. Holds information about the LogFile
-///
-/// returns: Result<RollingFileAppender, Error>
-#[cfg(feature = "compound_policy")]
-fn startup_roll(appender: &RollingFileAppender) -> anyhow::Result<()> {
-    let mut writer = appender.writer.lock();
-
-    let len = {
-        let writer = match appender.get_writer(&mut writer) {
-            Ok(w) => w,
-            Err(_) => return Err(anyhow::anyhow!("Could not roll over log file on startup.")),
-        };
-        writer.flush()?;
-        writer.len
-    };
-
-    let mut file = LogFile {
-        writer: &mut writer,
-        path: &appender.path,
-        len,
-    };
-
-    let _ = appender.policy.startup(&mut file);
-    Ok(())
 }
 
 /// A deserializer for the `RollingFileAppender`.
@@ -414,8 +339,8 @@ fn startup_roll(appender: &RollingFileAppender) -> anyhow::Result<()> {
 ///   roller:
 ///     kind: delete
 ///
-/// # Rolls the log file over on launch. Defaults to false.
-/// roll_on_launch: true
+/// # Rolls the log file over when the logger gets initialized. Defaults to false.
+/// roll_on_startup: true
 /// ```
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]

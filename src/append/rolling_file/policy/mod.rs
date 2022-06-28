@@ -1,5 +1,6 @@
 //! Policies.
 use std::fmt;
+use std::path::Path;
 
 use crate::append::rolling_file::LogFile;
 
@@ -19,8 +20,12 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
 
     /// The function that gets called when the policy is built aka. when
     /// the logger gets initialized.
-    fn startup(&self, _log: &mut LogFile) -> anyhow::Result<()> {
-        // Default implementation here for backwards compatibility reasons
+    ///
+    /// `path` is the path to the current logfile.
+    /// This log file is opened by the builder and therefore not writable.
+    ///
+    /// Default implementation here for backwards compatibility reasons
+    fn startup(&self, _path: &Path) -> anyhow::Result<()> {
         Ok(())
     }
 }

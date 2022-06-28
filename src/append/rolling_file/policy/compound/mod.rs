@@ -7,6 +7,7 @@ use serde::{self, de};
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::append::rolling_file::{policy::Policy, LogFile};
 #[cfg(feature = "config_parsing")]
@@ -107,8 +108,8 @@ impl Policy for CompoundPolicy {
         Ok(())
     }
 
-    fn startup(&self, log: &mut LogFile) -> anyhow::Result<()> {
-        self.roller.roll(log.path())?;
+    fn startup(&self, path: &Path) -> anyhow::Result<()> {
+        self.roller.roll(path)?;
         Ok(())
     }
 }
