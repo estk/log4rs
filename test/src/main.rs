@@ -18,6 +18,7 @@ fn main() {
 
 mod a {
     pub fn foo() {
+        use log::info;
         info!("a");
     }
 }
