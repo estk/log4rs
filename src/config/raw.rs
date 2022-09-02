@@ -102,16 +102,14 @@ use serde_value::Value;
 use thiserror::Error;
 use typemap::{Key, ShareCloneMap};
 
-use crate::{append::AppenderConfig, config};
+use crate::{config, append::AppenderConfig, filter::IntoFilter};
 
 #[allow(unused_imports)]
 use crate::append;
 
-#[cfg(any(feature = "json_encoder", feature = "pattern_encoder"))]
-use crate::encode;
 
-#[cfg(feature = "threshold_filter")]
-use crate::filter;
+
+use super::runtime::IntoAppender;
 
 /// A trait implemented by traits which are deserializable.
 pub trait Deserializable: 'static {
@@ -122,6 +120,7 @@ pub trait Deserializable: 'static {
 }
 
 /// A trait for objects that can deserialize log4rs components out of a config.
+#[deprecated]
 pub trait Deserialize: Send + Sync + 'static {
     /// The trait that this deserializer will create.
     type Trait: ?Sized + Deserializable;
@@ -173,58 +172,13 @@ impl<T: ?Sized + 'static> Key for KeyAdaptor<T> {
 
 /// A container of `Deserialize`rs.
 #[derive(Clone)]
+#[deprecated]
 pub struct Deserializers(ShareCloneMap);
 
 impl Default for Deserializers {
     fn default() -> Deserializers {
         #[allow(unused_mut)]
         let mut d = Deserializers::empty();
-
-        #[cfg(feature = "console_appender")]
-        d.insert("console", append::console::ConsoleAppenderDeserializer);
-
-        #[cfg(feature = "file_appender")]
-        d.insert("file", append::file::FileAppenderDeserializer);
-
-        #[cfg(feature = "rolling_file_appender")]
-        d.insert(
-            "rolling_file",
-            append::rolling_file::RollingFileAppenderDeserializer,
-        );
-
-        #[cfg(feature = "compound_policy")]
-        d.insert(
-            "compound",
-            append::rolling_file::policy::compound::CompoundPolicyDeserializer,
-        );
-
-        #[cfg(feature = "delete_roller")]
-        d.insert(
-            "delete",
-            append::rolling_file::policy::compound::roll::delete::DeleteRollerDeserializer,
-        );
-
-        #[cfg(feature = "fixed_window_roller")]
-        d.insert(
-            "fixed_window",
-            append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRollerDeserializer,
-        );
-
-        #[cfg(feature = "size_trigger")]
-        d.insert(
-            "size",
-            append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
-        );
-
-        #[cfg(feature = "json_encoder")]
-        d.insert("json", encode::json::JsonEncoderDeserializer);
-
-        #[cfg(feature = "pattern_encoder")]
-        d.insert("pattern", encode::pattern::PatternEncoderDeserializer);
-
-        #[cfg(feature = "threshold_filter")]
-        d.insert("threshold", filter::threshold::ThresholdFilterDeserializer);
-
         d
     }
 }
@@ -305,9 +259,11 @@ pub enum DeserializingConfigError {
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct RawConfig {
+pub struct RawConfig<A, F> 
+where A: Clone + IntoAppender,F: Clone+IntoFilter
+{
     #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,
 
@@ -315,7 +271,7 @@ pub struct RawConfig {
     root: Root,
 
     #[serde(default)]
-    appenders: HashMap<String, AppenderConfig>,
+    appenders: HashMap<String, AppenderConfig<A,F>>,
 
     #[serde(default)]
     loggers: HashMap<String, Logger>,
@@ -336,7 +292,9 @@ impl AppenderErrors {
     }
 }
 
-impl RawConfig {
+impl<A,F> RawConfig<A,F> 
+where A: Clone + IntoAppender,F: Clone+IntoFilter
+{
     /// Returns the root.
     pub fn root(&self) -> config::Root {
         config::Root::builder()
@@ -362,24 +320,18 @@ impl RawConfig {
     /// Any components which fail to be deserialized will be ignored.
     pub fn appenders_lossy(
         &self,
-        deserializers: &Deserializers,
+        _: &Deserializers,
     ) -> (Vec<config::Appender>, AppenderErrors) {
-        let mut appenders = vec![];
+        let mut appenders:Vec<config::Appender> = vec![];
         let mut errors = vec![];
 
-        for (name, appender) in &self.appenders {
-            let mut builder = config::Appender::builder();
-            for filter in &appender.filters {
-                match deserializers.deserialize(&filter.kind, filter.config.clone()) {
-                    Ok(filter) => builder = builder.filter(filter),
-                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e)),
-                }
+        self.appenders.iter().for_each(|(k,v)|{
+            let build = config::Appender::builder();
+            match v.clone().into_appender(build, k.clone()) {
+                Ok(ok) => {appenders.push(ok)},
+                Err(err) => {errors.push(err)},
             }
-            match deserializers.deserialize(&appender.kind, appender.config.clone()) {
-                Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
-                Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e)),
-            }
-        }
+        });
 
         (appenders, AppenderErrors(errors))
     }
@@ -462,6 +414,8 @@ mod test {
     #[test]
     #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
     fn full_deserialize() {
+        use crate::{append::{LocalAppender, file::{FileAppender, FileAppenderConfig}}, filter::LocalFilter};
+
         let cfg = r#"
 refresh_rate: 60 seconds
 
@@ -489,7 +443,7 @@ loggers:
       - baz
     additive: false
 "#;
-        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let config = ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
@@ -498,6 +452,8 @@ loggers:
     #[test]
     #[cfg(feature = "yaml_format")]
     fn empty() {
-        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+        use crate::{filter::LocalFilter, append::LocalAppender};
+
+        ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>("{}").unwrap();
     }
 }

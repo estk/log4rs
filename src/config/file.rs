@@ -7,8 +7,8 @@ use std::{
 
 use thiserror::Error;
 
-use super::{init_config, Config, Deserializers, Handle, RawConfig};
-use crate::handle_error;
+use super::{init_config, Config, Deserializers, Handle, RawConfig, runtime::IntoAppender};
+use crate::{handle_error, append::LocalAppender, filter::{IntoFilter, LocalFilter}};
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
@@ -19,7 +19,7 @@ use crate::handle_error;
 /// reported to stderr.
 ///
 /// Requires the `file` feature (enabled by default).
-pub fn init_file<P>(path: P, deserializers: Deserializers) -> anyhow::Result<()>
+pub fn init_file<P>(path: P) -> anyhow::Result<()>
 where
     P: AsRef<Path>,
 {
@@ -28,10 +28,10 @@ where
     let source = read_config(&path)?;
     // An Err here could come because mtime isn't available, so don't bail
     let modified = fs::metadata(&path).and_then(|m| m.modified()).ok();
-    let config = format.parse(&source)?;
+    let config = format.parse::<LocalAppender, LocalFilter>(&source)?;
 
     let refresh_rate = config.refresh_rate();
-    let config = deserialize(&config, &deserializers);
+    let config = deserialize(&config);
 
     match init_config(config) {
         Ok(handle) => {
@@ -42,7 +42,6 @@ where
                     refresh_rate,
                     source,
                     modified,
-                    deserializers,
                     handle,
                 );
             }
@@ -56,16 +55,16 @@ where
 ///
 /// Unlike `init_file`, this function does not initialize the logger; it only
 /// loads the `Config` and returns it.
-pub fn load_config_file<P>(path: P, deserializers: Deserializers) -> anyhow::Result<Config>
+pub fn load_config_file<P>(path: P, _: Deserializers) -> anyhow::Result<Config>
 where
     P: AsRef<Path>,
 {
     let path = path.as_ref();
     let format = Format::from_path(path)?;
     let source = read_config(path)?;
-    let config = format.parse(&source)?;
+    let config = format.parse::<LocalAppender, LocalFilter>(&source)?;
 
-    Ok(deserialize(&config, &deserializers))
+    Ok(deserialize(&config))
 }
 
 /// The various types of formatting errors that can be generated.
@@ -126,7 +125,10 @@ impl Format {
     }
 
     #[allow(unused_variables)]
-    fn parse(&self, source: &str) -> anyhow::Result<RawConfig> {
+    fn parse<'de,A,F>(&self, source: &'de str) -> anyhow::Result<RawConfig<A,F>> 
+    where A: Clone + IntoAppender + serde::de::Deserialize<'de> + Default,
+        F: Clone + IntoFilter + serde::de::Deserialize<'de> + Default,
+    {
         match *self {
             #[cfg(feature = "yaml_format")]
             Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
@@ -143,8 +145,10 @@ fn read_config(path: &Path) -> anyhow::Result<String> {
     Ok(s)
 }
 
-fn deserialize(config: &RawConfig, deserializers: &Deserializers) -> Config {
-    let (appenders, mut errors) = config.appenders_lossy(deserializers);
+fn deserialize<A, F>(config: &RawConfig<A,F>) -> Config 
+where A: Clone + IntoAppender, F: Clone+IntoFilter
+{
+    let (appenders, mut errors) = config.appenders_lossy(&Default::default());
     errors.handle();
 
     let (config, mut errors) = Config::builder()
@@ -162,7 +166,6 @@ struct ConfigReloader {
     format: Format,
     source: String,
     modified: Option<SystemTime>,
-    deserializers: Deserializers,
     handle: Handle,
 }
 
@@ -173,7 +176,6 @@ impl ConfigReloader {
         rate: Duration,
         source: String,
         modified: Option<SystemTime>,
-        deserializers: Deserializers,
         handle: Handle,
     ) {
         let mut reloader = ConfigReloader {
@@ -181,7 +183,6 @@ impl ConfigReloader {
             format,
             source,
             modified,
-            deserializers,
             handle,
         };
 
@@ -221,9 +222,9 @@ impl ConfigReloader {
 
         self.source = source;
 
-        let config = self.format.parse(&self.source)?;
+        let config = self.format.parse::<LocalAppender, LocalFilter>(&self.source)?;
         let rate = config.refresh_rate();
-        let config = deserialize(&config, &self.deserializers);
+        let config = deserialize(&config);
 
         self.handle.set_config(config);
 

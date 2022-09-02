@@ -33,9 +33,9 @@ use log::{Level, Record};
 use serde::ser::{self, Serialize, SerializeMap};
 use std::{fmt, option, thread};
 
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
 use crate::encode::{Encode, Write, NEWLINE};
+
+use super::IntoEncode;
 
 /// The JSON encoder's configuration
 #[cfg(feature = "config_parsing")]
@@ -44,6 +44,12 @@ use crate::encode::{Encode, Write, NEWLINE};
 pub struct JsonEncoderConfig {
     #[serde(skip_deserializing)]
     _p: (),
+}
+
+impl IntoEncode for JsonEncoderConfig {
+    fn into_encode(self) -> Box<dyn Encode> {
+        Box::new(JsonEncoder::default())
+    }
 }
 
 /// An `Encode`r which writes a JSON object.
@@ -148,20 +154,6 @@ impl ser::Serialize for Mdc {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct JsonEncoderDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for JsonEncoderDeserializer {
-    type Trait = dyn Encode;
-
-    type Config = JsonEncoderConfig;
-
-    fn deserialize(
-        &self,
-        _: JsonEncoderConfig,
-        _: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Encode>> {
-        Ok(Box::new(JsonEncoder::default()))
-    }
-}
 
 #[cfg(test)]
 #[cfg(feature = "simple_writer")]

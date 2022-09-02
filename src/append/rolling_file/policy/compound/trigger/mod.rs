@@ -15,6 +15,12 @@ pub trait Trigger: fmt::Debug + Send + Sync + 'static {
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool>;
 }
 
+/// 
+pub trait IntoTrigger {
+    /// 
+    fn into_trigger(self) -> Box<dyn Trigger>;
+}
+
 #[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Trigger {
     fn name() -> &'static str {

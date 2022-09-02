@@ -22,6 +22,12 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     fn roll(&self, file: &Path) -> anyhow::Result<()>;
 }
 
+/// 
+pub trait IntoRoller {
+    /// 
+    fn into_roller(self) ->anyhow::Result<Box<dyn Roll>>;
+}
+
 #[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Roll {
     fn name() -> &'static str {

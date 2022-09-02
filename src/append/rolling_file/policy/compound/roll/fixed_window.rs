@@ -13,8 +13,8 @@ use std::{
 };
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+
+use super::IntoRoller;
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "config_parsing")]
@@ -24,6 +24,19 @@ pub struct FixedWindowRollerConfig {
     pattern: String,
     base: Option<u32>,
     count: u32,
+}
+
+impl IntoRoller for FixedWindowRollerConfig{
+    fn into_roller(self) ->anyhow::Result<Box<dyn Roll>> {
+
+        let mut builder = FixedWindowRoller::builder();
+        if let Some(base) = self.base {
+            builder = builder.base(base);
+        }
+        let roll = builder.build(&self.pattern, self.count)?;
+        
+        Ok(Box::new(roll))
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
@@ -311,25 +324,6 @@ impl FixedWindowRollerBuilder {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FixedWindowRollerDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for FixedWindowRollerDeserializer {
-    type Trait = dyn Roll;
-
-    type Config = FixedWindowRollerConfig;
-
-    fn deserialize(
-        &self,
-        config: FixedWindowRollerConfig,
-        _: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Roll>> {
-        let mut builder = FixedWindowRoller::builder();
-        if let Some(base) = config.base {
-            builder = builder.base(base);
-        }
-
-        Ok(Box::new(builder.build(&config.pattern, config.count)?))
-    }
-}
 
 #[cfg(test)]
 mod test {

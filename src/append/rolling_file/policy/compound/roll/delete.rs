@@ -5,8 +5,8 @@
 use std::{fs, path::Path};
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+
+use super::IntoRoller;
 
 /// Configuration for the delete roller.
 #[cfg(feature = "config_parsing")]
@@ -15,6 +15,12 @@ use crate::config::{Deserialize, Deserializers};
 pub struct DeleteRollerConfig {
     #[serde(skip_deserializing)]
     _p: (),
+}
+
+impl IntoRoller for DeleteRollerConfig{
+    fn into_roller(self) ->anyhow::Result< Box<dyn Roll>> {
+        Ok(Box::new(DeleteRoller::default()))
+    }
 }
 
 /// A roller which deletes the log file.
@@ -45,17 +51,3 @@ impl DeleteRoller {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct DeleteRollerDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for DeleteRollerDeserializer {
-    type Trait = dyn Roll;
-
-    type Config = DeleteRollerConfig;
-
-    fn deserialize(
-        &self,
-        _: DeleteRollerConfig,
-        _: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Roll>> {
-        Ok(Box::new(DeleteRoller::default()))
-    }
-}

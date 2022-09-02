@@ -4,15 +4,11 @@ use derivative::Derivative;
 use log::Record;
 use std::{fmt, io};
 
-#[cfg(feature = "config_parsing")]
-use serde::de;
-#[cfg(feature = "config_parsing")]
-use serde_value::Value;
-#[cfg(feature = "config_parsing")]
-use std::collections::BTreeMap;
 
 #[cfg(feature = "config_parsing")]
 use crate::config::Deserializable;
+
+use self::{json::JsonEncoderConfig, pattern::PatternEncoderConfig};
 
 #[cfg(feature = "json_encoder")]
 pub mod json;
@@ -38,6 +34,12 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
     fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()>;
 }
 
+/// 
+pub trait IntoEncode{
+    /// 
+    fn into_encode(self) -> Box<dyn Encode>;
+}
+
 #[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Encode {
     fn name() -> &'static str {
@@ -47,32 +49,28 @@ impl Deserializable for dyn Encode {
 
 /// Configuration for an encoder.
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct EncoderConfig {
-    /// The encoder's kind.
-    pub kind: String,
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(tag = "kind")]
+pub enum EncoderConfig {
+    /// 
+    #[cfg(feature = "json_encoder")]
+    #[serde(rename = "json")]
+    JsonEncoder(JsonEncoderConfig),
 
-    /// The encoder's configuration.
-    pub config: Value,
+    /// 
+    #[cfg(feature = "pattern_encoder")]
+    #[serde(rename = "pattern")]
+    PatternEncoder(PatternEncoderConfig)
+
+    
 }
 
-#[cfg(feature = "config_parsing")]
-impl<'de> de::Deserialize<'de> for EncoderConfig {
-    fn deserialize<D>(d: D) -> Result<EncoderConfig, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
-
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
-            None => "pattern".to_owned(),
-        };
-
-        Ok(EncoderConfig {
-            kind,
-            config: Value::Map(map),
-        })
+impl IntoEncode for EncoderConfig {
+    fn into_encode(self) -> Box<dyn Encode> {
+        match self {
+            EncoderConfig::JsonEncoder(j) => j.into_encode(),
+            EncoderConfig::PatternEncoder(p) => p.into_encode(),
+        }
     }
 }
 

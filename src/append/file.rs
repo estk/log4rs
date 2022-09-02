@@ -11,14 +11,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 
 use crate::{
     append::Append,
-    encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
+    encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode, IntoEncode}, config::{runtime::IntoAppender, raw::DeserializingConfigError},
 };
 
 /// The file appender's configuration.
@@ -29,6 +28,23 @@ pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
     append: Option<bool>,
+}
+
+impl IntoAppender for FileAppenderConfig {
+    fn into_appender(self,build: crate::config::runtime::AppenderBuilder, name: String) -> Result<crate::config::Appender, DeserializingConfigError> {
+        let mut appender = FileAppender::builder();
+        if let Some(encoder) = self.encoder {
+            appender = appender.encoder(encoder.into_encode());
+        };
+        if let Some(append) = self.append {
+            appender = appender.append(append);
+        };
+        let n = name.clone();
+        let appender = appender.build(self.path).map_err(move |e|{
+            DeserializingConfigError::Appender(n, e.into())
+        })?;
+        Ok(build.build(name, Box::new(appender)))
+    }
 }
 
 /// An appender which logs to a file.
@@ -135,28 +151,6 @@ impl FileAppenderBuilder {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FileAppenderDeserializer;
-
-#[cfg(feature = "config_parsing")]
-impl Deserialize for FileAppenderDeserializer {
-    type Trait = dyn Append;
-
-    type Config = FileAppenderConfig;
-
-    fn deserialize(
-        &self,
-        config: FileAppenderConfig,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<Self::Trait>> {
-        let mut appender = FileAppender::builder();
-        if let Some(append) = config.append {
-            appender = appender.append(append);
-        }
-        if let Some(encoder) = config.encoder {
-            appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
-        }
-        Ok(Box::new(appender.build(&config.path)?))
-    }
-}
 
 #[cfg(test)]
 mod test {

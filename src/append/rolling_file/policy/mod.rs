@@ -18,6 +18,12 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     fn process(&self, log: &mut LogFile) -> anyhow::Result<()>;
 }
 
+///
+pub trait IntoPolicy {
+    ///
+    fn into_policy(self)->anyhow::Result<Box<dyn Policy>>;
+}
+
 #[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Policy {
     fn name() -> &'static str {

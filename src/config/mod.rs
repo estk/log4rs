@@ -10,7 +10,7 @@ pub mod runtime;
 #[cfg(feature = "config_parsing")]
 mod file;
 #[cfg(feature = "config_parsing")]
-mod raw;
+pub(crate) mod raw;
 
 pub use runtime::{Appender, Config, Logger, Root};
 
@@ -18,6 +18,8 @@ pub use runtime::{Appender, Config, Logger, Root};
 pub use self::file::{init_file, load_config_file, FormatError};
 #[cfg(feature = "config_parsing")]
 pub use self::raw::{Deserializable, Deserialize, Deserializers, RawConfig};
+use self::runtime::IntoAppender;
+use crate::filter::IntoFilter;
 
 /// Initializes the global logger as a log4rs logger with the provided config.
 ///
@@ -52,8 +54,13 @@ pub fn init_config_with_err_handler(
 ///
 /// This will return errors if the appenders configuration is malformed or if we fail to set the global logger.
 #[cfg(feature = "config_parsing")]
-pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
-    let (appenders, errors) = config.appenders_lossy(&Deserializers::default());
+pub fn init_raw_config<A,F>(config: RawConfig<A,F>) -> Result<(), InitError> 
+where A: Clone+IntoAppender, F: Clone+IntoFilter
+{
+    
+
+
+    let (appenders, errors) = config.appenders_lossy(&Default::default());
     if !errors.is_empty() {
         return Err(InitError::Deserializing(errors));
     }
@@ -84,3 +91,20 @@ pub enum InitError {
     #[error("Error setting the logger: {0:#?}")]
     SetLogger(#[from] log::SetLoggerError),
 }
+
+/// Local config or User config
+#[cfg(feature = "config_parsing")]
+#[derive(serde::Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum LocalOrUser<L, U>
+where
+    L: Clone,
+    U: Clone,
+{
+    /// Local config
+    Local(L),
+    /// User config
+    User(U),
+}
+
+

@@ -9,8 +9,7 @@ use std::{
     io::{self, Write},
 };
 
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 use crate::{
@@ -22,14 +21,14 @@ use crate::{
             console::{ConsoleWriter, ConsoleWriterLock},
             simple::SimpleWriter,
         },
-        Encode, Style,
+        Encode, Style, IntoEncode,
     },
-    priv_io::{StdWriter, StdWriterLock},
+    priv_io::{StdWriter, StdWriterLock}, config::runtime::IntoAppender,
 };
 
 /// The console appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
@@ -38,7 +37,7 @@ pub struct ConsoleAppenderConfig {
 }
 
 #[cfg(feature = "config_parsing")]
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone)]
 enum ConfigTarget {
     #[serde(rename = "stdout")]
     Stdout,
@@ -235,31 +234,27 @@ pub enum Target {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct ConsoleAppenderDeserializer;
 
+
 #[cfg(feature = "config_parsing")]
-impl Deserialize for ConsoleAppenderDeserializer {
-    type Trait = dyn Append;
-
-    type Config = ConsoleAppenderConfig;
-
-    fn deserialize(
-        &self,
-        config: ConsoleAppenderConfig,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Append>> {
+impl IntoAppender for ConsoleAppenderConfig {
+    fn into_appender(self,build: crate::config::runtime::AppenderBuilder, name: String) -> Result<crate::config::Appender, crate::config::raw::DeserializingConfigError> {
         let mut appender = ConsoleAppender::builder();
-        if let Some(target) = config.target {
+        if let Some(target) = self.target {
             let target = match target {
                 ConfigTarget::Stdout => Target::Stdout,
                 ConfigTarget::Stderr => Target::Stderr,
             };
             appender = appender.target(target);
-        }
-        if let Some(tty_only) = config.tty_only {
+        };
+        if let Some(tty_only) = self.tty_only {
             appender = appender.tty_only(tty_only);
-        }
-        if let Some(encoder) = config.encoder {
-            appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
-        }
-        Ok(Box::new(appender.build()))
+        };
+        if let Some(encoder) = self.encoder {
+            appender = appender.encoder(encoder.into_encode());
+        };
+    
+        Ok(build.build(name, Box::new(appender.build())))
     }
 }
+
+

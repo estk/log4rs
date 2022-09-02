@@ -25,20 +25,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[cfg(feature = "config_parsing")]
-use serde_value::Value;
-#[cfg(feature = "config_parsing")]
-use std::collections::BTreeMap;
 
 use crate::{
     append::Append,
-    encode::{self, pattern::PatternEncoder, Encode},
+    encode::{self, pattern::PatternEncoder, Encode, IntoEncode}, config::{runtime::IntoAppender, raw::DeserializingConfigError},
 };
 
 #[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
-#[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
+
+use self::policy::{IntoPolicy, compound::CompoundPolicyConfig, Policy};
 
 pub mod policy;
 
@@ -50,33 +46,44 @@ pub struct RollingFileAppenderConfig {
     path: String,
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
-    policy: Policy,
+    policy: PolicyConfig,
 }
 
-#[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-struct Policy {
-    kind: String,
-    config: Value,
-}
 
-#[cfg(feature = "config_parsing")]
-impl<'de> serde::Deserialize<'de> for Policy {
-    fn deserialize<D>(d: D) -> Result<Policy, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
-
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
-            None => "compound".to_owned(),
+impl IntoAppender for RollingFileAppenderConfig{
+    fn into_appender(self,build: crate::config::runtime::AppenderBuilder, name: String) -> Result<crate::config::Appender, DeserializingConfigError> {
+        let mut appender = RollingFileAppender::builder();
+        if let Some(append) = self.append {
+            appender = appender.append(append);
         };
+        if let Some(encoder) = self.encoder {
+            appender = appender.encoder(encoder.into_encode());
+        };
+        let policy =  self.policy.into_policy().map_err(|e|DeserializingConfigError::Appender(name.clone(), e))?;
+        let appender = appender.build(self.path, policy).map_err(|e|{
+            DeserializingConfigError::Appender(name.clone(), e.into())
+        })?;
 
-        Ok(Policy {
-            kind,
-            config: Value::Map(map),
-        })
+        Ok(build.build(name, Box::new(appender)))
+
+    }
+}
+
+
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(tag = "kind")]
+enum PolicyConfig {
+    #[cfg(feature = "compound_policy")]
+    #[serde(rename = "compound")]
+    CompoundPolicy(CompoundPolicyConfig)
+}
+
+impl IntoPolicy for PolicyConfig {
+    fn into_policy(self)->anyhow::Result<Box<dyn Policy>> {
+        match self {
+            PolicyConfig::CompoundPolicy(c) => c.into_policy(),
+        }
     }
 }
 
@@ -320,31 +327,6 @@ impl RollingFileAppenderBuilder {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct RollingFileAppenderDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for RollingFileAppenderDeserializer {
-    type Trait = dyn Append;
-
-    type Config = RollingFileAppenderConfig;
-
-    fn deserialize(
-        &self,
-        config: RollingFileAppenderConfig,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Append>> {
-        let mut builder = RollingFileAppender::builder();
-        if let Some(append) = config.append {
-            builder = builder.append(append);
-        }
-        if let Some(encoder) = config.encoder {
-            let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
-            builder = builder.encoder(encoder);
-        }
-
-        let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
-        let appender = builder.build(config.path, policy)?;
-        Ok(Box::new(appender))
-    }
-}
 
 #[cfg(test)]
 mod test {
@@ -359,7 +341,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use crate::config::{Deserializers, RawConfig};
+        use crate::{config::RawConfig, append::LocalAppender, filter::LocalFilter};
 
         let dir = tempfile::tempdir().unwrap();
 
@@ -392,8 +374,8 @@ appenders:
             dir.path().display()
         );
 
-        let config = ::serde_yaml::from_str::<RawConfig>(&config).unwrap();
-        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        let config = ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>(&config).unwrap();
+        let errors = config.appenders_lossy(&Default::default()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
     }

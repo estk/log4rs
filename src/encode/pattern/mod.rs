@@ -130,8 +130,8 @@ use crate::encode::{
     Color, Encode, Style, NEWLINE,
 };
 
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+
+use super::IntoEncode;
 
 mod parser;
 
@@ -146,6 +146,16 @@ thread_local!(
 #[serde(deny_unknown_fields)]
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
+}
+
+impl IntoEncode for PatternEncoderConfig {
+    fn into_encode(self) -> Box<dyn Encode> {
+        let encoder = match self.pattern {
+            Some(pattern) => PatternEncoder::new(&pattern),
+            None => PatternEncoder::default(),
+        };
+        Box::new(encoder)
+    }
 }
 
 fn is_char_boundary(b: u8) -> bool {
@@ -668,25 +678,6 @@ impl PatternEncoder {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct PatternEncoderDeserializer;
-
-#[cfg(feature = "config_parsing")]
-impl Deserialize for PatternEncoderDeserializer {
-    type Trait = dyn Encode;
-
-    type Config = PatternEncoderConfig;
-
-    fn deserialize(
-        &self,
-        config: PatternEncoderConfig,
-        _: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Encode>> {
-        let encoder = match config.pattern {
-            Some(pattern) => PatternEncoder::new(&pattern),
-            None => PatternEncoder::default(),
-        };
-        Ok(Box::new(encoder))
-    }
-}
 
 #[cfg(test)]
 mod tests {

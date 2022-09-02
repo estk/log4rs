@@ -4,15 +4,27 @@
 
 use log::{LevelFilter, Record};
 
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
 use crate::filter::{Filter, Response};
+
+use super::IntoFilter;
 
 /// The threshold filter's configuration.
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 pub struct ThresholdFilterConfig {
     level: LevelFilter,
+}
+
+impl Default for ThresholdFilterConfig{
+    fn default() -> Self {
+        Self { level: LevelFilter::Info }
+    }
+}
+
+impl IntoFilter for ThresholdFilterConfig {
+    fn into_filter(self) -> anyhow::Result<Box<dyn Filter>> {
+        Ok(Box::new(ThresholdFilter::new(self.level)))
+    }
 }
 
 /// A filter that rejects all events at a level below a provided threshold.
@@ -52,17 +64,3 @@ impl Filter for ThresholdFilter {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ThresholdFilterDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for ThresholdFilterDeserializer {
-    type Trait = dyn Filter;
-
-    type Config = ThresholdFilterConfig;
-
-    fn deserialize(
-        &self,
-        config: ThresholdFilterConfig,
-        _: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Filter>> {
-        Ok(Box::new(ThresholdFilter::new(config.level)))
-    }
-}

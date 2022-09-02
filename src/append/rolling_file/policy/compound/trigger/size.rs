@@ -9,8 +9,8 @@ use std::fmt;
 
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+use super::IntoTrigger;
+
 
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]
@@ -19,6 +19,12 @@ use crate::config::{Deserialize, Deserializers};
 pub struct SizeTriggerConfig {
     #[serde(deserialize_with = "deserialize_limit")]
     limit: u64,
+}
+
+impl IntoTrigger for SizeTriggerConfig{
+    fn into_trigger(self) -> Box<dyn Trigger> {
+        Box::new(SizeTrigger::new(self.limit))
+    }
 }
 
 #[cfg(feature = "config_parsing")]
@@ -60,7 +66,7 @@ where
         where
             E: de::Error,
         {
-            let (number, unit) = match v.find(|c: char| !c.is_digit(10)) {
+            let (number, unit) = match v.find(|c: char| !c.is_ascii_digit()) {
                 Some(n) => (v[..n].trim(), Some(v[n..].trim())),
                 None => (v.trim(), None),
             };
@@ -135,17 +141,3 @@ impl Trigger for SizeTrigger {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTriggerDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for SizeTriggerDeserializer {
-    type Trait = dyn Trigger;
-
-    type Config = SizeTriggerConfig;
-
-    fn deserialize(
-        &self,
-        config: SizeTriggerConfig,
-        _: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Trigger>> {
-        Ok(Box::new(SizeTrigger::new(config.limit)))
-    }
-}

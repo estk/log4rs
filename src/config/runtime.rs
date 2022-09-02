@@ -6,6 +6,8 @@ use thiserror::Error;
 
 use crate::{append::Append, filter::Filter};
 
+use super::{LocalOrUser, raw::DeserializingConfigError};
+
 /// A log4rs configuration.
 #[derive(Debug)]
 pub struct Config {
@@ -236,6 +238,24 @@ pub struct Appender {
     name: String,
     appender: Box<dyn Append>,
     filters: Vec<Box<dyn Filter>>,
+}
+
+/// IntoAppender
+pub trait IntoAppender {
+    /// 
+    fn into_appender(self,build: AppenderBuilder, name: String) -> Result<Appender, DeserializingConfigError>;
+}
+
+impl<L, U> IntoAppender for LocalOrUser<L, U> 
+where L: Clone + IntoAppender,
+    U: Clone + IntoAppender
+{
+    fn into_appender(self, build: AppenderBuilder, name: String) -> Result<Appender, DeserializingConfigError> {
+        match self {
+            LocalOrUser::Local(l) => l.into_appender(build, name),
+            LocalOrUser::User(u) => u.into_appender(build, name),
+        }
+    }
 }
 
 impl Appender {

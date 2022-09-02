@@ -2,18 +2,17 @@
 //!
 //! Requires the `compound_policy` feature.
 #[cfg(feature = "config_parsing")]
-use serde::{self, de};
-#[cfg(feature = "config_parsing")]
-use serde_value::Value;
-#[cfg(feature = "config_parsing")]
-use std::collections::BTreeMap;
+use serde;
+
 
 use crate::append::rolling_file::{
     policy::{compound::roll::Roll, Policy},
     LogFile,
 };
-#[cfg(feature = "config_parsing")]
-use crate::config::{Deserialize, Deserializers};
+
+use self::{trigger::{size::SizeTriggerConfig, IntoTrigger}, roll::{IntoRoller, delete::DeleteRollerConfig, fixed_window::FixedWindowRollerConfig}};
+
+use super::IntoPolicy;
 
 pub mod roll;
 pub mod trigger;
@@ -23,61 +22,77 @@ pub mod trigger;
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CompoundPolicyConfig {
-    trigger: Trigger,
-    roller: Roller,
+    trigger: TriggerConfig,
+    roller: RollerConfig,
 }
 
-#[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-struct Trigger {
-    kind: String,
-    config: Value,
-}
-
-#[cfg(feature = "config_parsing")]
-impl<'de> serde::Deserialize<'de> for Trigger {
-    fn deserialize<D>(d: D) -> Result<Trigger, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
-
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
-            None => return Err(de::Error::missing_field("kind")),
-        };
-
-        Ok(Trigger {
-            kind,
-            config: Value::Map(map),
-        })
+impl IntoPolicy for CompoundPolicyConfig{
+    fn into_policy(self)-> anyhow::Result<Box<dyn Policy>>  {
+        let trigger = self.trigger.into_trigger();
+        let roller = self.roller.into_roller()?;
+        Ok(Box::new(CompoundPolicy::new(trigger, roller)))
     }
 }
 
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-struct Roller {
-    kind: String,
-    config: Value,
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(tag="kind")]
+enum TriggerConfig {
+    #[cfg(feature = "size_trigger")]
+    #[serde(rename = "size")]
+    SizeTrigger(SizeTriggerConfig)
 }
 
+
+impl IntoTrigger for TriggerConfig {
+    fn into_trigger(self) -> Box<dyn trigger::Trigger> {
+        match self {
+            TriggerConfig::SizeTrigger(s) => s.into_trigger(),
+        }
+    }
+}
+
+// #[cfg(feature = "config_parsing")]
+// impl<'de> serde::Deserialize<'de> for Trigger {
+//     fn deserialize<D>(d: D) -> Result<Trigger, D::Error>
+//     where
+//         D: serde::Deserializer<'de>,
+//     {
+//         let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
+
+//         let kind = match map.remove(&Value::String("kind".to_owned())) {
+//             Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
+//             None => return Err(de::Error::missing_field("kind")),
+//         };
+
+//         Ok(Trigger {
+//             kind,
+//             config: Value::Map(map),
+//         })
+//     }
+// }
+
 #[cfg(feature = "config_parsing")]
-impl<'de> serde::Deserialize<'de> for Roller {
-    fn deserialize<D>(d: D) -> Result<Roller, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let mut map = BTreeMap::<Value, Value>::deserialize(d)?;
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(tag="kind")]
+enum RollerConfig {
+    #[cfg(feature = "delete_roller")]
+    #[serde(rename = "delete")]
+    DeleteRoller(DeleteRollerConfig),
 
-        let kind = match map.remove(&Value::String("kind".to_owned())) {
-            Some(kind) => kind.deserialize_into().map_err(|e| e.to_error())?,
-            None => return Err(de::Error::missing_field("kind")),
-        };
 
-        Ok(Roller {
-            kind,
-            config: Value::Map(map),
-        })
+    #[cfg(feature = "fixed_window_roller")]
+    #[serde(rename = "fixed_window")]
+    FixedWindowRoller(FixedWindowRollerConfig)
+
+}
+
+impl IntoRoller for RollerConfig {
+    fn into_roller(self) ->anyhow::Result<Box<dyn Roll>> {
+        match self {
+            RollerConfig::DeleteRoller(d) => d.into_roller(),
+            RollerConfig::FixedWindowRoller(f) => f.into_roller(),
+        }
     }
 }
 
@@ -139,19 +154,4 @@ impl Policy for CompoundPolicy {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct CompoundPolicyDeserializer;
 
-#[cfg(feature = "config_parsing")]
-impl Deserialize for CompoundPolicyDeserializer {
-    type Trait = dyn Policy;
 
-    type Config = CompoundPolicyConfig;
-
-    fn deserialize(
-        &self,
-        config: CompoundPolicyConfig,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<dyn Policy>> {
-        let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
-        let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
-        Ok(Box::new(CompoundPolicy::new(trigger, roller)))
-    }
-}
