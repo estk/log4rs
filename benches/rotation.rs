@@ -134,7 +134,7 @@ impl Stats {
         let thresh = self.mean_nanos + ((self.stddev_nanos * 50.0).round() as u128);
         for dur in measurements {
             if dur.as_nanos() as u128 > thresh {
-                anomalies.push(dur.clone());
+                anomalies.push(*dur);
             }
         }
         anomalies
