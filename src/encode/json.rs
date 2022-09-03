@@ -154,7 +154,6 @@ impl ser::Serialize for Mdc {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct JsonEncoderDeserializer;
 
-
 #[cfg(test)]
 #[cfg(feature = "simple_writer")]
 mod test {

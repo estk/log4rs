@@ -7,8 +7,12 @@ use std::{
 
 use thiserror::Error;
 
-use super::{init_config, Config, Deserializers, Handle, RawConfig, runtime::IntoAppender};
-use crate::{handle_error, append::LocalAppender, filter::{IntoFilter, LocalFilter}};
+use super::{init_config, runtime::IntoAppender, Config, Handle, RawConfig};
+use crate::{
+    append::LocalAppender,
+    filter::{IntoFilter, LocalFilter},
+    handle_error,
+};
 
 /// Initializes the global logger as a log4rs logger configured via a file.
 ///
@@ -36,14 +40,7 @@ where
     match init_config(config) {
         Ok(handle) => {
             if let Some(refresh_rate) = refresh_rate {
-                ConfigReloader::start(
-                    path,
-                    format,
-                    refresh_rate,
-                    source,
-                    modified,
-                    handle,
-                );
+                ConfigReloader::start(path, format, refresh_rate, source, modified, handle);
             }
             Ok(())
         }
@@ -55,7 +52,7 @@ where
 ///
 /// Unlike `init_file`, this function does not initialize the logger; it only
 /// loads the `Config` and returns it.
-pub fn load_config_file<P>(path: P, _: Deserializers) -> anyhow::Result<Config>
+pub fn load_config_file<P>(path: P) -> anyhow::Result<Config>
 where
     P: AsRef<Path>,
 {
@@ -125,8 +122,9 @@ impl Format {
     }
 
     #[allow(unused_variables)]
-    fn parse<'de,A,F>(&self, source: &'de str) -> anyhow::Result<RawConfig<A,F>> 
-    where A: Clone + IntoAppender + serde::de::Deserialize<'de> + Default,
+    fn parse<'de, A, F>(&self, source: &'de str) -> anyhow::Result<RawConfig<A, F>>
+    where
+        A: Clone + IntoAppender + serde::de::Deserialize<'de> + Default,
         F: Clone + IntoFilter + serde::de::Deserialize<'de> + Default,
     {
         match *self {
@@ -145,10 +143,12 @@ fn read_config(path: &Path) -> anyhow::Result<String> {
     Ok(s)
 }
 
-fn deserialize<A, F>(config: &RawConfig<A,F>) -> Config 
-where A: Clone + IntoAppender, F: Clone+IntoFilter
+fn deserialize<A, F>(config: &RawConfig<A, F>) -> Config
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
 {
-    let (appenders, mut errors) = config.appenders_lossy(&Default::default());
+    let (appenders, mut errors) = config.appenders_lossy();
     errors.handle();
 
     let (config, mut errors) = Config::builder()
@@ -222,7 +222,9 @@ impl ConfigReloader {
 
         self.source = source;
 
-        let config = self.format.parse::<LocalAppender, LocalFilter>(&self.source)?;
+        let config = self
+            .format
+            .parse::<LocalAppender, LocalFilter>(&self.source)?;
         let rate = config.refresh_rate();
         let config = deserialize(&config);
 

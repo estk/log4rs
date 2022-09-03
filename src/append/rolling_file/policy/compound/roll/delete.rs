@@ -17,8 +17,8 @@ pub struct DeleteRollerConfig {
     _p: (),
 }
 
-impl IntoRoller for DeleteRollerConfig{
-    fn into_roller(self) ->anyhow::Result< Box<dyn Roll>> {
+impl IntoRoller for DeleteRollerConfig {
+    fn into_roller(self) -> anyhow::Result<Box<dyn Roll>> {
         Ok(Box::new(DeleteRoller::default()))
     }
 }
@@ -50,4 +50,3 @@ impl DeleteRoller {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct DeleteRollerDeserializer;
-

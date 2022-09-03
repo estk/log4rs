@@ -298,7 +298,7 @@ mod imp {
             }
         }
 
-        pub fn lock<'a>(&'a self) -> WriterLock<'a> {
+        pub fn lock(&self) -> WriterLock {
             WriterLock {
                 console: &self.console,
                 inner: self.inner.lock(),

@@ -11,13 +11,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 
 use crate::{
     append::Append,
-    encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode, IntoEncode}, config::{runtime::IntoAppender, raw::DeserializingConfigError},
+    config::{raw::DeserializingConfigError, runtime::IntoAppender},
+    encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode, IntoEncode},
 };
 
 /// The file appender's configuration.
@@ -31,7 +31,11 @@ pub struct FileAppenderConfig {
 }
 
 impl IntoAppender for FileAppenderConfig {
-    fn into_appender(self,build: crate::config::runtime::AppenderBuilder, name: String) -> Result<crate::config::Appender, DeserializingConfigError> {
+    fn into_appender(
+        self,
+        build: crate::config::runtime::AppenderBuilder,
+        name: String,
+    ) -> Result<crate::config::Appender, DeserializingConfigError> {
         let mut appender = FileAppender::builder();
         if let Some(encoder) = self.encoder {
             appender = appender.encoder(encoder.into_encode());
@@ -40,9 +44,9 @@ impl IntoAppender for FileAppenderConfig {
             appender = appender.append(append);
         };
         let n = name.clone();
-        let appender = appender.build(self.path).map_err(move |e|{
-            DeserializingConfigError::Appender(n, e.into())
-        })?;
+        let appender = appender
+            .build(self.path)
+            .map_err(move |e| DeserializingConfigError::Appender(n, e.into()))?;
         Ok(build.build(name, Box::new(appender)))
     }
 }

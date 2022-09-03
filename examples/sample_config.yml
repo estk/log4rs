@@ -2,6 +2,7 @@ appenders:
     stdout:
         kind: console
         encoder:
+            kind: pattern
             pattern: "{d(%+)(utc)} [{f}:{L}] {h({l})} {M}:{m}{n}"
         filters:
             - kind: threshold

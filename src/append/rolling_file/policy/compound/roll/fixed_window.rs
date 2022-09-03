@@ -26,15 +26,14 @@ pub struct FixedWindowRollerConfig {
     count: u32,
 }
 
-impl IntoRoller for FixedWindowRollerConfig{
-    fn into_roller(self) ->anyhow::Result<Box<dyn Roll>> {
-
+impl IntoRoller for FixedWindowRollerConfig {
+    fn into_roller(self) -> anyhow::Result<Box<dyn Roll>> {
         let mut builder = FixedWindowRoller::builder();
         if let Some(base) = self.base {
             builder = builder.base(base);
         }
         let roll = builder.build(&self.pattern, self.count)?;
-        
+
         Ok(Box::new(roll))
     }
 }
@@ -323,7 +322,6 @@ impl FixedWindowRollerBuilder {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FixedWindowRollerDeserializer;
-
 
 #[cfg(test)]
 mod test {

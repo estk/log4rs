@@ -4,13 +4,15 @@
 #[cfg(feature = "config_parsing")]
 use serde;
 
-
 use crate::append::rolling_file::{
     policy::{compound::roll::Roll, Policy},
     LogFile,
 };
 
-use self::{trigger::{size::SizeTriggerConfig, IntoTrigger}, roll::{IntoRoller, delete::DeleteRollerConfig, fixed_window::FixedWindowRollerConfig}};
+use self::{
+    roll::{delete::DeleteRollerConfig, fixed_window::FixedWindowRollerConfig, IntoRoller},
+    trigger::{size::SizeTriggerConfig, IntoTrigger},
+};
 
 use super::IntoPolicy;
 
@@ -26,8 +28,8 @@ pub struct CompoundPolicyConfig {
     roller: RollerConfig,
 }
 
-impl IntoPolicy for CompoundPolicyConfig{
-    fn into_policy(self)-> anyhow::Result<Box<dyn Policy>>  {
+impl IntoPolicy for CompoundPolicyConfig {
+    fn into_policy(self) -> anyhow::Result<Box<dyn Policy>> {
         let trigger = self.trigger.into_trigger();
         let roller = self.roller.into_roller()?;
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))
@@ -36,13 +38,12 @@ impl IntoPolicy for CompoundPolicyConfig{
 
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
-#[serde(tag="kind")]
+#[serde(tag = "kind")]
 enum TriggerConfig {
     #[cfg(feature = "size_trigger")]
     #[serde(rename = "size")]
-    SizeTrigger(SizeTriggerConfig)
+    SizeTrigger(SizeTriggerConfig),
 }
-
 
 impl IntoTrigger for TriggerConfig {
     fn into_trigger(self) -> Box<dyn trigger::Trigger> {
@@ -74,21 +75,19 @@ impl IntoTrigger for TriggerConfig {
 
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
-#[serde(tag="kind")]
+#[serde(tag = "kind")]
 enum RollerConfig {
     #[cfg(feature = "delete_roller")]
     #[serde(rename = "delete")]
     DeleteRoller(DeleteRollerConfig),
 
-
     #[cfg(feature = "fixed_window_roller")]
     #[serde(rename = "fixed_window")]
-    FixedWindowRoller(FixedWindowRollerConfig)
-
+    FixedWindowRoller(FixedWindowRollerConfig),
 }
 
 impl IntoRoller for RollerConfig {
-    fn into_roller(self) ->anyhow::Result<Box<dyn Roll>> {
+    fn into_roller(self) -> anyhow::Result<Box<dyn Roll>> {
         match self {
             RollerConfig::DeleteRoller(d) => d.into_roller(),
             RollerConfig::FixedWindowRoller(f) => f.into_roller(),
@@ -153,5 +152,3 @@ impl Policy for CompoundPolicy {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct CompoundPolicyDeserializer;
-
-

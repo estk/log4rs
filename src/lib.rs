@@ -483,6 +483,8 @@ mod test {
     #[test]
     #[cfg(all(feature = "config_parsing", feature = "json_format"))]
     fn init_from_raw_config() {
+        use crate::{append::LocalAppender, filter::LocalFilter};
+
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
 
@@ -497,12 +499,15 @@ mod test {
                     "kind": "file",
                     "path": path,
                     "encoder": {
+                        "kind": "pattern",
                         "pattern": "{m}"
                     }
                 }
             },
         });
-        let config = serde_json::from_str::<config::RawConfig>(&cfg.to_string()).unwrap();
+        let config =
+            serde_json::from_str::<config::RawConfig<LocalAppender, LocalFilter>>(&cfg.to_string())
+                .unwrap();
         if let Err(e) = init_raw_config(config) {
             panic!("{}", e);
         }

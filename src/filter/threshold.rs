@@ -15,9 +15,11 @@ pub struct ThresholdFilterConfig {
     level: LevelFilter,
 }
 
-impl Default for ThresholdFilterConfig{
+impl Default for ThresholdFilterConfig {
     fn default() -> Self {
-        Self { level: LevelFilter::Info }
+        Self {
+            level: LevelFilter::Info,
+        }
     }
 }
 
@@ -63,4 +65,3 @@ impl Filter for ThresholdFilter {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ThresholdFilterDeserializer;
-

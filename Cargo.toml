@@ -11,8 +11,8 @@ edition = '2018'
 
 [features]
 default = ["all_components", "config_parsing", "yaml_format"]
-
-config_parsing = ["humantime", "serde", "serde-value", "typemap", "log/serde"]
+full = ["default", "json_format", "toml_format"]
+config_parsing = ["humantime", "serde", "typemap", "log/serde"] # serde-value
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
@@ -60,7 +60,7 @@ humantime = { version = "2.0", optional = true }
 log = { version = "0.4.0", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
-serde-value = { version = "0.7", optional = true }
+# serde-value = { version = "0.7", optional = true }
 thread-id = { version = "4", optional = true }
 typemap = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
@@ -94,3 +94,8 @@ required-features = ["console_appender", "file_appender", "rolling_file_appender
 [[example]]
 name = "compile_time_config"
 required-features = ["yaml_format", "config_parsing"]
+
+
+[[example]]
+name = "user_config"
+required-features = ["full"]

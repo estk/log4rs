@@ -25,16 +25,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-
 use crate::{
     append::Append,
-    encode::{self, pattern::PatternEncoder, Encode, IntoEncode}, config::{runtime::IntoAppender, raw::DeserializingConfigError},
+    config::{raw::DeserializingConfigError, runtime::IntoAppender},
+    encode::{self, pattern::PatternEncoder, Encode, IntoEncode},
 };
 
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 
-use self::policy::{IntoPolicy, compound::CompoundPolicyConfig, Policy};
+use self::policy::{compound::CompoundPolicyConfig, IntoPolicy, Policy};
 
 pub mod policy;
 
@@ -49,9 +49,12 @@ pub struct RollingFileAppenderConfig {
     policy: PolicyConfig,
 }
 
-
-impl IntoAppender for RollingFileAppenderConfig{
-    fn into_appender(self,build: crate::config::runtime::AppenderBuilder, name: String) -> Result<crate::config::Appender, DeserializingConfigError> {
+impl IntoAppender for RollingFileAppenderConfig {
+    fn into_appender(
+        self,
+        build: crate::config::runtime::AppenderBuilder,
+        name: String,
+    ) -> Result<crate::config::Appender, DeserializingConfigError> {
         let mut appender = RollingFileAppender::builder();
         if let Some(append) = self.append {
             appender = appender.append(append);
@@ -59,16 +62,17 @@ impl IntoAppender for RollingFileAppenderConfig{
         if let Some(encoder) = self.encoder {
             appender = appender.encoder(encoder.into_encode());
         };
-        let policy =  self.policy.into_policy().map_err(|e|DeserializingConfigError::Appender(name.clone(), e))?;
-        let appender = appender.build(self.path, policy).map_err(|e|{
-            DeserializingConfigError::Appender(name.clone(), e.into())
-        })?;
+        let policy = self
+            .policy
+            .into_policy()
+            .map_err(|e| DeserializingConfigError::Appender(name.clone(), e))?;
+        let appender = appender
+            .build(self.path, policy)
+            .map_err(|e| DeserializingConfigError::Appender(name.clone(), e.into()))?;
 
         Ok(build.build(name, Box::new(appender)))
-
     }
 }
-
 
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
@@ -76,11 +80,11 @@ impl IntoAppender for RollingFileAppenderConfig{
 enum PolicyConfig {
     #[cfg(feature = "compound_policy")]
     #[serde(rename = "compound")]
-    CompoundPolicy(CompoundPolicyConfig)
+    CompoundPolicy(CompoundPolicyConfig),
 }
 
 impl IntoPolicy for PolicyConfig {
-    fn into_policy(self)->anyhow::Result<Box<dyn Policy>> {
+    fn into_policy(self) -> anyhow::Result<Box<dyn Policy>> {
         match self {
             PolicyConfig::CompoundPolicy(c) => c.into_policy(),
         }
@@ -327,7 +331,6 @@ impl RollingFileAppenderBuilder {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct RollingFileAppenderDeserializer;
 
-
 #[cfg(test)]
 mod test {
     use std::{
@@ -341,7 +344,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn deserialize() {
-        use crate::{config::RawConfig, append::LocalAppender, filter::LocalFilter};
+        use crate::{append::LocalAppender, config::RawConfig, filter::LocalFilter};
 
         let dir = tempfile::tempdir().unwrap();
 
@@ -352,6 +355,7 @@ appenders:
     kind: rolling_file
     path: {0}/foo.log
     policy:
+      kind: compound
       trigger:
         kind: size
         limit: 1024
@@ -374,8 +378,9 @@ appenders:
             dir.path().display()
         );
 
-        let config = ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>(&config).unwrap();
-        let errors = config.appenders_lossy(&Default::default()).1;
+        let config =
+            ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>(&config).unwrap();
+        let errors = config.appenders_lossy().1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
     }

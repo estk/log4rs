@@ -11,16 +11,18 @@ use self::console::ConsoleAppenderConfig;
 use self::file::FileAppenderConfig;
 #[cfg(feature = "config_parsing")]
 use self::rolling_file::RollingFileAppenderConfig;
+#[cfg(feature = "config_parsing")]
+use crate::config::raw::DeserializingConfigError;
+#[cfg(feature = "config_parsing")]
+use crate::config::runtime::AppenderBuilder;
+#[cfg(feature = "config_parsing")]
+use crate::config::runtime::IntoAppender;
+#[cfg(feature = "config_parsing")]
 use crate::config::Appender;
 #[cfg(feature = "config_parsing")]
-use crate::config::Deserializable;
-#[cfg(feature = "config_parsing")]
 use crate::config::LocalOrUser;
-use crate::config::raw::DeserializingConfigError;
-use crate::config::runtime::AppenderBuilder;
-use crate::config::runtime::IntoAppender;
+#[cfg(feature = "config_parsing")]
 use crate::filter::IntoFilter;
-
 
 #[cfg(feature = "console_appender")]
 pub mod console;
@@ -96,13 +98,6 @@ pub trait Append: fmt::Debug + Send + Sync + 'static {
     fn flush(&self);
 }
 
-#[cfg(feature = "config_parsing")]
-impl Deserializable for dyn Append {
-    fn name() -> &'static str {
-        "appender"
-    }
-}
-
 impl<T: Log + fmt::Debug + 'static> Append for T {
     fn append(&self, record: &Record) -> anyhow::Result<()> {
         self.log(record);
@@ -134,15 +129,19 @@ pub enum LocalAppender {
     #[serde(rename = "rolling_file")]
     RollingFileAppender(RollingFileAppenderConfig),
 }
-
+#[cfg(feature = "config_parsing")]
 impl Default for LocalAppender {
     fn default() -> Self {
         Self::ConsoleAppender(ConsoleAppenderConfig::default())
     }
 }
-
+#[cfg(feature = "config_parsing")]
 impl IntoAppender for LocalAppender {
-    fn into_appender(self,build: AppenderBuilder, name: String) -> Result<Appender, DeserializingConfigError> {
+    fn into_appender(
+        self,
+        build: AppenderBuilder,
+        name: String,
+    ) -> Result<Appender, DeserializingConfigError> {
         match self {
             LocalAppender::ConsoleAppender(c) => c.into_appender(build, name),
             LocalAppender::FileAppender(f) => f.into_appender(build, name),
@@ -151,27 +150,36 @@ impl IntoAppender for LocalAppender {
     }
 }
 
-
 /// LocalOrUserAppender configuration
+#[cfg(feature = "config_parsing")]
 pub type LocalOrUserAppender<T> = LocalOrUser<LocalAppender, T>;
 
 /// Configuration for an appender.
 #[cfg(feature = "config_parsing")]
 #[derive(Deserialize, Debug, Clone)]
-pub struct AppenderConfig<A, F> 
-where A:Clone+IntoAppender,
-    F: Clone+IntoFilter
+pub struct AppenderConfig<A, F>
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
 {
     /// The filters attached to the appender.
+    #[serde(default)]
     pub filters: Vec<F>,
     /// The appender configuration.
     #[serde(flatten)]
     pub appender: A,
 }
-
+#[cfg(feature = "config_parsing")]
 impl<A, F> IntoAppender for AppenderConfig<A, F>
-where A:Clone+IntoAppender,F: Clone+IntoFilter {
-    fn into_appender(self,build: AppenderBuilder, name: String) -> Result<Appender, DeserializingConfigError> {
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
+{
+    fn into_appender(
+        self,
+        build: AppenderBuilder,
+        name: String,
+    ) -> Result<Appender, DeserializingConfigError> {
         self.appender.into_appender(build, name)
     }
 }

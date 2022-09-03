@@ -4,10 +4,7 @@ use derivative::Derivative;
 use log::Record;
 use std::{fmt, io};
 
-
 #[cfg(feature = "config_parsing")]
-use crate::config::Deserializable;
-
 use self::{json::JsonEncoderConfig, pattern::PatternEncoderConfig};
 
 #[cfg(feature = "json_encoder")]
@@ -18,7 +15,7 @@ pub mod writer;
 
 #[allow(dead_code)]
 #[cfg(windows)]
-const NEWLINE: &'static str = "\r\n";
+const NEWLINE: &str = "\r\n";
 
 #[allow(dead_code)]
 #[cfg(not(windows))]
@@ -34,17 +31,10 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
     fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()>;
 }
 
-/// 
-pub trait IntoEncode{
-    /// 
+///
+pub trait IntoEncode {
+    ///
     fn into_encode(self) -> Box<dyn Encode>;
-}
-
-#[cfg(feature = "config_parsing")]
-impl Deserializable for dyn Encode {
-    fn name() -> &'static str {
-        "encoder"
-    }
 }
 
 /// Configuration for an encoder.
@@ -52,19 +42,24 @@ impl Deserializable for dyn Encode {
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 #[serde(tag = "kind")]
 pub enum EncoderConfig {
-    /// 
+    ///
     #[cfg(feature = "json_encoder")]
     #[serde(rename = "json")]
     JsonEncoder(JsonEncoderConfig),
 
-    /// 
+    ///
     #[cfg(feature = "pattern_encoder")]
     #[serde(rename = "pattern")]
-    PatternEncoder(PatternEncoderConfig)
-
-    
+    PatternEncoder(PatternEncoderConfig),
 }
 
+impl Default for EncoderConfig {
+    fn default() -> Self {
+        Self::PatternEncoder(PatternEncoderConfig::default())
+    }
+}
+
+#[cfg(feature = "config_parsing")]
 impl IntoEncode for EncoderConfig {
     fn into_encode(self) -> Box<dyn Encode> {
         match self {

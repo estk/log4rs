@@ -130,7 +130,6 @@ use crate::encode::{
     Color, Encode, Style, NEWLINE,
 };
 
-
 use super::IntoEncode;
 
 mod parser;
@@ -695,10 +694,10 @@ mod tests {
     use crate::encode::Encode;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
-        encoder.chunks.iter().all(|c| match *c {
-            Chunk::Error(_) => false,
-            _ => true,
-        })
+        encoder
+            .chunks
+            .iter()
+            .all(|c| !matches!(*c, Chunk::Error(_)))
     }
 
     #[test]

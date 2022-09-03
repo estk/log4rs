@@ -4,8 +4,6 @@ use log::Record;
 use std::fmt;
 
 #[cfg(feature = "config_parsing")]
-use crate::config::Deserializable;
-
 use self::threshold::ThresholdFilterConfig;
 
 #[cfg(feature = "threshold_filter")]
@@ -20,17 +18,10 @@ pub trait Filter: fmt::Debug + Send + Sync + 'static {
     fn filter(&self, record: &Record) -> Response;
 }
 
-/// 
+///
 pub trait IntoFilter {
-    /// 
+    ///
     fn into_filter(self) -> anyhow::Result<Box<dyn Filter>>;
-}
-
-#[cfg(feature = "config_parsing")]
-impl Deserializable for dyn Filter {
-    fn name() -> &'static str {
-        "filter"
-    }
 }
 
 /// The response returned by a filter.
@@ -54,27 +45,26 @@ pub enum Response {
 /// Configuration for a filter.
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
-#[serde(tag="kind")]
-pub enum LocalFilter{
-    /// 
+#[serde(tag = "kind")]
+pub enum LocalFilter {
+    ///
     #[cfg(feature = "threshold_filter")]
     #[serde(rename = "threshold")]
-    ThresholdFilter(ThresholdFilterConfig)
-
+    ThresholdFilter(ThresholdFilterConfig),
 }
 
+#[cfg(feature = "config_parsing")]
 impl Default for LocalFilter {
     fn default() -> Self {
         Self::ThresholdFilter(ThresholdFilterConfig::default())
     }
 }
 
-
-impl IntoFilter for LocalFilter{
+#[cfg(feature = "config_parsing")]
+impl IntoFilter for LocalFilter {
     fn into_filter(self) -> anyhow::Result<Box<dyn Filter>> {
         match self {
             LocalFilter::ThresholdFilter(t) => t.into_filter(),
         }
     }
 }
-

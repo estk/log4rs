@@ -11,7 +11,6 @@ use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 
 use super::IntoTrigger;
 
-
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
@@ -21,7 +20,7 @@ pub struct SizeTriggerConfig {
     limit: u64,
 }
 
-impl IntoTrigger for SizeTriggerConfig{
+impl IntoTrigger for SizeTriggerConfig {
     fn into_trigger(self) -> Box<dyn Trigger> {
         Box::new(SizeTrigger::new(self.limit))
     }
@@ -140,4 +139,3 @@ impl Trigger for SizeTrigger {
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTriggerDeserializer;
-

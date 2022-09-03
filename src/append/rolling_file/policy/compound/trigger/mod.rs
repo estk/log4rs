@@ -3,8 +3,6 @@
 use std::fmt;
 
 use crate::append::rolling_file::LogFile;
-#[cfg(feature = "config_parsing")]
-use crate::config::Deserializable;
 
 #[cfg(feature = "size_trigger")]
 pub mod size;
@@ -15,15 +13,8 @@ pub trait Trigger: fmt::Debug + Send + Sync + 'static {
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool>;
 }
 
-/// 
+///
 pub trait IntoTrigger {
-    /// 
+    ///
     fn into_trigger(self) -> Box<dyn Trigger>;
-}
-
-#[cfg(feature = "config_parsing")]
-impl Deserializable for dyn Trigger {
-    fn name() -> &'static str {
-        "trigger"
-    }
 }

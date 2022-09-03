@@ -90,165 +90,19 @@
 //! ```
 #![allow(deprecated)]
 
-use std::{
-    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
-};
+use std::{collections::HashMap, fmt, time::Duration};
 
-use anyhow::anyhow;
 use derivative::Derivative;
 use log::LevelFilter;
-use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
-use serde_value::Value;
+use serde::de::{self, Deserialize as SerdeDeserialize};
 use thiserror::Error;
-use typemap::{Key, ShareCloneMap};
 
-use crate::{config, append::AppenderConfig, filter::IntoFilter};
+use crate::{append::AppenderConfig, config, filter::IntoFilter};
 
 #[allow(unused_imports)]
 use crate::append;
 
-
-
 use super::runtime::IntoAppender;
-
-/// A trait implemented by traits which are deserializable.
-pub trait Deserializable: 'static {
-    /// Returns a name for objects implementing the trait suitable for display in error messages.
-    ///
-    /// For example, the `Deserializable` implementation for the `Append` trait returns "appender".
-    fn name() -> &'static str;
-}
-
-/// A trait for objects that can deserialize log4rs components out of a config.
-#[deprecated]
-pub trait Deserialize: Send + Sync + 'static {
-    /// The trait that this deserializer will create.
-    type Trait: ?Sized + Deserializable;
-
-    /// This deserializer's configuration.
-    type Config: DeserializeOwned;
-
-    /// Create a new trait object based on the provided config.
-    fn deserialize(
-        &self,
-        config: Self::Config,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<Self::Trait>>;
-}
-
-trait ErasedDeserialize: Send + Sync + 'static {
-    type Trait: ?Sized;
-
-    fn deserialize(
-        &self,
-        config: Value,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<Self::Trait>>;
-}
-
-struct DeserializeEraser<T>(T);
-
-impl<T> ErasedDeserialize for DeserializeEraser<T>
-where
-    T: Deserialize,
-{
-    type Trait = T::Trait;
-
-    fn deserialize(
-        &self,
-        config: Value,
-        deserializers: &Deserializers,
-    ) -> anyhow::Result<Box<Self::Trait>> {
-        let config = config.deserialize_into()?;
-        self.0.deserialize(config, deserializers)
-    }
-}
-
-struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
-
-impl<T: ?Sized + 'static> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Arc<dyn ErasedDeserialize<Trait = T>>>;
-}
-
-/// A container of `Deserialize`rs.
-#[derive(Clone)]
-#[deprecated]
-pub struct Deserializers(ShareCloneMap);
-
-impl Default for Deserializers {
-    fn default() -> Deserializers {
-        #[allow(unused_mut)]
-        let mut d = Deserializers::empty();
-        d
-    }
-}
-
-impl Deserializers {
-    /// Creates a `Deserializers` with default mappings.
-    ///
-    /// All are enabled by default.
-    ///
-    /// * Appenders
-    ///     * "console" -> `ConsoleAppenderDeserializer`
-    ///         * Requires the `console_appender` feature.
-    ///     * "file" -> `FileAppenderDeserializer`
-    ///         * Requires the `file_appender` feature.
-    ///     * "rolling_file" -> `RollingFileAppenderDeserializer`
-    ///         * Requires the `rolling_file_appender` feature.
-    /// * Encoders
-    ///     * "pattern" -> `PatternEncoderDeserializer`
-    ///         * Requires the `pattern_encoder` feature.
-    ///     * "json" -> `JsonEncoderDeserializer`
-    ///         * Requires the `json_encoder` feature.
-    /// * Filters
-    ///     * "threshold" -> `ThresholdFilterDeserializer`
-    ///         * Requires the `threshold_filter` feature.
-    /// * Policies
-    ///     *  "compound" -> `CompoundPolicyDeserializer`
-    ///         * Requires the `compound_policy` feature.
-    /// * Rollers
-    ///     * "delete" -> `DeleteRollerDeserializer`
-    ///         * Requires the `delete_roller` feature.
-    ///     * "fixed_window" -> `FixedWindowRollerDeserializer`
-    ///         * Requires the `fixed_window_roller` feature.
-    /// * Triggers
-    ///     * "size" -> `SizeTriggerDeserializer`
-    ///         * Requires the `size_trigger` feature.
-    pub fn new() -> Deserializers {
-        Deserializers::default()
-    }
-
-    /// Creates a new `Deserializers` with no mappings.
-    pub fn empty() -> Deserializers {
-        Deserializers(ShareCloneMap::custom())
-    }
-
-    /// Adds a mapping from the specified `kind` to a deserializer.
-    pub fn insert<T>(&mut self, kind: &str, deserializer: T)
-    where
-        T: Deserialize,
-    {
-        self.0
-            .entry::<KeyAdaptor<T::Trait>>()
-            .or_insert_with(HashMap::new)
-            .insert(kind.to_owned(), Arc::new(DeserializeEraser(deserializer)));
-    }
-
-    /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
-    where
-        T: Deserializable,
-    {
-        match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
-            Some(b) => b.deserialize(config, self),
-            None => Err(anyhow!(
-                "no {} deserializer for kind `{}` registered",
-                T::name(),
-                kind
-            )),
-        }
-    }
-}
 
 #[derive(Debug, Error)]
 pub enum DeserializingConfigError {
@@ -261,8 +115,10 @@ pub enum DeserializingConfigError {
 /// A raw deserializable log4rs configuration.
 #[derive(Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct RawConfig<A, F> 
-where A: Clone + IntoAppender,F: Clone+IntoFilter
+pub struct RawConfig<A, F>
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
 {
     #[serde(deserialize_with = "de_duration", default)]
     refresh_rate: Option<Duration>,
@@ -271,10 +127,27 @@ where A: Clone + IntoAppender,F: Clone+IntoFilter
     root: Root,
 
     #[serde(default)]
-    appenders: HashMap<String, AppenderConfig<A,F>>,
+    appenders: HashMap<String, AppenderConfig<A, F>>,
 
     #[serde(default)]
     loggers: HashMap<String, Logger>,
+}
+
+impl<A, F> RawConfig<A, F>
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
+    Self: for<'de> serde::Deserialize<'de>,
+{
+    /// Build RawConfig from the serde::Deserializer trait
+    pub fn from_serde<'de, D>(
+        deserializer: D,
+    ) -> Result<RawConfig<A, F>, <D as serde::Deserializer<'de>>::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Self::deserialize(deserializer)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -292,8 +165,10 @@ impl AppenderErrors {
     }
 }
 
-impl<A,F> RawConfig<A,F> 
-where A: Clone + IntoAppender,F: Clone+IntoFilter
+impl<A, F> RawConfig<A, F>
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
 {
     /// Returns the root.
     pub fn root(&self) -> config::Root {
@@ -318,18 +193,15 @@ where A: Clone + IntoAppender,F: Clone+IntoFilter
     /// Returns the appenders.
     ///
     /// Any components which fail to be deserialized will be ignored.
-    pub fn appenders_lossy(
-        &self,
-        _: &Deserializers,
-    ) -> (Vec<config::Appender>, AppenderErrors) {
-        let mut appenders:Vec<config::Appender> = vec![];
+    pub fn appenders_lossy(&self) -> (Vec<config::Appender>, AppenderErrors) {
+        let mut appenders: Vec<config::Appender> = vec![];
         let mut errors = vec![];
 
-        self.appenders.iter().for_each(|(k,v)|{
+        self.appenders.iter().for_each(|(k, v)| {
             let build = config::Appender::builder();
             match v.clone().into_appender(build, k.clone()) {
-                Ok(ok) => {appenders.push(ok)},
-                Err(err) => {errors.push(err)},
+                Ok(ok) => appenders.push(ok),
+                Err(err) => errors.push(err),
             }
         });
 
@@ -414,7 +286,13 @@ mod test {
     #[test]
     #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
     fn full_deserialize() {
-        use crate::{append::{LocalAppender, file::{FileAppender, FileAppenderConfig}}, filter::LocalFilter};
+        use crate::{
+            append::{
+                file::{FileAppender, FileAppenderConfig},
+                LocalAppender,
+            },
+            filter::LocalFilter,
+        };
 
         let cfg = r#"
 refresh_rate: 60 seconds
@@ -429,7 +307,8 @@ appenders:
     kind: file
     path: /tmp/baz.log
     encoder:
-      pattern: "%m"
+        kind: pattern
+        pattern: "%m"
 
 root:
   appenders:
@@ -444,7 +323,7 @@ loggers:
     additive: false
 "#;
         let config = ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>(cfg).unwrap();
-        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        let errors = config.appenders_lossy().1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
     }
@@ -452,7 +331,7 @@ loggers:
     #[test]
     #[cfg(feature = "yaml_format")]
     fn empty() {
-        use crate::{filter::LocalFilter, append::LocalAppender};
+        use crate::{append::LocalAppender, filter::LocalFilter};
 
         ::serde_yaml::from_str::<RawConfig<LocalAppender, LocalFilter>>("{}").unwrap();
     }

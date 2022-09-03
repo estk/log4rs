@@ -9,11 +9,11 @@ use std::{
     io::{self, Write},
 };
 
-
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 use crate::{
     append::Append,
+    config::runtime::IntoAppender,
     encode::{
         self,
         pattern::PatternEncoder,
@@ -21,9 +21,9 @@ use crate::{
             console::{ConsoleWriter, ConsoleWriterLock},
             simple::SimpleWriter,
         },
-        Encode, Style, IntoEncode,
+        Encode, IntoEncode, Style,
     },
-    priv_io::{StdWriter, StdWriterLock}, config::runtime::IntoAppender,
+    priv_io::{StdWriter, StdWriterLock},
 };
 
 /// The console appender's configuration.
@@ -234,10 +234,13 @@ pub enum Target {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct ConsoleAppenderDeserializer;
 
-
 #[cfg(feature = "config_parsing")]
 impl IntoAppender for ConsoleAppenderConfig {
-    fn into_appender(self,build: crate::config::runtime::AppenderBuilder, name: String) -> Result<crate::config::Appender, crate::config::raw::DeserializingConfigError> {
+    fn into_appender(
+        self,
+        build: crate::config::runtime::AppenderBuilder,
+        name: String,
+    ) -> Result<crate::config::Appender, crate::config::raw::DeserializingConfigError> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = self.target {
             let target = match target {
@@ -252,9 +255,7 @@ impl IntoAppender for ConsoleAppenderConfig {
         if let Some(encoder) = self.encoder {
             appender = appender.encoder(encoder.into_encode());
         };
-    
+
         Ok(build.build(name, Box::new(appender.build())))
     }
 }
-
-

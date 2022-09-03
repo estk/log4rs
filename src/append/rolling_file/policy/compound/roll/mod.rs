@@ -2,9 +2,6 @@
 
 use std::{fmt, path::Path};
 
-#[cfg(feature = "config_parsing")]
-use crate::config::Deserializable;
-
 #[cfg(feature = "delete_roller")]
 pub mod delete;
 #[cfg(feature = "fixed_window_roller")]
@@ -22,15 +19,8 @@ pub trait Roll: fmt::Debug + Send + Sync + 'static {
     fn roll(&self, file: &Path) -> anyhow::Result<()>;
 }
 
-/// 
+///
 pub trait IntoRoller {
-    /// 
-    fn into_roller(self) ->anyhow::Result<Box<dyn Roll>>;
-}
-
-#[cfg(feature = "config_parsing")]
-impl Deserializable for dyn Roll {
-    fn name() -> &'static str {
-        "roller"
-    }
+    ///
+    fn into_roller(self) -> anyhow::Result<Box<dyn Roll>>;
 }
