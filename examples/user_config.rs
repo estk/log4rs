@@ -1,12 +1,12 @@
 use log::{error, info, trace};
+use log4rs::config::Appender;
+use log4rs::filter::threshold::ThresholdFilterConfig;
 use log4rs::{
     append::{console::ConsoleAppender, LocalOrUserAppender},
     config::runtime::{AppenderBuilder, IntoAppender},
     encode::{EncoderConfig, IntoEncode},
-    filter::LocalFilter,
+    filter::{IntoFilter, LocalOrUserFilter},
 };
-
-use log4rs::config::Appender;
 
 #[derive(Clone, Debug, serde::Deserialize, Default)]
 struct MyConfig {
@@ -43,7 +43,25 @@ impl IntoAppender for UserAppender {
     }
 }
 
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(tag = "kind")]
+pub enum UserFilter {
+    ///
+    #[serde(rename = "user_threshold")]
+    ThresholdFilter(ThresholdFilterConfig),
+}
+
+impl IntoFilter for UserFilter {
+    fn into_filter(self) -> anyhow::Result<Box<dyn log4rs::filter::Filter>> {
+        match self {
+            UserFilter::ThresholdFilter(t) => t.into_filter(),
+        }
+    }
+}
+
 type MyAppender = LocalOrUserAppender<UserAppender>;
+type MyFilter = LocalOrUserFilter<UserFilter>;
 
 fn main() {
     let config_str = r#"
@@ -53,6 +71,9 @@ appenders:
         encoder:
             kind: pattern
             pattern: "{d(%+)(utc)} [{f}:{L}] {h({l})} {M}:{m}{n}"
+        filters: 
+            - kind: user_threshold
+              level: info
 
 root:
     level: info
@@ -60,7 +81,7 @@ root:
         - stdout
 "#;
     let config = serde_yaml::from_str(config_str).unwrap();
-    log4rs::init_raw_config::<MyAppender, LocalFilter>(config).unwrap();
+    log4rs::init_raw_config::<MyAppender, MyFilter>(config).unwrap();
 
     info!("Goes to console");
     error!("Goes to console");

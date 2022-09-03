@@ -3,6 +3,8 @@
 use log::Record;
 use std::fmt;
 
+use crate::config::LocalOrUser;
+
 #[cfg(feature = "config_parsing")]
 use self::threshold::ThresholdFilterConfig;
 
@@ -22,6 +24,22 @@ pub trait Filter: fmt::Debug + Send + Sync + 'static {
 pub trait IntoFilter {
     ///
     fn into_filter(self) -> anyhow::Result<Box<dyn Filter>>;
+}
+
+/// LocalOrUserFilter configuration
+#[cfg(feature = "config_parsing")]
+pub type LocalOrUserFilter<T> = LocalOrUser<LocalFilter, T>;
+#[cfg(feature = "config_parsing")]
+impl<T> IntoFilter for LocalOrUserFilter<T>
+where
+    T: IntoFilter + Clone,
+{
+    fn into_filter(self) -> anyhow::Result<Box<dyn Filter>> {
+        match self {
+            LocalOrUser::Local(l) => l.into_filter(),
+            LocalOrUser::User(u) => u.into_filter(),
+        }
+    }
 }
 
 /// The response returned by a filter.

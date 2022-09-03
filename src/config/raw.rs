@@ -104,10 +104,13 @@ use crate::append;
 
 use super::runtime::IntoAppender;
 
+///
 #[derive(Debug, Error)]
 pub enum DeserializingConfigError {
+    ///
     #[error("error deserializing appender {0}: {1}")]
     Appender(String, anyhow::Error),
+    ///
     #[error("error deserializing filter attached to appender {0}: {1}")]
     Filter(String, anyhow::Error),
 }
