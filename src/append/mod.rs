@@ -168,7 +168,7 @@ where
     #[serde(flatten)]
     pub appender: A,
 }
-
+#[cfg(feature = "config_parsing")]
 fn filters_default<F>() -> Vec<F>
 where
     F: Clone + IntoFilter,

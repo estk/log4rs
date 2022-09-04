@@ -8,7 +8,7 @@ use log4rs::{
     filter::{IntoFilter, LocalOrUserFilter},
 };
 
-#[derive(Clone, Debug, serde::Deserialize, Default)]
+#[derive(Clone, Debug, serde::Deserialize)]
 struct MyConfig {
     encoder: EncoderConfig,
 }
@@ -20,11 +20,6 @@ enum UserAppender {
     T(MyConfig),
 }
 
-impl Default for UserAppender {
-    fn default() -> Self {
-        UserAppender::T(Default::default())
-    }
-}
 
 impl IntoAppender for UserAppender {
     fn into_appender(

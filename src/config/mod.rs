@@ -60,7 +60,7 @@ pub fn init_config_with_err_handler(
 pub fn init_raw_config<A, F>(config: RawConfig<A, F>) -> Result<(), InitError>
 where
     A: Clone + IntoAppender,
-    F: Clone + IntoFilter + std::default::Default,
+    F: Clone + IntoFilter,
 {
     let (appenders, errors) = config.appenders_lossy();
     if !errors.is_empty() {
