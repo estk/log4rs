@@ -20,7 +20,6 @@ enum UserAppender {
     T(MyConfig),
 }
 
-
 impl IntoAppender for UserAppender {
     fn into_appender(
         self,
