@@ -7,9 +7,9 @@ use serde::de;
 #[cfg(feature = "config_parsing")]
 use std::fmt;
 
-use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
-
+#[cfg(feature = "config_parsing")]
 use super::IntoTrigger;
+use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]
@@ -20,6 +20,7 @@ pub struct SizeTriggerConfig {
     limit: u64,
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoTrigger for SizeTriggerConfig {
     fn into_trigger(self) -> Box<dyn Trigger> {
         Box::new(SizeTrigger::new(self.limit))

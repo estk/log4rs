@@ -27,14 +27,16 @@ use std::{
 
 use crate::{
     append::Append,
-    config::{raw::DeserializingConfigError, runtime::IntoAppender},
-    encode::{self, pattern::PatternEncoder, Encode, IntoEncode},
+    encode::{self, pattern::PatternEncoder, Encode},
 };
 
 #[cfg(feature = "config_parsing")]
-use crate::encode::EncoderConfig;
-
 use self::policy::{compound::CompoundPolicyConfig, IntoPolicy, Policy};
+#[cfg(feature = "config_parsing")]
+use crate::{
+    config::{raw::DeserializingConfigError, runtime::IntoAppender},
+    encode::{EncoderConfig, IntoEncode},
+};
 
 pub mod policy;
 
@@ -49,6 +51,7 @@ pub struct RollingFileAppenderConfig {
     policy: PolicyConfig,
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoAppender for RollingFileAppenderConfig {
     fn into_appender(
         self,
@@ -60,7 +63,11 @@ impl IntoAppender for RollingFileAppenderConfig {
             appender = appender.append(append);
         };
         if let Some(encoder) = self.encoder {
-            appender = appender.encoder(encoder.into_encode());
+            appender = appender.encoder(
+                encoder
+                    .into_encode()
+                    .map_err(|e| DeserializingConfigError::Appender(name.clone(), e))?,
+            );
         };
         let policy = self
             .policy
@@ -83,6 +90,7 @@ enum PolicyConfig {
     CompoundPolicy(CompoundPolicyConfig),
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoPolicy for PolicyConfig {
     fn into_policy(self) -> anyhow::Result<Box<dyn Policy>> {
         match self {

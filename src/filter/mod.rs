@@ -3,9 +3,10 @@
 use log::Record;
 use std::fmt;
 
+#[cfg(feature = "config_parsing")]
 use crate::config::LocalOrUser;
 
-#[cfg(feature = "config_parsing")]
+#[cfg(all(feature = "config_parsing", feature = "threshold_filter"))]
 use self::threshold::ThresholdFilterConfig;
 
 #[cfg(feature = "threshold_filter")]
@@ -72,16 +73,10 @@ pub enum LocalFilter {
 }
 
 #[cfg(feature = "config_parsing")]
-impl Default for LocalFilter {
-    fn default() -> Self {
-        Self::ThresholdFilter(ThresholdFilterConfig::default())
-    }
-}
-
-#[cfg(feature = "config_parsing")]
 impl IntoFilter for LocalFilter {
     fn into_filter(self) -> anyhow::Result<Box<dyn Filter>> {
         match self {
+            #[cfg(feature = "threshold_filter")]
             LocalFilter::ThresholdFilter(t) => t.into_filter(),
         }
     }

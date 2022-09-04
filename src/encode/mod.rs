@@ -4,9 +4,10 @@ use derivative::Derivative;
 use log::Record;
 use std::{fmt, io};
 
-#[cfg(feature = "config_parsing")]
-use self::{json::JsonEncoderConfig, pattern::PatternEncoderConfig};
-
+#[cfg(all(feature = "config_parsing", feature = "json_encoder"))]
+use self::json::JsonEncoderConfig;
+#[cfg(all(feature = "config_parsing", feature = "pattern_encoder"))]
+use self::pattern::PatternEncoderConfig;
 #[cfg(feature = "json_encoder")]
 pub mod json;
 #[cfg(feature = "pattern_encoder")]
@@ -32,9 +33,10 @@ pub trait Encode: fmt::Debug + Send + Sync + 'static {
 }
 
 ///
+#[cfg(feature = "config_parsing")]
 pub trait IntoEncode {
     ///
-    fn into_encode(self) -> Box<dyn Encode>;
+    fn into_encode(self) -> anyhow::Result<Box<dyn Encode>>;
 }
 
 /// Configuration for an encoder.
@@ -53,17 +55,13 @@ pub enum EncoderConfig {
     PatternEncoder(PatternEncoderConfig),
 }
 
-impl Default for EncoderConfig {
-    fn default() -> Self {
-        Self::PatternEncoder(PatternEncoderConfig::default())
-    }
-}
-
 #[cfg(feature = "config_parsing")]
 impl IntoEncode for EncoderConfig {
-    fn into_encode(self) -> Box<dyn Encode> {
+    fn into_encode(self) -> anyhow::Result<Box<dyn Encode>> {
         match self {
+            #[cfg(feature = "json_encoder")]
             EncoderConfig::JsonEncoder(j) => j.into_encode(),
+            #[cfg(feature = "pattern_encoder")]
             EncoderConfig::PatternEncoder(p) => p.into_encode(),
         }
     }

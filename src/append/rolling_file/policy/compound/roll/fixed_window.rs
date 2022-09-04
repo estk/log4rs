@@ -14,6 +14,7 @@ use std::{
 
 use crate::append::rolling_file::policy::compound::roll::Roll;
 
+#[cfg(feature = "config_parsing")]
 use super::IntoRoller;
 
 /// Configuration for the fixed window roller.
@@ -26,6 +27,7 @@ pub struct FixedWindowRollerConfig {
     count: u32,
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoRoller for FixedWindowRollerConfig {
     fn into_roller(self) -> anyhow::Result<Box<dyn Roll>> {
         let mut builder = FixedWindowRoller::builder();

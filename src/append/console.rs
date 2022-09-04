@@ -10,10 +10,11 @@ use std::{
 };
 
 #[cfg(feature = "config_parsing")]
-use crate::encode::EncoderConfig;
+use crate::config::{runtime::IntoAppender, DeserializingConfigError};
+#[cfg(feature = "config_parsing")]
+use crate::encode::{EncoderConfig, IntoEncode};
 use crate::{
     append::Append,
-    config::runtime::IntoAppender,
     encode::{
         self,
         pattern::PatternEncoder,
@@ -21,7 +22,7 @@ use crate::{
             console::{ConsoleWriter, ConsoleWriterLock},
             simple::SimpleWriter,
         },
-        Encode, IntoEncode, Style,
+        Encode, Style,
     },
     priv_io::{StdWriter, StdWriterLock},
 };
@@ -240,7 +241,7 @@ impl IntoAppender for ConsoleAppenderConfig {
         self,
         build: crate::config::runtime::AppenderBuilder,
         name: String,
-    ) -> Result<crate::config::Appender, crate::config::raw::DeserializingConfigError> {
+    ) -> Result<crate::config::Appender, DeserializingConfigError> {
         let mut appender = ConsoleAppender::builder();
         if let Some(target) = self.target {
             let target = match target {
@@ -253,7 +254,11 @@ impl IntoAppender for ConsoleAppenderConfig {
             appender = appender.tty_only(tty_only);
         };
         if let Some(encoder) = self.encoder {
-            appender = appender.encoder(encoder.into_encode());
+            appender = appender.encoder(
+                encoder
+                    .into_encode()
+                    .map_err(|e| DeserializingConfigError::Appender(name.clone(), e))?,
+            );
         };
 
         Ok(build.build(name, Box::new(appender.build())))

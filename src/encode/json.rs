@@ -33,9 +33,9 @@ use log::{Level, Record};
 use serde::ser::{self, Serialize, SerializeMap};
 use std::{fmt, option, thread};
 
-use crate::encode::{Encode, Write, NEWLINE};
-
+#[cfg(feature = "config_parsing")]
 use super::IntoEncode;
+use crate::encode::{Encode, Write, NEWLINE};
 
 /// The JSON encoder's configuration
 #[cfg(feature = "config_parsing")]
@@ -46,9 +46,10 @@ pub struct JsonEncoderConfig {
     _p: (),
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoEncode for JsonEncoderConfig {
-    fn into_encode(self) -> Box<dyn Encode> {
-        Box::new(JsonEncoder::default())
+    fn into_encode(self) -> anyhow::Result<Box<dyn Encode>> {
+        Ok(Box::new(JsonEncoder::default()))
     }
 }
 

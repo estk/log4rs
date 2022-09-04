@@ -124,8 +124,9 @@ impl Format {
     #[allow(unused_variables)]
     fn parse<'de, A, F>(&self, source: &'de str) -> anyhow::Result<RawConfig<A, F>>
     where
-        A: Clone + IntoAppender + serde::de::Deserialize<'de> + Default,
-        F: Clone + IntoFilter + serde::de::Deserialize<'de> + Default,
+        A: Clone + IntoAppender,
+        F: Clone + IntoFilter,
+        RawConfig<A, F>: serde::Deserialize<'de>,
     {
         match *self {
             #[cfg(feature = "yaml_format")]

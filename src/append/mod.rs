@@ -5,11 +5,11 @@ use log::{Log, Record};
 use serde::Deserialize;
 use std::fmt;
 
-#[cfg(feature = "config_parsing")]
+#[cfg(all(feature = "config_parsing", feature = "console_appender"))]
 use self::console::ConsoleAppenderConfig;
-#[cfg(feature = "config_parsing")]
+#[cfg(all(feature = "config_parsing", feature = "file_appender"))]
 use self::file::FileAppenderConfig;
-#[cfg(feature = "config_parsing")]
+#[cfg(all(feature = "config_parsing", feature = "rolling_file_appender"))]
 use self::rolling_file::RollingFileAppenderConfig;
 #[cfg(feature = "config_parsing")]
 use crate::config::raw::DeserializingConfigError;
@@ -129,13 +129,9 @@ pub enum LocalAppender {
     #[serde(rename = "rolling_file")]
     RollingFileAppender(RollingFileAppenderConfig),
 }
+
 #[cfg(feature = "config_parsing")]
-impl Default for LocalAppender {
-    fn default() -> Self {
-        Self::ConsoleAppender(ConsoleAppenderConfig::default())
-    }
-}
-#[cfg(feature = "config_parsing")]
+#[allow(unused_variables)]
 impl IntoAppender for LocalAppender {
     fn into_appender(
         self,
@@ -143,8 +139,11 @@ impl IntoAppender for LocalAppender {
         name: String,
     ) -> Result<Appender, DeserializingConfigError> {
         match self {
+            #[cfg(feature = "console_appender")]
             LocalAppender::ConsoleAppender(c) => c.into_appender(build, name),
+            #[cfg(feature = "file_appender")]
             LocalAppender::FileAppender(f) => f.into_appender(build, name),
+            #[cfg(feature = "rolling_file_appender")]
             LocalAppender::RollingFileAppender(r) => r.into_appender(build, name),
         }
     }
@@ -163,11 +162,18 @@ where
     F: Clone + IntoFilter,
 {
     /// The filters attached to the appender.
-    #[serde(default)]
+    #[serde(default = "filters_default")]
     pub filters: Vec<F>,
     /// The appender configuration.
     #[serde(flatten)]
     pub appender: A,
+}
+
+fn filters_default<F>() -> Vec<F>
+where
+    F: Clone + IntoFilter,
+{
+    Vec::new()
 }
 #[cfg(feature = "config_parsing")]
 impl<A, F> IntoAppender for AppenderConfig<A, F>

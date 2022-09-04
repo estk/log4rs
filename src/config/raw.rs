@@ -116,7 +116,7 @@ pub enum DeserializingConfigError {
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(Debug, Default, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig<A, F>
 where
@@ -129,7 +129,7 @@ where
     #[serde(default)]
     root: Root,
 
-    #[serde(default)]
+    #[serde(default = "appenders_default")]
     appenders: HashMap<String, AppenderConfig<A, F>>,
 
     #[serde(default)]
@@ -139,7 +139,7 @@ where
 impl<A, F> RawConfig<A, F>
 where
     A: Clone + IntoAppender,
-    F: Clone + IntoFilter,
+    F: Clone + IntoFilter + std::default::Default,
     Self: for<'de> serde::Deserialize<'de>,
 {
     /// Build RawConfig from the serde::Deserializer trait
@@ -151,6 +151,14 @@ where
     {
         Self::deserialize(deserializer)
     }
+}
+
+fn appenders_default<A, F>() -> HashMap<String, AppenderConfig<A, F>>
+where
+    A: Clone + IntoAppender,
+    F: Clone + IntoFilter,
+{
+    HashMap::new()
 }
 
 #[derive(Debug, Error)]

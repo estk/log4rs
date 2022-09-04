@@ -4,17 +4,17 @@
 #[cfg(feature = "config_parsing")]
 use serde;
 
-use crate::append::rolling_file::{
-    policy::{compound::roll::Roll, Policy},
-    LogFile,
-};
-
+#[cfg(feature = "config_parsing")]
 use self::{
     roll::{delete::DeleteRollerConfig, fixed_window::FixedWindowRollerConfig, IntoRoller},
     trigger::{size::SizeTriggerConfig, IntoTrigger},
 };
-
+#[cfg(feature = "config_parsing")]
 use super::IntoPolicy;
+use crate::append::rolling_file::{
+    policy::{compound::roll::Roll, Policy},
+    LogFile,
+};
 
 pub mod roll;
 pub mod trigger;
@@ -28,6 +28,7 @@ pub struct CompoundPolicyConfig {
     roller: RollerConfig,
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoPolicy for CompoundPolicyConfig {
     fn into_policy(self) -> anyhow::Result<Box<dyn Policy>> {
         let trigger = self.trigger.into_trigger();
@@ -45,6 +46,7 @@ enum TriggerConfig {
     SizeTrigger(SizeTriggerConfig),
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoTrigger for TriggerConfig {
     fn into_trigger(self) -> Box<dyn trigger::Trigger> {
         match self {
@@ -86,6 +88,7 @@ enum RollerConfig {
     FixedWindowRoller(FixedWindowRollerConfig),
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoRoller for RollerConfig {
     fn into_roller(self) -> anyhow::Result<Box<dyn Roll>> {
         match self {

@@ -4,9 +4,9 @@
 
 use std::{fs, path::Path};
 
-use crate::append::rolling_file::policy::compound::roll::Roll;
-
+#[cfg(feature = "config_parsing")]
 use super::IntoRoller;
+use crate::append::rolling_file::policy::compound::roll::Roll;
 
 /// Configuration for the delete roller.
 #[cfg(feature = "config_parsing")]
@@ -17,6 +17,7 @@ pub struct DeleteRollerConfig {
     _p: (),
 }
 
+#[cfg(feature = "config_parsing")]
 impl IntoRoller for DeleteRollerConfig {
     fn into_roller(self) -> anyhow::Result<Box<dyn Roll>> {
         Ok(Box::new(DeleteRoller::default()))

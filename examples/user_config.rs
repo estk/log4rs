@@ -35,7 +35,9 @@ impl IntoAppender for UserAppender {
         let mut appender = ConsoleAppender::builder();
         match self {
             UserAppender::T(c) => {
-                let r = c.encoder.into_encode();
+                let r = c.encoder.into_encode().map_err(|e| {
+                    log4rs::config::DeserializingConfigError::Appender(name.clone(), e)
+                })?;
                 appender = appender.encoder(r)
             }
         }

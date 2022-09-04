@@ -124,13 +124,13 @@ use derivative::Derivative;
 use log::{Level, Record};
 use std::{default::Default, io, process, thread};
 
+#[cfg(feature = "config_parsing")]
+use super::IntoEncode;
 use crate::encode::{
     self,
     pattern::parser::{Alignment, Parameters, Parser, Piece},
     Color, Encode, Style, NEWLINE,
 };
-
-use super::IntoEncode;
 
 mod parser;
 
@@ -146,14 +146,14 @@ thread_local!(
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
 }
-
+#[cfg(feature = "config_parsing")]
 impl IntoEncode for PatternEncoderConfig {
-    fn into_encode(self) -> Box<dyn Encode> {
+    fn into_encode(self) -> anyhow::Result<Box<dyn Encode>> {
         let encoder = match self.pattern {
             Some(pattern) => PatternEncoder::new(&pattern),
             None => PatternEncoder::default(),
         };
-        Box::new(encoder)
+        Ok(Box::new(encoder))
     }
 }
 

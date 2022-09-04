@@ -22,6 +22,7 @@ pub use self::raw::RawConfig;
 use self::runtime::IntoAppender;
 #[cfg(feature = "config_parsing")]
 use crate::filter::IntoFilter;
+#[cfg(feature = "config_parsing")]
 pub use raw::DeserializingConfigError;
 /// Initializes the global logger as a log4rs logger with the provided config.
 ///
@@ -59,7 +60,7 @@ pub fn init_config_with_err_handler(
 pub fn init_raw_config<A, F>(config: RawConfig<A, F>) -> Result<(), InitError>
 where
     A: Clone + IntoAppender,
-    F: Clone + IntoFilter,
+    F: Clone + IntoFilter + std::default::Default,
 {
     let (appenders, errors) = config.appenders_lossy();
     if !errors.is_empty() {
@@ -107,7 +108,7 @@ where
     /// User config
     User(U),
 }
-
+#[cfg(feature = "config_parsing")]
 impl<L, U> Default for LocalOrUser<L, U>
 where
     L: Clone + Default,

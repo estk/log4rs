@@ -4,9 +4,9 @@
 
 use log::{LevelFilter, Record};
 
-use crate::filter::{Filter, Response};
-
+#[cfg(feature = "config_parsing")]
 use super::IntoFilter;
+use crate::filter::{Filter, Response};
 
 /// The threshold filter's configuration.
 #[cfg(feature = "config_parsing")]
@@ -14,7 +14,7 @@ use super::IntoFilter;
 pub struct ThresholdFilterConfig {
     level: LevelFilter,
 }
-
+#[cfg(feature = "config_parsing")]
 impl Default for ThresholdFilterConfig {
     fn default() -> Self {
         Self {
@@ -22,7 +22,7 @@ impl Default for ThresholdFilterConfig {
         }
     }
 }
-
+#[cfg(feature = "config_parsing")]
 impl IntoFilter for ThresholdFilterConfig {
     fn into_filter(self) -> anyhow::Result<Box<dyn Filter>> {
         Ok(Box::new(ThresholdFilter::new(self.level)))
