@@ -18,6 +18,8 @@ use crate::filter::FilterConfig;
 pub mod console;
 #[cfg(feature = "file_appender")]
 pub mod file;
+#[cfg(feature = "daily_file_appender")]
+pub mod daily_file;
 #[cfg(feature = "rolling_file_appender")]
 pub mod rolling_file;
 

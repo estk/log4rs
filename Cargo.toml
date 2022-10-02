@@ -19,6 +19,7 @@ toml_format = ["toml"]
 
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
 file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
+daily_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 compound_policy = []
 delete_roller = []
@@ -35,6 +36,7 @@ background_rotation = []
 all_components = [
     "console_appender",
     "file_appender",
+    "daily_file_appender",
     "rolling_file_appender",
     "compound_policy",
     "delete_roller",

@@ -186,6 +186,9 @@ impl Default for Deserializers {
         #[cfg(feature = "file_appender")]
         d.insert("file", append::file::FileAppenderDeserializer);
 
+        #[cfg(feature = "daily_file_appender")]
+        d.insert("daily_file", append::daily_file::DailyFileAppenderDeserializer);
+
         #[cfg(feature = "rolling_file_appender")]
         d.insert(
             "rolling_file",
