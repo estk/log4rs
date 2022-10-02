@@ -75,7 +75,8 @@ impl Append for DailyFileAppender {
                 .append(true)
                 .create(true)
                 .open(&filename)?;
-            file.file_handle = SimpleWriter(BufWriter::with_capacity(1024, new_file))
+            file.file_handle = SimpleWriter(BufWriter::with_capacity(1024, new_file));
+            file.name = filename;
         }
 
         self.encoder.encode(&mut file.file_handle, record)?;

@@ -14,6 +14,7 @@
 //! Implementations:
 //!   - [console](append/console/struct.ConsoleAppenderDeserializer.html#configuration): requires the `console_appender` feature.
 //!   - [file](append/file/struct.FileAppenderDeserializer.html#configuration): requires the `file_appender` feature.
+//!   - [daily_file](append/daily_file/struct.DailyFileAppenderDeserializer.html#configuration): requires the `daily_file_appender` feature.
 //!   - [rolling_file](append/rolling_file/struct.RollingFileAppenderDeserializer.html#configuration): requires the `rolling_file_appender` feature and can be configured with the `compound_policy`.
 //!     - [compound](append/rolling_file/policy/compound/struct.CompoundPolicyDeserializer.html#configuration): requires the `compound_policy` feature
 //!       - Rollers
