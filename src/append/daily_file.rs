@@ -60,7 +60,16 @@ impl Append for DailyFileAppender {
         let today_str = today.format("%Y-%m-%d").to_string();
         let filename = self.pattern.replace("{}", &today_str);
         if file.name != filename {
-            // Reopen file
+            let mut path_buf = PathBuf::new();
+            path_buf.push(filename.clone());
+
+            let path = super::env_util::expand_env_vars(path_buf);
+
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+
+            // open new file
             let new_file = OpenOptions::new()
                 .write(true)
                 .append(true)
