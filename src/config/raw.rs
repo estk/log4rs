@@ -100,7 +100,7 @@ use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
 use thiserror::Error;
-use typemap::{Key, ShareCloneMap};
+use typemap_ors::{Key, ShareCloneMap};
 
 use crate::{append::AppenderConfig, config};
 
