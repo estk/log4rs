@@ -1,32 +1,47 @@
 # Change Log
 
+## [1.2.0]
+
+### Changed
+
+* Update minimum supported rust to 1.56 for `edition 2021`
+
+### Fixed
+
+* Typemap fix: [#282](https://github.com/estk/log4rs/pull/282)
+
 ## [1.1.1]
 
-## New
+### New
 
-## Changed
+### Changed
+
 * Removed palaver
 * Update `parking_lot` to `0.11`.
 * Update minimum supported rust to 1.49 for `parking_lot`
 
-## Fixed
+### Fixed
+
 * #253
 
 ## [1.1.0]
 
 ### New
+
 * Added example of compile-time config
 * Add gettid for `PatternEncoder`
 * Better rotation benchmark statistics
 * Add tty_only option to `ConsoleAppender`
 
 ### Changed
+
 * Update `arc_swap` to `1.2`.
 * Update `thread_id` to `4`.
 * Update docs for `FixedWindow::build`
 * Drop `Regex` dependency
 
 ### Fixed
+
 * Hide {} in error message from formatting machinery
 * Fix link in examples
 
