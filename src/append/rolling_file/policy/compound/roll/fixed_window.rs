@@ -556,4 +556,41 @@ mod test {
 
         assert_eq!(contents, actual);
     }
+
+    #[test]
+    fn roll_with_env_var() {
+        std::env::set_var("LOG_DIR", "test_log_dir");
+        let fcontent = b"file1";
+        let dir = tempfile::tempdir().unwrap();
+
+        let base = dir.path().to_str().unwrap();
+        let roller = FixedWindowRoller::builder()
+            .build(&format!("{}/$ENV{{LOG_DIR}}/foo.log.{{}}", base), 2)
+            .unwrap();
+
+        let file = dir.path().join("foo.log");
+        File::create(&file).unwrap().write_all(fcontent).unwrap();
+
+        //Check file exists before roll is called
+        assert!(file.exists());
+
+        roller.roll(&file).unwrap();
+        wait_for_roller(&roller);
+
+        //Check file does not exists after roll is called
+        assert!(!file.exists());
+
+        let rolled_file = dir.path().join("test_log_dir").join("foo.log.0");
+        //Check the new rolled file exists
+        assert!(rolled_file.exists());
+
+        let mut contents = vec![];
+
+        File::open(rolled_file)
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
+        //Check the new rolled file has the same contents as the old one
+        assert_eq!(contents, fcontent);
+    }
 }
