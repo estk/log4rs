@@ -257,10 +257,10 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
-        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
+        let path = super::env_util::expand_env_vars(path.as_ref().to_string_lossy());
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
-            path,
+            path: path.into(),
             append: self.append,
             encoder: self
                 .encoder

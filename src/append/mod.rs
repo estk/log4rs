@@ -39,9 +39,9 @@ mod env_util {
         c.is_alphanumeric() || c == '_' || c == '.'
     }
 
-    pub fn expand_env_vars(path: std::path::PathBuf) -> std::path::PathBuf {
-        let path: String = path.to_string_lossy().into();
-        let mut outpath: String = path.clone();
+    pub fn expand_env_vars<T: Into<String>>(path: T) -> String {
+        let mut outpath: String = path.into();
+        let path: String = outpath.clone();
         for (match_start, _) in path.match_indices(ENV_PREFIX) {
             let env_name_start = match_start + ENV_PREFIX_LEN;
             let (_, tail) = path.split_at(env_name_start);
@@ -72,7 +72,7 @@ mod env_util {
                 }
             }
         }
-        outpath.into()
+        outpath
     }
 }
 
@@ -261,8 +261,8 @@ mod test {
         ];
 
         for (input, expected) in test_cases {
-            let res = super::env_util::expand_env_vars(input.into());
-            assert_eq!(res, expected)
+            let res = super::env_util::expand_env_vars(input);
+            assert_eq!(res, expected.to_string_lossy())
         }
     }
 }
