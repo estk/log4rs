@@ -12,6 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::append::env_util::expand_env_vars;
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -199,30 +200,33 @@ fn rotate(
     count: u32,
     file: PathBuf,
 ) -> io::Result<()> {
-    let dst_0 = pattern.replace("{}", &base.to_string());
+    let dst_0 = expand_env_vars(pattern.replace("{}", &base.to_string()));
 
-    if let Some(parent) = Path::new(&dst_0).parent() {
+    if let Some(parent) = Path::new(dst_0.as_ref()).parent() {
         fs::create_dir_all(parent)?;
     }
 
     // In the common case, all of the archived files will be in the same
     // directory, so avoid extra filesystem calls in that case.
-    let parent_varies = match (Path::new(&dst_0).parent(), Path::new(&pattern).parent()) {
+    let parent_varies = match (
+        Path::new(dst_0.as_ref()).parent(),
+        Path::new(expand_env_vars(&pattern).as_ref()).parent(),
+    ) {
         (Some(a), Some(b)) => a != b,
         _ => false, // Only case that can actually happen is (None, None)
     };
 
     for i in (base..base + count - 1).rev() {
-        let src = pattern.replace("{}", &i.to_string());
-        let dst = pattern.replace("{}", &(i + 1).to_string());
+        let src = expand_env_vars(pattern.replace("{}", &i.to_string()));
+        let dst = expand_env_vars(pattern.replace("{}", &(i + 1).to_string()));
 
         if parent_varies {
-            if let Some(parent) = Path::new(&dst).parent() {
+            if let Some(parent) = Path::new(dst.as_ref()).parent() {
                 fs::create_dir_all(parent)?;
             }
         }
 
-        move_file(&src, &dst)?;
+        move_file(src.as_ref(), dst.as_ref())?;
     }
 
     compression.compress(&file, &dst_0).map_err(|e| {
