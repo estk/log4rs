@@ -7,16 +7,16 @@ use serde::{self, de};
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
 use std::collections::BTreeMap;
+use std::path::Path;
 
-use crate::append::rolling_file::{
-    policy::{compound::roll::Roll, Policy},
-    LogFile,
-};
+use crate::append::rolling_file::{policy::Policy, LogFile};
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
 pub mod roll;
 pub mod trigger;
+
+pub use roll::Roll;
 
 /// Configuration for the compound policy.
 #[cfg(feature = "config_parsing")]
@@ -105,6 +105,11 @@ impl Policy for CompoundPolicy {
             log.roll();
             self.roller.roll(log.path())?;
         }
+        Ok(())
+    }
+
+    fn startup(&self, path: &Path) -> anyhow::Result<()> {
+        self.roller.roll(path)?;
         Ok(())
     }
 }

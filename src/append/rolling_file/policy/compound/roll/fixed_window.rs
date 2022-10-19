@@ -332,7 +332,7 @@ impl Deserialize for FixedWindowRollerDeserializer {
 }
 
 #[cfg(test)]
-mod test {
+pub(crate) mod test {
     use std::{
         fs::File,
         io::{Read, Write},
@@ -342,7 +342,7 @@ mod test {
     use crate::append::rolling_file::policy::compound::roll::Roll;
 
     #[cfg(feature = "background_rotation")]
-    fn wait_for_roller(roller: &FixedWindowRoller) {
+    pub(crate) fn wait_for_roller(roller: &FixedWindowRoller) {
         std::thread::sleep(std::time::Duration::from_millis(100));
         let _lock = roller.cond_pair.0.lock();
     }

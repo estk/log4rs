@@ -51,6 +51,8 @@ pub struct RollingFileAppenderConfig {
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
+    #[serde(default)]
+    roll_on_startup: bool,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -194,6 +196,7 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
+            roll_on_startup: false,
         }
     }
 
@@ -225,6 +228,7 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
+    roll_on_startup: bool,
 }
 
 impl RollingFileAppenderBuilder {
@@ -233,6 +237,13 @@ impl RollingFileAppenderBuilder {
     /// Defaults to `true`.
     pub fn append(mut self, append: bool) -> RollingFileAppenderBuilder {
         self.append = append;
+        self
+    }
+
+    /// Sets the startup behavior: If `roll` is set to `true`, roll the
+    /// log file when the policy gets built.
+    pub fn roll_on_startup(mut self, roll: bool) -> RollingFileAppenderBuilder {
+        self.roll_on_startup = roll;
         self
     }
 
@@ -248,7 +259,8 @@ impl RollingFileAppenderBuilder {
     /// The path argument can contain environment variables of the form $ENV{name_here},
     /// where 'name_here' will be the name of the environment variable that
     /// will be resolved. Note that if the variable fails to resolve,
-    /// $ENV{name_here} will NOT be replaced in the path.
+    /// $ENV{name_here} will NOT be replaced in the path. If set in the configuration, this
+    /// will roll the log file on startup as well.
     pub fn build<P>(
         self,
         path: P,
@@ -258,7 +270,8 @@ impl RollingFileAppenderBuilder {
         P: AsRef<Path>,
     {
         let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
-        let appender = RollingFileAppender {
+        let old_log_file_exists = path.exists();
+        let mut appender = RollingFileAppender {
             writer: Mutex::new(None),
             path,
             append: self.append,
@@ -272,8 +285,18 @@ impl RollingFileAppenderBuilder {
             fs::create_dir_all(parent)?;
         }
 
-        // open the log file immediately
+        // Open the log file immediately
         appender.get_writer(&mut appender.writer.lock())?;
+
+        if self.roll_on_startup && old_log_file_exists {
+            if let Err(why) = appender.policy.startup(&appender.path) {
+                return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", why)));
+            }
+            // Reset the writer to avoid IO Errors.
+            // This recreates the file handle and fixes rolling issues.
+            appender.writer = Mutex::new(None);
+            appender.get_writer(&mut appender.writer.lock())?;
+        }
 
         Ok(appender)
     }
@@ -315,6 +338,9 @@ impl RollingFileAppenderBuilder {
 ///
 ///   roller:
 ///     kind: delete
+///
+/// # Rolls the log file over when the logger gets initialized. Defaults to false.
+/// roll_on_startup: true
 /// ```
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
@@ -332,6 +358,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         deserializers: &Deserializers,
     ) -> anyhow::Result<Box<dyn Append>> {
         let mut builder = RollingFileAppender::builder();
+        builder = builder.roll_on_startup(config.roll_on_startup);
         if let Some(append) = config.append {
             builder = builder.append(append);
         }
@@ -339,7 +366,6 @@ impl Deserialize for RollingFileAppenderDeserializer {
             let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
             builder = builder.encoder(encoder);
         }
-
         let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
         let appender = builder.build(config.path, policy)?;
         Ok(Box::new(appender))
@@ -353,8 +379,16 @@ mod test {
         io::{Read, Write},
     };
 
+    #[cfg(feature = "compound_policy")]
+    use self::policy::compound::{
+        roll::{delete::DeleteRoller, fixed_window::FixedWindowRoller},
+        trigger::size::SizeTrigger,
+        CompoundPolicy,
+    };
     use super::*;
-    use crate::append::rolling_file::policy::Policy;
+    #[cfg(feature = "compound_policy")]
+    use log::RecordBuilder;
+    use policy::Policy;
 
     #[test]
     #[cfg(feature = "yaml_format")]
@@ -383,11 +417,12 @@ appenders:
       trigger:
         kind: size
         limit: 5 mb
-      roller:
+      roller: &roll
         kind: fixed_window
         pattern: '{0}/foo.log.{{}}'
         base: 1
         count: 5
+    roll_on_startup: true
 ",
             dir.path().display()
         );
@@ -451,5 +486,92 @@ appenders:
             .read_to_end(&mut contents)
             .unwrap();
         assert_eq!(contents, b"");
+    }
+
+    #[test]
+    #[cfg(feature = "compound_policy")]
+    fn startup_delete_roll() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("latest.log");
+
+        // First run creates the file, second run tests the roll on startup.
+        for _ in 0..2 {
+            {
+                let appender = RollingFileAppender::builder()
+                    .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+                    .roll_on_startup(true)
+                    .build(
+                        path.as_path(),
+                        Box::new(CompoundPolicy::new(
+                            Box::new(SizeTrigger::new(100)),
+                            Box::new(DeleteRoller::new()),
+                        )),
+                    )
+                    .unwrap();
+
+                for _ in 0..11 {
+                    let record_builder = RecordBuilder::new().args(format_args!("Test")).build();
+                    appender.append(&record_builder).unwrap();
+                }
+            }
+        }
+
+        let mut contents = String::new();
+        File::open(&path)
+            .unwrap()
+            .read_to_string(&mut contents)
+            .unwrap();
+        assert_eq!(contents, String::from("INFO - Test\nINFO - Test\n"));
+    }
+
+    #[test]
+    #[cfg(feature = "compound_policy")]
+    fn startup_fixed_window_roll() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("latest.log");
+        let pattern = dir.path().join("log-{}.log");
+        let roller = Box::new(
+            FixedWindowRoller::builder()
+                .build(pattern.to_str().unwrap(), 5)
+                .unwrap(),
+        );
+
+        // First run creates the file, second run tests the roll on startup.
+        for _ in 0..2 {
+            let appender = RollingFileAppender::builder()
+                .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+                .roll_on_startup(true)
+                .build(
+                    path.as_path(),
+                    Box::new(CompoundPolicy::new(
+                        Box::new(SizeTrigger::new(100)),
+                        roller.clone(),
+                    )),
+                )
+                .unwrap();
+
+            for _ in 0..11 {
+                let record_builder = RecordBuilder::new().args(format_args!("Test")).build();
+                appender.append(&record_builder).unwrap();
+            }
+        }
+
+        #[cfg(feature = "background_rotation")]
+        policy::compound::roll::fixed_window::test::wait_for_roller(roller.as_ref());
+
+        let mut contents;
+        for (p, s) in [
+            (dir.path().join("latest.log"), "INFO - Test\nINFO - Test\n"),
+            (dir.path().join("log-0.log"), "INFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\n"),
+            (dir.path().join("log-1.log"), "INFO - Test\nINFO - Test\n"),
+            (dir.path().join("log-2.log"), "INFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\nINFO - Test\n"),
+        ] {
+            contents = String::new();
+            File::open(p)
+                .unwrap()
+                .read_to_string(&mut contents)
+                .unwrap();
+            assert_eq!(contents, String::from(s));
+        }
     }
 }
