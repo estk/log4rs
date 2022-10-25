@@ -154,3 +154,16 @@ impl<'a, W: Write + ?Sized> Write for &'a mut W {
         <W as Write>::set_style(*self, style)
     }
 }
+
+#[cfg(test)]
+#[allow(dead_code)]
+pub(crate) mod tests {
+    #[derive(Debug)]
+    pub struct DummyEncoder;
+
+    impl super::Encode for DummyEncoder {
+        fn encode(&self, _w: &mut dyn super::Write, _record: &log::Record) -> anyhow::Result<()> {
+            Ok(())
+        }
+    }
+}

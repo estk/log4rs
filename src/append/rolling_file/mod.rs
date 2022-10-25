@@ -25,6 +25,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(feature = "pattern_encoder")]
+use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
@@ -32,7 +34,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     append::Append,
-    encode::{self, pattern::PatternEncoder, Encode},
+    encode::{self, Encode},
 };
 
 #[cfg(feature = "config_parsing")]
@@ -193,6 +195,7 @@ impl RollingFileAppender {
     pub fn builder() -> RollingFileAppenderBuilder {
         RollingFileAppenderBuilder {
             append: true,
+            #[cfg(feature = "pattern_encoder")]
             encoder: None,
         }
     }
@@ -224,6 +227,7 @@ impl RollingFileAppender {
 /// A builder for the `RollingFileAppender`.
 pub struct RollingFileAppenderBuilder {
     append: bool,
+    #[cfg(feature = "pattern_encoder")]
     encoder: Option<Box<dyn Encode>>,
 }
 
@@ -239,6 +243,7 @@ impl RollingFileAppenderBuilder {
     /// Sets the encoder used by the appender.
     ///
     /// Defaults to a `PatternEncoder` with the default pattern.
+    #[cfg(feature = "pattern_encoder")]
     pub fn encoder(mut self, encoder: Box<dyn Encode>) -> RollingFileAppenderBuilder {
         self.encoder = Some(encoder);
         self
@@ -249,6 +254,7 @@ impl RollingFileAppenderBuilder {
     /// where 'name_here' will be the name of the environment variable that
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(feature = "pattern_encoder")]
     pub fn build<P>(
         self,
         path: P,
@@ -257,14 +263,50 @@ impl RollingFileAppenderBuilder {
     where
         P: AsRef<Path>,
     {
-        let path = super::env_util::expand_env_vars(path.as_ref().to_path_buf());
+        self.build_internal(path.as_ref(), policy, |this| {
+            let encoder = this
+                .encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default()));
+
+            (encoder, this.append)
+        })
+    }
+
+    /// Constructs a `RollingFileAppender`.
+    /// The path argument can contain environment variables of the form $ENV{name_here},
+    /// where 'name_here' will be the name of the environment variable that
+    /// will be resolved. Note that if the variable fails to resolve,
+    /// $ENV{name_here} will NOT be replaced in the path.
+    #[cfg(not(feature = "pattern_encoder"))]
+    pub fn build<P>(
+        self,
+        path: P,
+        encoder: Box<dyn Encode>,
+        policy: Box<dyn policy::Policy>,
+    ) -> io::Result<RollingFileAppender>
+    where
+        P: AsRef<Path>,
+    {
+        self.build_internal(path.as_ref(), policy, |this| (encoder, this.append))
+    }
+
+    fn build_internal<F>(
+        self,
+        path: &Path,
+        policy: Box<dyn policy::Policy>,
+        destructure: F,
+    ) -> io::Result<RollingFileAppender>
+    where
+        F: FnOnce(Self) -> (Box<dyn Encode>, bool),
+    {
+        let (encoder, append) = destructure(self);
+
+        let path = super::env_util::expand_env_vars(path.to_path_buf());
         let appender = RollingFileAppender {
             writer: Mutex::new(None),
             path,
-            append: self.append,
-            encoder: self
-                .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            append,
+            encoder,
             policy,
         };
 
@@ -411,17 +453,11 @@ appenders:
     fn append() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
-        RollingFileAppender::builder()
-            .append(true)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(true), &path).unwrap();
         assert!(path.exists());
         File::create(&path).unwrap().write_all(b"hello").unwrap();
 
-        RollingFileAppender::builder()
-            .append(true)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(true), &path).unwrap();
         let mut contents = vec![];
         File::open(&path)
             .unwrap()
@@ -434,22 +470,28 @@ appenders:
     fn truncate() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("truncate.log");
-        RollingFileAppender::builder()
-            .append(false)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(false), &path).unwrap();
         assert!(path.exists());
         File::create(&path).unwrap().write_all(b"hello").unwrap();
 
-        RollingFileAppender::builder()
-            .append(false)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
+        build(RollingFileAppender::builder().append(false), &path).unwrap();
         let mut contents = vec![];
         File::open(&path)
             .unwrap()
             .read_to_end(&mut contents)
             .unwrap();
         assert_eq!(contents, b"");
+    }
+
+    #[cfg(feature = "pattern_encoder")]
+    fn build(builder: RollingFileAppenderBuilder, path: &Path) -> io::Result<RollingFileAppender> {
+        builder.build(path, Box::new(NopPolicy))
+    }
+
+    #[cfg(not(feature = "pattern_encoder"))]
+    fn build(builder: RollingFileAppenderBuilder, path: &Path) -> io::Result<RollingFileAppender> {
+        use crate::encode::tests::DummyEncoder;
+
+        builder.build(path, Box::new(DummyEncoder), Box::new(NopPolicy))
     }
 }

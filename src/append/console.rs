@@ -11,13 +11,14 @@ use std::{
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
+#[cfg(feature = "pattern_encoder")]
+use crate::encode::pattern::PatternEncoder;
 #[cfg(feature = "config_parsing")]
 use crate::encode::EncoderConfig;
 use crate::{
     append::Append,
     encode::{
         self,
-        pattern::PatternEncoder,
         writer::{
             console::{ConsoleWriter, ConsoleWriterLock},
             simple::SimpleWriter,
@@ -143,6 +144,7 @@ impl ConsoleAppender {
     /// Creates a new `ConsoleAppender` builder.
     pub fn builder() -> ConsoleAppenderBuilder {
         ConsoleAppenderBuilder {
+            #[cfg(feature = "pattern_encoder")]
             encoder: None,
             target: Target::Stdout,
             tty_only: false,
@@ -152,6 +154,7 @@ impl ConsoleAppender {
 
 /// A builder for `ConsoleAppender`s.
 pub struct ConsoleAppenderBuilder {
+    #[cfg(feature = "pattern_encoder")]
     encoder: Option<Box<dyn Encode>>,
     target: Target,
     tty_only: bool,
@@ -159,6 +162,7 @@ pub struct ConsoleAppenderBuilder {
 
 impl ConsoleAppenderBuilder {
     /// Sets the output encoder for the `ConsoleAppender`.
+    #[cfg(feature = "pattern_encoder")]
     pub fn encoder(mut self, encoder: Box<dyn Encode>) -> ConsoleAppenderBuilder {
         self.encoder = Some(encoder);
         self
@@ -181,8 +185,30 @@ impl ConsoleAppenderBuilder {
     }
 
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
+    #[cfg(feature = "pattern_encoder")]
     pub fn build(self) -> ConsoleAppender {
-        let writer = match self.target {
+        self.build_internal(|this| {
+            let encoder = this
+                .encoder
+                .unwrap_or_else(|| Box::new(PatternEncoder::default()));
+
+            (encoder, this.target, this.tty_only)
+        })
+    }
+
+    /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
+    #[cfg(not(feature = "pattern_encoder"))]
+    pub fn build(self, encoder: Box<dyn Encode>) -> ConsoleAppender {
+        self.build_internal(|this| (encoder, this.target, this.tty_only))
+    }
+
+    fn build_internal<F>(self, destructure: F) -> ConsoleAppender
+    where
+        F: FnOnce(Self) -> (Box<dyn Encode>, Target, bool),
+    {
+        let (encoder, target, tty_only) = destructure(self);
+
+        let writer = match target {
             Target::Stderr => match ConsoleWriter::stderr() {
                 Some(writer) => Writer::Tty(writer),
                 None => Writer::Raw(StdWriter::stderr()),
@@ -193,13 +219,11 @@ impl ConsoleAppenderBuilder {
             },
         };
 
-        let do_write = writer.is_tty() || !self.tty_only;
+        let do_write = writer.is_tty() || !tty_only;
 
         ConsoleAppender {
             writer,
-            encoder: self
-                .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+            encoder,
             do_write,
         }
     }
