@@ -169,11 +169,8 @@ impl Append for RollingFileAppender {
 
         let len = {
             let writer = self.get_writer(&mut writer)?;
-            self.encoder.encode(writer, record)?;
-            writer.flush()?;
             writer.len
         };
-
         let mut file = LogFile {
             writer: &mut writer,
             path: &self.path,
@@ -182,7 +179,12 @@ impl Append for RollingFileAppender {
 
         // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
         // data that comes in while we are processing the file rotation.
-        self.policy.process(&mut file)
+        self.policy.process(&mut file)?;
+
+        let writer = self.get_writer(&mut writer)?;
+        self.encoder.encode(writer, record)?;
+        writer.flush()?;
+        Ok(())
     }
 
     fn flush(&self) {}
