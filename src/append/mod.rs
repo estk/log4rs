@@ -23,6 +23,8 @@ pub mod rolling_file;
 
 #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
 mod env_util {
+    use std::borrow::Cow;
+
     const ENV_PREFIX: &str = "$ENV{";
     const ENV_PREFIX_LEN: usize = ENV_PREFIX.len();
     const ENV_SUFFIX: char = '}';
@@ -39,12 +41,15 @@ mod env_util {
         c.is_alphanumeric() || c == '_' || c == '.'
     }
 
-    pub fn expand_env_vars<T: Into<String>>(path: T) -> String {
-        let mut outpath: String = path.into();
-        let path: String = outpath.clone();
-        for (match_start, _) in path.match_indices(ENV_PREFIX) {
+    pub fn expand_env_vars<'str, Str>(s: Str) -> Cow<'str, str>
+    where
+        Str: Into<Cow<'str, str>>,
+    {
+        let orig_path: Cow<str> = s.into();
+        let mut out_path = orig_path.clone();
+        for (match_start, _) in orig_path.match_indices(ENV_PREFIX) {
             let env_name_start = match_start + ENV_PREFIX_LEN;
-            let (_, tail) = path.split_at(env_name_start);
+            let (_, tail) = orig_path.split_at(env_name_start);
             let mut cs = tail.chars();
             // Check first character.
             if let Some(ch) = cs.next() {
@@ -66,13 +71,15 @@ mod env_util {
                             // This simply rewrites the entire outpath with all instances
                             // of this var replaced. Could be done more efficiently by building
                             // `outpath` as we go when processing `path`. Not critical.
-                            outpath = outpath.replace(&path[match_start..match_end], &env_value);
+                            out_path = Cow::Owned(
+                                out_path.replace(&orig_path[match_start..match_end], &env_value),
+                            );
                         }
                     }
                 }
             }
         }
-        outpath
+        out_path
     }
 }
 

@@ -21,6 +21,8 @@ use crate::{
     encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
 };
 
+use super::env_util::expand_env_vars;
+
 /// The file appender's configuration.
 #[cfg(feature = "config_parsing")]
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
@@ -89,8 +91,8 @@ impl FileAppenderBuilder {
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
-        let path: PathBuf =
-            super::env_util::expand_env_vars(path.as_ref().to_string_lossy()).into();
+        let path_cow = path.as_ref().to_string_lossy();
+        let path: PathBuf = expand_env_vars(path_cow).as_ref().into();
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
