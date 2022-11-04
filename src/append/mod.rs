@@ -23,6 +23,8 @@ pub mod rolling_file;
 
 #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
 mod env_util {
+    use std::borrow::Cow;
+
     const ENV_PREFIX: &str = "$ENV{";
     const ENV_PREFIX_LEN: usize = ENV_PREFIX.len();
     const ENV_SUFFIX: char = '}';
@@ -39,9 +41,12 @@ mod env_util {
         c.is_alphanumeric() || c == '_' || c == '.'
     }
 
-    pub fn expand_env_vars(path: std::path::PathBuf) -> std::path::PathBuf {
-        let path: String = path.to_string_lossy().into();
-        let mut outpath: String = path.clone();
+    pub fn expand_env_vars<'str, Str>(path: Str) -> Cow<'str, str>
+    where
+        Str: Into<Cow<'str, str>>,
+    {
+        let mut outpath: Cow<str> = path.into();
+        let path = outpath.clone();
         for (match_start, _) in path.match_indices(ENV_PREFIX) {
             let env_name_start = match_start + ENV_PREFIX_LEN;
             let (_, tail) = path.split_at(env_name_start);
@@ -66,13 +71,15 @@ mod env_util {
                             // This simply rewrites the entire outpath with all instances
                             // of this var replaced. Could be done more efficiently by building
                             // `outpath` as we go when processing `path`. Not critical.
-                            outpath = outpath.replace(&path[match_start..match_end], &env_value);
+                            outpath = outpath
+                                .replace(&path[match_start..match_end], &env_value)
+                                .into();
                         }
                     }
                 }
             }
         }
-        outpath.into()
+        outpath
     }
 }
 
@@ -147,10 +154,7 @@ impl<'de> Deserialize<'de> for AppenderConfig {
 #[cfg(test)]
 mod test {
     #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
-    use std::{
-        env::{set_var, var},
-        path::PathBuf,
-    };
+    use std::env::{set_var, var};
 
     #[test]
     #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
@@ -158,110 +162,91 @@ mod test {
         set_var("HELLO_WORLD", "GOOD BYE");
         #[cfg(not(target_os = "windows"))]
         let test_cases = vec![
-            ("$ENV{HOME}", PathBuf::from(var("HOME").unwrap())),
-            (
-                "$ENV{HELLO_WORLD}",
-                PathBuf::from(var("HELLO_WORLD").unwrap()),
-            ),
-            (
-                "$ENV{HOME}/test",
-                PathBuf::from(format!("{}/test", var("HOME").unwrap())),
-            ),
+            ("$ENV{HOME}", var("HOME").unwrap()),
+            ("$ENV{HELLO_WORLD}", var("HELLO_WORLD").unwrap()),
+            ("$ENV{HOME}/test", format!("{}/test", var("HOME").unwrap())),
             (
                 "/test/$ENV{HOME}",
-                PathBuf::from(format!("/test/{}", var("HOME").unwrap())),
+                format!("/test/{}", var("HOME").unwrap()),
             ),
             (
                 "/test/$ENV{HOME}/test",
-                PathBuf::from(format!("/test/{}/test", var("HOME").unwrap())),
+                format!("/test/{}/test", var("HOME").unwrap()),
             ),
             (
                 "/test$ENV{HOME}/test",
-                PathBuf::from(format!("/test{}/test", var("HOME").unwrap())),
+                format!("/test{}/test", var("HOME").unwrap()),
             ),
             (
                 "test/$ENV{HOME}/test",
-                PathBuf::from(format!("test/{}/test", var("HOME").unwrap())),
+                format!("test/{}/test", var("HOME").unwrap()),
             ),
             (
                 "/$ENV{HOME}/test/$ENV{USER}",
-                PathBuf::from(format!(
-                    "/{}/test/{}",
-                    var("HOME").unwrap(),
-                    var("USER").unwrap()
-                )),
+                format!("/{}/test/{}", var("HOME").unwrap(), var("USER").unwrap()),
             ),
             (
                 "$ENV{SHOULD_NOT_EXIST}",
-                PathBuf::from("$ENV{SHOULD_NOT_EXIST}"),
+                "$ENV{SHOULD_NOT_EXIST}".to_string(),
             ),
             (
                 "/$ENV{HOME}/test/$ENV{SHOULD_NOT_EXIST}",
-                PathBuf::from(format!(
-                    "/{}/test/$ENV{{SHOULD_NOT_EXIST}}",
-                    var("HOME").unwrap()
-                )),
+                format!("/{}/test/$ENV{{SHOULD_NOT_EXIST}}", var("HOME").unwrap()),
             ),
             (
                 "/unterminated/$ENV{USER",
-                PathBuf::from("/unterminated/$ENV{USER"),
+                "/unterminated/$ENV{USER".to_string(),
             ),
         ];
 
         #[cfg(target_os = "windows")]
         let test_cases = vec![
-            ("$ENV{HOMEPATH}", PathBuf::from(var("HOMEPATH").unwrap())),
-            (
-                "$ENV{HELLO_WORLD}",
-                PathBuf::from(var("HELLO_WORLD").unwrap()),
-            ),
+            ("$ENV{HOMEPATH}", var("HOMEPATH").unwrap()),
+            ("$ENV{HELLO_WORLD}", var("HELLO_WORLD").unwrap()),
             (
                 "$ENV{HOMEPATH}/test",
-                PathBuf::from(format!("{}/test", var("HOMEPATH").unwrap())),
+                format!("{}/test", var("HOMEPATH").unwrap()),
             ),
             (
                 "/test/$ENV{USERNAME}",
-                PathBuf::from(format!("/test/{}", var("USERNAME").unwrap())),
+                format!("/test/{}", var("USERNAME").unwrap()),
             ),
             (
                 "/test/$ENV{USERNAME}/test",
-                PathBuf::from(format!("/test/{}/test", var("USERNAME").unwrap())),
+                format!("/test/{}/test", var("USERNAME").unwrap()),
             ),
             (
                 "/test$ENV{USERNAME}/test",
-                PathBuf::from(format!("/test{}/test", var("USERNAME").unwrap())),
+                format!("/test{}/test", var("USERNAME").unwrap()),
             ),
             (
                 "test/$ENV{USERNAME}/test",
-                PathBuf::from(format!("test/{}/test", var("USERNAME").unwrap())),
+                format!("test/{}/test", var("USERNAME").unwrap()),
             ),
             (
                 "$ENV{HOMEPATH}/test/$ENV{USERNAME}",
-                PathBuf::from(format!(
+                format!(
                     "{}/test/{}",
                     var("HOMEPATH").unwrap(),
                     var("USERNAME").unwrap()
-                )),
+                ),
             ),
             (
                 "$ENV{SHOULD_NOT_EXIST}",
-                PathBuf::from("$ENV{SHOULD_NOT_EXIST}"),
+                "$ENV{SHOULD_NOT_EXIST}".to_string(),
             ),
             (
                 "$ENV{HOMEPATH}/test/$ENV{SHOULD_NOT_EXIST}",
-                PathBuf::from(format!(
-                    "{}/test/$ENV{{SHOULD_NOT_EXIST}}",
-                    var("HOMEPATH").unwrap()
-                )),
+                format!("{}/test/$ENV{{SHOULD_NOT_EXIST}}", var("HOMEPATH").unwrap()),
             ),
             (
                 "/unterminated/$ENV{USERNAME",
-                PathBuf::from("/unterminated/$ENV{USERNAME"),
+                "/unterminated/$ENV{USERNAME".to_string(),
             ),
         ];
 
         for (input, expected) in test_cases {
-            let res = super::env_util::expand_env_vars(input.into());
+            let res = super::env_util::expand_env_vars(input);
             assert_eq!(res, expected)
         }
     }
