@@ -210,6 +210,53 @@ use self::{append::Append, filter::Filter};
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
+#[cfg(feature = "parking_lot")]
+#[allow(dead_code)]
+pub(crate) mod sync {
+    #[derive(Debug)]
+    pub struct Mutex<T: ?Sized>(parking_lot::Mutex<T>);
+
+    impl<T> Mutex<T> {
+        #[inline]
+        pub fn new(val: T) -> Self {
+            Self(parking_lot::Mutex::new(val))
+        }
+    }
+
+    impl<T: ?Sized> Mutex<T> {
+        #[inline]
+        pub fn lock(&self) -> anyhow::Result<parking_lot::MutexGuard<'_, T>> {
+            Ok(self.0.lock())
+        }
+    }
+
+    pub type Condvar = parking_lot::Condvar;
+}
+
+
+#[cfg(not(feature = "parking_lot"))]
+#[allow(dead_code)]
+pub(crate) mod sync {
+    #[derive(Debug)]
+    pub struct Mutex<T: ?Sized>(std::sync::Mutex<T>);
+
+    impl<T> Mutex<T> {
+        #[inline]
+        pub fn new(val: T) -> Self {
+            Self(std::sync::Mutex::new(val))
+        }
+    }
+
+    impl<T: ?Sized> Mutex<T> {
+        #[inline]
+        pub fn lock(&self) -> anyhow::Result<std::sync::MutexGuard<'_, T>> {
+            self.0.lock().map_err(|_| anyhow::anyhow!("Mutex poisoned"))
+        }
+    }
+
+    pub type Condvar = std::sync::Condvar;
+}
+
 #[derive(Debug)]
 struct ConfiguredLogger {
     level: LevelFilter,

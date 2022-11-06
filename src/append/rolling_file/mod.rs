@@ -18,7 +18,7 @@
 
 use derivative::Derivative;
 use log::Record;
-use parking_lot::Mutex;
+use crate::sync::Mutex;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
@@ -165,7 +165,7 @@ pub struct RollingFileAppender {
 impl Append for RollingFileAppender {
     fn append(&self, record: &Record) -> anyhow::Result<()> {
         // TODO(eas): Perhaps this is better as a concurrent queue?
-        let mut writer = self.writer.lock();
+        let mut writer = self.writer.lock()?;
 
         let len = {
             let writer = self.get_writer(&mut writer)?;
@@ -273,7 +273,8 @@ impl RollingFileAppenderBuilder {
         }
 
         // open the log file immediately
-        appender.get_writer(&mut appender.writer.lock())?;
+        // unwrap guaranteed to succeed since this is the first time the mutex is being locked
+        appender.get_writer(&mut appender.writer.lock().unwrap())?;
 
         Ok(appender)
     }
