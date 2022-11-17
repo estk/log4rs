@@ -60,7 +60,7 @@ where
         where
             E: de::Error,
         {
-            let (number, unit) = match v.find(|c: char| !c.is_digit(10)) {
+            let (number, unit) = match v.find(|c: char| !c.is_ascii_digit()) {
                 Some(n) => (v[..n].trim(), Some(v[n..].trim())),
                 None => (v.trim(), None),
             };
