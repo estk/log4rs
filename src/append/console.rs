@@ -35,6 +35,7 @@ pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
     encoder: Option<EncoderConfig>,
     tty_only: Option<bool>,
+    force_tty: Option<bool>,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -146,6 +147,7 @@ impl ConsoleAppender {
             encoder: None,
             target: Target::Stdout,
             tty_only: false,
+            force_tty: false,
         }
     }
 }
@@ -155,6 +157,7 @@ pub struct ConsoleAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     target: Target,
     tty_only: bool,
+    force_tty: bool,
 }
 
 impl ConsoleAppenderBuilder {
@@ -180,6 +183,14 @@ impl ConsoleAppenderBuilder {
         self
     }
 
+    /// Sets the output to log only when it's a TTY.
+    ///
+    /// Defaults to `false`.
+    pub fn force_tty(mut self, force_tty: bool) -> ConsoleAppenderBuilder {
+        self.force_tty = force_tty;
+        self
+    }
+
     /// Consumes the `ConsoleAppenderBuilder`, producing a `ConsoleAppender`.
     pub fn build(self) -> ConsoleAppender {
         let writer = match self.target {
@@ -187,10 +198,18 @@ impl ConsoleAppenderBuilder {
                 Some(writer) => Writer::Tty(writer),
                 None => Writer::Raw(StdWriter::stderr()),
             },
-            Target::Stdout => match ConsoleWriter::stdout() {
-                Some(writer) => Writer::Tty(writer),
-                None => Writer::Raw(StdWriter::stdout()),
-            },
+            Target::Stdout => {
+                let console = if self.force_tty {
+                    ConsoleWriter::force_stdout_ansi()
+                } else {
+                    ConsoleWriter::stdout()
+                };
+
+                match console {
+                    Some(writer) => Writer::Tty(writer),
+                    None => Writer::Raw(StdWriter::stdout()),
+                }
+            }
         };
 
         let do_write = writer.is_tty() || !self.tty_only;
@@ -257,9 +276,28 @@ impl Deserialize for ConsoleAppenderDeserializer {
         if let Some(tty_only) = config.tty_only {
             appender = appender.tty_only(tty_only);
         }
+        if let Some(force_tty) = config.force_tty {
+            appender = appender.force_tty(force_tty);
+        }
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
         }
         Ok(Box::new(appender.build()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+    struct Test01(pub String);
+
+    #[test]
+    fn test() {
+        let a = Some(String::from("Miuler"));
+
+        let b = a.map(Test01);
+
+        println!("b: {:?}", b)
     }
 }

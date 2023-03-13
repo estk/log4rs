@@ -1,6 +1,7 @@
 appenders:
     stdout:
         kind: console
+        force_tty: true
         encoder:
             pattern: "{d(%+)(utc)} [{f}:{L}] {h({l})} {M}:{m}{n}"
         filters:

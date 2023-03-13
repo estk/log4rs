@@ -18,6 +18,11 @@ impl ConsoleWriter {
         imp::Writer::stdout().map(ConsoleWriter)
     }
 
+    /// Force return one ConsoleWriter with support for ansi characters
+    pub fn force_stdout_ansi() -> Option<ConsoleWriter> {
+        imp::Writer::stdout_ansi().map(ConsoleWriter)
+    }
+
     /// Returns a new `ConsoleWriter` that will write to standard error.
     ///
     /// Returns `None` if standard error is not a console buffer on Windows, and
@@ -100,6 +105,10 @@ mod imp {
                 return None;
             }
 
+            Writer::stdout_ansi()
+        }
+
+        pub fn stdout_ansi() -> Option<Writer> {
             Some(Writer(AnsiWriter(StdWriter::stdout())))
         }
 
@@ -266,14 +275,18 @@ mod imp {
                     return None;
                 }
 
-                Some(Writer {
-                    console: RawConsole {
-                        handle,
-                        defaults: info.wAttributes,
-                    },
-                    inner: StdWriter::stdout(),
-                })
+                Writer::stdout_ansi()
             }
+        }
+
+        pub fn stdout_ansi() -> Option<Writer> {
+            Some(Writer {
+                console: RawConsole {
+                    handle,
+                    defaults: info.wAttributes,
+                },
+                inner: StdWriter::stdout(),
+            })
         }
 
         pub fn stderr() -> Option<Writer> {
