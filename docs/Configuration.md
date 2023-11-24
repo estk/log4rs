@@ -12,8 +12,8 @@ An in depth breakdown of the configuration options available with the Log4rs log
 - Debug
 - Trace
 
-### filters
-The only accepted Filter is of kind threshold with a level. The level must be a [LevelFilter](#levelfilters). One to many filters are allowed.
+### Filters
+The only accepted `filter` is of kind threshold with a level. The level must be a [LevelFilter](#levelfilters). One to many filters are allowed.
 
 i.e.
 ```yml
@@ -23,7 +23,7 @@ filters:
 ```
 
 ### Encoder
-An encoder consists of a kind: the default pattern, or json. If pattern is defined, the default pattern `{d} {l} {t} - {m}{n}` is used unless overridden. Refer to [this documentation](https://docs.rs/log4rs/0.8.3/log4rs/encode/pattern/index.html#formatters) for details regarding valid patterns. 
+An `encoder` consists of a kind: the default which is pattern, or json. If pattern is defined, the default pattern `{d} {l} {t} - {m}{n}` is used unless overridden. Refer to [this documentation](https://docs.rs/log4rs/latest/log4rs/encode/pattern/index.html#formatters) for details regarding valid patterns. 
 
 > Note that the json encoder does not have any additional controls such as the pattern field.
 
@@ -56,17 +56,17 @@ loggers:
       additive: true
 ```
 
-## Root
+## The Root Logger
 
 Root is the required logger. It is the parent to all children loggers. To configure the Root, refer to [the logger section](#logger-configuration).
 
-> Note that the root logger has no parent and therefore cannot use the _additive_ field.
+> Note: The root logger has no parent and therefore cannot the _additive_ field does not apply.
 
 ```yml
 root:
-  level: info
-  appenders:
-    - my_appender
+   level: info
+   appenders:
+      - my_appender
 ```
 
 ## Appenders
@@ -75,7 +75,7 @@ All appenders require a unique identifying string for each [appender configurati
 ### Appender Config
 Each Appender Kind has it's own configuration. However, all accept [filters](#filters). The `kind` field is required in an appender configuration.
 
-#### The console appender
+#### The Console Appender
 The _target_ field is optional and accepts `stdout` or `stderr`. It's default value is stdout. 
 
 The _tty_only_ field is an optional boolean and dictates that the appender must only write when the target is a TTY. It's default value is false.
@@ -89,7 +89,7 @@ my_console_appender:
    tty_only: false
 ```
 
-#### The file appender
+#### The File Appender
 The _path_ field is required and accepts environment variables of the form `$ENV{name_here}`. The path can be relative or absolute.
 
 The _encoder_ field is optional and can consist of multiple fields. Refer to the [encoder](#encoder) documention.
@@ -103,24 +103,24 @@ my_file_appender:
    append: true
 ```
 
-#### The rolling_file appender
+#### The Rolling File Appender
 The rolling file configuration is by far the most complex. Like the [file appender](#the-file-appender), the path to the log file is required with the _append_ and the _encoders_ optional fields.
 
 i.e.
 ```yml
 my_rolling_appender:
-    kind: rolling_file
-    path: "logs/test.log"
-    policy:
+   kind: rolling_file
+   path: "logs/test.log"
+   policy:
       kind: compound
       trigger:
-        kind: size
-        limit: 1mb
+         kind: size
+         limit: 1mb
       roller:
-        kind: fixed_window
-        base: 1
-        count: 5
-        pattern: "logs/test.{}.log"
+         kind: fixed_window
+         base: 1
+         count: 5
+         pattern: "logs/test.{}.log"
 ```
 
 The new component is the _policy_ field. A policy must have `kind` like most other components, the default (and only supported) policy is `kind: compound`.
@@ -143,7 +143,7 @@ The _roller_ field supports two types: delete, and fixed_window. The delete roll
 
 The _pattern_ field is used to rename files. The pattern must contain the double curly brace `{}`. For example `archive/foo.{}.log`. Each instance of `{}` will be replaced with the index number of the configuration file. Note that if the file extension of the pattern is `.gz` and the `gzip` Cargo feature is enabled, the archive files will be gzip-compressed. 
 
-> Note that this pattern field is only used for archived files. The `path` field of the higher level `rolling_file` will be used for the active log file.
+> Note: This pattern field is only used for archived files. The `path` field of the higher level `rolling_file` will be used for the active log file.
 
 The _base_ field is the starting index used to name rolling files.
 
