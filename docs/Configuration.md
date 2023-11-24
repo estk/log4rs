@@ -1,7 +1,3 @@
-# Configuration Explained
-
-An in depth breakdown of the configuration options available with the Log4rs logger.
-
 ## Common Fields
 
 ### LevelFilter's:

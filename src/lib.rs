@@ -75,9 +75,11 @@
 //! The more common configuration method, however, is via a separate config
 //! file. The `init_file` function takes the path to a config file as
 //! well as a `Deserializers` object which is responsible for instantiating the
-//! various objects specified by the config file. The `file` module
-//! documentation covers the exact configuration syntax, but an example in the
-//! YAML format is provided below.
+//! various objects specified by the config file. The following section
+//! covers the exact configuration syntax, and an example in the YAML format 
+//! is provided below.
+//! 
+#![doc = include_str!("../docs/Configuration.md")]
 //!
 //! log4rs makes heavy use of Cargo features to enable consumers to pick the
 //! functionality they wish to use. File-based configuration requires the `file`
