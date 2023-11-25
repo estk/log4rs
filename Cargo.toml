@@ -58,7 +58,7 @@ chrono = { version = "0.4", optional = true }
 flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
 humantime = { version = "2.0", optional = true }
-log = { version = "=0.4.17", features = ["std"] }
+log = { version = "0.4.20", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 serde-value = { version = "0.7", optional = true }
