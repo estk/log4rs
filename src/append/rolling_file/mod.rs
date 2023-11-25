@@ -264,7 +264,7 @@ impl RollingFileAppenderBuilder {
             append: self.append,
             encoder: self
                 .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+                .unwrap_or_else(|| Box::<PatternEncoder>::default()),
             policy,
         };
 
