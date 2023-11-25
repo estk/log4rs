@@ -56,6 +56,6 @@ impl Deserialize for DeleteRollerDeserializer {
         _: DeleteRollerConfig,
         _: &Deserializers,
     ) -> anyhow::Result<Box<dyn Roll>> {
-        Ok(Box::new(DeleteRoller::default()))
+        Ok(Box::<DeleteRoller>::default())
     }
 }

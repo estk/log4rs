@@ -9,7 +9,7 @@
 log4rs is a highly configurable logging framework modeled after Java's Logback
 and log4j libraries.
 
-### Warning
+## Warning
 
 If you are using the file rotation in your configuration there is a known substantial performance issue so listen up!
 By default the `gzip` feature is enabled and when rolling files it will zip log archives automatically. This is a problem
@@ -27,6 +27,7 @@ For more information see the PR that added [`background_rotation`](https://githu
 ## Quick Start
 
 log4rs.yaml:
+
 ```yaml
 refresh_rate: 30 seconds
 appenders:
@@ -52,6 +53,7 @@ loggers:
 ```
 
 lib.rs:
+
 ```rust
 use log::{error, info, warn};
 use log4rs;
@@ -67,7 +69,7 @@ fn main() {
 
 ## Rust Version Requirements
 
-1.46
+1.57
 
 ## Building for Dev
 
@@ -79,8 +81,9 @@ fn main() {
 ## License
 
 Licensed under either of
- * Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
- * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

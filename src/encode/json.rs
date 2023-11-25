@@ -159,7 +159,7 @@ impl Deserialize for JsonEncoderDeserializer {
         _: JsonEncoderConfig,
         _: &Deserializers,
     ) -> anyhow::Result<Box<dyn Encode>> {
-        Ok(Box::new(JsonEncoder::default()))
+        Ok(Box::<JsonEncoder>::default())
     }
 }
 

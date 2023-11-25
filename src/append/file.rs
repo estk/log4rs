@@ -106,7 +106,7 @@ impl FileAppenderBuilder {
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self
                 .encoder
-                .unwrap_or_else(|| Box::new(PatternEncoder::default())),
+                .unwrap_or_else(|| Box::<PatternEncoder>::default()),
         })
     }
 }
