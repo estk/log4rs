@@ -1,4 +1,5 @@
-//! All things pertaining to log4rs config. See the docs root for examples.
+//! All things pertaining to log4rs config.
+#![doc = include_str!("../../docs/Configuration.md")]
 
 use log::SetLoggerError;
 use thiserror::Error;

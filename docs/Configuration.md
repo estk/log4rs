@@ -8,7 +8,9 @@ The more common configuration method, however, is via a separate config file.
 The `init_file` function takes the path to a config file as well as a
 `Deserializers` object which is responsible for instantiating the various
 objects specified by the config file. The following section covers the exact
-configuration syntax, and an example in the YAML formats is provided below.
+configuration syntax. Examples of both the programatic and configuration files
+can be found in the
+[examples directory](https://github.com/estk/log4rs/tree/master/examples).
 
 ## Common Fields
 

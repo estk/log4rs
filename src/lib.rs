@@ -68,18 +68,8 @@
 //!
 //! # Configuration
 //!
-//! log4rs can be configured programmatically by using the builders in the
-//! `config` module to construct a log4rs `Config` object, which can be passed
-//! to the `init_config` function.
-//!
-//! The more common configuration method, however, is via a separate config
-//! file. The `init_file` function takes the path to a config file as
-//! well as a `Deserializers` object which is responsible for instantiating the
-//! various objects specified by the config file. The following section
-//! covers the exact configuration syntax, and an example in the YAML formats
-//! is provided below.
-//!
-#![doc = include_str!("../docs/Configuration.md")]
+//! For a detailed breakdown on configuration, refer to the
+//! [config module](config/index.html#configuration).
 //!
 //! log4rs makes heavy use of Cargo features to enable consumers to pick the
 //! functionality they wish to use. File-based configuration requires the `file`
