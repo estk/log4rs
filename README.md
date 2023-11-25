@@ -67,7 +67,7 @@ fn main() {
 
 ## Rust Version Requirements
 
-1.46
+1.57
 
 ## Building for Dev
 
