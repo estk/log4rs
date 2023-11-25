@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_versions: ["stable", "1.56"]
+        rust_versions: ["stable", "1.57"]
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout the source code
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_versions: ["stable", "1.56"]
+        rust_versions: ["stable", "1.57"]
     steps:
       - name: Checkout the source code
         uses: actions/checkout@master
@@ -100,3 +100,6 @@ jobs:
     steps:
       - name: Markdown Linting Action
         uses: avto-dev/markdown-lint@v1.5.0
+        with:
+          config: .markdownlint.yml
+          args: docs/Configuration.md

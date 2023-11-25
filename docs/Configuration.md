@@ -1,6 +1,19 @@
+# Configuration
+
+log4rs can be configured programmatically by using the builders in the `config`
+module to construct a log4rs `Config` object, which can be passed to the
+`init_config` function.
+
+The more common configuration method, however, is via a separate config file.
+The `init_file` function takes the path to a config file as well as a
+`Deserializers` object which is responsible for instantiating the various
+objects specified by the config file. The following section covers the exact
+configuration syntax, and an example in the YAML formats is provided below.
+
 ## Common Fields
 
-### LevelFilter's:
+### LevelFilter's
+
 - Off
 - Error
 - Warn
@@ -9,9 +22,12 @@
 - Trace
 
 ### Filters
-The only accepted `filter` is of kind threshold with a level. The level must be a [LevelFilter](#levelfilters). One to many filters are allowed.
+
+The only accepted `filter` is of kind threshold with a level. The level must
+be a [LevelFilter](#levelfilters). One to many filters are allowed.
 
 i.e.
+
 ```yml
 filters:
    - kind: threshold
@@ -19,11 +35,18 @@ filters:
 ```
 
 ### Encoder
-An `encoder` consists of a kind: the default which is pattern, or json. If pattern is defined, the default pattern `{d} {l} {t} - {m}{n}` is used unless overridden. Refer to [this documentation](https://docs.rs/log4rs/latest/log4rs/encode/pattern/index.html#formatters) for details regarding valid patterns. 
 
-> Note that the json encoder does not have any additional controls such as the pattern field.
+An `encoder` consists of a kind: the default which is pattern, or json. If
+pattern is defined, the default pattern `{d} {l} {t} - {m}{n}` is used unless
+overridden. Refer to
+[this documentation](https://docs.rs/log4rs/latest/log4rs/encode/pattern/index.html#formatters)
+for details regarding valid patterns.
+
+> Note that the json encoder does not have any additional controls such as the
+> pattern field.
 
 i.e.
+
 ```yml
 encoder:
    kind: pattern
@@ -31,18 +54,24 @@ encoder:
 ```
 
 ## Loggers
+
 A map of logger configurations.  
 
 ### Logger Configuration
+
 The _name_ of the logger is the yml tag.
 
-The _level_ of the logger is optional and defaults to the parents log level. The level must be a [LevelFilter](#levelfilters).
+The _level_ of the logger is optional and defaults to the parents log level.
+The level must be a [LevelFilter](#levelfilters).
 
-The _appenders_ field is an optional list of [appenders](#appenders) attached to the logger.
+The _appenders_ field is an optional list of [appenders](#appenders) attached
+to the logger.
 
-The _additive_ field is an optional boolean determining if the loggers parent will also be attached to this logger. The default is true.
+The _additive_ field is an optional boolean determining if the loggers parent
+will also be attached to this logger. The default is true.
 
 i.e.
+
 ```yml
 loggers:
    my_logger:
@@ -54,9 +83,11 @@ loggers:
 
 ## The Root Logger
 
-Root is the required logger. It is the parent to all children loggers. To configure the Root, refer to [the logger section](#logger-configuration).
+Root is the required logger. It is the parent to all children loggers. To
+configure the Root, refer to [the logger section](#logger-configuration).
 
-> Note: The root logger has no parent and therefore cannot the _additive_ field does not apply.
+> Note: The root logger has no parent and therefore cannot the _additive_
+field does not apply.
 
 ```yml
 root:
@@ -66,17 +97,25 @@ root:
 ```
 
 ## Appenders
-All appenders require a unique identifying string for each [appender configuration](#appender-config).
+
+All appenders require a unique identifying string for each
+[appender configuration](#appender-config).
 
 ### Appender Config
-Each Appender Kind has it's own configuration. However, all accept [filters](#filters). The `kind` field is required in an appender configuration.
+
+Each Appender Kind has it's own configuration. However, all accept
+[filters](#filters). The `kind` field is required in an appender configuration.
 
 #### The Console Appender
-The _target_ field is optional and accepts `stdout` or `stderr`. It's default value is stdout. 
 
-The _tty_only_ field is an optional boolean and dictates that the appender must only write when the target is a TTY. It's default value is false.
+The _target_ field is optional and accepts `stdout` or `stderr`. It's default
+value is stdout.
 
-The _encoder_ field is optional and can consist of multiple fields. Refer to the [encoder](#encoder) documention.
+The _tty_only_ field is an optional boolean and dictates that the appender must
+only write when the target is a TTY. It's default value is false.
+
+The _encoder_ field is optional and can consist of multiple fields. Refer to
+the [encoder](#encoder) documention.
 
 ```yml
 my_console_appender:
@@ -86,11 +125,15 @@ my_console_appender:
 ```
 
 #### The File Appender
-The _path_ field is required and accepts environment variables of the form `$ENV{name_here}`. The path can be relative or absolute.
 
-The _encoder_ field is optional and can consist of multiple fields. Refer to the [encoder](#encoder) documention.
+The _path_ field is required and accepts environment variables of the form
+`$ENV{name_here}`. The path can be relative or absolute.
 
-The _append_ field is an optional boolean and defaults to `true`. True will append to the log file if it exists, false will truncate the existing file.
+The _encoder_ field is optional and can consist of multiple fields. Refer to
+the [encoder](#encoder) documention.
+
+The _append_ field is an optional boolean and defaults to `true`. True will
+append to the log file if it exists, false will truncate the existing file.
 
 ```yml
 my_file_appender:
@@ -100,9 +143,13 @@ my_file_appender:
 ```
 
 #### The Rolling File Appender
-The rolling file configuration is by far the most complex. Like the [file appender](#the-file-appender), the path to the log file is required with the _append_ and the _encoders_ optional fields.
+
+The rolling file configuration is by far the most complex. Like the
+[file appender](#the-file-appender), the path to the log file is required
+with the _append_ and the _encoders_ optional fields.
 
 i.e.
+
 ```yml
 my_rolling_appender:
    kind: rolling_file
@@ -119,9 +166,14 @@ my_rolling_appender:
          pattern: "logs/test.{}.log"
 ```
 
-The new component is the _policy_ field. A policy must have `kind` like most other components, the default (and only supported) policy is `kind: compound`.
+The new component is the _policy_ field. A policy must have `kind` like most
+other components, the default (and only supported) policy is `kind: compound`.
 
-The _trigger_ field is used to dictate when the log file should be rolled. The only supported trigger is  `kind: size`. There is a required field `limit` which defines the maximum file size prior to a rolling of the file. The limit field requires one of the following units in bytes, case does not matter:
+The _trigger_ field is used to dictate when the log file should be rolled. The
+only supported trigger is  `kind: size`. There is a required field `limit`
+which defines the maximum file size prior to a rolling of the file. The limit
+field requires one of the following units in bytes, case does not matter:
+
 - b
 - kb/kib
 - mb/mib
@@ -129,23 +181,35 @@ The _trigger_ field is used to dictate when the log file should be rolled. The o
 - tb/tib
 
 i.e.
+
 ```yml
 trigger:
    kind: size
    limit: 10 mb
 ```
 
-The _roller_ field supports two types: delete, and fixed_window. The delete roller does not take any other configuration fields. The fixed_window roller supports three fields: pattern, base, and count. The most current log file will always have the _base_ index.
+The _roller_ field supports two types: delete, and fixed_window. The delete
+roller does not take any other configuration fields. The fixed_window roller
+supports three fields: pattern, base, and count. The most current log file will
+always have the _base_ index.
 
-The _pattern_ field is used to rename files. The pattern must contain the double curly brace `{}`. For example `archive/foo.{}.log`. Each instance of `{}` will be replaced with the index number of the configuration file. Note that if the file extension of the pattern is `.gz` and the `gzip` Cargo feature is enabled, the archive files will be gzip-compressed. 
+The _pattern_ field is used to rename files. The pattern must contain the
+double curly brace `{}`. For example `archive/foo.{}.log`. Each instance of
+`{}` will be replaced with the index number of the configuration file. Note
+that if the file extension of the pattern is `.gz` and the `gzip` Cargo
+feature is enabled, the archive files will be gzip-compressed.
 
-> Note: This pattern field is only used for archived files. The `path` field of the higher level `rolling_file` will be used for the active log file.
+> Note: This pattern field is only used for archived files. The `path` field
+of the higher level `rolling_file` will be used for the active log file.
 
 The _base_ field is the starting index used to name rolling files.
 
-The _count_ field is the exclusive maximum index used to name rolling files. However, be warned that the roller renames every file when a log rolls over. Having a large count value can negatively impact performance.
+The _count_ field is the exclusive maximum index used to name rolling files.
+However, be warned that the roller renames every file when a log rolls over.
+Having a large count value can negatively impact performance.
 
 i.e.
+
 ```yml
 roller:
    kind: fixed_window
@@ -153,16 +217,22 @@ roller:
    count: 5
    pattern: "archive/journey-service.{}.log"
 ```
-or 
+
+or
+
 ```yml
 roller:
    kind: delete
 ```
 
 ## Refresh Rate
-The _refresh_rate_ accepts a u64 value in seconds. The field is used to determine how often log4rs will scan the configuration file for changes. If a change is discovered, the logger will reconfigure automatically.
+
+The _refresh_rate_ accepts a u64 value in seconds. The field is used to
+determine how often log4rs will scan the configuration file for changes. If a
+change is discovered, the logger will reconfigure automatically.
 
 i.e.
+
 ```yml
 refresh_rate: 30 seconds
 ```
