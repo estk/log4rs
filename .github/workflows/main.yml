@@ -94,6 +94,27 @@ jobs:
       - name: Rotation with backgrounded rotation
         run: cargo bench  --features gzip,background_rotation
 
+  cargo-audit:
+    name: Audit the baseline for CVEs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@master
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install --no-self-update stable
+          rustup default stable
+      
+      - name: Install Auditting Tools
+        run: cargo install cargo-audit
+
+      - name: Build all features
+        run: cargo build --all-features
+
+      - name: Audit baseline
+        run: cargo audit
+
   docs-lint:
     name: Lint
     runs-on: ubuntu-latest
