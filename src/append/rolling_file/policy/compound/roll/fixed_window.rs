@@ -128,7 +128,7 @@ impl Roll for FixedWindowRoller {
         move_file(file, &temp)?;
 
         // Wait for the state to be ready to roll
-        let &(ref lock, ref cvar) = &*self.cond_pair.clone();
+        let (lock, cvar) = &*self.cond_pair.clone();
         let mut ready = lock.lock();
         if !*ready {
             cvar.wait(&mut ready);
@@ -143,7 +143,7 @@ impl Roll for FixedWindowRoller {
         let cond_pair = self.cond_pair.clone();
         // rotate in the separate thread
         std::thread::spawn(move || {
-            let &(ref lock, ref cvar) = &*cond_pair;
+            let (lock, cvar) = &*cond_pair;
             let mut ready = lock.lock();
 
             if let Err(e) = rotate(pattern, compression, base, count, temp) {

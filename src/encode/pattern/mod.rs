@@ -413,8 +413,8 @@ impl<'a> From<Piece<'a>> for Chunk {
                         Some(arg) => {
                             if let Some(arg) = arg.get(0) {
                                 match *arg {
-                                    Piece::Text(z) if z == "utc" => Timezone::Utc,
-                                    Piece::Text(z) if z == "local" => Timezone::Local,
+                                    Piece::Text("utc") => Timezone::Utc,
+                                    Piece::Text("local") => Timezone::Local,
                                     Piece::Text(z) => {
                                         return Chunk::Error(format!("invalid timezone `{}`", z));
                                     }
