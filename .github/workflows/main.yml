@@ -109,10 +109,8 @@ jobs:
       - name: Install Auditting Tools
         run: cargo install cargo-audit
 
-      - name: Build all features
-        run: |
-          cargo build --all-features
-          cargo audit
+      - name: Audit project
+        run: cargo audit
 
   docs-lint:
     name: Lint
