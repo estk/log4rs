@@ -171,10 +171,12 @@ my_rolling_appender:
 The new component is the _policy_ field. A policy must have `kind` like most
 other components, the default (and only supported) policy is `kind: compound`.
 
-The _trigger_ field is used to dictate when the log file should be rolled. The
-only supported trigger is  `kind: size`. There is a required field `limit`
-which defines the maximum file size prior to a rolling of the file. The limit
-field requires one of the following units in bytes, case does not matter:
+The _trigger_ field is used to dictate when the log file should be rolled. It
+supports two types: `size`, and `time`. They both require a `limit` field.
+
+For `size`, the `limit` field is a string which defines the maximum file size 
+prior to a rolling of the file. The limit field requires one of the following 
+units in bytes, case does not matter:
 
 - b
 - kb/kib
@@ -188,6 +190,32 @@ i.e.
 trigger:
   kind: size
   limit: 10 mb
+```
+
+For `time`, the `limit` field is a string which defines the time to roll the 
+file. The limit field supports the following units(second will be used if the
+unit is not specified), case does not matter:
+
+- second[s]
+- minute[s]
+- hour[s]
+- day[s]
+- week[s]
+- month[s]
+- year[s]
+
+> note: The log file will be rolled at the integer time. For example, if the
+`limit` is set to `2 day`, the log file will be rolled at 0:00 every other a
+day, regardless of the time `log4rs` was started or the log file was created.
+This means that the initial log file will be likely rolled before the limit
+is reached.
+
+i.e.
+
+```yml
+trigger:
+   kind: time
+   limit: 7 day
 ```
 
 The _roller_ field supports two types: delete, and fixed_window. The delete

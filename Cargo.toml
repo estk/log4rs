@@ -25,6 +25,7 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
+time_trigger = []
 json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "log/serde", "thread-id"]
 pattern_encoder = ["chrono", "log-mdc", "thread-id"]
 ansi_writer = []
@@ -41,6 +42,7 @@ all_components = [
     "delete_roller",
     "fixed_window_roller",
     "size_trigger",
+    "time_trigger",
     "json_encoder",
     "pattern_encoder",
     "threshold_filter"

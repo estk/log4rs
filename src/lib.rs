@@ -21,6 +21,7 @@
 //!         - [fixed_window](append/rolling_file/policy/compound/roll/fixed_window/struct.FixedWindowRollerDeserializer.html#configuration): requires the `fixed_window_roller` feature
 //!       - Triggers
 //!         - [size](append/rolling_file/policy/compound/trigger/size/struct.SizeTriggerDeserializer.html#configuration): requires the `size_trigger` feature
+//!         - [time](append/rolling_file/policy/compound/trigger/tine/struct.TimeTriggerDeserializer.html#configuration): requires the `time_trigger` feature
 //!
 //! ## Encoders
 //!
