@@ -74,7 +74,7 @@ fn main() {
 ## Building for Dev
 
 * Run the tests: `cargo test --all-features`
-* Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gn`
+* Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gnu`
 * Run the tests for all individual features: `./test.sh`
 * Run the tests for all individual features for windows with [cross](https://github.com/rust-embedded/cross): `./test.sh win`
 
