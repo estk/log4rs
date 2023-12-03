@@ -10,7 +10,7 @@ The `init_file` function takes the path to a config file as well as a
 objects specified by the config file. The following section covers the exact
 configuration syntax. Examples of both the programatic and configuration files
 can be found in the
-[examples directory](https://github.com/estk/log4rs/tree/master/examples).
+[examples directory](https://github.com/estk/log4rs/tree/main/examples).
 
 ## Common Fields
 

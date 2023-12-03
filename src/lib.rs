@@ -172,7 +172,7 @@
 //! # fn main() {}
 //! ```
 //!
-//! For more examples see the [examples](https://github.com/estk/log4rs/tree/master/examples).
+//! For more examples see the [examples](https://github.com/estk/log4rs/tree/main/examples).
 //!
 
 #![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
