@@ -31,25 +31,25 @@ log4rs.yaml:
 ```yaml
 refresh_rate: 30 seconds
 appenders:
-  stdout:
-    kind: console
-  requests:
-    kind: file
-    path: "log/requests.log"
-    encoder:
-      pattern: "{d} - {m}{n}"
-root:
-  level: warn
-  appenders:
-    - stdout
-loggers:
-  app::backend::db:
-    level: info
-  app::requests:
-    level: info
-    appenders:
-      - requests
-    additive: false
+    stdout:
+        kind: console
+    requests:
+        kind: file
+        path: "log/requests.log"
+        encoder:
+            pattern: "{d} - {m}{n}"
+    root:
+        level: warn
+        appenders:
+            - stdout
+    loggers:
+        app::backend::db:
+            level: info
+    app::requests:
+        level: info
+        appenders:
+            - requests
+        additive: false
 ```
 
 lib.rs:

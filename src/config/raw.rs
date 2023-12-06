@@ -466,28 +466,28 @@ mod test {
 refresh_rate: 60 seconds
 
 appenders:
-  console:
-    kind: console
-    filters:
-      - kind: threshold
-        level: debug
-  baz:
-    kind: file
-    path: /tmp/baz.log
-    encoder:
-      pattern: "%m"
+    console:
+        kind: console
+        filters:
+        - kind: threshold
+          level: debug
+    baz:
+        kind: file
+        path: /tmp/baz.log
+        encoder:
+            pattern: "%m"
 
 root:
-  appenders:
-    - console
-  level: info
+    appenders:
+        - console
+    level: info
 
 loggers:
-  foo::bar::baz:
-    level: warn
-    appenders:
-      - baz
-    additive: false
+    foo::bar::baz:
+        level: warn
+        appenders:
+            - baz
+        additive: false
 "#;
         let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;

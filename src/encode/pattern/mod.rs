@@ -388,7 +388,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                         return Chunk::Error("expected at most two arguments".to_owned());
                     }
 
-                    let format = match formatter.args.get(0) {
+                    let format = match formatter.args.first() {
                         Some(arg) => {
                             let mut format = String::new();
                             for piece in arg {
@@ -411,7 +411,7 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let timezone = match formatter.args.get(1) {
                         Some(arg) => {
-                            if let Some(arg) = arg.get(0) {
+                            if let Some(arg) = arg.first() {
                                 match *arg {
                                     Piece::Text("utc") => Timezone::Utc,
                                     Piece::Text("local") => Timezone::Local,
@@ -465,9 +465,9 @@ impl<'a> From<Piece<'a>> for Chunk {
                         return Chunk::Error("expected at most two arguments".to_owned());
                     }
 
-                    let key = match formatter.args.get(0) {
+                    let key = match formatter.args.first() {
                         Some(arg) => {
-                            if let Some(arg) = arg.get(0) {
+                            if let Some(arg) = arg.first() {
                                 match arg {
                                     Piece::Text(key) => key.to_owned(),
                                     Piece::Error(ref e) => return Chunk::Error(e.clone()),
@@ -482,7 +482,7 @@ impl<'a> From<Piece<'a>> for Chunk {
 
                     let default = match formatter.args.get(1) {
                         Some(arg) => {
-                            if let Some(arg) = arg.get(0) {
+                            if let Some(arg) = arg.first() {
                                 match arg {
                                     Piece::Text(key) => key.to_owned(),
                                     Piece::Error(ref e) => return Chunk::Error(e.clone()),

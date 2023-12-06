@@ -6,8 +6,8 @@ appenders:
     encoder:
       pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
     filters:
-    - kind: threshold
-      level: error
+      - kind: threshold
+        level: error
   file:
     kind: file
     path: error.log

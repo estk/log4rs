@@ -207,8 +207,8 @@ mod test {
 
         let expected = format!(
             "{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
-             \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
-             \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}}}",
+            \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
+            \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}}}",
             time.to_rfc3339(),
             message,
             module_path,

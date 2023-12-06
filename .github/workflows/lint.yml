@@ -1,0 +1,45 @@
+---
+name: Lint Jobs
+
+on:
+  push:
+    branches:
+    - main
+    - devel
+  pull_request:
+    branches:
+    - main
+    - devel
+
+jobs:
+  rust-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+
+      - name: Run cargo check
+        run: cargo check
+
+      - name: Run rustfmt
+        run: cargo fmt -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-features
+        env:
+          RUSTFLAGS: -D warnings
+
+  docs-lint:
+    name: Docs Lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Markdown Linting Action
+      uses: avto-dev/markdown-lint@v1
+      with:
+        config: .markdownlint.yml
+        args: docs/Configuration.md README.md
