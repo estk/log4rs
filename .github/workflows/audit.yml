@@ -1,0 +1,23 @@
+---
+name: Security audit
+on:
+  push:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/audit.yml'
+jobs:
+  cargo-audit:
+    name: Audit the baseline for CVEs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - name: Install cargo-audit
+        run: cargo binstall -y cargo-audit
+
+      - name: Audit
+        run: cargo audit

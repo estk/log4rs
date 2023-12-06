@@ -1,0 +1,35 @@
+---
+name: coverage
+
+on:
+  push:
+    branches:
+    - main
+    - devel
+  pull_request:
+    branches:
+    - main
+    - devel
+
+jobs:
+  test:
+    # https://github.com/xd009642/tarpaulin#github-actions
+    name: coverage
+    runs-on: ubuntu-latest
+    container:
+        image: xd009642/tarpaulin:develop-nightly
+        options: --security-opt seccomp=unconfined
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Generate code coverage
+      run: |
+        cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+      env:
+        USER: "test-user"
+
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v3
+      with:
+        fail_ci_if_error: true
