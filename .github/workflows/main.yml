@@ -31,7 +31,10 @@ jobs:
       run: cargo build
 
     - name: Test lib
-      run: cargo test --all-features
+      run: |
+        cargo test --all-features
+        # This test needs another run under the release mode
+        cargo test --release --features simple_writer encode::pattern::tests::debug_release
       env:
         RUSTFLAGS: -D warnings
 
