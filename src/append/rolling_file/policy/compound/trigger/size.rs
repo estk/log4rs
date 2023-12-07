@@ -117,6 +117,10 @@ impl Trigger for SizeTrigger {
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
         Ok(file.len_estimate() > self.limit)
     }
+
+    fn is_pre_process(&self) -> bool {
+        false
+    }
 }
 
 /// A deserializer for the `SizeTrigger`.

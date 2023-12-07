@@ -167,25 +167,39 @@ impl Append for RollingFileAppender {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
+        let is_pre_process = self.policy.is_pre_process();
         let log_writer = self.get_writer(&mut writer)?;
-        let len = log_writer.len;
 
-        let mut file = LogFile {
-            writer: &mut writer,
-            path: &self.path,
-            len,
-        };
+        if is_pre_process {
+            let len = log_writer.len;
 
-        // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
-        // data that comes in while we are processing the file rotation.
+            let mut file = LogFile {
+                writer: &mut writer,
+                path: &self.path,
+                len,
+            };
 
-        //first, rotate
-        self.policy.process(&mut file)?;
+            // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
+            // data that comes in while we are processing the file rotation.
 
-        //second, write
-        let writer_file = self.get_writer(&mut writer)?;
-        self.encoder.encode(writer_file, record)?;
-        writer_file.flush()?;
+            self.policy.process(&mut file)?;
+
+            let log_writer_new = self.get_writer(&mut writer)?;
+            self.encoder.encode(log_writer_new, record)?;
+            log_writer_new.flush()?;
+        } else {
+            self.encoder.encode(log_writer, record)?;
+            log_writer.flush()?;
+            let len = log_writer.len;
+
+            let mut file = LogFile {
+                writer: &mut writer,
+                path: &self.path,
+                len,
+            };
+
+            self.policy.process(&mut file)?;
+        }
 
         Ok(())
     }
@@ -409,6 +423,9 @@ appenders:
     impl Policy for NopPolicy {
         fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
             Ok(())
+        }
+        fn is_pre_process(&self) -> bool {
+            false
         }
     }
 

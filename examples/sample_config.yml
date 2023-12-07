@@ -8,23 +8,23 @@ appenders:
               level: info
     file:
         kind: file
-        path: "log/log.log"
+        path: "log/file.log"
         encoder:
             pattern: "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}"
     rollingfile:
         kind: rolling_file
-        path: "log/log2.log"
+        path: "log/rolling_file.log"
         encoder:
             pattern: "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}"
         policy:
-            trigger: 
+            trigger:
                 kind: time
-                limit: 1 minute 
-            roller: 
+                limit: 1 minute
+            roller:
                 kind: fixed_window
-                pattern: "log/old-log-{}.log" 
-                base: 0 
-                count: 2 
+                pattern: "log/old-rolling_file-{}.log"
+                base: 0
+                count: 2
 root:
     level: info
     appenders:

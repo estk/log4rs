@@ -210,6 +210,10 @@ impl Trigger for TimeTrigger {
         }
         Ok(is_triger)
     }
+
+    fn is_pre_process(&self) -> bool {
+        true
+    }
 }
 
 /// A deserializer for the `TimeTrigger`.

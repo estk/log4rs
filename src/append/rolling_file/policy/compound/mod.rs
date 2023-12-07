@@ -107,6 +107,10 @@ impl Policy for CompoundPolicy {
         }
         Ok(())
     }
+
+    fn is_pre_process(&self) -> bool {
+        self.trigger.is_pre_process()
+    }
 }
 
 /// A deserializer for the `CompoundPolicyDeserializer`.

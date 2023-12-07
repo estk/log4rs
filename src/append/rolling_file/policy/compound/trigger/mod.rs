@@ -16,6 +16,11 @@ pub mod time;
 pub trait Trigger: fmt::Debug + Send + Sync + 'static {
     /// Determines if the active log file should be rolled over.
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool>;
+
+    /// Sets the is_pre_process flag for log files.
+    ///
+    /// Defaults to true for time triggers and false for size triggers
+    fn is_pre_process(&self) -> bool;
 }
 
 #[cfg(feature = "config_parsing")]

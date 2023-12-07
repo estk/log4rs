@@ -174,8 +174,8 @@ other components, the default (and only supported) policy is `kind: compound`.
 The _trigger_ field is used to dictate when the log file should be rolled. It
 supports two types: `size`, and `time`. They both require a `limit` field.
 
-For `size`, the `limit` field is a string which defines the maximum file size 
-prior to a rolling of the file. The limit field requires one of the following 
+For `size`, the `limit` field is a string which defines the maximum file size
+prior to a rolling of the file. The limit field requires one of the following
 units in bytes, case does not matter:
 
 - b
@@ -192,7 +192,7 @@ trigger:
   limit: 10 mb
 ```
 
-For `time`, the `limit` field is a string which defines the time to roll the 
+For `time`, the `limit` field is a string which defines the time to roll the
 file. The limit field supports the following units(second will be used if the
 unit is not specified), case does not matter:
 
@@ -204,18 +204,18 @@ unit is not specified), case does not matter:
 - month[s]
 - year[s]
 
-> note: The log file will be rolled at the integer time. For example, if the
-`limit` is set to `2 day`, the log file will be rolled at 0:00 every other a
-day, regardless of the time `log4rs` was started or the log file was created.
-This means that the initial log file will be likely rolled before the limit
-is reached.
+> Note: The log file will be rolled at the integer time. For example, if the
+> `limit` is set to `2 day`, the log file will be rolled at 0:00 every other a
+> day, regardless of the time `log4rs` was started or the log file was created.
+> This means that the initial log file will be likely rolled before the limit
+> is reached.
 
 i.e.
 
 ```yml
 trigger:
-   kind: time
-   limit: 7 day
+    kind: time
+    limit: 7 day
 ```
 
 The _roller_ field supports two types: delete, and fixed_window. The delete
@@ -237,6 +237,11 @@ The _base_ field is the starting index used to name rolling files.
 The _count_ field is the exclusive maximum index used to name rolling files.
 However, be warned that the roller renames every file when a log rolls over.
 Having a large count value can negatively impact performance.
+
+> Note: If you use the `triger: time`, the log file will be rolled before it
+> gets written, which ensure that the logs are rolled in the correct position
+> instead of leaving a single line of logs in the previous log file. However,
+> this may cause a substantial slowdown if the `background` feature is not enabled.
 
 i.e.
 
