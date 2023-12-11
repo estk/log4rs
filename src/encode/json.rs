@@ -67,8 +67,8 @@ impl JsonEncoder {
         let thread = thread::current();
         let message = Message {
             time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
-            message: record.args(),
             level: record.level(),
+            message: record.args(),
             module_path: record.module_path(),
             file: record.file(),
             line: record.line(),
@@ -93,6 +93,7 @@ impl Encode for JsonEncoder {
 struct Message<'a> {
     #[serde(serialize_with = "ser_display")]
     time: DelayedFormat<option::IntoIter<Item<'a>>>,
+    level: Level,
     #[serde(serialize_with = "ser_display")]
     message: &'a fmt::Arguments<'a>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -101,7 +102,6 @@ struct Message<'a> {
     file: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     line: Option<u32>,
-    level: Level,
     target: &'a str,
     thread: Option<&'a str>,
     thread_id: usize,
@@ -206,15 +206,15 @@ mod test {
             .unwrap();
 
         let expected = format!(
-            "{{\"time\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
-            \"file\":\"{}\",\"line\":{},\"level\":\"{}\",\"target\":\"{}\",\
+            "{{\"time\":\"{}\",\"level\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
+            \"file\":\"{}\",\"line\":{},\"target\":\"{}\",\
             \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}}}",
             time.to_rfc3339(),
+            level,
             message,
             module_path,
             file,
             line,
-            level,
             target,
             thread,
             thread_id::get(),
