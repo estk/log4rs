@@ -503,6 +503,11 @@ loggers:
         ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
     }
 
+    #[cfg(windows)]
+    const LINE_ENDING: &'static str = "\r\n";
+    #[cfg(not(windows))]
+    const LINE_ENDING: &'static str = "\n";
+
     #[test]
     #[cfg(feature = "yaml_format")]
     fn readme_sample_file_is_ok() {
@@ -510,12 +515,12 @@ loggers:
         let sample_file = &readme[readme
             .find("log4rs.yaml:")
             .expect("Sample file exists and is called log4rs.yaml")..];
-        let config_start_string = "\n```yaml\n";
-        let config_end_string = "\n```\n";
-
+        let config_start_string = format!("{}```yaml{}", LINE_ENDING, LINE_ENDING);
+        let config_end_string = format!("{}```{}", LINE_ENDING, LINE_ENDING);
         let config_start =
-            sample_file.find(config_start_string).unwrap() + config_start_string.len();
-        let config_end = sample_file.find(config_end_string).unwrap();
+            sample_file.find(&config_start_string).unwrap() + config_start_string.len();
+        let config_end = sample_file.find(&config_end_string).unwrap();
+        
         let config_str = sample_file[config_start..config_end].trim();
 
         let config = ::serde_yaml::from_str::<RawConfig>(config_str);
