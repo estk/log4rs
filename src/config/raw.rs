@@ -504,8 +504,10 @@ loggers:
     }
 
     #[cfg(windows)]
+    #[allow(dead_code)]
     const LINE_ENDING: &'static str = "\r\n";
     #[cfg(not(windows))]
+    #[allow(dead_code)]
     const LINE_ENDING: &'static str = "\n";
 
     #[test]
@@ -520,7 +522,6 @@ loggers:
         let config_start =
             sample_file.find(&config_start_string).unwrap() + config_start_string.len();
         let config_end = sample_file.find(&config_end_string).unwrap();
-        
         let config_str = sample_file[config_start..config_end].trim();
 
         let config = ::serde_yaml::from_str::<RawConfig>(config_str);
