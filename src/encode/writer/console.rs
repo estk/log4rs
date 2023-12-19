@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 
 use crate::encode::{self, Style};
 
+#[cfg(not(windows))]
 static COLOR_MODE: Lazy<ColorMode> = Lazy::new(|| {
     let clicolor_force = std::env::var("CLICOLOR_FORCE")
         .map(|var| var != "0")
