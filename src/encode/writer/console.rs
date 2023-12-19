@@ -10,10 +10,16 @@ use crate::encode::{self, Style};
 
 #[cfg(not(windows))]
 static COLOR_MODE: Lazy<ColorMode> = Lazy::new(|| {
+    let no_color = std::env::var("NO_COLOR")
+        .map(|var| var != "0")
+        .unwrap_or(false);
     let clicolor_force = std::env::var("CLICOLOR_FORCE")
         .map(|var| var != "0")
         .unwrap_or(false);
-    if clicolor_force {
+    if no_color {
+        ColorMode::Never
+    }
+    else if clicolor_force {
         ColorMode::Always
     } else {
         let clicolor = std::env::var("CLICOLOR")
