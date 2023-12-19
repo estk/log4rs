@@ -457,6 +457,8 @@ fn logger_additive_default() -> bool {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
+    use std::fs;
+
     use super::*;
 
     #[test]
@@ -466,28 +468,28 @@ mod test {
 refresh_rate: 60 seconds
 
 appenders:
-  console:
-    kind: console
-    filters:
-      - kind: threshold
-        level: debug
-  baz:
-    kind: file
-    path: /tmp/baz.log
-    encoder:
-      pattern: "%m"
+    console:
+        kind: console
+        filters:
+        - kind: threshold
+          level: debug
+    baz:
+        kind: file
+        path: /tmp/baz.log
+        encoder:
+            pattern: "%m"
 
 root:
-  appenders:
-    - console
-  level: info
+    appenders:
+        - console
+    level: info
 
 loggers:
-  foo::bar::baz:
-    level: warn
-    appenders:
-      - baz
-    additive: false
+    foo::bar::baz:
+        level: warn
+        appenders:
+            - baz
+        additive: false
 "#;
         let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
@@ -499,5 +501,30 @@ loggers:
     #[cfg(feature = "yaml_format")]
     fn empty() {
         ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+    }
+
+    #[cfg(windows)]
+    #[allow(dead_code)]
+    const LINE_ENDING: &'static str = "\r\n";
+    #[cfg(not(windows))]
+    #[allow(dead_code)]
+    const LINE_ENDING: &'static str = "\n";
+
+    #[test]
+    #[cfg(feature = "yaml_format")]
+    fn readme_sample_file_is_ok() {
+        let readme = fs::read_to_string("./README.md").expect("README file exists");
+        let sample_file = &readme[readme
+            .find("log4rs.yaml:")
+            .expect("Sample file exists and is called log4rs.yaml")..];
+        let config_start_string = format!("{}```yaml{}", LINE_ENDING, LINE_ENDING);
+        let config_end_string = format!("{}```{}", LINE_ENDING, LINE_ENDING);
+        let config_start =
+            sample_file.find(&config_start_string).unwrap() + config_start_string.len();
+        let config_end = sample_file.find(&config_end_string).unwrap();
+        let config_str = sample_file[config_start..config_end].trim();
+
+        let config = ::serde_yaml::from_str::<RawConfig>(config_str);
+        assert!(config.is_ok())
     }
 }

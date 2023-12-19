@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/log4rs.svg)](https://crates.io/crates/log4rs)
 [![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/clippy.svg)](#license)
 ![CI](https://github.com/estk/log4rs/workflows/CI/badge.svg)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.56+-green.svg)](https://github.com/estk/log4rs#rust-version-requirements)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.67+-green.svg)](https://github.com/estk/log4rs#rust-version-requirements)
 
 log4rs is a highly configurable logging framework modeled after Java's Logback
 and log4j libraries.
@@ -69,12 +69,12 @@ fn main() {
 
 ## Rust Version Requirements
 
-1.60
+1.67
 
 ## Building for Dev
 
 * Run the tests: `cargo test --all-features`
-* Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gn`
+* Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gnu`
 * Run the tests for all individual features: `./test.sh`
 * Run the tests for all individual features for windows with [cross](https://github.com/rust-embedded/cross): `./test.sh win`
 

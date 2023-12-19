@@ -366,28 +366,28 @@ mod test {
         let config = format!(
             "
 appenders:
-  foo:
-    kind: rolling_file
-    path: {0}/foo.log
-    policy:
-      trigger:
-        kind: size
-        limit: 1024
-      roller:
-        kind: delete
-  bar:
-    kind: rolling_file
-    path: {0}/foo.log
-    policy:
-      kind: compound
-      trigger:
-        kind: size
-        limit: 5 mb
-      roller:
-        kind: fixed_window
-        pattern: '{0}/foo.log.{{}}'
-        base: 1
-        count: 5
+    foo:
+        kind: rolling_file
+        path: {0}/foo.log
+        policy:
+            trigger:
+                kind: size
+                limit: 1024
+            roller:
+                kind: delete
+    bar:
+        kind: rolling_file
+        path: {0}/foo.log
+        policy:
+            kind: compound
+            trigger:
+                kind: size
+                limit: 5 mb
+            roller:
+                kind: fixed_window
+                pattern: '{0}/foo.log.{{}}'
+                base: 1
+                count: 5
 ",
             dir.path().display()
         );

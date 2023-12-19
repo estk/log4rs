@@ -1,37 +1,17 @@
-name: CI
+---
+name: Build CI
 
 on:
   push:
     branches:
-    - master
+    - main
     - devel
   pull_request:
     branches:
-    - master
+    - main
     - devel
 
 jobs:
-  rust-lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@master
-
-      - name: Install Rust stable
-        run: |
-          rustup toolchain update --no-self-update stable
-          rustup default stable
-          rustup component add clippy rustfmt
-
-      - name: Run rustfmt
-        run: cargo fmt -- --check
-
-      - name: Run clippy
-        run: cargo clippy --all-features
-        env:
-          RUSTFLAGS: -D warnings
-
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -40,41 +20,43 @@ jobs:
         rust_versions: ["stable", "1.67"]
         os: [ubuntu-latest, windows-latest]
     steps:
-      - name: Checkout the source code
-        uses: actions/checkout@master
+    - name: Checkout the source code
+      uses: actions/checkout@v4
 
-      - name: Install Rust Versions
-        run: |
-          rustup toolchain install --no-self-update ${{ matrix.rust_versions }}
-          rustup default stable
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust_versions }}
 
-      - name: Build lib
-        run: rustup run ${{ matrix.rust_versions }} cargo build ${{ matrix.cargo_build_flags }}
+    - name: Build lib
+      run: cargo build
 
-      - name: test lib
-        run: cargo test --all-features
-        env:
-          RUSTFLAGS: -D warnings
+    - name: Test lib
+      run: |
+        cargo test --all-features
+        # This test needs another run under the release mode
+        cargo test --release --features simple_writer encode::pattern::tests::debug_release
+      env:
+        RUSTFLAGS: -D warnings
 
   features:
     name: Test Individual Features
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout the source code
-        uses: actions/checkout@master
+    - name: Checkout the source code
+      uses: actions/checkout@v4
 
-      - name: Install Rust toolchain and jq
-        run: |
-          rustup toolchain install --no-self-update stable
-          rustup default stable
-          sudo apt-get install -y --no-install-recommends jq
+    - uses: dtolnay/rust-toolchain@stable
 
-      - name: Test lib
-        run: |
-          for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
+    - name: Install jq
+      run: |
+        sudo apt-get install -y --no-install-recommends jq
+
+    - name: Test lib
+      run: |
+        for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
             echo building with feature "$feature"
             RUSTFLAGS='-D warnings' cargo test --no-default-features --features "$feature"
-          done
+        done
 
   bench:
     name: Benchmark the background_rotation feature
@@ -83,23 +65,12 @@ jobs:
       matrix:
         rust_versions: ["stable", "1.67"]
     steps:
-      - name: Checkout the source code
-        uses: actions/checkout@master
+    - name: Checkout the source code
+      uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        run: |
-          rustup toolchain install --no-self-update stable
-          rustup default stable
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust_versions }}
 
-      - name: Rotation with backgrounded rotation
-        run: cargo bench  --features gzip,background_rotation
-
-  docs-lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Markdown Linting Action
-        uses: avto-dev/markdown-lint@v1.5.0
-        with:
-          config: .markdownlint.yml
-          args: docs/Configuration.md README.md
+    - name: Bench features
+      run: cargo bench --all-features

@@ -12,8 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::append::env_util::expand_env_vars;
-use crate::append::rolling_file::policy::compound::roll::Roll;
+use crate::append::{env_util::expand_env_vars, rolling_file::policy::compound::roll::Roll};
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
