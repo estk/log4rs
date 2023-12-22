@@ -1,5 +1,34 @@
 # Change Log
 
+## [1.3.0]
+
+### New
+
+* Add debug and release formatters
+* Documentation on configuring the tool
+* Code Coverage CI
+* CVE Audit CI
+* EditorConfig CI
+* Code Owners
+
+### Changed
+
+* Update minimum supported rust to 1.67 for CVE-2020-26235
+* Update `arc-swap` to `1.6`
+* Update `log` to `0.4.20`
+* Update `humantime` to `2.1`
+* Update `serde_yaml` to `0.9`
+* Update `toml` to `0.8`
+* Update `derivative` to `2.2`
+* Update `tempfile` to `3.8`
+* Moved `level` field before `message` in json format
+
+### Fixed
+
+* README typo regarding building for dev on windows
+* Apply editorconfig
+* Swap rustfmt configuration to `imports_granularity="Crate"` over deprecated `merge_imports = true`
+
 ## [1.2.0]
 
 ### Changed
