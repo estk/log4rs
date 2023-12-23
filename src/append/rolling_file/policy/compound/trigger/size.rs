@@ -153,3 +153,14 @@ impl Deserialize for SizeTriggerDeserializer {
         Ok(Box::new(SizeTrigger::new(config.limit)))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn pre_process() {
+        let trigger = SizeTrigger::new(2048);
+        assert!(!trigger.is_pre_process());
+    }
+}

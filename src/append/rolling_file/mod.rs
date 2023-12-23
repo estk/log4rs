@@ -390,8 +390,8 @@ appenders:
         path: {0}/foo.log
         policy:
             trigger:
-                kind: size
-                limit: 1024
+                kind: time
+                limit: 2 minutes
             roller:
                 kind: delete
     bar:

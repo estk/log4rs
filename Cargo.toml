@@ -86,6 +86,7 @@ lazy_static = "1.4"
 streaming-stats = "0.2.3"
 humantime = "2.1"
 tempfile = "3.8"
+mock_instant = "0.3"
 
 [[example]]
 name = "json_logger"
