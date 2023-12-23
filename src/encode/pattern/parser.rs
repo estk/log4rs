@@ -20,6 +20,7 @@ pub struct Formatter<'a> {
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Parameters {
     pub fill: char,
+    pub right_truncate: bool,
     pub align: Alignment,
     pub min_width: Option<usize>,
     pub max_width: Option<usize>,
@@ -123,6 +124,7 @@ impl<'a> Parser<'a> {
     fn parameters(&mut self) -> Parameters {
         let mut params = Parameters {
             fill: ' ',
+            right_truncate: true,
             align: Alignment::Left,
             min_width: None,
             max_width: None,
@@ -146,6 +148,10 @@ impl<'a> Parser<'a> {
             params.align = Alignment::Left;
         } else if self.consume('>') {
             params.align = Alignment::Right;
+        }
+
+        if self.consume('-') {
+            params.right_truncate = false;
         }
 
         if let Some(min_width) = self.integer() {
