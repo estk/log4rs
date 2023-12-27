@@ -95,3 +95,7 @@ required-features = ["console_appender", "file_appender", "rolling_file_appender
 [[example]]
 name = "compile_time_config"
 required-features = ["yaml_format", "config_parsing"]
+
+[[example]]
+name = "log_to_file_with_rolling"
+required-features = ["file_appender", "rolling_file_appender", "size_trigger"]
