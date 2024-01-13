@@ -43,7 +43,7 @@ jobs:
       with:
         rules: /lint/rules/changelog.js
         config: --config /lint/config/changelog.yml
-        args: CHANGELOG.md
+        args: 'CHANGELOG.md'
 
   docs-lint:
     name: Docs Lint
@@ -52,5 +52,5 @@ jobs:
     - name: Markdown Linting Action
       uses: avto-dev/markdown-lint@v1
       with:
-        args: **.md
-        ignore: CHANGELOG.md
+        args: '**.md'
+        ignore: 'CHANGELOG.md'
