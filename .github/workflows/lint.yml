@@ -34,6 +34,17 @@ jobs:
         env:
           RUSTFLAGS: -D warnings
 
+  changelog-lint:
+    name: Changelog Lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Markdown Linting Action
+      uses: avto-dev/markdown-lint@v1
+      with:
+        rules: /lint/rules/changelog.js
+        config: --config /lint/config/changelog.yml
+        args: CHANGELOG.md
+
   docs-lint:
     name: Docs Lint
     runs-on: ubuntu-latest
@@ -41,5 +52,5 @@ jobs:
     - name: Markdown Linting Action
       uses: avto-dev/markdown-lint@v1
       with:
-        config: .markdownlint.yml
-        args: docs/Configuration.md README.md
+        args: **.md
+        ignore: CHANGELOG.md
