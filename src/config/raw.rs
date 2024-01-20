@@ -526,6 +526,6 @@ loggers:
 
         let config = ::serde_yaml::from_str::<RawConfig>(config_str);
         assert!(config.is_ok());
-        assert!(crate::init_raw_config(config.unwrap()).is_ok());
+        assert!(crate::config::create_raw_config(config.unwrap()).is_ok());
     }
 }
