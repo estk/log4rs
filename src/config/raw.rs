@@ -525,6 +525,7 @@ loggers:
         let config_str = sample_file[config_start..config_end].trim();
 
         let config = ::serde_yaml::from_str::<RawConfig>(config_str);
-        assert!(config.is_ok())
+        assert!(config.is_ok());
+        assert!(config::create_raw_config(config.unwrap()).is_ok());
     }
 }
