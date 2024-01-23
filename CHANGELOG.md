@@ -12,12 +12,12 @@
 
 ## [1.1.1]
 
-### New
+### Added
 
 ### Changed
 
 * Removed palaver
-* Update `parking_lot` to `0.11`.
+* Update `parking_lot` to `0.11`
 * Update minimum supported rust to 1.49 for `parking_lot`
 
 ### Fixed
@@ -26,17 +26,17 @@
 
 ## [1.1.0]
 
-### New
+### Added
 
-* Added example of compile-time config
-* Add gettid for `PatternEncoder`
+* Example of compile-time config
+* `gettid` for `PatternEncoder`
 * Better rotation benchmark statistics
-* Add tty_only option to `ConsoleAppender`
+* `tty_only` option to `ConsoleAppender`
 
 ### Changed
 
-* Update `arc_swap` to `1.2`.
-* Update `thread_id` to `4`.
+* Update `arc_swap` to `1.2`
+* Update `thread_id` to `4`
 * Update docs for `FixedWindow::build`
 * Drop `Regex` dependency
 
@@ -47,7 +47,7 @@
 
 ## [1.0.0]
 
-### New
+### Added
 
 * Custom error handling
 * Allow parsing of config from string
@@ -65,22 +65,23 @@
 
 ## [0.13.0]
 
-### New
+### Added
 
 ### Changed
 
-* Update `serde-xml-rs` to `0.4`.
-* Update `parking_lot` to `0.11`.
+* Update `serde-xml-rs` to `0.4`
+* Update `parking_lot` to `0.11`
 
 ### Fixed
 
-* Fix bug where both `pattern_encoder` and `json_encoder` features need to be active to use either.
+* Fix bug where both `pattern_encoder` and `json_encoder` features need to be
+  active to use either
 
 ## [0.12.0]
 
-### New
+### Added
 
-* Derived `Clone` for `Handle`.
+* Derived `Clone` for `Handle`
 
 ### Changed
 
@@ -91,99 +92,153 @@
 
 ## [0.11.0]
 
-A performance issue was discovered with gzip and rolling logs, the `background_rotation` feature was
-added to mitigate this by spawning a background thread to perform the rotation in. Shout out to @yakov-bakhmatov
+A performance issue was discovered with gzip and rolling logs, the
+`background_rotation` feature was added to mitigate this by spawning a
+background thread to perform the rotation in. Shout out to @yakov-bakhmatov
 for the PR!
 
-### New
+### Added
 
-* `background_rotation` feature which rotates and compresses log archives in a background thread.
+* `background_rotation` feature which rotates and compresses log archives in a
+  background thread
 
 ### Changed
 
-* Deprecate xml feature in preparation for removal.
-* Simplify and increase visibility of docs.
-* Swap some synchronization primitives to use `parking_lot` implementations.
+* Deprecate xml feature in preparation for removal
+* Simplify and increase visibility of docs
+* Swap some synchronization primitives to use `parking_lot` implementations
 
 ### Fixed
-
 
 ## [0.10.0]
 
 This is a big  release as we're moving to rust 2018 edition!
 
-### New
+### Added
 
-* More badges in the readme.
+* More badges in the readme
 
 ### Changed
 
-* Use rust 2018 edition.
+* Use rust 2018 edition
 * Minimum rust version is 1.38.0
-* Update `arcswap`, `serde-value` and `serde-xml-rs`.
+* Update `arcswap`, `serde-value` and `serde-xml-rs`
 
 ### Fixed
 
-* Deprecate len method on rolling_file.
-* Windows build issue after 2018 edition.
+* Deprecate len method on rolling_file
+* Windows build issue after 2018 edition
 
 ## [0.9.0]
 
-### New
+### Added
 
-* `Logger` is now public.
-* `PatternEncoder` now has the pid.
-* Many config structs are now `Clone` and `Debug` for convenience.
-* JSON logger example added.
-* File logging example added.
+* `Logger` is now public
+* `PatternEncoder` now has the pid
+* Many config structs are now `Clone` and `Debug` for convenience
+* JSON logger example added
+* File logging example added
 
 ### Fixed
 
 * Hierarchical Changelog
-* No longer looking for maintainer.
+* No longer looking for maintainer
 
 ## [0.8.3] - 2019-04-02
 
 ### Fixed
 
-* Fixed Cargo.toml badge.
+* Fixed Cargo.toml badge
 
 ## [0.8.2] - 2019-04-02
 
 ### Changed
 
-* Switched from crossbeam's `ArcCell` to arc-swap's `ArcSwap` internally.
-* Upgraded toml to 0.5.
+* Switched from crossbeam's `ArcCell` to arc-swap's `ArcSwap` internally
+* Upgraded toml to 0.5
 
 ## [0.8.1] - 2018-10-17
 
-### New
+### Added
 
-* Support thread IDs in both JSON and pattern encoders.
+* Support thread IDs in both JSON and pattern encoders
 
 ### Changed
 
-* Upgraded to serde_yaml 0.8.
+* Upgraded to serde_yaml 0.8
 
 ## [0.8.0] - 2017-12-25
 
-### New
+### Added
 
-* XML-formatted config files are now supported.
-* Added the `Append::flush` method.
+* XML-formatted config files are now supported
+* `Append::flush` method
 
 ### Changed
 
-* Upgraded to log 0.4.
+* Upgraded to log 0.4
 
-## Older
+## [0.7.0] - 2017-04-26
 
-Look at the [release tags] for information about older releases.
+### Added
 
-[Unreleased]: https://github.com/sfackler/log4rs/compare/v0.9.0...HEAD
-[0.9.0]: https://github.com/sfackler/log4rs/compare/v0.8.2...v0.9.0
-[0.8.3]: https://github.com/sfackler/log4rs/compare/v0.8.2...v0.8.3
-[0.8.2]: https://github.com/sfackler/log4rs/compare/v0.8.1...v0.8.2
-[0.8.1]: https://github.com/sfackler/log4rs/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/sfackler/log4rs/compare/v0.7.0...v0.8.0
-[release tags]: https://github.com/sfackler/log4rs/releases
+### Changed
+
+* Update to serde 1.0
+
+## [0.6.3] - 2017-04-05
+
+### Added
+
+### Changed
+
+* Fix console appender to actually log to stdout when requested
+
+## [0.6.2] - 2017-03-01
+
+### Added
+
+### Changed
+
+* Fix handling of non-0 bases in rolling file appender
+
+## [0.6.1] - 2017-02-11
+
+### Added
+
+* Add TOML support back in
+
+### Changed
+
+## [0.6.0] - 2017-02-10
+
+### Added
+
+* Enable most features by default. This increases compile times a bit, but is
+  way less confusing for people since components aren't randomly missing
+* Restructure config deserialization. A log4rs config can now be embedded in
+  other config structures and deserialized by downstream users
+
+### Changed
+
+* Update to serde 0.9
+* Use serde_derive instead of manual codegen
+* Drop TOML support. The toml crate hasn't yet been released with support for
+  serde 0.9, but we'll add support back when that lands
+
+## [0.5.2] - 2016-11-25
+
+### Added
+
+* Make Deserializers Clone
+
+### Changed
+
+## [0.5.1] - 2016-11-20
+
+### Added
+
+### Changed
+
+* Update serde_yaml
+* Fix file modification time checks in config reloader
