@@ -10,17 +10,16 @@ appenders:
         level: error
   file:
     kind: file
-    path: error.log
+    path: info.log
     encoder:
       pattern: "{d} [{t}] {l} {M}:{m}{n}"
 
 root:
-  level: warn
   appenders:
   - console
 
 loggers:
-  test::a:
+  multi_logger_config::a:
     level: info
     appenders:
     - file

@@ -5,6 +5,42 @@
 use std::{fmt, io};
 
 use crate::encode::{self, Style};
+use once_cell::sync::Lazy;
+
+static COLOR_MODE: Lazy<ColorMode> = Lazy::new(|| {
+    let no_color = std::env::var("NO_COLOR")
+        .map(|var| var != "0")
+        .unwrap_or(false);
+    let clicolor_force = std::env::var("CLICOLOR_FORCE")
+        .map(|var| var != "0")
+        .unwrap_or(false);
+    if no_color {
+        ColorMode::Never
+    } else if clicolor_force {
+        ColorMode::Always
+    } else {
+        let clicolor = std::env::var("CLICOLOR")
+            .map(|var| var != "0")
+            .unwrap_or(true);
+        if clicolor {
+            ColorMode::Auto
+        } else {
+            ColorMode::Never
+        }
+    }
+});
+
+/// The color output mode for a `ConsoleAppender`
+#[derive(Clone, Copy, Default)]
+pub enum ColorMode {
+    /// Print color only if the output is recognized as a console
+    #[default]
+    Auto,
+    /// Force color output
+    Always,
+    /// Never print color
+    Never,
+}
 
 /// An `encode::Write`r that outputs to a console.
 pub struct ConsoleWriter(imp::Writer);
@@ -88,7 +124,14 @@ mod imp {
     use std::{fmt, io};
 
     use crate::{
-        encode::{self, writer::ansi::AnsiWriter, Style},
+        encode::{
+            self,
+            writer::{
+                ansi::AnsiWriter,
+                console::{ColorMode, COLOR_MODE},
+            },
+            Style,
+        },
         priv_io::{StdWriter, StdWriterLock},
     };
 
@@ -96,19 +139,33 @@ mod imp {
 
     impl Writer {
         pub fn stdout() -> Option<Writer> {
-            if unsafe { libc::isatty(libc::STDOUT_FILENO) } != 1 {
-                return None;
+            let writer = || Writer(AnsiWriter(StdWriter::stdout()));
+            match *COLOR_MODE {
+                ColorMode::Auto => {
+                    if unsafe { libc::isatty(libc::STDOUT_FILENO) } != 1 {
+                        None
+                    } else {
+                        Some(writer())
+                    }
+                }
+                ColorMode::Always => Some(writer()),
+                ColorMode::Never => None,
             }
-
-            Some(Writer(AnsiWriter(StdWriter::stdout())))
         }
 
         pub fn stderr() -> Option<Writer> {
-            if unsafe { libc::isatty(libc::STDERR_FILENO) } != 1 {
-                return None;
+            let writer = || Writer(AnsiWriter(StdWriter::stderr()));
+            match *COLOR_MODE {
+                ColorMode::Auto => {
+                    if unsafe { libc::isatty(libc::STDERR_FILENO) } != 1 {
+                        None
+                    } else {
+                        Some(writer())
+                    }
+                }
+                ColorMode::Always => Some(writer()),
+                ColorMode::Never => None,
             }
-
-            Some(Writer(AnsiWriter(StdWriter::stderr())))
         }
 
         pub fn lock(&self) -> WriterLock {
@@ -180,7 +237,11 @@ mod imp {
     };
 
     use crate::{
-        encode::{self, Color, Style},
+        encode::{
+            self,
+            writer::console::{ColorMode, COLOR_MODE},
+            Color, Style,
+        },
         priv_io::{StdWriter, StdWriterLock},
     };
 
@@ -266,13 +327,18 @@ mod imp {
                     return None;
                 }
 
-                Some(Writer {
+                let writer = Writer {
                     console: RawConsole {
                         handle,
                         defaults: info.wAttributes,
                     },
                     inner: StdWriter::stdout(),
-                })
+                };
+
+                match *COLOR_MODE {
+                    ColorMode::Auto | ColorMode::Always => Some(writer),
+                    ColorMode::Never => None,
+                }
             }
         }
 
@@ -288,13 +354,18 @@ mod imp {
                     return None;
                 }
 
-                Some(Writer {
+                let writer = Writer {
                     console: RawConsole {
                         handle,
                         defaults: info.wAttributes,
                     },
-                    inner: StdWriter::stderr(),
-                })
+                    inner: StdWriter::stdout(),
+                };
+
+                match *COLOR_MODE {
+                    ColorMode::Auto | ColorMode::Always => Some(writer),
+                    ColorMode::Never => None,
+                }
             }
         }
 

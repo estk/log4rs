@@ -11,10 +11,12 @@ and log4j libraries.
 
 ## Warning
 
-If you are using the file rotation in your configuration there is a known substantial performance issue so listen up!
-By default the `gzip` feature is enabled and when rolling files it will zip log archives automatically. This is a problem
-when the log archives are large as the zip happens in the main thread and will halt the process while the zip is completed.
-Be advised that the `gzip` feature will be removed from default features as of `1.0`.
+If you are using the file rotation in your configuration there is a known
+substantial performance issue so listen up! By default the `gzip` feature
+is enabled and when rolling files it will zip log archives automatically.
+This is a problem when the log archives are large as the zip happens in the
+main thread and will halt the process while the zip is completed. Be advised
+that the `gzip` feature will be removed from default features as of `1.0`.
 
 The methods to mitigate this are as follows.
 
@@ -31,25 +33,25 @@ log4rs.yaml:
 ```yaml
 refresh_rate: 30 seconds
 appenders:
-    stdout:
-        kind: console
-    requests:
-        kind: file
-        path: "log/requests.log"
-        encoder:
-            pattern: "{d} - {m}{n}"
-    root:
-        level: warn
-        appenders:
-            - stdout
-    loggers:
-        app::backend::db:
-            level: info
-    app::requests:
-        level: info
-        appenders:
-            - requests
-        additive: false
+  stdout:
+    kind: console
+  requests:
+    kind: file
+    path: "log/requests.log"
+    encoder:
+      pattern: "{d} - {m}{n}"
+root:
+  level: warn
+  appenders:
+    - stdout
+loggers:
+  app::backend::db:
+    level: info
+  app::requests:
+    level: info
+    appenders:
+      - requests
+    additive: false
 ```
 
 lib.rs:
@@ -74,9 +76,11 @@ fn main() {
 ## Building for Dev
 
 * Run the tests: `cargo test --all-features`
-* Run the tests for windows with [cross](https://github.com/rust-embedded/cross): `cross test --target x86_64-pc-windows-gnu`
+* Run the tests for windows with [cross](https://github.com/rust-embedded/cross):
+  `cross test --target x86_64-pc-windows-gnu`
 * Run the tests for all individual features: `./test.sh`
-* Run the tests for all individual features for windows with [cross](https://github.com/rust-embedded/cross): `./test.sh win`
+* Run the tests for all individual features for windows with
+  [cross](https://github.com/rust-embedded/cross): `./test.sh win`
 
 ## License
 

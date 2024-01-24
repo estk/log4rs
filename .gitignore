@@ -3,3 +3,7 @@ Cargo.lock
 .idea/
 *.iml
 .vscode/
+info.log
+log/
+info.log
+
