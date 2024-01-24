@@ -168,13 +168,13 @@ my_rolling_appender:
       pattern: "logs/test.{}.log"
 ```
 
-The new component is the _policy_ field. A policy must have `kind` like most
+The new component is the _policy_ field. A policy must have _kind_ field like most
 other components, the default (and only supported) policy is `kind: compound`.
 
 The _trigger_ field is used to dictate when the log file should be rolled. It
-supports two types: `size`, and `time`. They both require a `limit` field.
+supports two types: `size`, and `time`.
 
-For `size`, the `limit` field is a string which defines the maximum file size
+For `size`, it require a _limit_ field. The _limit_ field is a string which defines the maximum file size
 prior to a rolling of the file. The limit field requires one of the following
 units in bytes, case does not matter:
 
@@ -192,8 +192,10 @@ trigger:
   limit: 10 mb
 ```
 
-For `time`, the `limit` field is a string which defines the time to roll the
-file. The limit field supports the following units(second will be used if the
+For `time`, it has three field, _interval_, _modulate_ and _max_random_delay_.
+
+The _interval_ field is a string which defines the time to roll the
+file. The interval field supports the following units(second will be used if the
 unit is not specified), case does not matter:
 
 - second[s]
@@ -204,18 +206,26 @@ unit is not specified), case does not matter:
 - month[s]
 - year[s]
 
-> Note: The log file will be rolled at the integer time. For example, if the
-> `limit` is set to `2 day`, the log file will be rolled at 0:00 every other a
-> day, regardless of the time `log4rs` was started or the log file was created.
-> This means that the initial log file will be likely rolled before the limit
-> is reached.
+The _modulate_ field is an optional boolean.It indicates whether the interval should
+be adjusted to cause the next rollover to occur on the interval boundary. For example,
+if the item is hours, the current hour is 3 am and the interval is 4 then the first
+rollover will occur at 4 am and then next ones will occur at 8 am, noon, 4pm, etc.
+The default value is false.
+
+The _max_random_delay_ field is an optional integar.Indicates the maximum number
+of seconds to randomly delay a rollover. By default, this is 0 which indicates no
+delay. This setting is useful on servers where multiple applications are configured
+to rollover log files at the same time and can spread the load of doing so across
+time.
 
 i.e.
 
 ```yml
 trigger:
     kind: time
-    limit: 7 day
+    interval: 1 day
+    modulate: false
+    max_random_delay: 0
 ```
 
 The _roller_ field supports two types: delete, and fixed_window. The delete

@@ -19,7 +19,7 @@ appenders:
         policy:
             trigger:
                 kind: time
-                limit: 1 minute
+                interval: 1 minute
             roller:
                 kind: fixed_window
                 pattern: "log/old-rolling_file-{}.log"

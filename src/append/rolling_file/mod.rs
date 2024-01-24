@@ -391,7 +391,7 @@ appenders:
         policy:
             trigger:
                 kind: time
-                limit: 2 minutes
+                interval: 2 minutes
             roller:
                 kind: delete
     bar:

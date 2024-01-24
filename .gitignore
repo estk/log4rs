@@ -4,3 +4,4 @@ Cargo.lock
 *.iml
 .vscode/
 info.log
+log/
