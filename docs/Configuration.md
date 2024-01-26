@@ -32,8 +32,8 @@ i.e.
 
 ```yml
 filters:
-    - kind: threshold
-        level: info
+  - kind: threshold
+    level: info
 ```
 
 ### Encoder
@@ -51,13 +51,13 @@ i.e.
 
 ```yml
 encoder:
-    kind: pattern
-    pattern: "{h({d(%+)(utc)} [{f}:{L}] {l:<6} {M}:{m})}{n}"
+  kind: pattern
+  pattern: "{h({d(%+)(utc)} [{f}:{L}] {l:<6} {M}:{m})}{n}"
 ```
 
 ## Loggers
 
-A map of logger configurations.  
+A map of logger configurations.
 
 ### Logger Configuration
 
@@ -76,11 +76,11 @@ i.e.
 
 ```yml
 loggers:
-    my_logger:
-        level: info
-        appenders:
-            - my_appender
-        additive: true
+  my_logger:
+    level: info
+    appenders:
+      - my_appender
+    additive: true
 ```
 
 ## The Root Logger
@@ -93,9 +93,9 @@ field does not apply.
 
 ```yml
 root:
-    level: info
-    appenders:
-        - my_appender
+  level: info
+  appenders:
+    - my_appender
 ```
 
 ## Appenders
@@ -121,9 +121,9 @@ the [encoder](#encoder) documention.
 
 ```yml
 my_console_appender:
-    kind: console
-    target: stdout
-    tty_only: false
+  kind: console
+  target: stdout
+  tty_only: false
 ```
 
 #### The File Appender
@@ -139,9 +139,9 @@ append to the log file if it exists, false will truncate the existing file.
 
 ```yml
 my_file_appender:
-    kind: file
-    path: $ENV{PWD}/log/test.log
-    append: true
+  kind: file
+  path: $ENV{PWD}/log/test.log
+  append: true
 ```
 
 #### The Rolling File Appender
@@ -154,18 +154,18 @@ i.e.
 
 ```yml
 my_rolling_appender:
-    kind: rolling_file
-    path: "logs/test.log"
-    policy:
-        kind: compound
-        trigger:
-            kind: size
-            limit: 1mb
-        roller:
-            kind: fixed_window
-            base: 1
-            count: 5
-            pattern: "logs/test.{}.log"
+  kind: rolling_file
+  path: "logs/test.log"
+  policy:
+    kind: compound
+    trigger:
+      kind: size
+      limit: 1mb
+    roller:
+      kind: fixed_window
+      base: 1
+      count: 5
+      pattern: "logs/test.{}.log"
 ```
 
 The new component is the _policy_ field. A policy must have `kind` like most
@@ -186,8 +186,8 @@ i.e.
 
 ```yml
 trigger:
-    kind: size
-    limit: 10 mb
+  kind: size
+  limit: 10 mb
 ```
 
 The _roller_ field supports two types: delete, and fixed_window. The delete
@@ -214,17 +214,17 @@ i.e.
 
 ```yml
 roller:
-    kind: fixed_window
-    base: 1
-    count: 5
-    pattern: "archive/journey-service.{}.log"
+  kind: fixed_window
+  base: 1
+  count: 5
+  pattern: "archive/journey-service.{}.log"
 ```
 
 or
 
 ```yml
 roller:
-    kind: delete
+  kind: delete
 ```
 
 ## Refresh Rate

@@ -49,11 +49,11 @@ pub fn init_config_with_err_handler(
     log::set_boxed_logger(Box::new(logger)).map(|()| handle)
 }
 
-/// Initializes the global logger as a log4rs logger using the provided raw config.
+/// Create a log4rs logger using the provided raw config.
 ///
-/// This will return errors if the appenders configuration is malformed or if we fail to set the global logger.
+/// This will return errors if the appenders configuration is malformed.
 #[cfg(feature = "config_parsing")]
-pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
+pub fn create_raw_config(config: RawConfig) -> Result<crate::Logger, InitError> {
     let (appenders, errors) = config.appenders_lossy(&Deserializers::default());
     if !errors.is_empty() {
         return Err(InitError::Deserializing(errors));
@@ -63,7 +63,15 @@ pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
         .loggers(config.loggers())
         .build(config.root())?;
 
-    let logger = crate::Logger::new(config);
+    Ok(crate::Logger::new(config))
+}
+
+/// Initializes the global logger as a log4rs logger using the provided raw config.
+///
+/// This will return errors if the appenders configuration is malformed or if we fail to set the global logger.
+#[cfg(feature = "config_parsing")]
+pub fn init_raw_config(config: RawConfig) -> Result<(), InitError> {
+    let logger = create_raw_config(config)?;
     log::set_max_level(logger.max_log_level());
     log::set_boxed_logger(Box::new(logger))?;
     Ok(())
