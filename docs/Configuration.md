@@ -168,7 +168,7 @@ my_rolling_appender:
       pattern: "logs/test.{}.log"
 ```
 
-The new component is the _policy_ field. A policy must have _kind_ field like most
+The new component is the _policy_ field. A policy must have the _kind_ field like most
 other components, the default (and only supported) policy is `kind: compound`.
 
 The _trigger_ field is used to dictate when the log file should be rolled. It
