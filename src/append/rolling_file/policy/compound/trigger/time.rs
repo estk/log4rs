@@ -46,7 +46,7 @@ pub struct TimeTrigger {
     next_roll_time: RwLock<DateTime<Local>>,
 }
 
-/// The TimeTriger have the following units are supported (case insensitive):
+/// The TimeTrigger supports the following units (case insensitive):
 /// "second", "seconds", "minute", "minutes", "hour", "hours", "day", "days", "week", "weeks", "month", "months", "year", "years". The unit defaults to
 /// second if not specified.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
