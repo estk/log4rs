@@ -206,13 +206,18 @@ unit is not specified), case does not matter:
 - month[s]
 - year[s]
 
-The _modulate_ field is an optional boolean.It indicates whether the interval should
-be adjusted to cause the next rollover to occur on the interval boundary. For example,
-if the item is hours, the current hour is 3 am and the interval is 4 then the first
-rollover will occur at 4 am and then next ones will occur at 8 am, noon, 4pm, etc.
-The default value is false.
+> Note: `log4j` set `Sunday` as the first day of the week, but `log4rs` set
+> `Monday` as the first day of the week, which is the same as `chrono` crate
+> and the `ISO 8601` standard. So if you use `week`, the log file will be rolled
+> on `Monday` instead of `Sunday`.
 
-The _max_random_delay_ field is an optional integar.Indicates the maximum number
+The _modulate_ field is an optional boolean. It indicates whether the interval should
+be adjusted to cause the next rollover to occur on the interval boundary. For example,
+if the interval is 4 hours and the current hour is 3 am, when true, the first rollover
+will occur at 4 am and then next ones will occur at 8 am, noon, 4pm, etc. The default
+value is false.
+
+The _max_random_delay_ field is an optional integer. It indicates the maximum number
 of seconds to randomly delay a rollover. By default, this is 0 which indicates no
 delay. This setting is useful on servers where multiple applications are configured
 to rollover log files at the same time and can spread the load of doing so across
@@ -240,7 +245,7 @@ that if the file extension of the pattern is `.gz` and the `gzip` Cargo
 feature is enabled, the archive files will be gzip-compressed.
 
 > Note: This pattern field is only used for archived files. The `path` field
-of the higher level `rolling_file` will be used for the active log file.
+> of the higher level `rolling_file` will be used for the active log file.
 
 The _base_ field is the starting index used to name rolling files.
 
