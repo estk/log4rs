@@ -243,10 +243,10 @@ impl TimeTrigger {
         }
 
         if let TimeTriggerInterval::Day(n) = interval {
-            let ordinal0 = current.ordinal0();
+            let ordinal0 = current.ordinal0() as i64;
             let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
             let increment = if modulate {
-                n - (ordinal0 as i64) % n
+                n - ordinal0 % n
             } else {
                 n
             };
