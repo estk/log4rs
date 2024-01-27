@@ -299,8 +299,8 @@ impl Trigger for TimeTrigger {
         #[cfg(not(test))]
         let current: DateTime<Local> = Local::now();
         let mut next_roll_time = self.next_roll_time.write().unwrap();
-        let is_triger = current >= *next_roll_time;
-        if is_triger {
+        let is_trigger = current >= *next_roll_time;
+        if is_trigger {
             let tmp = TimeTrigger::new(self.config);
             let time_new = tmp.next_roll_time.read().unwrap();
             *next_roll_time = *time_new;
