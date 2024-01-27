@@ -305,7 +305,7 @@ impl Trigger for TimeTrigger {
             let time_new = tmp.next_roll_time.read().unwrap();
             *next_roll_time = *time_new;
         }
-        Ok(is_triger)
+        Ok(is_trigger)
     }
 
     fn is_pre_process(&self) -> bool {
