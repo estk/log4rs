@@ -25,8 +25,10 @@ const FILE_PATH: &str = "/tmp/foo.log";
 ///     https://docs.rs/log4rs/*/log4rs/append/rolling_file/policy/compound/roll/fixed_window/struct.FixedWindowRollerBuilder.html#method.build
 const ARCHIVE_PATTERN: &str = "/tmp/archive/foo.{}.log";
 
-use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::{
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 use log::{debug, error, info, trace, warn, LevelFilter, SetLoggerError};
 use log4rs::{
