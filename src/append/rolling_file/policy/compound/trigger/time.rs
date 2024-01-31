@@ -393,7 +393,7 @@ mod test {
         ];
         let modulate = false;
         for (time_trigger_interval, time_in_milli) in test_list.iter() {
-            MockClock::set_system_time(Duration::from_millis(4 * day_in_milli)); // Sunday
+            MockClock::set_system_time(Duration::from_millis(4 * day_in_milli)); // 1970/1/5 00:00:00 Monday
             assert_eq!(
                 trigger_with_time_and_modulate(*time_trigger_interval, modulate, *time_in_milli),
                 (false, true)

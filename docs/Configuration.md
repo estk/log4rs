@@ -206,9 +206,9 @@ unit is not specified), case does not matter:
 - month[s]
 - year[s]
 
-> Note: `log4j` set `Sunday` as the first day of the week, but `log4rs` set
-> `Monday` as the first day of the week, which is the same as `chrono` crate
-> and the `ISO 8601` standard. So if you use `week`, the log file will be rolled
+> Note: `log4j` treats `Sunday` as the first day of the week, but `log4rs` treats
+> `Monday` as the first day of the week, which follows the `chrono` crate
+> and the `ISO 8601` standard. So when using `week`, the log file will be rolled
 > on `Monday` instead of `Sunday`.
 
 The _modulate_ field is an optional boolean. It indicates whether the interval should
@@ -254,7 +254,7 @@ However, be warned that the roller renames every file when a log rolls over.
 Having a large count value can negatively impact performance.
 
 > Note: If you use the `triger: time`, the log file will be rolled before it
-> gets written, which ensure that the logs are rolled in the correct position
+> gets written, which ensures that the logs are rolled in the correct position
 > instead of leaving a single line of logs in the previous log file. However,
 > this may cause a substantial slowdown if the `background` feature is not enabled.
 
