@@ -10,6 +10,9 @@
 * CVE Audit CI
 * EditorConfig CI
 * Code Owners
+* NO_COLOR, CLICOLOR, CLICOLOR_FORCE controls
+* Example of inline configuration with file rotation
+* Time Based Trigger
 
 ### Changed
 
@@ -22,6 +25,8 @@
 * Update `derivative` to `2.2`
 * Update `tempfile` to `3.8`
 * Moved `level` field before `message` in json format
+* Legacy test moved to examples
+
 
 ### Fixed
 
