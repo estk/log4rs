@@ -7,7 +7,8 @@
 /// This is the size at which a new file should be created. For the demo it is
 /// set to 2KB which is very small and only for demo purposes
 const TRIGGER_FILE_SIZE: u64 = 2 * 1024;
-
+const TRIGGER_TIME_CONFIG: (TimeTriggerInterval, bool, u64) =
+    (TimeTriggerInterval::Day(1), false, 0);
 /// Delay between log messages for demo purposes
 const TIME_BETWEEN_LOG_MESSAGES: Duration = Duration::from_millis(10);
 
@@ -35,7 +36,13 @@ use log4rs::{
     append::{
         console::{ConsoleAppender, Target},
         rolling_file::policy::compound::{
-            roll::fixed_window::FixedWindowRoller, trigger::size::SizeTrigger, CompoundPolicy,
+            roll::fixed_window::FixedWindowRoller,
+            trigger::{
+                size::SizeTrigger,
+                time::{TimeTrigger, TimeTriggerInterval},
+                Trigger,
+            },
+            CompoundPolicy,
         },
     },
     config::{Appender, Config, Root},
@@ -50,12 +57,19 @@ fn main() -> Result<(), SetLoggerError> {
     let stderr = ConsoleAppender::builder().target(Target::Stderr).build();
 
     // Create a policy to use with the file logging
-    let trigger = SizeTrigger::new(TRIGGER_FILE_SIZE);
+    let trigger_size = SizeTrigger::new(TRIGGER_FILE_SIZE);
+    let trigger_time = TimeTrigger::new(
+        TRIGGER_TIME_CONFIG.0,
+        TRIGGER_TIME_CONFIG.1,
+        TRIGGER_TIME_CONFIG.2,
+    );
+    let trigger: Vec<Box<dyn Trigger>> = vec![Box::new(trigger_size), Box::new(trigger_time)];
+
     let roller = FixedWindowRoller::builder()
         .base(0) // Default Value (line not needed unless you want to change from 0 (only here for demo purposes)
         .build(ARCHIVE_PATTERN, LOG_FILE_COUNT) // Roll based on pattern and max 3 archive files
         .unwrap();
-    let policy = CompoundPolicy::new(Box::new(trigger), Box::new(roller));
+    let policy = CompoundPolicy::new(trigger, Box::new(roller));
 
     // Logging to log file. (with rolling)
     let logfile = log4rs::append::rolling_file::RollingFileAppender::builder()

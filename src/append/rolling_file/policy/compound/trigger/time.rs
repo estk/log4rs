@@ -12,7 +12,7 @@ use rand::Rng;
 use serde::de;
 #[cfg(feature = "config_parsing")]
 use std::fmt;
-use std::sync::RwLock;
+use std::sync::{Once, RwLock};
 
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 #[cfg(feature = "config_parsing")]
@@ -23,27 +23,27 @@ use crate::config::{Deserialize, Deserializers};
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TimeTriggerConfig {
-    interval: TimeTriggerInterval,
+    /// The date/time interval between log file rolls.
+    pub interval: TimeTriggerInterval,
+    /// Whether to modulate the interval.
     #[serde(default)]
-    modulate: bool,
+    pub modulate: bool,
+    /// The maximum random delay in seconds.
     #[serde(default)]
-    max_random_delay: u64,
-}
-
-#[cfg(not(feature = "config_parsing"))]
-/// Configuration for the time trigger.
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
-pub struct TimeTriggerConfig {
-    interval: TimeTriggerInterval,
-    modulate: bool,
-    max_random_delay: u64,
+    pub max_random_delay: u64,
 }
 
 /// A trigger which rolls the log once it has passed a certain time.
 #[derive(Debug)]
 pub struct TimeTrigger {
-    config: TimeTriggerConfig,
+    /// The date/time interval between log file rolls.
+    pub interval: TimeTriggerInterval,
+    /// Whether to modulate the interval.
+    pub modulate: bool,
+    /// The maximum random delay in seconds.
+    pub max_random_delay: u64,
     next_roll_time: RwLock<DateTime<Local>>,
+    initial: Once,
 }
 
 /// The TimeTrigger supports the following units (case insensitive):
@@ -175,31 +175,17 @@ impl<'de> serde::Deserialize<'de> for TimeTriggerInterval {
 impl TimeTrigger {
     /// Returns a new trigger which rolls the log once it has passed the
     /// specified time.
-    pub fn new(config: TimeTriggerConfig) -> TimeTrigger {
-        #[cfg(test)]
-        let current = {
-            let now: std::time::Duration = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time before Unix epoch");
-            NaiveDateTime::from_timestamp_opt(now.as_secs() as i64, now.subsec_nanos())
-                .unwrap()
-                .and_local_timezone(Local)
-                .unwrap()
-        };
-
-        #[cfg(not(test))]
-        let current = Local::now();
-        let next_time = TimeTrigger::get_next_time(current, config.interval, config.modulate);
-        let next_roll_time = if config.max_random_delay > 0 {
-            let random_delay = rand::thread_rng().gen_range(0..config.max_random_delay);
-            next_time + Duration::seconds(random_delay as i64)
-        } else {
-            next_time
-        };
-
+    pub fn new(
+        interval: TimeTriggerInterval,
+        modulate: bool,
+        max_random_delay: u64,
+    ) -> TimeTrigger {
         TimeTrigger {
-            config,
-            next_roll_time: RwLock::new(next_roll_time),
+            interval,
+            modulate,
+            max_random_delay,
+            next_roll_time: RwLock::default(),
+            initial: Once::new(),
         }
     }
 
@@ -274,10 +260,37 @@ impl TimeTrigger {
         }
         panic!("Should not reach here!");
     }
+
+    fn refresh_time(&self) {
+        #[cfg(test)]
+        let current = {
+            let now: std::time::Duration = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system time before Unix epoch");
+            NaiveDateTime::from_timestamp_opt(now.as_secs() as i64, now.subsec_nanos())
+                .unwrap()
+                .and_local_timezone(Local)
+                .unwrap()
+        };
+
+        #[cfg(not(test))]
+        let current = Local::now();
+        let next_time = TimeTrigger::get_next_time(current, self.interval, self.modulate);
+        let next_roll_time = if self.max_random_delay > 0 {
+            let random_delay = rand::thread_rng().gen_range(0..self.max_random_delay);
+            next_time + Duration::seconds(random_delay as i64)
+        } else {
+            next_time
+        };
+        *self.next_roll_time.write().unwrap() = next_roll_time;
+    }
 }
 
 impl Trigger for TimeTrigger {
     fn trigger(&self, _file: &LogFile) -> anyhow::Result<bool> {
+        self.initial.call_once(|| {
+            self.refresh_time();
+        });
         #[cfg(test)]
         let current = {
             let now = SystemTime::now()
@@ -291,12 +304,11 @@ impl Trigger for TimeTrigger {
 
         #[cfg(not(test))]
         let current: DateTime<Local> = Local::now();
-        let mut next_roll_time = self.next_roll_time.write().unwrap();
+        let next_roll_time = self.next_roll_time.read().unwrap();
         let is_trigger = current >= *next_roll_time;
+        drop(next_roll_time);
         if is_trigger {
-            let tmp = TimeTrigger::new(self.config);
-            let time_new = tmp.next_roll_time.read().unwrap();
-            *next_roll_time = *time_new;
+            self.refresh_time();
         }
         Ok(is_trigger)
     }
@@ -333,7 +345,11 @@ impl Deserialize for TimeTriggerDeserializer {
         config: TimeTriggerConfig,
         _: &Deserializers,
     ) -> anyhow::Result<Box<dyn Trigger>> {
-        Ok(Box::new(TimeTrigger::new(config)))
+        Ok(Box::new(TimeTrigger::new(
+            config.interval,
+            config.modulate,
+            config.max_random_delay,
+        )))
     }
 }
 
@@ -355,13 +371,8 @@ mod test {
             len: 0,
         };
 
-        let config = TimeTriggerConfig {
-            interval,
-            modulate,
-            max_random_delay: 0,
-        };
-
-        let trigger = TimeTrigger::new(config);
+        let trigger = TimeTrigger::new(interval, modulate, 0);
+        trigger.trigger(&logfile).unwrap();
 
         MockClock::advance_system_time(Duration::from_millis(millis / 2));
         let result1 = trigger.trigger(&logfile).unwrap();
@@ -485,12 +496,7 @@ mod test {
 
     #[test]
     fn pre_process() {
-        let config = TimeTriggerConfig {
-            interval: TimeTriggerInterval::Minute(2),
-            modulate: true,
-            max_random_delay: 0,
-        };
-        let trigger = TimeTrigger::new(config);
+        let trigger = TimeTrigger::new(TimeTriggerInterval::Minute(2), true, 0);
         assert!(trigger.is_pre_process());
     }
 }

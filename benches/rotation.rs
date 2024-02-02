@@ -75,7 +75,7 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
     let roller = policy::compound::roll::fixed_window::FixedWindowRoller::builder()
         .build(&roll_pattern, file_count)
         .unwrap();
-    let policy = policy::compound::CompoundPolicy::new(Box::new(trigger), Box::new(roller));
+    let policy = policy::compound::CompoundPolicy::new(vec![Box::new(trigger)], Box::new(roller));
     let file = RollingFileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(
             "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} {l} [{t} - {T}] {m}{n}",

@@ -23,7 +23,7 @@ pub mod trigger;
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CompoundPolicyConfig {
-    trigger: Trigger,
+    triggers: Vec<Trigger>,
     roller: Roller,
 }
 
@@ -81,27 +81,33 @@ impl<'de> serde::Deserialize<'de> for Roller {
     }
 }
 
-/// A rolling policy which delegates to a "trigger" and "roller".
+/// A rolling policy which delegates to a "triggers" and "roller".
 ///
 /// The trigger determines if the log file should roll, for example, by checking
 /// the size of the file. The roller processes the old log file, for example,
 /// by compressing it and moving it to a different location.
 #[derive(Debug)]
 pub struct CompoundPolicy {
-    trigger: Box<dyn trigger::Trigger>,
+    triggers: Vec<Box<dyn trigger::Trigger>>,
     roller: Box<dyn Roll>,
 }
 
 impl CompoundPolicy {
     /// Creates a new `CompoundPolicy`.
-    pub fn new(trigger: Box<dyn trigger::Trigger>, roller: Box<dyn Roll>) -> CompoundPolicy {
-        CompoundPolicy { trigger, roller }
+    pub fn new(triggers: Vec<Box<dyn trigger::Trigger>>, roller: Box<dyn Roll>) -> CompoundPolicy {
+        CompoundPolicy { triggers, roller }
     }
 }
 
 impl Policy for CompoundPolicy {
     fn process(&self, log: &mut LogFile) -> anyhow::Result<()> {
-        if self.trigger.trigger(log)? {
+        let mut is_trigger = false;
+        for trigger in &self.triggers {
+            if trigger.trigger(log)? {
+                is_trigger = true;
+            }
+        }
+        if is_trigger {
             log.roll();
             self.roller.roll(log.path())?;
         }
@@ -109,7 +115,12 @@ impl Policy for CompoundPolicy {
     }
 
     fn is_pre_process(&self) -> bool {
-        self.trigger.is_pre_process()
+        for trigger in &self.triggers {
+            if trigger.is_pre_process() {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -121,14 +132,14 @@ impl Policy for CompoundPolicy {
 /// kind: compound
 ///
 /// # The trigger, which determines when the log will roll over. Required.
-/// trigger:
+/// triggers:
 ///
 ///   # Identifies which trigger is to be used. Required.
-///   kind: size
+///   - kind: size
 ///
-///   # The remainder of the configuration is passed to the trigger's
-///   # deserializer, and will vary based on the kind of trigger.
-///   limit: 10 mb
+///     # The remainder of the configuration is passed to the trigger's
+///     # deserializer, and will vary based on the kind of trigger.
+///     limit: 10 mb
 ///
 /// # The roller, which processes the old log file. Required.
 /// roller:
@@ -154,8 +165,13 @@ impl Deserialize for CompoundPolicyDeserializer {
         config: CompoundPolicyConfig,
         deserializers: &Deserializers,
     ) -> anyhow::Result<Box<dyn Policy>> {
-        let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
+        let mut triggers = Vec::new();
+        for config_trigger in &config.triggers {
+            let trigger =
+                deserializers.deserialize(&config_trigger.kind, config_trigger.config.clone())?;
+            triggers.push(trigger);
+        }
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
-        Ok(Box::new(CompoundPolicy::new(trigger, roller)))
+        Ok(Box::new(CompoundPolicy::new(triggers, roller)))
     }
 }

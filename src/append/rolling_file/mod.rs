@@ -328,9 +328,9 @@ impl RollingFileAppenderBuilder {
 ///
 ///   # The remainder of the configuration is passed along to the policy's
 ///   # deserializer, and will vary based on the kind of policy.
-///   trigger:
-///     kind: size
-///     limit: 10 mb
+///   triggers:
+///     - kind: size
+///       limit: 10 mb
 ///
 ///   roller:
 ///     kind: delete
@@ -385,28 +385,28 @@ mod test {
         let config = format!(
             "
 appenders:
-    foo:
-        kind: rolling_file
-        path: {0}/foo.log
-        policy:
-            trigger:
-                kind: time
-                interval: 2 minutes
-            roller:
-                kind: delete
-    bar:
-        kind: rolling_file
-        path: {0}/foo.log
-        policy:
-            kind: compound
-            trigger:
-                kind: size
-                limit: 5 mb
-            roller:
-                kind: fixed_window
-                pattern: '{0}/foo.log.{{}}'
-                base: 1
-                count: 5
+  foo:
+    kind: rolling_file
+    path: {0}/foo.log
+    policy:
+      triggers:
+        - kind: time
+          interval: 2 minutes
+      roller:
+        kind: delete
+  bar:
+    kind: rolling_file
+    path: {0}/foo.log
+    policy:
+      kind: compound
+      triggers:
+        - kind: size
+          limit: 5 mb
+      roller:
+        kind: fixed_window
+        pattern: '{0}/foo.log.{{}}'
+        base: 1
+        count: 5
 ",
             dir.path().display()
         );
