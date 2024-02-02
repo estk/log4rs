@@ -168,13 +168,15 @@ my_rolling_appender:
       pattern: "logs/test.{}.log"
 ```
 
-The new component is the _policy_ field. A policy must have `kind` like most
+The new component is the _policy_ field. A policy must have the _kind_ field like most
 other components, the default (and only supported) policy is `kind: compound`.
 
-The _trigger_ field is used to dictate when the log file should be rolled. The
-only supported trigger is  `kind: size`. There is a required field `limit`
-which defines the maximum file size prior to a rolling of the file. The limit
-field requires one of the following units in bytes, case does not matter:
+The _trigger_ field is used to dictate when the log file should be rolled. It
+supports two types: `size`, and `time`.
+
+For `size`, it require a _limit_ field. The _limit_ field is a string which defines the maximum file size
+prior to a rolling of the file. The limit field requires one of the following
+units in bytes, case does not matter:
 
 - b
 - kb/kib
@@ -190,6 +192,47 @@ trigger:
   limit: 10 mb
 ```
 
+For `time`, it has three field, _interval_, _modulate_ and _max_random_delay_.
+
+The _interval_ field is a string which defines the time to roll the
+file. The interval field supports the following units(second will be used if the
+unit is not specified), case does not matter:
+
+- second[s]
+- minute[s]
+- hour[s]
+- day[s]
+- week[s]
+- month[s]
+- year[s]
+
+> Note: `log4j` treats `Sunday` as the first day of the week, but `log4rs` treats
+> `Monday` as the first day of the week, which follows the `chrono` crate
+> and the `ISO 8601` standard. So when using `week`, the log file will be rolled
+> on `Monday` instead of `Sunday`.
+
+The _modulate_ field is an optional boolean. It indicates whether the interval should
+be adjusted to cause the next rollover to occur on the interval boundary. For example,
+if the interval is 4 hours and the current hour is 3 am, when true, the first rollover
+will occur at 4 am and then next ones will occur at 8 am, noon, 4pm, etc. The default
+value is false.
+
+The _max_random_delay_ field is an optional integer. It indicates the maximum number
+of seconds to randomly delay a rollover. By default, this is 0 which indicates no
+delay. This setting is useful on servers where multiple applications are configured
+to rollover log files at the same time and can spread the load of doing so across
+time.
+
+i.e.
+
+```yml
+trigger:
+    kind: time
+    interval: 1 day
+    modulate: false
+    max_random_delay: 0
+```
+
 The _roller_ field supports two types: delete, and fixed_window. The delete
 roller does not take any other configuration fields. The fixed_window roller
 supports three fields: pattern, base, and count. The most current log file will
@@ -202,13 +245,18 @@ that if the file extension of the pattern is `.gz` and the `gzip` Cargo
 feature is enabled, the archive files will be gzip-compressed.
 
 > Note: This pattern field is only used for archived files. The `path` field
-of the higher level `rolling_file` will be used for the active log file.
+> of the higher level `rolling_file` will be used for the active log file.
 
 The _base_ field is the starting index used to name rolling files.
 
 The _count_ field is the exclusive maximum index used to name rolling files.
 However, be warned that the roller renames every file when a log rolls over.
 Having a large count value can negatively impact performance.
+
+> Note: If you use the `triger: time`, the log file will be rolled before it
+> gets written, which ensures that the logs are rolled in the correct position
+> instead of leaving a single line of logs in the previous log file. However,
+> this may cause a substantial slowdown if the `background` feature is not enabled.
 
 i.e.
 

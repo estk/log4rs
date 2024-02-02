@@ -167,22 +167,41 @@ impl Append for RollingFileAppender {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
-        let len = {
-            let writer = self.get_writer(&mut writer)?;
-            self.encoder.encode(writer, record)?;
-            writer.flush()?;
-            writer.len
-        };
+        let is_pre_process = self.policy.is_pre_process();
+        let log_writer = self.get_writer(&mut writer)?;
 
-        let mut file = LogFile {
-            writer: &mut writer,
-            path: &self.path,
-            len,
-        };
+        if is_pre_process {
+            let len = log_writer.len;
 
-        // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
-        // data that comes in while we are processing the file rotation.
-        self.policy.process(&mut file)
+            let mut file = LogFile {
+                writer: &mut writer,
+                path: &self.path,
+                len,
+            };
+
+            // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
+            // data that comes in while we are processing the file rotation.
+
+            self.policy.process(&mut file)?;
+
+            let log_writer_new = self.get_writer(&mut writer)?;
+            self.encoder.encode(log_writer_new, record)?;
+            log_writer_new.flush()?;
+        } else {
+            self.encoder.encode(log_writer, record)?;
+            log_writer.flush()?;
+            let len = log_writer.len;
+
+            let mut file = LogFile {
+                writer: &mut writer,
+                path: &self.path,
+                len,
+            };
+
+            self.policy.process(&mut file)?;
+        }
+
+        Ok(())
     }
 
     fn flush(&self) {}
@@ -371,8 +390,8 @@ appenders:
         path: {0}/foo.log
         policy:
             trigger:
-                kind: size
-                limit: 1024
+                kind: time
+                interval: 2 minutes
             roller:
                 kind: delete
     bar:
@@ -404,6 +423,9 @@ appenders:
     impl Policy for NopPolicy {
         fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
             Ok(())
+        }
+        fn is_pre_process(&self) -> bool {
+            false
         }
     }
 

@@ -215,6 +215,12 @@ impl Default for Deserializers {
             append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
         );
 
+        #[cfg(feature = "time_trigger")]
+        d.insert(
+            "time",
+            append::rolling_file::policy::compound::trigger::time::TimeTriggerDeserializer,
+        );
+
         #[cfg(feature = "json_encoder")]
         d.insert("json", encode::json::JsonEncoderDeserializer);
 
@@ -259,6 +265,8 @@ impl Deserializers {
     /// * Triggers
     ///     * "size" -> `SizeTriggerDeserializer`
     ///         * Requires the `size_trigger` feature.
+    ///     * "time" -> `TimeTriggerDeserializer`
+    ///         * Requires the `time_trigger` feature.
     pub fn new() -> Deserializers {
         Deserializers::default()
     }

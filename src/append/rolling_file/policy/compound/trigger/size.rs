@@ -117,6 +117,10 @@ impl Trigger for SizeTrigger {
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
         Ok(file.len_estimate() > self.limit)
     }
+
+    fn is_pre_process(&self) -> bool {
+        false
+    }
 }
 
 /// A deserializer for the `SizeTrigger`.
@@ -147,5 +151,16 @@ impl Deserialize for SizeTriggerDeserializer {
         _: &Deserializers,
     ) -> anyhow::Result<Box<dyn Trigger>> {
         Ok(Box::new(SizeTrigger::new(config.limit)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn pre_process() {
+        let trigger = SizeTrigger::new(2048);
+        assert!(!trigger.is_pre_process());
     }
 }

@@ -7,7 +7,7 @@ fn main() {
     let config = serde_yaml::from_str(config_str).unwrap();
     log4rs::init_raw_config(config).unwrap();
 
-    info!("Goes to console");
-    error!("Goes to console");
+    info!("Goes to console, file and rolling file");
+    error!("Goes to console, file and rolling file");
     trace!("Doesn't go to console as it is filtered out");
 }
