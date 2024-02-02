@@ -16,7 +16,7 @@
 
 ### Changed
 
-* Update minimum supported rust to 1.67 for CVE-2020-26235
+* Update minimum supported rust to 1.69 for CVE-2020-26235
 * Update `arc-swap` to `1.6`
 * Update `log` to `0.4.20`
 * Update `humantime` to `2.1`
