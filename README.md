@@ -1,4 +1,5 @@
-# log4rs
+# tari_log4rs
+This is a fork of log4rs fixing some security bugs. This is used as a stop gap till log4rs 1.3 is released on crates.io
 
 [![docs](https://docs.rs/log4rs/badge.svg)](https://docs.rs/log4rs)
 [![crates.io](https://img.shields.io/crates/v/log4rs.svg)](https://crates.io/crates/log4rs)

@@ -1,5 +1,5 @@
 [package]
-name = "log4rs"
+name = "tari_log4rs"
 version = "1.2.0"
 authors = ["Steven Fackler <sfackler@gmail.com>", "Evan Simmons <esims89@gmail.com>"]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
