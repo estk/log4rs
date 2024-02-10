@@ -463,10 +463,6 @@ impl Handle {
     }
 }
 
-trait ErrorInternals {
-    fn new(message: String) -> Self;
-}
-
 #[cfg(test)]
 mod test {
     use log::{Level, LevelFilter, Log};
