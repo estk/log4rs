@@ -297,6 +297,23 @@ mod test {
             ],
             "invalid value: string \"pb\", expected a valid unit",
         );
+
+        // u64::MAX which will overflow when converted to bytes
+        let size = "18446744073709551615 kb";
+        // Test not an unsigned number
+        assert_de_tokens_error::<SizeTriggerConfig>(
+            &[
+                Token::Struct {
+                    name: "SizeTriggerConfig",
+                    len: 1,
+                },
+                Token::Str("limit"),
+                Token::Str(size),
+                Token::StructEnd,
+            ],
+            "invalid value: string \"18446744073709551615 kb\", expected a byte size",
+        );
+
     }
 
     #[test]
