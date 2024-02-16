@@ -283,6 +283,20 @@ mod test {
             ],
             "invalid value: string \"\", expected a number",
         );
+
+        // Test not an unsigned number
+        assert_de_tokens_error::<SizeTriggerConfig>(
+            &[
+                Token::Struct {
+                    name: "SizeTriggerConfig",
+                    len: 1,
+                },
+                Token::Str("limit"),
+                Token::Str("1024 pb"),
+                Token::StructEnd,
+            ],
+            "invalid value: string \"pb\", expected a valid unit",
+        );
     }
 
     #[test]
