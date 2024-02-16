@@ -433,11 +433,11 @@ mod test {
     #[cfg(feature = "yaml_format")]
     fn test_serde() {
         let test_error = vec![
-            "abc",   // // str none none
+            "abc",   // str
             "",      // none
             "5 das", // bad unit
-            "-1",    // inegative integar
-            "2.0",   //flaot
+            "-1",    // negative integar
+            "2.0",   // float
         ];
 
         for interval in test_error.iter() {

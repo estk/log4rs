@@ -157,10 +157,307 @@ impl Deserialize for SizeTriggerDeserializer {
 #[cfg(test)]
 mod test {
     use super::*;
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+
+    static BYTE_MULTIPLIER: u64 = 1024;
 
     #[test]
     fn pre_process() {
         let trigger = SizeTrigger::new(2048);
         assert!(!trigger.is_pre_process());
     }
+
+    #[test]
+    fn test_trigger() {
+        let file = tempfile::tempdir().unwrap();
+        let mut logfile = LogFile {
+            writer: &mut None,
+            path: file.path(),
+            len: 0,
+        };
+
+        let trigger_bytes = 5;
+        let trigger = SizeTrigger::new(trigger_bytes);
+
+        // Logfile size is < trigger size, should never trigger
+        for size in 0..trigger_bytes {
+            logfile.len = size;
+            assert!(!trigger.trigger(&logfile).unwrap());
+        }
+
+        // Logfile size is == trigger size, should not trigger
+        logfile.len = trigger_bytes;
+        assert!(!trigger.trigger(&logfile).unwrap());
+
+        // Logfile size is >= trigger size, should trigger
+        logfile.len = trigger_bytes + 1;
+        assert!(trigger.trigger(&logfile).unwrap());
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_u64_deserialize() {
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER };
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::U64(1024),
+                Token::StructEnd,
+                ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_i64_deserialize() {
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER };
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::I64(1024),
+                Token::StructEnd,
+                ],
+        );
+
+        assert_de_tokens_error::<SizeTriggerConfig>(
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::I64(-1024),
+                Token::StructEnd,
+                ],
+            "invalid value: integer `-1024`, expected a non-negative number",
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_str_deserialize() {
+        // Test no unit (aka value in Bytes)
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER };
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1024"),
+                Token::StructEnd,
+                ],
+        );
+
+        // Test not an unsigned number
+        assert_de_tokens_error::<SizeTriggerConfig>(
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("-1024"),
+                Token::StructEnd,
+                ],
+            "invalid value: string \"\", expected a number",
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn byte_deserialize() {
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER };
+
+        // Test spacing & b vs B
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1024b"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1024 B"),
+                Token::StructEnd,
+                ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn kilobyte_deserialize() {
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER };
+
+        // Test kb unit
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 kb"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 KB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 kB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 Kb"),
+                Token::StructEnd,
+                ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn megabyte_deserialize() {
+        // Test mb unit
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER.pow(2) };
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 mb"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 MB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 mB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 Mb"),
+                Token::StructEnd,
+                ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn gigabyte_deserialize() {
+        // Test gb unit
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER.pow(3) };
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 gb"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 GB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 gB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 Gb"),
+                Token::StructEnd,
+                ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn terabyte_deserialize() {
+        // Test tb unit
+        let trigger = SizeTriggerConfig{ limit: BYTE_MULTIPLIER.pow(4) };
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 tb"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 TB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 tB"),
+                Token::StructEnd,
+                ],
+        );
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct { name: "SizeTriggerConfig", len: 1 },
+                Token::Str("limit"),
+                Token::Str("1 Tb"),
+                Token::StructEnd,
+                ],
+        );
+    }
+
 }

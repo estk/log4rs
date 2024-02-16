@@ -8,7 +8,7 @@ repository = "https://github.com/estk/log4rs"
 readme = "README.md"
 keywords = ["log", "logger", "logging", "log4"]
 edition = "2018"
-rust-version = "1.69"
+rust-version = "1.70"
 
 [features]
 default = ["all_components", "config_parsing", "yaml_format"]
@@ -88,6 +88,7 @@ streaming-stats = "0.2.3"
 humantime = "2.1"
 tempfile = "3.8"
 mock_instant = "0.3"
+serde_test = "1.0.176"
 
 [[example]]
 name = "json_logger"
@@ -107,4 +108,8 @@ required-features = ["file_appender", "rolling_file_appender", "size_trigger"]
 
 [[example]]
 name = "multi_logger_config"
+required-features = ["yaml_format", "config_parsing"]
+
+[[example]]
+name = "color_control"
 required-features = ["yaml_format", "config_parsing"]
