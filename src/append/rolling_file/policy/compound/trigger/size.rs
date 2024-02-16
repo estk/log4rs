@@ -157,8 +157,11 @@ impl Deserialize for SizeTriggerDeserializer {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[cfg(feature = "config_parsing")]
     use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
+    #[cfg(feature = "config_parsing")]
     static BYTE_MULTIPLIER: u64 = 1024;
 
     #[test]
