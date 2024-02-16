@@ -20,6 +20,12 @@ fn main() {
         Ok(cli_color) => cli_color,
         Err(_) => "0".to_string(),
     };
-    info!("NO_COLOR: {}, CLICOLOR_FORCE: {}, CLICOLOR: {}", no_color, clicolor_force, cli_color);
-    error!("NO_COLOR: {}, CLICOLOR_FORCE: {}, CLICOLOR: {}", no_color, clicolor_force, cli_color);
+    info!(
+        "NO_COLOR: {}, CLICOLOR_FORCE: {}, CLICOLOR: {}",
+        no_color, clicolor_force, cli_color
+    );
+    error!(
+        "NO_COLOR: {}, CLICOLOR_FORCE: {}, CLICOLOR: {}",
+        no_color, clicolor_force, cli_color
+    );
 }
