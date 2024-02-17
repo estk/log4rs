@@ -435,9 +435,9 @@ mod imp {
 
 #[cfg(test)]
 mod test {
-    use std::io::Write;
     use super::*;
     use crate::encode::{Color, Style, Write as EncodeWrite};
+    use std::io::Write;
 
     // Unable to test the non locked Console as by definition, the unlocked
     // console results in race conditions. Codecov tooling does not seem to
@@ -460,7 +460,8 @@ mod test {
         )
         .unwrap();
         w.write_all(b"styled").unwrap();
-        w.set_style(&Style::new().text(Color::Green).intense(false)).unwrap();
+        w.set_style(&Style::new().text(Color::Green).intense(false))
+            .unwrap();
         w.write_all(b" styled2").unwrap();
         w.set_style(&Style::new()).unwrap();
         w.write_fmt(format_args!(" {} \n", "normal")).unwrap();

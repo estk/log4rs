@@ -179,10 +179,7 @@ mod test {
     use log::{Level, Record};
 
     use super::*;
-    use crate::{
-        encode::writer::simple::SimpleWriter,
-        config::Deserializers,
-    };
+    use crate::{config::Deserializers, encode::writer::simple::SimpleWriter};
 
     #[test]
     fn test_encode() {
