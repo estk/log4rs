@@ -464,9 +464,9 @@ fn logger_additive_default() -> bool {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
-    use std::fs;
-    use serde_value::Value;
     use super::*;
+    use serde_value::Value;
+    use std::fs;
 
     #[test]
     #[cfg(feature = "threshold_filter")]
@@ -474,12 +474,13 @@ mod test {
         use crate::filter::{Filter, FilterConfig};
 
         let d = Deserializers::default();
-        let filter = FilterConfig{
+        let filter = FilterConfig {
             kind: "threshold".to_owned(),
             config: Value::String("foobar".to_owned()),
         };
 
-        let res: Result<Box<dyn Filter>, anyhow::Error> = d.deserialize(&filter.kind, filter.config.clone());
+        let res: Result<Box<dyn Filter>, anyhow::Error> =
+            d.deserialize(&filter.kind, filter.config.clone());
         assert!(res.is_err());
         // panic!("{:#?}", res);
 

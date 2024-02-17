@@ -31,7 +31,7 @@ static COLOR_MODE: Lazy<ColorMode> = Lazy::new(|| {
 });
 
 /// The color output mode for a `ConsoleAppender`
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub enum ColorMode {
     /// Print color only if the output is recognized as a console
     #[default]
@@ -435,20 +435,11 @@ mod imp {
 
 #[cfg(test)]
 mod test {
-    use std::io::Write;
-
     use super::*;
-    use crate::encode::{Color, Style, Write as EncodeWrite};
+    use crate::encode::{Color, Style};
 
-    #[test]
-    fn basic() {
-        let w = match ConsoleWriter::stdout() {
-            Some(w) => w,
-            None => return,
-        };
-        let mut w = w.lock();
-
-        w.write_all(b"normal ").unwrap();
+    fn write_helper(mut w: impl encode::Write) {
+        w.write(b"normal ").unwrap();
         w.set_style(
             Style::new()
                 .text(Color::Red)
@@ -460,7 +451,29 @@ mod test {
         w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();
         w.set_style(&Style::new()).unwrap();
-        w.write_all(b" normal\n").unwrap();
+        w.write_fmt(format_args!(" {} \n", "normal")).unwrap();
         w.flush().unwrap();
+    }
+
+    #[test]
+    fn test_consolewriter_lock() {
+        let w = match ConsoleWriter::stdout() {
+            Some(w) => w,
+            None => return,
+        };
+
+        write_helper(w.lock());
+
+        let w = match ConsoleWriter::stderr() {
+            Some(w) => w,
+            None => return,
+        };
+
+        write_helper(w.lock());
+    }
+
+    #[test]
+    fn test_color_mode() {
+        assert_eq!(*COLOR_MODE, ColorMode::Auto);
     }
 }

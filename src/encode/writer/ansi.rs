@@ -87,11 +87,11 @@ mod test {
     use crate::encode::{Color, Style, Write as EncodeWrite};
 
     #[test]
-    fn basic() {
+    fn test_basic() {
         let stdout = io::stdout();
         let mut w = AnsiWriter(stdout.lock());
 
-        w.write_all(b"normal ").unwrap();
+        w.write(b"normal ").unwrap();
         w.set_style(
             Style::new()
                 .text(Color::Red)
@@ -103,7 +103,7 @@ mod test {
         w.set_style(Style::new().text(Color::Green)).unwrap();
         w.write_all(b" styled2").unwrap();
         w.set_style(&Style::new()).unwrap();
-        w.write_all(b" normal\n").unwrap();
+        w.write_fmt(format_args!(" {} \n", "normal")).unwrap();
         w.flush().unwrap();
     }
 }

@@ -76,7 +76,7 @@ mod test {
 
     #[test]
     #[cfg(feature = "config_parsing")]
-    fn deser_cfg() {
+    fn test_cfg_serde() {
         let filter_cfg = ThresholdFilterConfig {
             level: LevelFilter::Off,
         };
@@ -89,7 +89,9 @@ mod test {
                     len: 1,
                 },
                 Token::Str("level"),
-                Token::Enum { name: "LevelFilter" },
+                Token::Enum {
+                    name: "LevelFilter",
+                },
                 Token::Str("Off"),
                 Token::Unit,
                 Token::StructEnd,
@@ -103,7 +105,9 @@ mod test {
                     len: 1,
                 },
                 Token::Str("leel"),
-                Token::Enum { name: "LevelFilter" },
+                Token::Enum {
+                    name: "LevelFilter",
+                },
                 Token::Str("Off"),
                 Token::Unit,
                 Token::StructEnd,
@@ -128,15 +132,17 @@ mod test {
     }
 
     #[test]
-    fn new_thres() {
+    fn test_filter_new() {
         assert_eq!(
             ThresholdFilter::new(LevelFilter::Info),
-            ThresholdFilter{ level: LevelFilter::Info }
+            ThresholdFilter {
+                level: LevelFilter::Info
+            }
         );
     }
 
     #[test]
-    fn filter_thres() {
+    fn test_threshold() {
         let thres = ThresholdFilter::new(LevelFilter::Info);
         let debug_record = Record::builder()
             .level(Level::Debug)
@@ -160,7 +166,7 @@ mod test {
     }
 
     #[test]
-    fn cfg_to_filter() {
+    fn test_cfg_deserializer() {
         let filter_cfg = ThresholdFilterConfig {
             level: LevelFilter::Off,
         };

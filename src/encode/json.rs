@@ -182,7 +182,7 @@ mod test {
     use crate::encode::writer::simple::SimpleWriter;
 
     #[test]
-    fn default() {
+    fn test_encode() {
         let time = DateTime::parse_from_rfc3339("2016-03-20T14:22:20.644420340-08:00")
             .unwrap()
             .with_timezone(&Local);
@@ -192,7 +192,7 @@ mod test {
         let file = "file";
         let line = 100;
         let message = "message";
-        let thread = "encode::json::test::default";
+        let thread = "encode::json::test::test_encode";
         log_mdc::insert("foo", "bar");
 
         let encoder = JsonEncoder::new();
@@ -230,7 +230,7 @@ mod test {
     }
 
     #[test]
-    fn cfg_to_encoder() {
+    fn test_cfg_deserializer() {
         let json_cfg = JsonEncoderConfig { _p: () };
 
         let deserializer = JsonEncoderDeserializer;

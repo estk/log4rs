@@ -86,7 +86,7 @@ mod test {
 
     #[test]
     #[cfg(all(feature = "config_parsing", feature = "yaml_format"))]
-    fn deser() {
+    fn test_cfg_deserializer() {
         // This point in the config should have already parsed out the filters portion of the config.
         let cfg_str = "
         filters:

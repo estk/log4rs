@@ -166,14 +166,11 @@ mod test {
 
     #[test]
     #[cfg(feature = "config_parsing")]
-    fn cfg_deser() {
+    fn test_cfg_serde() {
         let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}".to_owned();
 
         let mut config = BTreeMap::new();
-        config.insert(
-            Value::String("pattern".to_owned()),
-            Value::String(pattern)
-        );
+        config.insert(Value::String("pattern".to_owned()), Value::String(pattern));
 
         let encoder_cfg = EncoderConfig {
             kind: "pattern".to_owned(),
@@ -192,7 +189,7 @@ mod test {
                 Token::Str("pattern"),
                 Token::Str("[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}"),
                 Token::StructEnd,
-            ]
+            ],
         );
 
         // No pattern defined, should fail to deserializez into a map
@@ -209,5 +206,26 @@ mod test {
             ],
             "deserialization did not expect this token: StructEnd",
         );
+    }
+
+    #[test]
+    #[cfg(feature = "console_writer")]
+    fn test_set_style() {
+        use crate::encode::writer::console::ConsoleWriter;
+
+        let w = match ConsoleWriter::stdout() {
+            Some(w) => w,
+            None => return,
+        };
+        let mut w = w.lock();
+
+        assert!(w
+            .set_style(
+                Style::new()
+                    .text(Color::Red)
+                    .background(Color::Blue)
+                    .intense(true),
+            )
+            .is_ok());
     }
 }
