@@ -66,3 +66,108 @@ impl Deserialize for ThresholdFilterDeserializer {
         Ok(Box::new(ThresholdFilter::new(config.level)))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use log::{Level, LevelFilter, Record};
+
+    use super::*;
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn deser_cfg() {
+        let filter_cfg = ThresholdFilterConfig {
+            level: LevelFilter::Off,
+        };
+
+        assert_de_tokens(
+            &filter_cfg,
+            &[
+                Token::Struct {
+                    name: "ThresholdFilterConfig",
+                    len: 1,
+                },
+                Token::Str("level"),
+                Token::Enum { name: "LevelFilter" },
+                Token::Str("Off"),
+                Token::Unit,
+                Token::StructEnd,
+            ],
+        );
+
+        assert_de_tokens_error::<ThresholdFilterConfig>(
+            &[
+                Token::Struct {
+                    name: "ThresholdFilterConfig",
+                    len: 1,
+                },
+                Token::Str("leel"),
+                Token::Enum { name: "LevelFilter" },
+                Token::Str("Off"),
+                Token::Unit,
+                Token::StructEnd,
+            ],
+            "missing field `level`",
+        );
+
+        assert_de_tokens_error::<ThresholdFilterConfig>(
+            &[
+                Token::Struct {
+                    name: "ThresholdFilterConfig",
+                    len: 1,
+                },
+                Token::Str("level"),
+                Token::Enum { name: "LevelFilter" },
+                Token::Str("On"),
+                // No Unit on this one as the Option is invalid
+                Token::StructEnd,
+            ],
+            "unknown variant `On`, expected one of `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`",
+        );
+    }
+
+    #[test]
+    fn new_thres() {
+        assert_eq!(
+            ThresholdFilter::new(LevelFilter::Info),
+            ThresholdFilter{ level: LevelFilter::Info }
+        );
+    }
+
+    #[test]
+    fn filter_thres() {
+        let thres = ThresholdFilter::new(LevelFilter::Info);
+        let debug_record = Record::builder()
+            .level(Level::Debug)
+            .args(format_args!("the message"))
+            .module_path(Some("path"))
+            .file(Some("file"))
+            .line(Some(132))
+            .build();
+
+        assert_eq!(thres.filter(&debug_record), Response::Reject);
+
+        let error_record = Record::builder()
+            .level(Level::Error)
+            .args(format_args!("the message"))
+            .module_path(Some("path"))
+            .file(Some("file"))
+            .line(Some(132))
+            .build();
+
+        assert_eq!(thres.filter(&error_record), Response::Neutral);
+    }
+
+    #[test]
+    fn cfg_to_filter() {
+        let filter_cfg = ThresholdFilterConfig {
+            level: LevelFilter::Off,
+        };
+
+        let deserializer = ThresholdFilterDeserializer;
+
+        let res = deserializer.deserialize(filter_cfg, &Deserializers::default());
+        assert!(res.is_ok());
+    }
+}

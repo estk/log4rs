@@ -31,6 +31,7 @@ impl Deserializable for dyn Filter {
     }
 }
 
+#[derive(PartialEq, Debug)]
 /// The response returned by a filter.
 pub enum Response {
     /// Accept the log event.
@@ -76,5 +77,31 @@ impl<'de> de::Deserialize<'de> for FilterConfig {
             kind,
             config: Value::Map(map),
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    #[cfg(all(feature = "config_parsing", feature = "yaml_format"))]
+    fn deser() {
+        // This point in the config should have already parsed out the filters portion of the config.
+        let cfg_str = "
+        filters:
+        -  kind: threshold
+           level: error
+        ";
+        let filter: Result<FilterConfig, serde_yaml::Error> = serde_yaml::from_str(cfg_str);
+        assert!(filter.is_err());
+
+        let cfg_str = "
+          kind: threshold
+          level: error
+        ";
+
+        let filter: Result<FilterConfig, serde_yaml::Error> = serde_yaml::from_str(cfg_str);
+        assert!(filter.is_ok());
     }
 }
