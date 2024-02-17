@@ -455,20 +455,16 @@ mod test {
         w.flush().unwrap();
     }
 
+    // Unable to test the non locked Console as by definition, the unlocked
+    // console results in race conditions. Codecov tooling does not seem to
+    // see this test as coverage of the ConsoleWritterLock or WriterLock
+    // class, however, it should completely cover both.
     #[test]
-    fn test_consolewriter_lock() {
-        let w = match ConsoleWriter::stdout() {
-            Some(w) => w,
-            None => return,
-        };
-
+    fn test_writers_lock() {
+        let w = ConsoleWriter::stdout().unwrap();
         write_helper(w.lock());
 
-        let w = match ConsoleWriter::stderr() {
-            Some(w) => w,
-            None => return,
-        };
-
+        let w = ConsoleWriter::stderr().unwrap();
         write_helper(w.lock());
     }
 
