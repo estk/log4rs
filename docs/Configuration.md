@@ -174,7 +174,7 @@ other components, the default (and only supported) policy is `kind: compound`.
 The _trigger_ field is used to dictate when the log file should be rolled. It
 supports two types: `size`, and `time`.
 
-For `size`, it require a _limit_ field. The _limit_ field is a string which defines the maximum file size
+For `size`, it requires a _limit_ field. The _limit_ field is a string which defines the maximum file size
 prior to a rolling of the file. The limit field requires one of the following
 units in bytes, case does not matter:
 

@@ -109,3 +109,7 @@ required-features = ["file_appender", "rolling_file_appender", "size_trigger"]
 [[example]]
 name = "multi_logger_config"
 required-features = ["yaml_format", "config_parsing"]
+
+[[example]]
+name = "color_control"
+required-features = ["yaml_format", "config_parsing"]
