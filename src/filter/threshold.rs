@@ -72,6 +72,8 @@ mod test {
     use log::{Level, LevelFilter, Record};
 
     use super::*;
+
+    #[cfg(feature = "config_parsing")]
     use crate::config::Deserializers;
 
     #[cfg(feature = "config_parsing")]

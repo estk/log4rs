@@ -227,5 +227,7 @@ mod test {
                     .intense(true),
             )
             .is_ok());
+
+        w.set_style(&Style::new()).unwrap();
     }
 }
