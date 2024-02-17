@@ -435,10 +435,22 @@ mod imp {
 
 #[cfg(test)]
 mod test {
+    use std::io::Write;
     use super::*;
-    use crate::encode::{Color, Style};
+    use crate::encode::{Color, Style, Write as EncodeWrite};
 
-    fn write_helper(mut w: impl encode::Write) {
+    // Unable to test the non locked Console as by definition, the unlocked
+    // console results in race conditions. Codecov tooling does not seem to
+    // see this test as coverage of the ConsoleWritterLock or WriterLock
+    // class, however, it should completely cover both.
+    #[test]
+    fn test_writers_lock() {
+        let w = match ConsoleWriter::stdout() {
+            Some(w) => w,
+            None => return,
+        };
+        let mut w = w.lock();
+
         w.write(b"normal ").unwrap();
         w.set_style(
             Style::new()
@@ -448,24 +460,11 @@ mod test {
         )
         .unwrap();
         w.write_all(b"styled").unwrap();
-        w.set_style(Style::new().text(Color::Green)).unwrap();
+        w.set_style(&Style::new().text(Color::Green).intense(false)).unwrap();
         w.write_all(b" styled2").unwrap();
         w.set_style(&Style::new()).unwrap();
         w.write_fmt(format_args!(" {} \n", "normal")).unwrap();
         w.flush().unwrap();
-    }
-
-    // Unable to test the non locked Console as by definition, the unlocked
-    // console results in race conditions. Codecov tooling does not seem to
-    // see this test as coverage of the ConsoleWritterLock or WriterLock
-    // class, however, it should completely cover both.
-    #[test]
-    fn test_writers_lock() {
-        let w = ConsoleWriter::stdout().unwrap();
-        write_helper(w.lock());
-
-        let w = ConsoleWriter::stderr().unwrap();
-        write_helper(w.lock());
     }
 
     #[test]

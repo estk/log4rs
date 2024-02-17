@@ -101,7 +101,8 @@ mod test {
         .unwrap();
         w.write_all(b"styled").unwrap();
         // Call out intense false here to hit else case
-        w.set_style(Style::new().text(Color::Green).intense(false)).unwrap();
+        w.set_style(Style::new().text(Color::Green).intense(false))
+            .unwrap();
         w.write_all(b" styled2").unwrap();
         w.set_style(&Style::new()).unwrap();
         w.write_fmt(format_args!(" {} \n", "normal")).unwrap();

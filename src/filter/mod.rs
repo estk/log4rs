@@ -82,6 +82,7 @@ impl<'de> de::Deserialize<'de> for FilterConfig {
 
 #[cfg(test)]
 mod test {
+    #[cfg(all(feature = "config_parsing", feature = "yaml_format"))]
     use super::*;
 
     #[test]

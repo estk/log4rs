@@ -179,7 +179,10 @@ mod test {
     use log::{Level, Record};
 
     use super::*;
-    use crate::encode::writer::simple::SimpleWriter;
+    use crate::{
+        encode::writer::simple::SimpleWriter,
+        config::Deserializers,
+    };
 
     #[test]
     fn test_encode() {
@@ -230,6 +233,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "config_parsing")]
     fn test_cfg_deserializer() {
         let json_cfg = JsonEncoderConfig { _p: () };
 

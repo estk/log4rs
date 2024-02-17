@@ -72,6 +72,9 @@ mod test {
     use log::{Level, LevelFilter, Record};
 
     use super::*;
+    use crate::config::Deserializers;
+
+    #[cfg(feature = "config_parsing")]
     use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
     #[test]
@@ -166,6 +169,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "config_parsing")]
     fn test_cfg_deserializer() {
         let filter_cfg = ThresholdFilterConfig {
             level: LevelFilter::Off,
