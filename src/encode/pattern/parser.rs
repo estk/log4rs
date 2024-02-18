@@ -336,4 +336,31 @@ mod test {
             _ => false,
         });
     }
+
+    #[test]
+    fn test_unmatched_bracket() {
+        let pattern = "d}";
+        let parser = Parser::new(pattern);
+        let mut iter = parser.into_iter();
+
+        // First parse the d
+        assert!(match iter.next().unwrap() {
+            Piece::Text { .. } => true,
+            _ => false,
+        });
+
+        // Next try and parse the } but it's unmatched
+        assert!(match iter.next().unwrap() {
+            Piece::Error { .. } => true,
+            _ => false,
+        });
+    }
+
+    #[test]
+    fn test_bad_alignment_int() {
+        let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}";
+        let mut parser = Parser::new(pattern);
+
+        println!("{:#?}", parser.argument());
+    }
 }

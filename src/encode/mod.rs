@@ -157,6 +157,7 @@ impl<'a, W: Write + ?Sized> Write for &'a mut W {
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "config_parsing")]
     use super::*;
 
     #[cfg(feature = "config_parsing")]

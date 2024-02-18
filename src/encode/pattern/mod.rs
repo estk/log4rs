@@ -1084,7 +1084,7 @@ mod tests {
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), remaining);
         assert_eq!(w.remaining, 0);
-        assert!(w.w.flush().is_ok());
+        assert!(w.flush().is_ok());
         assert!(w.set_style(&Style::new()).is_ok());
         assert_eq!(buf, b"te");
 
@@ -1116,7 +1116,7 @@ mod tests {
 
         let res = w.write(b"test write");
         assert!(res.is_ok());
-        assert!(w.w.flush().is_ok());
+        assert!(w.flush().is_ok());
         assert!(w.set_style(&Style::new()).is_ok());
     }
 
@@ -1136,7 +1136,8 @@ mod tests {
 
         let res = w.write(b"test write");
         assert!(res.is_ok());
-        assert!(w.w.flush().is_ok());
+        assert!(w.finish().is_ok());
+        // assert!(w.flush().is_ok());
     }
 
     #[test]
