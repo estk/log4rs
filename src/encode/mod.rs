@@ -157,10 +157,6 @@ impl<'a, W: Write + ?Sized> Write for &'a mut W {
 
 #[cfg(test)]
 mod test {
-    #[cfg(feature = "console_writer")]
-    // #[cfg(feature = "console_writer", feature = "config_parsing")]
-    use super::*;
-
     #[cfg(feature = "config_parsing")]
     use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
     #[cfg(feature = "config_parsing")]
@@ -169,6 +165,9 @@ mod test {
     #[test]
     #[cfg(feature = "config_parsing")]
     fn test_cfg_serde() {
+        use super::*;
+        use std::collections::BTreeMap;
+
         let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}".to_owned();
 
         let mut config = BTreeMap::new();
@@ -213,6 +212,7 @@ mod test {
     #[test]
     #[cfg(feature = "console_writer")]
     fn test_set_style() {
+        use super::*;
         use crate::encode::writer::console::ConsoleWriter;
 
         let w = match ConsoleWriter::stdout() {

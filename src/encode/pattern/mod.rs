@@ -1136,8 +1136,9 @@ mod tests {
 
         let res = w.write(b"test write");
         assert!(res.is_ok());
+        assert!(w.flush().is_ok());
+        assert!(w.set_style(&Style::new()).is_ok());
         assert!(w.finish().is_ok());
-        // assert!(w.flush().is_ok());
     }
 
     #[test]
