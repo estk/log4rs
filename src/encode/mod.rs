@@ -159,8 +159,6 @@ impl<'a, W: Write + ?Sized> Write for &'a mut W {
 mod test {
     #[cfg(feature = "config_parsing")]
     use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
-    #[cfg(feature = "config_parsing")]
-    use serde_value::Value;
 
     #[test]
     #[cfg(feature = "config_parsing")]

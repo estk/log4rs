@@ -89,9 +89,7 @@
 //! ```
 #![allow(deprecated)]
 
-use std::{
-    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
-};
+use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use derivative::Derivative;
