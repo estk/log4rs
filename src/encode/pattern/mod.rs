@@ -1158,4 +1158,176 @@ mod tests {
         let res = deserializer.deserialize(pattern_cfg, &Deserializers::default());
         assert!(res.is_ok());
     }
+
+    #[test]
+    fn test_chunk_no_min_width() {
+        let mut buf = vec![];
+        let pattern = "[{h({l}):<.5} {M}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        for chunk in chunks {
+            assert!(chunk
+                .encode(
+                    &mut SimpleWriter(&mut buf),
+                    &Record::builder()
+                        .level(Level::Debug)
+                        .args(format_args!("the message"))
+                        .module_path(Some("path"))
+                        .file(Some("file"))
+                        .line(Some(132))
+                        .build()
+                )
+                .is_ok())
+        }
+        assert!(!String::from_utf8(buf).unwrap().contains("ERROR"));
+    }
+
+    #[test]
+    fn test_chunk_encode_err() {
+        let mut buf = vec![];
+        let pattern = "[{h({l):<.5} {M}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        for chunk in chunks {
+            assert!(chunk
+                .encode(
+                    &mut SimpleWriter(&mut buf),
+                    &Record::builder()
+                        .level(Level::Debug)
+                        .args(format_args!("the message"))
+                        .module_path(Some("path"))
+                        .file(Some("file"))
+                        .line(Some(132))
+                        .build()
+                )
+                .is_ok())
+        }
+        assert!(String::from_utf8(buf).unwrap().contains("ERROR"));
+    }
+
+    #[test]
+    fn test_from_piece_to_chunk() {
+        // Test 3 args passed to date
+        let pattern = "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)(local)}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert_eq!(err, "expected at most two arguments"),
+            _ => assert!(false),
+        }
+
+        // Test unexepected formatter
+        let pattern = "[{d({l} %Y-%m-%d %H:%M:%S %Z)(utc)}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Formatted { chunk, .. } => match chunk {
+                FormattedChunk::Time(value, _tz) => {
+                    assert_eq!(value, "{ERROR: unexpected formatter} %Y-%m-%d %H:%M:%S %Z")
+                }
+                _ => assert!(false),
+            },
+            _ => assert!(false),
+        }
+
+        // Test invalid tz
+        let pattern = "[{d(%Y-%m-%d %H:%M:%S %Z)(zulu)}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("invalid timezone")),
+            _ => assert!(false),
+        }
+
+        // Test missing tz
+        let pattern = "[{d(%Y-%m-%d %H:%M:%S %Z)()}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("invalid timezone")),
+            _ => assert!(false),
+        }
+
+        // Test extra highlight arg
+        let pattern = "[{h({l})({M}):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected exactly one argument")),
+            _ => assert!(false),
+        }
+
+        // Test extra Debug/Release arg
+        let pattern = "[{D({l})({M}):<5.5}{R({l})({M}):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected exactly one argument")),
+            _ => assert!(false),
+        }
+
+        // Test extra mdc arg
+        let pattern = "[{X(user_id)(foobar)(test):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected at most two arguments")),
+            _ => assert!(false),
+        }
+
+        // Test mdc error
+        let pattern = "[{X({l user_id):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected '}'")),
+            _ => assert!(false),
+        }
+
+        // Test mdc invalid key
+        let pattern = "[{X({l} user_id):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("invalid MDC key")),
+            _ => assert!(false),
+        }
+
+        // Test missing mdc key
+        let pattern = "[{X:<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("missing MDC key")),
+            _ => assert!(false),
+        }
+
+        // Test mdc default error
+        let pattern = "[{X(user_id)({l):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected '}'")),
+            _ => assert!(false),
+        }
+
+        // Test mdc default unexpected arg
+        let pattern = "[{X(user_id)({l}):<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("invalid MDC default")),
+            _ => assert!(false),
+        }
+
+        // Test missing mdc default
+        let pattern = "[{X(user_id)():<5.5} {M}] {m}{n}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("invalid MDC default")),
+            _ => assert!(false),
+        }
+
+        // Test expected 1 arg
+        let pattern = "{({l} {m})()}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(0).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected exactly one argument")),
+            _ => assert!(false),
+        }
+
+        // Test no_args
+        let pattern = "{l()}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(0).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("unexpected arguments")),
+            _ => assert!(false),
+        }
+    }
 }
