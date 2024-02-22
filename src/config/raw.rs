@@ -94,7 +94,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use derivative::Derivative;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
@@ -432,15 +431,22 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Clone, Debug, Derivative, serde::Deserialize)]
-#[derivative(Default)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
-    #[derivative(Default(value = "root_level_default()"))]
     level: LevelFilter,
     #[serde(default)]
     appenders: Vec<String>,
+}
+
+impl Default for Root {
+    fn default() -> Self {
+        Self{
+            level: root_level_default(),
+            appenders: vec![],
+        }
+    }
 }
 
 fn root_level_default() -> LevelFilter {

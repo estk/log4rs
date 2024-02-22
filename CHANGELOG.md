@@ -1,5 +1,11 @@
 # Change Log
 
+## next
+
+### Fixed
+
+* removed outdated dependency `derivative`
+
 ## [1.3.0]
 
 ### New

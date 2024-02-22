@@ -1,6 +1,5 @@
 //! Encoders
 
-use derivative::Derivative;
 use log::Record;
 use std::{fmt, io};
 
@@ -94,8 +93,6 @@ pub enum Color {
 ///
 /// Any fields set to `None` will be set to their default format, as defined
 /// by the `Write`r.
-#[derive(Derivative)]
-#[derivative(Debug)]
 #[derive(Clone, Eq, PartialEq, Hash, Default)]
 pub struct Style {
     /// The text (or foreground) color.
@@ -104,8 +101,17 @@ pub struct Style {
     pub background: Option<Color>,
     /// True if the text should have increased intensity.
     pub intense: Option<bool>,
-    #[derivative(Debug = "ignore")]
     _p: (),
+}
+impl fmt::Debug for Style {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(stringify!(Style))
+            .field("text", &self.text)
+            .field("background", &self.background)
+            .field("intense", &self.intense)
+            // ignore _p
+            .finish()
+    }
 }
 
 impl Style {

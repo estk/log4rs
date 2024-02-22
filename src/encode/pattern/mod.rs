@@ -122,9 +122,8 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Local, Utc};
-use derivative::Derivative;
 use log::{Level, Record};
-use std::{default::Default, io, process, thread};
+use std::{default::Default, io, process, thread, fmt::{Debug, Formatter}};
 
 use crate::encode::{
     self,
@@ -671,13 +670,18 @@ impl FormattedChunk {
 }
 
 /// An `Encode`r configured via a format string.
-#[derive(Derivative)]
-#[derivative(Debug)]
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PatternEncoder {
-    #[derivative(Debug = "ignore")]
     chunks: Vec<Chunk>,
     pattern: String,
+}
+impl Debug for PatternEncoder {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(stringify!(PatternEncoder))
+            // ignore chunks
+            .field("pattern", &self.pattern)
+            .finish()
+    }
 }
 
 /// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.

@@ -16,11 +16,11 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
-use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
 use std::{
     fs::{self, File, OpenOptions},
+    fmt::{Debug, Formatter},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
@@ -151,15 +151,24 @@ impl<'a> LogFile<'a> {
 }
 
 /// An appender which archives log files in a configurable strategy.
-#[derive(Derivative)]
-#[derivative(Debug)]
 pub struct RollingFileAppender {
-    #[derivative(Debug = "ignore")]
     writer: Mutex<Option<LogWriter>>,
     path: PathBuf,
     append: bool,
     encoder: Box<dyn Encode>,
     policy: Box<dyn policy::Policy>,
+}
+
+impl Debug for RollingFileAppender {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(stringify!(RollingFileAppender))
+            // ignore writer
+            .field("path", &self.path)
+            .field("append", &self.append)
+            .field("encoder", &self.encoder)
+            .field("policy", &self.policy)
+            .finish()
+    }
 }
 
 impl Append for RollingFileAppender {

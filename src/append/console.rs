@@ -2,7 +2,6 @@
 //!
 //! Requires the `console_appender` feature.
 
-use derivative::Derivative;
 use log::Record;
 use std::{
     fmt,
@@ -49,6 +48,16 @@ enum ConfigTarget {
 enum Writer {
     Tty(ConsoleWriter),
     Raw(StdWriter),
+}
+
+impl fmt::Debug for Writer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match self {
+            Writer::Tty(_) => "TTY",
+            Writer::Raw(_) => "Raw",
+        };
+        f.write_str(str)
+    }
 }
 
 impl Writer {
@@ -117,10 +126,8 @@ impl<'a> encode::Write for WriterLock<'a> {
 ///
 /// It supports output styling if standard out is a console buffer on Windows
 /// or is a TTY on Unix.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ConsoleAppender {
-    #[derivative(Debug = "ignore")]
     writer: Writer,
     encoder: Box<dyn Encode>,
     do_write: bool,
