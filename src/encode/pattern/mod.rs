@@ -1160,6 +1160,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn test_chunk_no_min_width() {
         let mut buf = vec![];
         let pattern = "[{h({l}):<.5} {M}]";
@@ -1182,9 +1183,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simple_writer")]
     fn test_chunk_encode_err() {
         let mut buf = vec![];
-        let pattern = "[{h({l):<.5} {M}]";
+        let pattern = "[{h({l):<.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         for chunk in chunks {
             assert!(chunk
@@ -1214,7 +1216,7 @@ mod tests {
         }
 
         // Test unexepected formatter
-        let pattern = "[{d({l} %Y-%m-%d %H:%M:%S %Z)(utc)}]";
+        let pattern = "[{d({l} %Y-%m-%d %H:%M:%S %Z)}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Formatted { chunk, .. } => match chunk {
@@ -1234,6 +1236,14 @@ mod tests {
             _ => assert!(false),
         }
 
+        // Test invalid tz
+        let pattern = "[{d(%Y-%m-%d %H:%M:%S %Z)({l})}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("invalid timezone")),
+            _ => assert!(false),
+        }
+
         // Test missing tz
         let pattern = "[{d(%Y-%m-%d %H:%M:%S %Z)()}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
@@ -1243,7 +1253,7 @@ mod tests {
         }
 
         // Test extra highlight arg
-        let pattern = "[{h({l})({M}):<5.5} {M}] {m}{n}";
+        let pattern = "[{h({l})({M}):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("expected exactly one argument")),
@@ -1251,7 +1261,7 @@ mod tests {
         }
 
         // Test extra Debug/Release arg
-        let pattern = "[{D({l})({M}):<5.5}{R({l})({M}):<5.5} {M}] {m}{n}";
+        let pattern = "[{D({l})({M}):<5.5}{R({l})({M}):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("expected exactly one argument")),
@@ -1259,7 +1269,7 @@ mod tests {
         }
 
         // Test extra mdc arg
-        let pattern = "[{X(user_id)(foobar)(test):<5.5} {M}] {m}{n}";
+        let pattern = "[{X(user_id)(foobar)(test):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("expected at most two arguments")),
@@ -1267,7 +1277,7 @@ mod tests {
         }
 
         // Test mdc error
-        let pattern = "[{X({l user_id):<5.5} {M}] {m}{n}";
+        let pattern = "[{X({l user_id):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("expected '}'")),
@@ -1275,7 +1285,7 @@ mod tests {
         }
 
         // Test mdc invalid key
-        let pattern = "[{X({l} user_id):<5.5} {M}] {m}{n}";
+        let pattern = "[{X({l} user_id):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("invalid MDC key")),
@@ -1283,7 +1293,7 @@ mod tests {
         }
 
         // Test missing mdc key
-        let pattern = "[{X:<5.5} {M}] {m}{n}";
+        let pattern = "[{X:<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("missing MDC key")),
@@ -1291,7 +1301,7 @@ mod tests {
         }
 
         // Test mdc default error
-        let pattern = "[{X(user_id)({l):<5.5} {M}] {m}{n}";
+        let pattern = "[{X(user_id)({l):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("expected '}'")),
@@ -1299,7 +1309,7 @@ mod tests {
         }
 
         // Test mdc default unexpected arg
-        let pattern = "[{X(user_id)({l}):<5.5} {M}] {m}{n}";
+        let pattern = "[{X(user_id)({l}):<5.5}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("invalid MDC default")),
@@ -1307,7 +1317,7 @@ mod tests {
         }
 
         // Test missing mdc default
-        let pattern = "[{X(user_id)():<5.5} {M}] {m}{n}";
+        let pattern = "[{X(user_id)():<5.5} {M}]";
         let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
         match chunks.get(1).unwrap() {
             Chunk::Error(err) => assert!(err.contains("invalid MDC default")),
@@ -1328,6 +1338,80 @@ mod tests {
         match chunks.get(0).unwrap() {
             Chunk::Error(err) => assert!(err.contains("unexpected arguments")),
             _ => assert!(false),
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_encode_formated() {
+        // Each test gets a new buf and writer to allow for checking the
+        // buffer and utilizing completely clean buffers.
+
+        let record = Record::builder()
+            .level(Level::Info)
+            .args(format_args!("the message"))
+            .module_path(Some("path"))
+            .file(Some("file"))
+            .line(None)
+            .target("target")
+            .build();
+
+        // Limit the time tests to the year. Just need to verify that time can
+        // be written. Don't need to be precise. This should limit potential
+        // race condition failures.
+
+        // Test UTC Time
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Time("%Y".to_owned(), Timezone::Utc);
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, Utc::now().format("%Y").to_string().as_bytes());
+
+        // Test Local Time
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Time("%Y".to_owned(), Timezone::Local);
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, Local::now().format("%Y").to_string().as_bytes());
+
+        // Test missing Line
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Line;
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, b"???");
+
+        // Test Target
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Target;
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, b"target");
+
+        // Test Newline
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Newline;
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, NEWLINE.as_bytes());
+
+        // Loop over to hit each possible styling
+        for level in Level::iter() {
+            let record = Record::builder()
+                .level(level)
+                .args(format_args!("the message"))
+                .module_path(Some("path"))
+                .file(Some("file"))
+                .line(None)
+                .target("target")
+                .build();
+
+            let mut write_buf = vec![];
+            let mut w = SimpleWriter(&mut write_buf);
+            let chunk = FormattedChunk::Highlight(vec![Chunk::Text("Text".to_owned())]);
+            chunk.encode(&mut w, &record).unwrap();
+            assert_eq!(write_buf, b"Text");
+            // No style updates in the buffer to check for
         }
     }
 }
