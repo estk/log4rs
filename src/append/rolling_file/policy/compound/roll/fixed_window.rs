@@ -178,6 +178,10 @@ fn make_temp_file_name<P>(file: P) -> PathBuf
 where
     P: AsRef<Path>,
 {
+    #[cfg(test)]
+    let mut n = 0;
+
+    #[cfg(not(test))]
     let mut n = std::time::SystemTime::now()
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .unwrap_or_else(|_| std::time::Duration::from_secs(0))
@@ -354,7 +358,7 @@ mod test {
     fn wait_for_roller(_roller: &FixedWindowRoller) {}
 
     #[test]
-    fn rotation() {
+    fn test_test_rotation() {
         let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().to_str().unwrap();
@@ -414,7 +418,7 @@ mod test {
     }
 
     #[test]
-    fn rotation_no_trivial_base() {
+    fn test_rotation_no_trivial_base() {
         let dir = tempfile::tempdir().unwrap();
         let base = 3;
         let fname = "foo.log";
@@ -459,7 +463,7 @@ mod test {
     }
 
     #[test]
-    fn create_archive_unvaried() {
+    fn test_create_archive_unvaried() {
         let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
@@ -487,7 +491,7 @@ mod test {
     }
 
     #[test]
-    fn create_archive_varied() {
+    fn test_create_archive_varied() {
         let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().join("log").join("archive");
@@ -516,7 +520,7 @@ mod test {
 
     #[test]
     #[cfg_attr(feature = "gzip", ignore)]
-    fn unsupported_gzip() {
+    fn test_unsupported_gzip() {
         let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.gz");
@@ -529,7 +533,7 @@ mod test {
     #[cfg_attr(not(feature = "gzip"), ignore)]
     // or should we force windows user to install gunzip
     #[cfg(not(windows))]
-    fn supported_gzip() {
+    fn test_supported_gzip() {
         use std::process::Command;
 
         let dir = tempfile::tempdir().unwrap();
@@ -561,7 +565,7 @@ mod test {
     }
 
     #[test]
-    fn roll_with_env_var() {
+    fn test_roll_with_env_var() {
         std::env::set_var("LOG_DIR", "test_log_dir");
         let fcontent = b"file1";
         let dir = tempfile::tempdir().unwrap();
@@ -595,5 +599,48 @@ mod test {
             .unwrap();
         //Check the new rolled file has the same contents as the old one
         assert_eq!(contents, fcontent);
+    }
+
+    #[test]
+    fn test_invalid_pattern() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let base = dir.path().to_str().unwrap();
+        let roller = FixedWindowRoller::builder().build(&format!("{}/foo.log", base), 2);
+
+        assert_eq!(
+            format!("{}", roller.unwrap_err()),
+            "pattern does not contain `{}`"
+        );
+    }
+
+    #[test]
+    fn test_test_rotate_to_del() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let base = dir.path().to_str().unwrap();
+        let roller = FixedWindowRoller::builder()
+            .build(&format!("{}/foo.log.{{}}", base), 0)
+            .unwrap();
+
+        let file = dir.path().join("foo.log");
+        File::create(&file).unwrap().write_all(b"file1").unwrap();
+
+        roller.roll(&file).unwrap();
+        wait_for_roller(&roller);
+        assert!(!file.exists());
+        assert!(!dir.path().join("foo.log.0").exists());
+    }
+
+    #[test]
+    #[cfg(feature = "background_rotation")]
+    fn test_temp_file_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("foo.log");
+        let temp_file = dir.path().join("foo.0");
+        assert_eq!(make_temp_file_name(file.clone()), dir.path().join("foo.0"));
+
+        let _ = File::create(temp_file).unwrap();
+        assert_eq!(make_temp_file_name(file), dir.path().join("foo.1"));
     }
 }
