@@ -467,8 +467,17 @@ pub enum ConfigError {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
+    #[cfg(feature = "console_appender")]
+    use crate::append::console::ConsoleAppender;
+
+    #[cfg(all(feature = "threshold_filter", feature = "console_appender"))]
+    use crate::filter::threshold::ThresholdFilter;
+    use log::LevelFilter;
+
     #[test]
-    fn check_logger_name() {
+    fn test_check_logger_name() {
         let tests = [
             ("", false),
             ("asdf", true),
@@ -487,5 +496,53 @@ mod test {
                 name
             );
         }
+    }
+
+    #[test]
+    #[cfg(feature = "console_appender")]
+    fn test_appender_simple() {
+        let stdout = ConsoleAppender::builder().build();
+        let appender = Appender::builder().build("stdout", Box::new(stdout));
+
+        assert_eq!(appender.name(), "stdout");
+        assert!(appender.filters().is_empty());
+
+        // Nothing to test on this right now
+        let _appender = appender.appender();
+    }
+
+    #[test]
+    #[cfg(all(feature = "threshold_filter", feature = "console_appender"))]
+    fn test_appender_filter() {
+        let stdout = ConsoleAppender::builder().build();
+
+        let filter = ThresholdFilter::new(LevelFilter::Warn);
+
+        let appender = Appender::builder()
+            .filter(Box::new(filter))
+            .build("stdout", Box::new(stdout));
+
+        assert_eq!(appender.name(), "stdout");
+        assert!(!appender.filters().is_empty());
+        assert_eq!(appender.filters().len(), 1);
+
+        // Nothing to test on this right now
+        let _appender = appender.appender();
+    }
+
+    #[test]
+    fn test_simple_root() {
+        let mut root = Root::builder().build(LevelFilter::Debug);
+
+        // Test level set by builder and is accessible
+        assert_eq!(LevelFilter::Debug, root.level());
+
+        // Test no appenders added to builder
+        assert!(root.appenders().is_empty());
+
+        // Test level set after root created and is accessible
+        root.set_level(LevelFilter::Warn);
+        assert_ne!(LevelFilter::Debug, root.level());
+        assert_eq!(LevelFilter::Warn, root.level());
     }
 }
