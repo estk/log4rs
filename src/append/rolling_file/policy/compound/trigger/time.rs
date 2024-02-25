@@ -539,7 +539,7 @@ mod test {
                 Token::F32(2.0),
                 Token::StructEnd,
             ],
-            "invalid type: floating point `2`, expected a time",
+            "invalid type: floating point `2.0`, expected a time",
         );
     }
 

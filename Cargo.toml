@@ -62,7 +62,7 @@ fnv = "1.0"
 humantime = { version = "2.1", optional = true }
 log = { version = "0.4.20", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
-serde = { version = "1.0", optional = true, features = ["derive"] }
+serde = { version = "1.0.196", optional = true, features = ["derive"] }
 serde-value = { version = "0.7", optional = true }
 thread-id = { version = "4", optional = true }
 typemap-ors = { version = "1.0.0", optional = true }
