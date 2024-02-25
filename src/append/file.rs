@@ -164,7 +164,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn create_directories() {
+    fn test_create_directories() {
         let tempdir = tempfile::tempdir().unwrap();
 
         FileAppender::builder()
@@ -173,11 +173,64 @@ mod test {
     }
 
     #[test]
-    fn append_false() {
+    fn test_append_trait() {
+        use log::Level;
+
         let tempdir = tempfile::tempdir().unwrap();
-        FileAppender::builder()
-            .append(false)
+        let appender = FileAppender::builder()
             .build(tempdir.path().join("foo.log"))
             .unwrap();
+
+        log_mdc::insert("foo", "bar");
+        let res = appender.append(
+            &Record::builder()
+                .level(Level::Debug)
+                .target("target")
+                .module_path(Some("module_path"))
+                .file(Some("file"))
+                .line(Some(100))
+                .args(format_args!("{}", "message"))
+                .build(),
+        );
+        assert!(res.is_ok());
+
+        appender.flush();
+    }
+
+    #[test]
+    fn test_append_builder() {
+        let append_choices = vec![true, false];
+        let tempdir = tempfile::tempdir().unwrap();
+
+        for do_append in append_choices {
+            // No actionable test
+            FileAppender::builder()
+                .append(do_append)
+                .build(tempdir.path().join("foo.log"))
+                .unwrap();
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_config_deser() {
+        use crate::config::Deserializers;
+        use serde_value::Value;
+        use std::collections::BTreeMap;
+
+        let tempdir = tempfile::tempdir().unwrap();
+        let file_cfg = FileAppenderConfig {
+            path: tempdir.path().join("foo.log").to_str().unwrap().to_owned(),
+            encoder: Some(EncoderConfig {
+                kind: "pattern".to_owned(),
+                config: Value::Map(BTreeMap::new()),
+            }),
+            append: Some(true),
+        };
+
+        let deserializer = FileAppenderDeserializer;
+
+        let res = deserializer.deserialize(file_cfg, &Deserializers::default());
+        assert!(res.is_ok());
     }
 }

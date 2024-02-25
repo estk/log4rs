@@ -286,9 +286,9 @@ impl Deserializers {
     }
 
     /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
+    pub fn deserialize<T>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
     where
-        T: Deserializable,
+        T: Deserializable + ?Sized,
     {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
@@ -462,38 +462,17 @@ fn logger_additive_default() -> bool {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
+    use crate::filter::FilterConfig;
+
     use super::*;
-    use serde_value::Value;
-    use std::fs;
-
-    #[test]
-    #[cfg(feature = "threshold_filter")]
-    fn deserialize_filter() {
-        use crate::filter::{Filter, FilterConfig};
-
-        let d = Deserializers::default();
-        let filter = FilterConfig {
-            kind: "threshold".to_owned(),
-            config: Value::String("foobar".to_owned()),
-        };
-
-        let res: Result<Box<dyn Filter>, anyhow::Error> =
-            d.deserialize(&filter.kind, filter.config.clone());
-        assert!(res.is_err());
-        // panic!("{:#?}", res);
-
-        // let filter = FilterConfig{
-        //     kind: "threshold".to_owned(),
-        //     config: Value::String("info".to_owned()),
-        // };
-        // let res: Result<Box<dyn Filter>, anyhow::Error> = d.deserialize(&filter.kind, filter.config.clone());
-        // assert!(res.is_ok());
-        // panic!("{:#?}", res);
-    }
+    use anyhow::Error;
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+    use serde_value::{DeserializerError::UnknownField, Value};
+    use std::{collections::BTreeMap, fs, vec};
 
     #[test]
     #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
-    fn full_deserialize() {
+    fn test_full_deserialize() {
         let cfg = r#"
 refresh_rate: 60 seconds
 
@@ -523,14 +502,44 @@ loggers:
 "#;
         let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
         assert!(errors.is_empty());
+        assert_eq!(config.refresh_rate().unwrap(), Duration::new(60, 0));
     }
 
     #[test]
-    #[cfg(feature = "yaml_format")]
-    fn empty() {
-        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
+    fn test_appenders_lossy_errs() {
+        let cfg = r#"
+refresh_rate: 60 seconds
+
+appenders:
+    console:
+        kind: console
+        filters:
+        - kind: threshold
+          leve: debug
+    baz:
+        kind: file
+        pah: /tmp/baz.log
+        encoder:
+            pattern: "%m"
+
+root:
+    appenders:
+        - console
+    level: info
+
+loggers:
+    foo::bar::baz:
+        level: warn
+        appenders:
+            - baz
+        additive: false
+"#;
+        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        assert_eq!(errors.0.len(), 2);
+        // TODO look for a way to check the errors
     }
 
     #[cfg(windows)]
@@ -542,7 +551,7 @@ loggers:
 
     #[test]
     #[cfg(feature = "yaml_format")]
-    fn readme_sample_file_is_ok() {
+    fn test_readme_sample_file_is_ok() {
         let readme = fs::read_to_string("./README.md").expect("README file exists");
         let sample_file = &readme[readme
             .find("log4rs.yaml:")
@@ -557,5 +566,48 @@ loggers:
         let config = ::serde_yaml::from_str::<RawConfig>(config_str);
         assert!(config.is_ok());
         assert!(config::create_raw_config(config.unwrap()).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "yaml_format")]
+    fn test_empty_cfg() {
+        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+    }
+
+    #[test]
+    fn test_appender_errs() {
+        let errs = AppenderErrors { 0: vec![] };
+
+        assert!(errs.is_empty());
+
+        let mut errs = AppenderErrors {
+            0: vec![DeserializingConfigError::Appender(
+                "example".to_owned(),
+                anyhow!("test"),
+            )],
+        };
+
+        // Reports to stderr
+        errs.handle();
+    }
+
+    #[test]
+    fn test_duration_deser() {
+        let duration = Duration::new(5, 0);
+
+        assert_de_tokens(
+            &duration,
+            &[
+                Token::Struct {
+                    name: "Duration",
+                    len: 2,
+                },
+                Token::Str("secs"),
+                Token::U64(5),
+                Token::Str("nanos"),
+                Token::U64(0),
+                Token::StructEnd,
+            ],
+        );
     }
 }

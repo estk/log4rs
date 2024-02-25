@@ -367,17 +367,54 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
-    use std::{
-        fs::File,
-        io::{Read, Write},
-    };
-
     use super::*;
     use crate::append::rolling_file::policy::Policy;
 
+    use tempfile::NamedTempFile;
+
+    #[cfg(feature = "config_parsing")]
+    use serde_test::{assert_de_tokens, Token};
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_policy_derser() {
+        use super::*;
+        use serde_value::Value;
+        use std::collections::BTreeMap;
+
+        let policy = Policy {
+            kind: "compound".to_owned(),
+            config: Value::Map(BTreeMap::new()),
+        };
+
+        assert_de_tokens(
+            &policy,
+            &[
+                Token::Struct {
+                    name: "Policy",
+                    len: 1,
+                },
+                Token::Str("kind"),
+                Token::Str("compound"),
+                Token::StructEnd,
+            ],
+        );
+
+        assert_de_tokens(
+            &policy,
+            &[
+                Token::Struct {
+                    name: "Policy",
+                    len: 0,
+                },
+                Token::StructEnd,
+            ],
+        );
+    }
+
     #[test]
     #[cfg(feature = "yaml_format")]
-    fn deserialize() {
+    fn test_deserialize_appenders() {
         use crate::config::{Deserializers, RawConfig};
 
         let dir = tempfile::tempdir().unwrap();
@@ -413,14 +450,13 @@ appenders:
 
         let config = ::serde_yaml::from_str::<RawConfig>(&config).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
         assert!(errors.is_empty());
     }
 
     #[derive(Debug)]
-    struct NopPolicy;
+    struct NopPostPolicy;
 
-    impl Policy for NopPolicy {
+    impl Policy for NopPostPolicy {
         fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
             Ok(())
         }
@@ -429,49 +465,146 @@ appenders:
         }
     }
 
-    #[test]
-    fn append() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("append.log");
-        RollingFileAppender::builder()
-            .append(true)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
-        assert!(path.exists());
-        File::create(&path).unwrap().write_all(b"hello").unwrap();
+    #[derive(Debug)]
+    struct NopPrePolicy;
 
-        RollingFileAppender::builder()
-            .append(true)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
-        let mut contents = vec![];
-        File::open(&path)
-            .unwrap()
-            .read_to_end(&mut contents)
-            .unwrap();
-        assert_eq!(contents, b"hello");
+    impl Policy for NopPrePolicy {
+        fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
+            Ok(())
+        }
+        fn is_pre_process(&self) -> bool {
+            true
+        }
     }
 
     #[test]
-    fn truncate() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("truncate.log");
-        RollingFileAppender::builder()
-            .append(false)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
-        assert!(path.exists());
-        File::create(&path).unwrap().write_all(b"hello").unwrap();
+    fn test_append() {
+        use log::Level;
 
-        RollingFileAppender::builder()
-            .append(false)
-            .build(&path, Box::new(NopPolicy))
-            .unwrap();
-        let mut contents = vec![];
-        File::open(&path)
-            .unwrap()
-            .read_to_end(&mut contents)
-            .unwrap();
-        assert_eq!(contents, b"");
+        let tmp_file = NamedTempFile::new().unwrap();
+        let policies: Vec<Box<dyn Policy>> = vec![Box::new(NopPrePolicy), Box::new(NopPostPolicy)];
+        let record = Record::builder()
+            .level(Level::Debug)
+            .target("target")
+            .module_path(Some("module_path"))
+            .file(Some("file"))
+            .line(Some(100))
+            .build();
+        log_mdc::insert("foo", "bar");
+
+        for policy in policies {
+            let appender = RollingFileAppender::builder()
+                .append(true)
+                .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+                .build(&tmp_file.path(), policy)
+                .unwrap();
+
+            assert!(appender.append(&record).is_ok());
+
+            // No-op method, but get the test coverage :)
+            appender.flush();
+        }
+    }
+
+    #[test]
+    fn test_logfile() {
+        let tmp_file = NamedTempFile::new().unwrap();
+        let mut logfile = LogFile {
+            writer: &mut None,
+            path: tmp_file.path(),
+            len: 0,
+        };
+
+        assert_eq!(logfile.path(), tmp_file.path());
+        assert_eq!(logfile.len_estimate(), 0);
+
+        // No actions to take here, the writer becomes inaccessible but theres
+        // no getter to verify
+        logfile.roll();
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_deserializer() {
+        use super::*;
+        use crate::config::Deserializers;
+        use serde_value::Value;
+        use std::collections::BTreeMap;
+
+        let tmp_file = NamedTempFile::new().unwrap();
+
+        let append_cfg = RollingFileAppenderConfig {
+            path: tmp_file.path().to_str().unwrap().to_owned(),
+            append: Some(true),
+            encoder: Some(EncoderConfig {
+                kind: "pattern".to_owned(),
+                config: Value::Map(BTreeMap::new()),
+            }),
+            policy: Policy {
+                kind: "compound".to_owned(),
+                config: Value::Map({
+                    let mut map = BTreeMap::new();
+                    map.insert(
+                        Value::String("trigger".to_owned()),
+                        Value::Map({
+                            let mut map = BTreeMap::new();
+                            map.insert(
+                                Value::String("kind".to_owned()),
+                                Value::String("size".to_owned()),
+                            );
+                            map.insert(
+                                Value::String("limit".to_owned()),
+                                Value::String("1mb".to_owned()),
+                            );
+                            map
+                        }),
+                    );
+                    map.insert(
+                        Value::String("roller".to_owned()),
+                        Value::Map({
+                            let mut map = BTreeMap::new();
+                            map.insert(
+                                Value::String("kind".to_owned()),
+                                Value::String("fixed_window".to_owned()),
+                            );
+                            map.insert(Value::String("base".to_owned()), Value::I32(1));
+                            map.insert(Value::String("count".to_owned()), Value::I32(5));
+                            map.insert(
+                                Value::String("pattern".to_owned()),
+                                Value::String("logs/test.{}.log".to_owned()),
+                            );
+                            map
+                        }),
+                    );
+                    map
+                }),
+            },
+        };
+
+        let deserializer = RollingFileAppenderDeserializer;
+
+        let res = deserializer.deserialize(append_cfg, &Deserializers::default());
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_logwriter() {
+        // Can't use named or unnamed temp file here because of opening
+        // the file multiple times for reading
+        let file = tempfile::tempdir().unwrap();
+        let file_path = file.path().join("writer.log");
+        let file = File::create(&file_path).unwrap();
+        let buf_writer = BufWriter::new(file);
+        let mut log_writer = LogWriter {
+            file: buf_writer,
+            len: 0,
+        };
+
+        let contents = fs::read_to_string(&file_path).unwrap();
+        assert!(contents.is_empty());
+        assert_eq!(log_writer.write(b"test").unwrap(), 4);
+        assert!(log_writer.flush().is_ok());
+        let contents = fs::read_to_string(file_path).unwrap();
+        assert!(contents.contains("test"));
     }
 }

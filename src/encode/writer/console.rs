@@ -442,7 +442,7 @@ mod test {
     // Unable to test the non locked Console as by definition, the unlocked
     // console results in race conditions. Codecov tooling does not seem to
     // see this test as coverage of the ConsoleWritterLock or WriterLock
-    // class, however, it should completely cover both.
+    // class, however, it should completely cover either.
     #[test]
     fn test_writers_lock() {
         let w = match ConsoleWriter::stdout() {

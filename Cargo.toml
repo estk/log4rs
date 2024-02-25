@@ -75,7 +75,6 @@ thiserror = "1.0.15"
 anyhow = "1.0.28"
 derivative = "2.2"
 once_cell = "1.17.1"
-strum = "0.26.1"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }

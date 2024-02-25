@@ -420,7 +420,7 @@ fn check_logger_name(name: &str) -> Result<(), ConfigError> {
 }
 
 /// Errors encountered when validating a log4rs `Config`.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 #[error("Configuration errors: {0:#?}")]
 pub struct ConfigErrors(Vec<ConfigError>);
 
@@ -442,7 +442,7 @@ impl ConfigErrors {
 }
 
 /// An error validating a log4rs `Config`.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum ConfigError {
     /// Multiple appenders were registered with the same name.
     #[error("Duplicate appender name `{0}`")]
@@ -490,11 +490,7 @@ mod test {
         ];
 
         for &(ref name, expected) in &tests {
-            assert!(
-                expected == super::check_logger_name(name).is_ok(),
-                "{}",
-                name
-            );
+            assert!(expected == check_logger_name(name).is_ok(), "{}", name);
         }
     }
 
@@ -518,13 +514,20 @@ mod test {
 
         let filter = ThresholdFilter::new(LevelFilter::Warn);
 
+        let filters: Vec<Box<dyn Filter>> = vec![
+            Box::new(ThresholdFilter::new(LevelFilter::Trace)),
+            Box::new(ThresholdFilter::new(LevelFilter::Debug)),
+            Box::new(ThresholdFilter::new(LevelFilter::Info)),
+        ];
+
         let appender = Appender::builder()
+            .filters(filters)
             .filter(Box::new(filter))
             .build("stdout", Box::new(stdout));
 
         assert_eq!(appender.name(), "stdout");
         assert!(!appender.filters().is_empty());
-        assert_eq!(appender.filters().len(), 1);
+        assert_eq!(appender.filters().len(), 4);
 
         // Nothing to test on this right now
         let _appender = appender.appender();
@@ -544,5 +547,144 @@ mod test {
         root.set_level(LevelFilter::Warn);
         assert_ne!(LevelFilter::Debug, root.level());
         assert_eq!(LevelFilter::Warn, root.level());
+    }
+
+    #[test]
+    fn test_root_appender() {
+        let appenders = vec!["stdout", "stderr"];
+
+        let mut root = Root::builder()
+            .appender("file")
+            .appenders(appenders)
+            .build(LevelFilter::Debug);
+
+        // Test level set by builder and is accessible
+        assert_eq!(LevelFilter::Debug, root.level());
+
+        // Test appenders were added to builder
+        assert_eq!(root.appenders().len(), 3);
+
+        // Test level set after root created and is accessible
+        root.set_level(LevelFilter::Warn);
+        assert_ne!(LevelFilter::Debug, root.level());
+        assert_eq!(LevelFilter::Warn, root.level());
+    }
+
+    #[test]
+    fn test_simple_config() {
+        let root = Root::builder().build(LevelFilter::Debug);
+        let cfg = Config::builder().build(root);
+
+        assert!(cfg.is_ok());
+
+        let mut cfg = cfg.unwrap();
+        assert!(cfg.appenders().is_empty());
+        assert!(cfg.loggers().is_empty());
+
+        // No test, just coverage
+        let _ = cfg.root();
+        let _ = cfg.root_mut();
+    }
+
+    #[test]
+    #[cfg(feature = "console_appender")]
+    fn test_config_full() {
+        let root = Root::builder().build(LevelFilter::Debug);
+        let logger = Logger::builder().build("stdout", LevelFilter::Warn);
+        let appender =
+            Appender::builder().build("stdout0", Box::new(ConsoleAppender::builder().build()));
+
+        let loggers = vec![
+            Logger::builder().build("stdout0", LevelFilter::Trace),
+            Logger::builder().build("stdout1", LevelFilter::Debug),
+            Logger::builder().build("stdout2", LevelFilter::Info),
+        ];
+
+        let appenders = vec![
+            Appender::builder().build("stdout1", Box::new(ConsoleAppender::builder().build())),
+            Appender::builder().build("stderr", Box::new(ConsoleAppender::builder().build())),
+        ];
+
+        let cfg = Config::builder()
+            .logger(logger)
+            .loggers(loggers)
+            .appender(appender)
+            .appenders(appenders)
+            .build(root);
+
+        let cfg = cfg.unwrap();
+        assert_eq!(cfg.appenders().len(), 3);
+        assert_eq!(cfg.loggers().len(), 4);
+    }
+
+    #[test]
+    fn test_dup_logger() {
+        let root = Root::builder().build(LevelFilter::Debug);
+        let loggers = vec![
+            Logger::builder().build("stdout", LevelFilter::Trace),
+            Logger::builder().build("stdout", LevelFilter::Debug),
+        ];
+
+        let cfg = Config::builder().loggers(loggers).build(root);
+
+        let error = ConfigErrors {
+            0: vec![ConfigError::DuplicateLoggerName("stdout".to_owned())],
+        };
+
+        assert_eq!(cfg.unwrap_err(), error);
+    }
+
+    #[test]
+    #[cfg(feature = "console_appender")]
+    fn test_dup_appender() {
+        let root = Root::builder().build(LevelFilter::Debug);
+
+        let appenders = vec![
+            Appender::builder().build("stdout", Box::new(ConsoleAppender::builder().build())),
+            Appender::builder().build("stdout", Box::new(ConsoleAppender::builder().build())),
+        ];
+
+        let cfg = Config::builder().appenders(appenders).build(root);
+
+        let error = ConfigErrors {
+            0: vec![ConfigError::DuplicateAppenderName("stdout".to_owned())],
+        };
+
+        assert_eq!(cfg.unwrap_err(), error);
+    }
+
+    #[test]
+    fn test_nonexist_appender() {
+        let root = Root::builder().appender("file").build(LevelFilter::Debug);
+
+        let logger = Logger::builder()
+            .appender("stdout")
+            .build("stdout", LevelFilter::Trace);
+
+        let cfg = Config::builder().logger(logger).build(root);
+
+        let error = ConfigErrors {
+            0: vec![
+                ConfigError::NonexistentAppender("file".to_owned()),
+                ConfigError::NonexistentAppender("stdout".to_owned()),
+            ],
+        };
+
+        assert_eq!(cfg.unwrap_err(), error);
+    }
+
+    #[test]
+    fn test_logger_name_cfg() {
+        let root = Root::builder().build(LevelFilter::Debug);
+
+        let logger = Logger::builder().build("", LevelFilter::Trace);
+
+        let cfg = Config::builder().logger(logger).build(root);
+
+        let error = ConfigErrors {
+            0: vec![ConfigError::InvalidLoggerName("".to_owned())],
+        };
+
+        assert_eq!(cfg.unwrap_err(), error);
     }
 }

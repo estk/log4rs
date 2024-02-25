@@ -86,52 +86,30 @@ mod test {
             level: LevelFilter::Off,
         };
 
-        assert_de_tokens(
-            &filter_cfg,
-            &[
-                Token::Struct {
-                    name: "ThresholdFilterConfig",
-                    len: 1,
-                },
-                Token::Str("level"),
-                Token::Enum {
-                    name: "LevelFilter",
-                },
-                Token::Str("Off"),
-                Token::Unit,
-                Token::StructEnd,
-            ],
-        );
+        let mut cfg = vec![
+            Token::Struct {
+                name: "ThresholdFilterConfig",
+                len: 1,
+            },
+            Token::Str("level"),
+            Token::Enum {
+                name: "LevelFilter",
+            },
+            Token::Str("Off"),
+            Token::Unit,
+            Token::StructEnd,
+        ];
 
-        assert_de_tokens_error::<ThresholdFilterConfig>(
-            &[
-                Token::Struct {
-                    name: "ThresholdFilterConfig",
-                    len: 1,
-                },
-                Token::Str("leel"),
-                Token::Enum {
-                    name: "LevelFilter",
-                },
-                Token::Str("Off"),
-                Token::Unit,
-                Token::StructEnd,
-            ],
-            "missing field `level`",
-        );
+        assert_de_tokens(&filter_cfg, &cfg);
 
+        cfg[1] = Token::Str("leel");
+        assert_de_tokens_error::<ThresholdFilterConfig>(&cfg, "missing field `level`");
+
+        cfg[1] = Token::Str("level");
+        cfg[3] = Token::Str("On");
+        cfg.remove(4); // No Unit on this one as the Option is invalid
         assert_de_tokens_error::<ThresholdFilterConfig>(
-            &[
-                Token::Struct {
-                    name: "ThresholdFilterConfig",
-                    len: 1,
-                },
-                Token::Str("level"),
-                Token::Enum { name: "LevelFilter" },
-                Token::Str("On"),
-                // No Unit on this one as the Option is invalid
-                Token::StructEnd,
-            ],
+            &cfg,
             "unknown variant `On`, expected one of `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`",
         );
     }

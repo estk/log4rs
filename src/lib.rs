@@ -471,7 +471,7 @@ mod test {
 
     #[test]
     #[cfg(all(feature = "config_parsing", feature = "json_format"))]
-    fn init_from_raw_config() {
+    fn test_init_from_raw_config() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("append.log");
 
@@ -507,7 +507,7 @@ mod test {
     }
 
     #[test]
-    fn enabled() {
+    fn test_logger_enabled() {
         let root = config::Root::builder().build(LevelFilter::Debug);
         let mut config = config::Config::builder();
         let logger = config::Logger::builder().build("foo::bar", LevelFilter::Trace);

@@ -355,12 +355,4 @@ mod test {
             _ => false,
         });
     }
-
-    // #[test]
-    // fn test_bad_alignment_int() {
-    //     let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}";
-    //     let mut parser = Parser::new(pattern);
-
-    //     println!("{:#?}", parser.argument());
-    // }
 }

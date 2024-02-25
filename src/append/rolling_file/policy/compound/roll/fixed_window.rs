@@ -615,7 +615,7 @@ mod test {
     }
 
     #[test]
-    fn test_test_rotate_to_del() {
+    fn test_rotate_to_del() {
         let dir = tempfile::tempdir().unwrap();
 
         let base = dir.path().to_str().unwrap();

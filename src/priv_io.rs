@@ -89,3 +89,23 @@ impl<'a> io::Write for StdWriterLock<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::io::Write;
+
+    use super::*;
+
+    #[test]
+    fn test_writer_lock() {
+        let writer = StdWriter::stderr();
+        let mut writer = writer.lock();
+
+        assert_eq!(writer.write(b"test stdwriter ; ").unwrap(), 17);
+        assert!(writer.write_all(b"test stdwriter ; ").is_ok());
+        assert!(writer
+            .write_fmt(format_args!("{}\n", "test stdwriter"))
+            .is_ok());
+        assert!(writer.flush().is_ok());
+    }
+}

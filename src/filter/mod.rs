@@ -82,27 +82,52 @@ impl<'de> de::Deserialize<'de> for FilterConfig {
 
 #[cfg(test)]
 mod test {
-    #[cfg(all(feature = "config_parsing", feature = "yaml_format"))]
+    #[cfg(feature = "config_parsing")]
     use super::*;
+    #[cfg(feature = "config_parsing")]
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
     #[test]
-    #[cfg(all(feature = "config_parsing", feature = "yaml_format"))]
+    #[cfg(feature = "config_parsing")]
     fn test_cfg_deserializer() {
         // This point in the config should have already parsed out the filters portion of the config.
-        let cfg_str = "
-        filters:
-        -  kind: threshold
-           level: error
-        ";
-        let filter: Result<FilterConfig, serde_yaml::Error> = serde_yaml::from_str(cfg_str);
-        assert!(filter.is_err());
 
-        let cfg_str = "
-          kind: threshold
-          level: error
-        ";
+        // use serde_test::assert_de_tokens_error;
+        // let cfg_str = "
+        // filters:
+        // -  kind: threshold
+        //    level: error
+        // ";
+        // let filter: Result<FilterConfig, serde_yaml::Error> = serde_yaml::from_str(cfg_str);
+        // assert!(filter.is_err());
 
-        let filter: Result<FilterConfig, serde_yaml::Error> = serde_yaml::from_str(cfg_str);
-        assert!(filter.is_ok());
+        let filter = FilterConfig {
+            kind: "threshold".to_owned(),
+            config: Value::Map({
+                let mut map = BTreeMap::new();
+                map.insert(
+                    Value::String("level".to_owned()),
+                    Value::String("error".to_owned()),
+                );
+                map
+            }),
+        };
+
+        let mut cfg = vec![
+            Token::Struct {
+                name: "FilterConfig",
+                len: 2,
+            },
+            Token::Str("kind"),
+            Token::Str("threshold"),
+            Token::Str("level"),
+            Token::Str("error"),
+            Token::StructEnd,
+        ];
+
+        assert_de_tokens(&filter, &cfg);
+
+        cfg[1] = Token::Str("knd");
+        assert_de_tokens_error::<FilterConfig>(&cfg, "missing field `kind`");
     }
 }

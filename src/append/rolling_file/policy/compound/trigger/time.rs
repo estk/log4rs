@@ -475,72 +475,45 @@ mod test {
     #[test]
     #[cfg(feature = "config_parsing")]
     fn test_interval_deser_errors() {
-        assert_de_tokens_error::<TimeTriggerConfig>(
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("abc"),
-                Token::StructEnd,
-            ],
-            "invalid value: string \"\", expected a number",
-        );
-
-        assert_de_tokens_error::<TimeTriggerConfig>(
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str(""),
-                Token::StructEnd,
-            ],
-            "invalid value: string \"\", expected a number",
-        );
-
-        assert_de_tokens_error::<TimeTriggerConfig>(
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("5 das"),
-                Token::StructEnd,
-            ],
-            "invalid value: string \"das\", expected a valid unit",
-        );
+        let mut cfg = vec![
+            Token::Struct {
+                name: "TimeTriggerConfig",
+                len: 1,
+            },
+            Token::Str("interval"),
+            Token::Str("abc"),
+            Token::StructEnd,
+        ];
 
         // Can't test with a STR "-1" because the negative sign parses as a
         // non-ascii and the whole value goes into unit
-        assert_de_tokens_error::<TimeTriggerConfig>(
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
+        let tests = vec![
+            (
+                Token::Str("abc"),
+                "invalid value: string \"\", expected a number",
+            ),
+            (
+                Token::Str(""),
+                "invalid value: string \"\", expected a number",
+            ),
+            (
+                Token::Str("5 das"),
+                "invalid value: string \"das\", expected a valid unit",
+            ),
+            (
                 Token::I64(-1),
-                Token::StructEnd,
-            ],
-            "invalid value: integer `-1`, expected a non-negative number",
-        );
-
-        assert_de_tokens_error::<TimeTriggerConfig>(
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
+                "invalid value: integer `-1`, expected a non-negative number",
+            ),
+            (
                 Token::F32(2.0),
-                Token::StructEnd,
-            ],
-            "invalid type: floating point `2.0`, expected a time",
-        );
+                "invalid type: floating point `2.0`, expected a time",
+            ),
+        ];
+
+        for (cfg_val, err_msg) in tests {
+            cfg[2] = cfg_val;
+            assert_de_tokens_error::<TimeTriggerConfig>(&cfg, err_msg);
+        }
     }
 
     #[test]
@@ -552,206 +525,37 @@ mod test {
             max_random_delay: 0,
         };
 
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::U64(1),
-                Token::StructEnd,
-            ],
-        );
+        let mut cfg = vec![
+            Token::Struct {
+                name: "TimeTriggerConfig",
+                len: 1,
+            },
+            Token::Str("interval"),
+            Token::U64(1),
+            Token::StructEnd,
+        ];
 
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 second"),
-                Token::StructEnd,
-            ],
-        );
+        let tests = vec![
+            (TimeTriggerInterval::Second(1), Token::U64(1)),
+            (TimeTriggerInterval::Second(1), Token::Str("1 second")),
+            (TimeTriggerInterval::Second(1), Token::Str("1 seconds")),
+            (TimeTriggerInterval::Minute(1), Token::Str("1 minute")),
+            (TimeTriggerInterval::Minute(1), Token::Str("1 minutes")),
+            (TimeTriggerInterval::Hour(1), Token::Str("1 hour")),
+            (TimeTriggerInterval::Hour(1), Token::Str("1 hours")),
+            (TimeTriggerInterval::Day(1), Token::Str("1 day")),
+            (TimeTriggerInterval::Day(1), Token::Str("1 days")),
+            (TimeTriggerInterval::Week(1), Token::Str("1 week")),
+            (TimeTriggerInterval::Week(1), Token::Str("1 weeks")),
+            (TimeTriggerInterval::Year(1), Token::Str("1 year")),
+            (TimeTriggerInterval::Year(1), Token::Str("1 years")),
+        ];
 
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 seconds"),
-                Token::StructEnd,
-            ],
-        );
-
-        trigger_cfg.interval = TimeTriggerInterval::Minute(1);
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 minute"),
-                Token::StructEnd,
-            ],
-        );
-
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 minutes"),
-                Token::StructEnd,
-            ],
-        );
-
-        trigger_cfg.interval = TimeTriggerInterval::Hour(1);
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 hour"),
-                Token::StructEnd,
-            ],
-        );
-
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 hours"),
-                Token::StructEnd,
-            ],
-        );
-
-        trigger_cfg.interval = TimeTriggerInterval::Day(1);
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 day"),
-                Token::StructEnd,
-            ],
-        );
-
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 days"),
-                Token::StructEnd,
-            ],
-        );
-
-        trigger_cfg.interval = TimeTriggerInterval::Week(1);
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 week"),
-                Token::StructEnd,
-            ],
-        );
-
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 weeks"),
-                Token::StructEnd,
-            ],
-        );
-
-        trigger_cfg.interval = TimeTriggerInterval::Month(1);
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 month"),
-                Token::StructEnd,
-            ],
-        );
-
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 months"),
-                Token::StructEnd,
-            ],
-        );
-
-        trigger_cfg.interval = TimeTriggerInterval::Year(1);
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 year"),
-                Token::StructEnd,
-            ],
-        );
-
-        assert_de_tokens(
-            &trigger_cfg,
-            &[
-                Token::Struct {
-                    name: "TimeTriggerConfig",
-                    len: 1,
-                },
-                Token::Str("interval"),
-                Token::Str("1 years"),
-                Token::StructEnd,
-            ],
-        );
+        for (interval, cfg_val) in tests {
+            cfg[2] = cfg_val;
+            trigger_cfg.interval = interval;
+            assert_de_tokens(&trigger_cfg, &cfg);
+        }
     }
 
     #[test]
@@ -773,46 +577,30 @@ mod test {
 
     #[test]
     fn test_max_rand_delay() {
-        let trigger_cfg = TimeTriggerConfig {
-            interval: TimeTriggerInterval::Second(1),
-            modulate: false,
-            max_random_delay: 0,
-        };
-
-        let current = {
-            let now: std::time::Duration = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time before Unix epoch");
-            NaiveDateTime::from_timestamp_opt(now.as_secs() as i64 + 1, now.subsec_nanos())
-                .unwrap()
-                .and_local_timezone(Local)
-                .unwrap()
-        };
-
-        let trigger = TimeTrigger::new(trigger_cfg);
-        let trigger_time = trigger.next_roll_time.read().unwrap();
-        assert_eq!(*trigger_time, current);
-
         // Using a delay of 1 will test the block, but will always add a 0 allowing us
         // to bypass the unknown of rand
-        let trigger_cfg = TimeTriggerConfig {
-            interval: TimeTriggerInterval::Second(1),
-            modulate: false,
-            max_random_delay: 1,
-        };
+        let delays = vec![0, 1];
 
-        let current = {
-            let now: std::time::Duration = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time before Unix epoch");
-            NaiveDateTime::from_timestamp_opt(now.as_secs() as i64 + 1, now.subsec_nanos())
-                .unwrap()
-                .and_local_timezone(Local)
-                .unwrap()
-        };
+        for delay in delays {
+            let trigger_cfg = TimeTriggerConfig {
+                interval: TimeTriggerInterval::Second(1),
+                modulate: false,
+                max_random_delay: delay,
+            };
 
-        let trigger = TimeTrigger::new(trigger_cfg);
-        let trigger_time = trigger.next_roll_time.read().unwrap();
-        assert_eq!(*trigger_time, current);
+            let current = {
+                let now: std::time::Duration = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("system time before Unix epoch");
+                NaiveDateTime::from_timestamp_opt(now.as_secs() as i64 + 1, now.subsec_nanos())
+                    .unwrap()
+                    .and_local_timezone(Local)
+                    .unwrap()
+            };
+
+            let trigger = TimeTrigger::new(trigger_cfg);
+            let trigger_time = trigger.next_roll_time.read().unwrap();
+            assert_eq!(*trigger_time, current);
+        }
     }
 }

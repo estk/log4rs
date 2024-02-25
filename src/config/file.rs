@@ -92,7 +92,7 @@ pub enum FormatError {
     UnknownFormat,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Format {
     #[cfg(feature = "yaml_format")]
     Yaml,
@@ -228,5 +228,107 @@ impl ConfigReloader {
         self.handle.set_config(config);
 
         Ok(rate)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_format_from_path() {
+        #[cfg(feature = "yaml_format")]
+        {
+            assert_eq!(
+                Format::from_path(Path::new("test.yml")).unwrap(),
+                Format::Yaml
+            );
+            assert_eq!(
+                Format::from_path(Path::new("test.yaml")).unwrap(),
+                Format::Yaml
+            );
+        }
+
+        #[cfg(not(feature = "yaml_format"))]
+        assert!(Format::from_path(Path::new("test.yml")).is_err());
+
+        #[cfg(feature = "json_format")]
+        assert_eq!(
+            Format::from_path(Path::new("test.json")).unwrap(),
+            Format::Json
+        );
+        #[cfg(not(feature = "json_format"))]
+        assert!(Format::from_path(Path::new("test.json")).is_err());
+
+        #[cfg(feature = "toml_format")]
+        assert_eq!(
+            Format::from_path(Path::new("test.toml")).unwrap(),
+            Format::Toml
+        );
+        #[cfg(not(feature = "toml_format"))]
+        assert!(Format::from_path(Path::new("test.toml")).is_err());
+
+        // Unsupported Type
+        assert!(Format::from_path(Path::new("test.ini")).is_err());
+
+        // UnknownFormat
+        assert!(Format::from_path(Path::new("test")).is_err());
+    }
+
+    #[test]
+    fn test_parse_format() {
+        #[cfg(feature = "yaml_format")]
+        {
+            let cfg = read_config(Path::new("./test_cfgs/test.yml")).unwrap();
+            assert!(!cfg.is_empty());
+
+            let cfg = Format::Yaml.parse(&cfg);
+            assert!(cfg.is_ok());
+
+            // No actions to test at this time.
+            deserialize(&cfg.unwrap(), &Deserializers::default());
+        }
+
+        #[cfg(feature = "json_format")]
+        {
+            let cfg = read_config(Path::new("./test_cfgs/test.json")).unwrap();
+            assert!(!cfg.is_empty());
+
+            let cfg = Format::Json.parse(&cfg);
+            assert!(cfg.is_ok());
+
+            // No actions to test at this time.
+            deserialize(&cfg.unwrap(), &Deserializers::default());
+        }
+
+        #[cfg(feature = "toml_format")]
+        {
+            let cfg = read_config(Path::new("./test_cfgs/test.toml")).unwrap();
+            assert!(!cfg.is_empty());
+
+            let cfg = Format::Toml.parse(&cfg);
+            assert!(cfg.is_ok());
+
+            // No actions to test at this time.
+            deserialize(&cfg.unwrap(), &Deserializers::default());
+        }
+    }
+
+    #[test]
+    fn test_load_cfg() {
+        #[cfg(feature = "yaml_format")]
+        assert!(
+            load_config_file(Path::new("./test_cfgs/test.yml"), Deserializers::default()).is_ok()
+        );
+
+        #[cfg(feature = "json_format")]
+        assert!(
+            load_config_file(Path::new("./test_cfgs/test.json"), Deserializers::default()).is_ok()
+        );
+
+        #[cfg(feature = "toml_format")]
+        assert!(
+            load_config_file(Path::new("./test_cfgs/test.toml"), Deserializers::default()).is_ok()
+        );
     }
 }

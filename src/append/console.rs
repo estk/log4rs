@@ -263,3 +263,117 @@ impl Deserialize for ConsoleAppenderDeserializer {
         Ok(Box::new(appender.build()))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::encode::Write;
+
+    #[test]
+    fn test_append() {
+        use log::Level;
+
+        // Build a std out appender
+        let appender = ConsoleAppender::builder()
+            .tty_only(false)
+            .target(Target::Stdout)
+            .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+            .build();
+
+        assert!(appender
+            .append(
+                &Record::builder()
+                    .level(Level::Debug)
+                    .target("target")
+                    .module_path(Some("module_path"))
+                    .file(Some("file"))
+                    .line(Some(100))
+                    .args(format_args!("{}", "message"))
+                    .build()
+            )
+            .is_ok());
+
+        // No op, but test coverage :)
+        appender.flush();
+    }
+
+    #[test]
+    fn test_builder() {
+        // Build a std out appender
+        let _appender = ConsoleAppender::builder()
+            .tty_only(false)
+            .target(Target::Stdout)
+            .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+            .build();
+
+        // Build a std err appender
+        let _appender = ConsoleAppender::builder()
+            .tty_only(false)
+            .target(Target::Stderr)
+            .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+            .build();
+
+        // Build a default encoder appender
+        let _appender = ConsoleAppender::builder()
+            .tty_only(true)
+            .target(Target::Stderr)
+            .build();
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_config_deser() {
+        use crate::{config::Deserializers, encode::EncoderConfig};
+        use serde_value::Value;
+        use std::collections::BTreeMap;
+        let deserializer = ConsoleAppenderDeserializer;
+
+        let targets = vec![ConfigTarget::Stdout, ConfigTarget::Stderr];
+
+        for target in targets {
+            let console_cfg = ConsoleAppenderConfig {
+                target: Some(target),
+                encoder: Some(EncoderConfig {
+                    kind: "pattern".to_owned(),
+                    config: Value::Map(BTreeMap::new()),
+                }),
+                tty_only: Some(true),
+            };
+            assert!(deserializer
+                .deserialize(console_cfg, &Deserializers::default())
+                .is_ok());
+        }
+    }
+
+    fn write_test(mut writer: WriterLock) {
+        use std::io::Write;
+
+        assert_eq!(writer.write(b"Write log\n").unwrap(), 10);
+        assert!(writer.set_style(&Style::new()).is_ok());
+        assert!(writer.write_all(b"Write All log\n").is_ok());
+        assert!(writer.write_fmt(format_args!("{} \n", "normal")).is_ok());
+        assert!(writer.flush().is_ok());
+    }
+
+    #[test]
+    fn test_tty() {
+        // Note that this fails in GitHub Actions and therefore does not
+        // show as covered.
+        let w = match ConsoleWriter::stdout() {
+            Some(w) => w,
+            None => return,
+        };
+
+        let tty = Writer::Tty(w);
+        assert!(tty.is_tty());
+
+        write_test(tty.lock());
+    }
+
+    #[test]
+    fn test_raw() {
+        let raw = Writer::Raw(StdWriter::stdout());
+        assert!(!raw.is_tty());
+        write_test(raw.lock());
+    }
+}
