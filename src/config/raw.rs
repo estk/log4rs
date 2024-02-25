@@ -442,7 +442,7 @@ struct Root {
 
 impl Default for Root {
     fn default() -> Self {
-        Self{
+        Self {
             level: root_level_default(),
             appenders: vec![],
         }

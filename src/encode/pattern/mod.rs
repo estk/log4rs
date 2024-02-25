@@ -123,7 +123,11 @@
 
 use chrono::{Local, Utc};
 use log::{Level, Record};
-use std::{default::Default, io, process, thread, fmt::{Debug, Formatter}};
+use std::{
+    default::Default,
+    fmt::{Debug, Formatter},
+    io, process, thread,
+};
 
 use crate::encode::{
     self,

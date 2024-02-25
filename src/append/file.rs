@@ -5,8 +5,8 @@
 use log::Record;
 use parking_lot::Mutex;
 use std::{
-    fs::{self, File, OpenOptions},
     fmt::{Debug, Formatter},
+    fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
