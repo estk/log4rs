@@ -268,3 +268,91 @@ impl<'a> Iterator for Parser<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_arg_parser() {
+        let pattern = "(%Y-%m-%dT%H:%M:%S%.6f";
+        let mut parser = Parser::new(pattern);
+
+        let arg = parser.arg();
+        assert!(arg.is_err());
+
+        let pattern = "(%Y-%m-%dT%H:%M:%S%.6f)";
+        let mut parser = Parser::new(pattern);
+
+        let arg = parser.arg();
+        assert!(arg.is_ok());
+
+        let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}";
+        let mut parser = Parser::new(pattern);
+
+        let arg = parser.arg();
+        assert!(arg.is_ok());
+        assert!(arg.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_name() {
+        // match up to first non alpha numberic
+        let pattern = "test[";
+        let mut parser = Parser::new(pattern);
+        let name = parser.name();
+        assert_eq!(name, "test");
+
+        // match up to first non alpha numberic, so empty string
+        let pattern = "[";
+        let mut parser = Parser::new(pattern);
+        let name = parser.name();
+        assert_eq!(name, "");
+
+        // match up to first non alpha numberic, so empty string
+        let pattern = "test";
+        let mut parser = Parser::new(pattern);
+        let name = parser.name();
+        assert_eq!(name, "test");
+    }
+
+    #[test]
+    fn test_argument_invalid_and_valid() {
+        let pattern = "(%Y-%m-%dT%H:%M:%S%.6f";
+        let mut parser = Parser::new(pattern);
+
+        let piece = parser.argument();
+        assert!(match piece {
+            Piece::Error(_) => true,
+            _ => false,
+        });
+
+        let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}";
+        let mut parser = Parser::new(pattern);
+
+        let piece = parser.argument();
+        assert!(match piece {
+            Piece::Argument { .. } => true,
+            _ => false,
+        });
+    }
+
+    #[test]
+    fn test_unmatched_bracket() {
+        let pattern = "d}";
+        let parser = Parser::new(pattern);
+        let mut iter = parser.into_iter();
+
+        // First parse the d
+        assert!(match iter.next().unwrap() {
+            Piece::Text { .. } => true,
+            _ => false,
+        });
+
+        // Next try and parse the } but it's unmatched
+        assert!(match iter.next().unwrap() {
+            Piece::Error { .. } => true,
+            _ => false,
+        });
+    }
+}
