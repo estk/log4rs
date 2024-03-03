@@ -154,3 +154,80 @@ impl<'a, W: Write + ?Sized> Write for &'a mut W {
         <W as Write>::set_style(*self, style)
     }
 }
+
+#[cfg(test)]
+mod test {
+    #[cfg(feature = "config_parsing")]
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_cfg_deserialize() {
+        use super::*;
+        use std::collections::BTreeMap;
+
+        let pattern = "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}".to_owned();
+
+        let mut config = BTreeMap::new();
+        config.insert(Value::String("pattern".to_owned()), Value::String(pattern));
+
+        let encoder_cfg = EncoderConfig {
+            kind: "pattern".to_owned(),
+            config: Value::Map(config),
+        };
+
+        assert_de_tokens(
+            &encoder_cfg,
+            &[
+                Token::Struct {
+                    name: "EncoderConfig",
+                    len: 2,
+                },
+                Token::Str("kind"),
+                Token::Str("pattern"),
+                Token::Str("pattern"),
+                Token::Str("[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}"),
+                Token::StructEnd,
+            ],
+        );
+
+        // No pattern defined, should fail to deserializez into a map
+        assert_de_tokens_error::<EncoderConfig>(
+            &[
+                Token::Struct {
+                    name: "EncoderConfig",
+                    len: 2,
+                },
+                Token::Str("kind"),
+                Token::Str("pattern"),
+                Token::Str("pattern"),
+                Token::StructEnd,
+            ],
+            "deserialization did not expect this token: StructEnd",
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "console_writer")]
+    fn test_set_console_writer_style() {
+        use super::*;
+        use crate::encode::writer::console::ConsoleWriter;
+
+        let w = match ConsoleWriter::stdout() {
+            Some(w) => w,
+            None => return,
+        };
+        let mut w = w.lock();
+
+        assert!(w
+            .set_style(
+                Style::new()
+                    .text(Color::Red)
+                    .background(Color::Blue)
+                    .intense(true),
+            )
+            .is_ok());
+
+        w.set_style(&Style::new()).unwrap();
+    }
+}
