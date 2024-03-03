@@ -88,6 +88,7 @@ streaming-stats = "0.2.3"
 humantime = "2.1"
 tempfile = "3.8"
 mock_instant = "0.3"
+serde_test = "1.0.176"
 
 [[example]]
 name = "json_logger"
