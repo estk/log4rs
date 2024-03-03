@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_versions: ["stable", "1.70"]
+        rust_versions: ["stable", "1.69"]
         os: [ubuntu-latest, windows-latest]
     steps:
     - name: Checkout the source code
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_versions: ["stable", "1.70"]
+        rust_versions: ["stable", "1.69"]
     steps:
     - name: Checkout the source code
       uses: actions/checkout@v4
