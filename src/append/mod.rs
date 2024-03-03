@@ -153,12 +153,15 @@ impl<'de> Deserialize<'de> for AppenderConfig {
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "config_parsing")]
+    use super::*;
+
     #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
     use std::env::{set_var, var};
 
     #[test]
     #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
-    fn expand_env_vars_tests() {
+    fn test_expand_env_vars() {
         set_var("HELLO_WORLD", "GOOD BYE");
         #[cfg(not(target_os = "windows"))]
         let test_cases = vec![
@@ -249,5 +252,60 @@ mod test {
             let res = super::env_util::expand_env_vars(input);
             assert_eq!(res, expected)
         }
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_config_deserialize() {
+        use std::collections::BTreeMap;
+
+        use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+        use serde_value::Value;
+
+        use crate::filter::FilterConfig;
+
+        let appender = AppenderConfig {
+            kind: "file".to_owned(),
+            filters: vec![FilterConfig {
+                kind: "threshold".to_owned(),
+                config: Value::Map({
+                    let mut map = BTreeMap::new();
+                    map.insert(
+                        Value::String("level".to_owned()),
+                        Value::String("error".to_owned()),
+                    );
+                    map
+                }),
+            }],
+            config: Value::Map(BTreeMap::new()),
+        };
+
+        let mut cfg = vec![
+            Token::Struct {
+                name: "AppenderConfig",
+                len: 3,
+            },
+            Token::Str("kind"),
+            Token::Str("file"),
+            Token::Str("filters"),
+            Token::Seq { len: Some(1) },
+            Token::Struct {
+                name: "FilterConfig",
+                len: 2,
+            },
+            Token::Str("kind"),
+            Token::Str("threshold"),
+            Token::Str("level"),
+            Token::Str("error"),
+            Token::StructEnd,
+            Token::SeqEnd,
+            Token::StructEnd,
+        ];
+
+        assert_de_tokens(&appender, &cfg);
+
+        // Intentional typo on expected field
+        cfg[1] = Token::Str("kid");
+        assert_de_tokens_error::<AppenderConfig>(&cfg, "missing field `kind`");
     }
 }
