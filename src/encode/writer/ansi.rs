@@ -87,11 +87,11 @@ mod test {
     use crate::encode::{Color, Style, Write as EncodeWrite};
 
     #[test]
-    fn basic() {
+    fn test_ansi_writer() {
         let stdout = io::stdout();
         let mut w = AnsiWriter(stdout.lock());
 
-        w.write_all(b"normal ").unwrap();
+        w.write(b"normal ").unwrap();
         w.set_style(
             Style::new()
                 .text(Color::Red)
@@ -100,10 +100,24 @@ mod test {
         )
         .unwrap();
         w.write_all(b"styled").unwrap();
-        w.set_style(Style::new().text(Color::Green)).unwrap();
+        // Call out intense false here to hit else case
+        w.set_style(Style::new().text(Color::Green).intense(false))
+            .unwrap();
         w.write_all(b" styled2").unwrap();
         w.set_style(&Style::new()).unwrap();
-        w.write_all(b" normal\n").unwrap();
+        w.write_fmt(format_args!(" {} \n", "normal")).unwrap();
         w.flush().unwrap();
+    }
+
+    #[test]
+    fn test_color_enum() {
+        assert_eq!(color_byte(Color::Black), b'0');
+        assert_eq!(color_byte(Color::Red), b'1');
+        assert_eq!(color_byte(Color::Green), b'2');
+        assert_eq!(color_byte(Color::Yellow), b'3');
+        assert_eq!(color_byte(Color::Blue), b'4');
+        assert_eq!(color_byte(Color::Magenta), b'5');
+        assert_eq!(color_byte(Color::Cyan), b'6');
+        assert_eq!(color_byte(Color::White), b'7');
     }
 }
