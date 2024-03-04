@@ -172,7 +172,7 @@ The new component is the _policy_ field. A policy must have the _kind_ field lik
 other components, the default (and only supported) policy is `kind: compound`.
 
 The _trigger_ field is used to dictate when the log file should be rolled. It
-supports two types: `size`, and `time`.
+supports three types: `size`, `time` and `onstartup`.
 
 For `size`, it require a _limit_ field. The _limit_ field is a string which defines the maximum file size
 prior to a rolling of the file. The limit field requires one of the following
@@ -231,6 +231,16 @@ trigger:
     interval: 1 day
     modulate: false
     max_random_delay: 0
+```
+
+For `onstartup`, it has an optional field, _min_size_. It indicates the minimum size the file must have to roll over. A size of zero will cause a roll over no matter what the file size is. The default value is 1, which will prevent rolling over an empty file.
+
+i.e.
+
+```yml
+trigger:
+    kind: onstartup
+    min_size: 1
 ```
 
 The _roller_ field supports two types: delete, and fixed_window. The delete

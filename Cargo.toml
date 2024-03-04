@@ -26,6 +26,7 @@ delete_roller = []
 fixed_window_roller = []
 size_trigger = []
 time_trigger = ["rand"]
+onstartup_trigger = []
 json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "log/serde", "thread-id"]
 pattern_encoder = ["chrono", "log-mdc", "thread-id"]
 ansi_writer = []
@@ -43,6 +44,7 @@ all_components = [
     "fixed_window_roller",
     "size_trigger",
     "time_trigger",
+    "onstartup_trigger",
     "json_encoder",
     "pattern_encoder",
     "threshold_filter"

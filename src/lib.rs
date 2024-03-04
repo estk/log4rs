@@ -22,6 +22,7 @@
 //!       - Triggers
 //!         - [size](append/rolling_file/policy/compound/trigger/size/struct.SizeTriggerDeserializer.html#configuration): requires the `size_trigger` feature
 //!         - [time](append/rolling_file/policy/compound/trigger/tine/struct.TimeTriggerDeserializer.html#configuration): requires the `time_trigger` feature
+//!         - [onstartup](append/rolling_file/policy/compound/trigger/tine/struct.OnStartUpTriggerDeserializer.html#configuration): requires the `onstartup_trigger` feature
 //!
 //! ## Encoders
 //!
