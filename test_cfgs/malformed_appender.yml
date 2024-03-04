@@ -1,0 +1,13 @@
+refresh_rate: 5 seconds
+
+appenders:
+  file:
+    kind: file
+    pah: "log/file.log"
+    encoder:
+      pattern: "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}"
+
+root:
+  level: info
+  appenders:
+    - file
