@@ -370,6 +370,7 @@ mod test {
     use super::*;
     use crate::append::rolling_file::policy::Policy;
 
+    use std::{fs::read_to_string, io::Read};
     use tempfile::NamedTempFile;
 
     #[cfg(feature = "config_parsing")]
@@ -495,7 +496,7 @@ appenders:
         for policy in policies {
             let appender = RollingFileAppender::builder()
                 .append(true)
-                .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+                .encoder(Box::new(PatternEncoder::new("{l}: {L} ")))
                 .build(&tmp_file.path(), policy)
                 .unwrap();
 
@@ -504,23 +505,66 @@ appenders:
             // No-op method, but get the test coverage :)
             appender.flush();
         }
+
+        let contents = read_to_string(&tmp_file.path()).unwrap();
+
+        // Pattern is 'Level: Line Number '
+        let expected = "DEBUG: 100 DEBUG: 100 ".to_owned();
+        assert_eq!(expected, contents);
+    }
+
+    #[test]
+    fn test_truncate() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("truncate.log");
+        RollingFileAppender::builder()
+            .append(false)
+            .build(&path, Box::new(NopPostPolicy))
+            .unwrap();
+        assert!(path.exists());
+        File::create(&path).unwrap().write_all(b"hello").unwrap();
+
+        RollingFileAppender::builder()
+            .append(false)
+            .build(&path, Box::new(NopPostPolicy))
+            .unwrap();
+        let mut contents = vec![];
+        File::open(&path)
+            .unwrap()
+            .read_to_end(&mut contents)
+            .unwrap();
+        assert_eq!(contents, b"");
     }
 
     #[test]
     fn test_logfile() {
         let tmp_file = NamedTempFile::new().unwrap();
-        let mut logfile = LogFile {
-            writer: &mut None,
-            path: tmp_file.path(),
+        let (file, path) = tmp_file.into_parts();
+        let buf_writer = BufWriter::new(file);
+        let log_writer = LogWriter {
+            file: buf_writer,
             len: 0,
         };
 
-        assert_eq!(logfile.path(), tmp_file.path());
-        assert_eq!(logfile.len_estimate(), 0);
+        let path = path.keep().unwrap();
+        let path = path.as_path();
+        let mut logfile = LogFile {
+            writer: &mut Some(log_writer),
+            path: path,
+            len: 0,
+        };
 
-        // No actions to take here, the writer becomes inaccessible but theres
-        // no getter to verify
+        // Keep the temporary file from being deleted.
+        assert_eq!(logfile.path(), path);
+        assert_eq!(logfile.len_estimate(), 0);
+        assert!(logfile.writer.is_some());
+
         logfile.roll();
+
+        // Needed because of the call to keep
+        fs::remove_file(path).unwrap();
+
+        assert!(logfile.writer.is_none());
     }
 
     #[test]
