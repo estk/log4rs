@@ -2,7 +2,7 @@
 //!
 //! Requires the `compound_policy` feature.
 #[cfg(feature = "config_parsing")]
-use serde::{self, de};
+use serde::de;
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]

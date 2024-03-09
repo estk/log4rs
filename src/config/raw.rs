@@ -89,9 +89,7 @@
 //! ```
 #![allow(deprecated)]
 
-use std::{
-    borrow::ToOwned, collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration,
-};
+use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use log::LevelFilter;
@@ -287,9 +285,9 @@ impl Deserializers {
     }
 
     /// Deserializes a value of a specific type and kind.
-    pub fn deserialize<T: ?Sized>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
+    pub fn deserialize<T>(&self, kind: &str, config: Value) -> anyhow::Result<Box<T>>
     where
-        T: Deserializable,
+        T: Deserializable + ?Sized,
     {
         match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
             Some(b) => b.deserialize(config, self),
