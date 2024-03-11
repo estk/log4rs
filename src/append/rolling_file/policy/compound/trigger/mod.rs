@@ -26,6 +26,6 @@ pub trait Trigger: fmt::Debug + Send + Sync + 'static {
 #[cfg(feature = "config_parsing")]
 impl Deserializable for dyn Trigger {
     fn name() -> &'static str {
-        "trigger"
+        "triggers"
     }
 }

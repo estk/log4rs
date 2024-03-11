@@ -158,9 +158,13 @@ my_rolling_appender:
   path: "logs/test.log"
   policy:
     kind: compound
-    trigger:
-      kind: size
-      limit: 1mb
+    triggers:
+      - kind: size
+        limit: 1mb
+      - kind: time
+        interval: 1 day
+        modulate: false
+        max_random_delay: 0
     roller:
       kind: fixed_window
       base: 1
@@ -171,7 +175,7 @@ my_rolling_appender:
 The new component is the _policy_ field. A policy must have the _kind_ field like most
 other components, the default (and only supported) policy is `kind: compound`.
 
-The _trigger_ field is used to dictate when the log file should be rolled. It
+The _triggers_ field is used to dictate when the log file should be rolled. It
 supports two types: `size`, and `time`.
 
 For `size`, it require a _limit_ field. The _limit_ field is a string which defines the maximum file size
@@ -187,9 +191,9 @@ units in bytes, case does not matter:
 i.e.
 
 ```yml
-trigger:
-  kind: size
-  limit: 10 mb
+triggers:
+  - kind: size
+    limit: 10 mb
 ```
 
 For `time`, it has three field, _interval_, _modulate_ and _max_random_delay_.
@@ -226,8 +230,8 @@ time.
 i.e.
 
 ```yml
-trigger:
-    kind: time
+triggers:
+  - kind: time
     interval: 1 day
     modulate: false
     max_random_delay: 0
