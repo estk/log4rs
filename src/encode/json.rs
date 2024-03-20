@@ -24,6 +24,11 @@
 //!     }
 //! }
 //! ```
+//! If the `log_kv` feature is enabled, an additional `attributes` field will
+//! contain a map of the record's [log::kv][log_kv] structured logging
+//! attributes.
+//!
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{
     format::{DelayedFormat, Fixed, Item},
@@ -76,6 +81,8 @@ impl JsonEncoder {
             thread: thread.name(),
             thread_id: thread_id::get(),
             mdc: Mdc,
+            #[cfg(feature = "log_kv")]
+            attributes: kv::get_attributes(record.key_values())?,
         };
         message.serialize(&mut serde_json::Serializer::new(&mut *w))?;
         w.write_all(NEWLINE.as_bytes())?;
@@ -106,6 +113,8 @@ struct Message<'a> {
     thread: Option<&'a str>,
     thread_id: usize,
     mdc: Mdc,
+    #[cfg(feature = "log_kv")]
+    attributes: kv::Map,
 }
 
 fn ser_display<T, S>(v: &T, s: S) -> Result<S::Ok, S::Error>
@@ -162,6 +171,34 @@ impl Deserialize for JsonEncoderDeserializer {
         Ok(Box::<JsonEncoder>::default())
     }
 }
+#[cfg(feature = "log_kv")]
+mod kv {
+    use log::kv::VisitSource;
+    use std::collections::BTreeMap;
+
+    pub(crate) type Map = BTreeMap<String, String>;
+
+    pub(crate) fn get_attributes(source: &dyn log::kv::Source) -> anyhow::Result<Map> {
+        struct Visitor {
+            inner: Map,
+        }
+        impl<'kvs> VisitSource<'kvs> for Visitor {
+            fn visit_pair(
+                &mut self,
+                key: log::kv::Key<'kvs>,
+                value: log::kv::Value<'kvs>,
+            ) -> Result<(), log::kv::Error> {
+                self.inner.insert(format!("{key}"), format!("{value}"));
+                Ok(())
+            }
+        }
+        let mut visitor = Visitor {
+            inner: BTreeMap::new(),
+        };
+        source.visit(&mut visitor)?;
+        Ok(visitor.inner)
+    }
+}
 
 #[cfg(test)]
 #[cfg(feature = "simple_writer")]
@@ -189,26 +226,35 @@ mod test {
 
         let encoder = JsonEncoder::new();
 
+        let mut record_builder = Record::builder();
+        record_builder
+            .level(level)
+            .target(target)
+            .module_path(Some(module_path))
+            .file(Some(file))
+            .line(Some(line));
+
+        #[cfg(feature = "log_kv")]
+        record_builder.key_values(&[("log_foo", "log_bar")]);
+
         let mut buf = vec![];
         encoder
             .encode_inner(
                 &mut SimpleWriter(&mut buf),
                 time,
-                &Record::builder()
-                    .level(level)
-                    .target(target)
-                    .module_path(Some(module_path))
-                    .file(Some(file))
-                    .line(Some(line))
-                    .args(format_args!("{}", message))
-                    .build(),
+                &record_builder.args(format_args!("{}", message)).build(),
             )
             .unwrap();
+
+        #[cfg(feature = "log_kv")]
+        let expected_attributes = ",\"attributes\":{\"log_foo\":\"log_bar\"}";
+        #[cfg(not(feature = "log_kv"))]
+        let expected_attributes = "";
 
         let expected = format!(
             "{{\"time\":\"{}\",\"level\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
             \"file\":\"{}\",\"line\":{},\"target\":\"{}\",\
-            \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}}}",
+            \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}{}}}",
             time.to_rfc3339(),
             level,
             message,
@@ -218,6 +264,7 @@ mod test {
             target,
             thread,
             thread_id::get(),
+            expected_attributes
         );
         assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
     }

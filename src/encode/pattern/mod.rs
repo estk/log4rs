@@ -73,6 +73,14 @@
 //!     defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
+//! * `K`, `key_value` - A value from a [log::kv][log_kv] structured logging
+//!     record attributes. The first argument specifies the key, and the second
+//!     argument specifies the default value if the key is not present in the
+//!     log record's attributes. The second argument is optional, and defaults
+//!     to the empty string. This formatter requires the `log_kv` feature to be
+//!     enabled.
+//!     * `{K(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!     * `{K(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -120,6 +128,7 @@
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 //!
 //! [MDC]: https://crates.io/crates/log-mdc
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{Local, Utc};
 use derivative::Derivative;
@@ -536,6 +545,47 @@ impl<'a> From<Piece<'a>> for Chunk {
                         params: parameters,
                     }
                 }
+                #[cfg(feature = "log_kv")]
+                "K" | "key_value" => {
+                    if formatter.args.len() > 2 {
+                        return Chunk::Error("expected at most two arguments".to_owned());
+                    }
+
+                    let key = match formatter.args.first() {
+                        Some(arg) => {
+                            if let Some(arg) = arg.first() {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid log::kv key".to_owned()),
+                                }
+                            } else {
+                                return Chunk::Error("invalid log::kv key".to_owned());
+                            }
+                        }
+                        None => return Chunk::Error("missing log::kv key".to_owned()),
+                    };
+
+                    let default = match formatter.args.get(1) {
+                        Some(arg) => {
+                            if let Some(arg) = arg.first() {
+                                match arg {
+                                    Piece::Text(value) => value.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid log::kv default".to_owned()),
+                                }
+                            } else {
+                                return Chunk::Error("invalid log::kv default".to_owned());
+                            }
+                        }
+                        None => "",
+                    };
+
+                    Chunk::Formatted {
+                        chunk: FormattedChunk::Kv(key.into(), default.into()),
+                        params: parameters,
+                    }
+                }
                 "" => {
                     if formatter.args.len() != 1 {
                         return Chunk::Error("expected exactly one argument".to_owned());
@@ -593,6 +643,8 @@ enum FormattedChunk {
     Debug(Vec<Chunk>),
     Release(Vec<Chunk>),
     Mdc(String, String),
+    #[cfg(feature = "log_kv")]
+    Kv(String, String),
 }
 
 impl FormattedChunk {
@@ -665,6 +717,15 @@ impl FormattedChunk {
             }
             FormattedChunk::Mdc(ref key, ref default) => {
                 log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
+            }
+            #[cfg(feature = "log_kv")]
+            FormattedChunk::Kv(ref key, ref default) => {
+                use log::kv::ToKey;
+                if let Some(v) = record.key_values().get(key.to_key()) {
+                    write!(w, "{v}")
+                } else {
+                    write!(w, "{default}")
+                }
             }
         }
     }
@@ -751,7 +812,7 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
 
-    use super::{Chunk, PatternEncoder};
+    use super::*;
     #[cfg(feature = "simple_writer")]
     use crate::encode::writer::simple::SimpleWriter;
     #[cfg(feature = "simple_writer")]
@@ -1029,6 +1090,71 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+        let kv = [("user_id", "kv value")];
+
+        let mut buf = vec![];
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().key_values(&kv).build(),
+        )
+        .unwrap();
+
+        assert_eq!(buf, b"kv value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv_missing_default() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv_missing_custom() {
+        let pw = PatternEncoder::new("{K(user_id)(missing value)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(feature = "log_kv")]
+    fn test_kv_from_piece_to_chunk() {
+        let tests = vec![
+            (
+                "[{K(user_id)(foobar)(test):<5.5}]",
+                "expected at most two arguments",
+            ),
+            ("[{K({l user_id):<5.5}]", "expected '}'"),
+            ("[{K({l} user_id):<5.5}]", "invalid log::kv key"),
+            ("[{K:<5.5}]", "missing log::kv key"),
+            ("[{K(user_id)({l):<5.5}]", "expected '}'"),
+            ("[{K(user_id)({l}):<5.5}]", "invalid log::kv default"),
+            ("[{K(user_id)():<5.5} {M}]", "invalid log::kv default"),
+        ];
+
+        for (pattern, error_msg) in tests {
+            let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+            match chunks.get(1).unwrap() {
+                Chunk::Error(err) => assert!(err.contains(error_msg)),
+                _ => panic!(),
+            }
+        }
     }
 
     #[test]
