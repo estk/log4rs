@@ -536,6 +536,47 @@ impl<'a> From<Piece<'a>> for Chunk {
                         params: parameters,
                     }
                 }
+                #[cfg(feature = "log_kv")]
+                "K" | "key_value" => {
+                    if formatter.args.len() > 2 {
+                        return Chunk::Error("expected at most two arguments".to_owned());
+                    }
+
+                    let key = match formatter.args.first() {
+                        Some(arg) => {
+                            if let Some(arg) = arg.first() {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid log::kv key".to_owned()),
+                                }
+                            } else {
+                                return Chunk::Error("invalid log::kv key".to_owned());
+                            }
+                        }
+                        None => return Chunk::Error("missing log::kv key".to_owned()),
+                    };
+
+                    let default = match formatter.args.get(1) {
+                        Some(arg) => {
+                            if let Some(arg) = arg.first() {
+                                match arg {
+                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
+                                    _ => return Chunk::Error("invalid log::kv default".to_owned()),
+                                }
+                            } else {
+                                return Chunk::Error("invalid log::kv default".to_owned());
+                            }
+                        }
+                        None => "",
+                    };
+
+                    Chunk::Formatted {
+                        chunk: FormattedChunk::Kv(key.into(), default.into()),
+                        params: parameters,
+                    }
+                }
                 "" => {
                     if formatter.args.len() != 1 {
                         return Chunk::Error("expected exactly one argument".to_owned());
@@ -593,6 +634,8 @@ enum FormattedChunk {
     Debug(Vec<Chunk>),
     Release(Vec<Chunk>),
     Mdc(String, String),
+    #[cfg(feature = "log_kv")]
+    Kv(String, String),
 }
 
 impl FormattedChunk {
@@ -665,6 +708,15 @@ impl FormattedChunk {
             }
             FormattedChunk::Mdc(ref key, ref default) => {
                 log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
+            }
+            #[cfg(feature = "log_kv")]
+            FormattedChunk::Kv(ref key, ref default) => {
+                use log::kv::ToKey;
+                if let Some(v) = record.key_values().get(key.to_key()) {
+                    write!(w, "{v}")
+                } else {
+                    write!(w, "{default}")
+                }
             }
         }
     }
@@ -1023,6 +1075,46 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     fn mdc_missing_custom() {
         let pw = PatternEncoder::new("{X(user_id)(missing value)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn kv() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+        let mut kv = [("user_id", "kv value")];
+
+        let mut buf = vec![];
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().key_values(&kv).build(),
+        )
+        .unwrap();
+
+        assert_eq!(buf, b"kv value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn kv_missing_default() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn kv_missing_custom() {
+        let pw = PatternEncoder::new("{K(user_id)(missing value)}");
 
         let mut buf = vec![];
         pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
