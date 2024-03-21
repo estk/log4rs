@@ -109,8 +109,7 @@ struct Message<'a> {
     thread_id: usize,
     mdc: Mdc,
     #[cfg(feature = "log_kv")]
-    #[serde(serialize_with = "kv::ser_map")]
-    attributes: Vec<(String, String)>,
+    attributes: kv::Map,
 }
 
 fn ser_display<T, S>(v: &T, s: S) -> Result<S::Ok, S::Error>
@@ -167,47 +166,34 @@ impl Deserialize for JsonEncoderDeserializer {
         Ok(Box::<JsonEncoder>::default())
     }
 }
-
 #[cfg(feature = "log_kv")]
 mod kv {
     use log::kv::VisitSource;
+    use std::collections::BTreeMap;
 
-    pub fn get_attributes(source: &dyn log::kv::Source) -> anyhow::Result<Vec<(String, String)>> {
-        Ok(LogKvVisitor::process(source)?.yield_values())
-    }
-    #[derive(Default)]
-    struct LogKvVisitor {
-        inner: Vec<(String, String)>,
-    }
+    pub(crate) type Map = BTreeMap<String, String>;
 
-    impl LogKvVisitor {
-        pub fn process(source: &dyn log::kv::Source) -> anyhow::Result<Self> {
-            let mut s = Self::default();
-            source.visit(&mut s)?;
-            Ok(s)
+    pub(crate) fn get_attributes(
+        source: &dyn log::kv::Source,
+    ) -> anyhow::Result<Map> {
+        struct Visitor {
+            inner: Map,
         }
-        pub fn yield_values(self) -> Vec<(String, String)> {
-            self.inner
+        impl<'kvs> VisitSource<'kvs> for Visitor {
+            fn visit_pair(
+                &mut self,
+                key: log::kv::Key<'kvs>,
+                value: log::kv::Value<'kvs>,
+            ) -> Result<(), log::kv::Error> {
+                self.inner.insert(format!("{key}"), format!("{value}"));
+                Ok(())
+            }
         }
-    }
-
-    impl<'kvs> VisitSource<'kvs> for LogKvVisitor {
-        fn visit_pair(
-            &mut self,
-            key: log::kv::Key<'kvs>,
-            value: log::kv::Value<'kvs>,
-        ) -> Result<(), log::kv::Error> {
-            self.inner.push((format!("{key}"), format!("{value}")));
-            Ok(())
-        }
-    }
-
-    pub(crate) fn ser_map<S>(v: &[(String, String)], s: S) -> Result<S::Ok, S::Error>
-    where
-        S: super::ser::Serializer,
-    {
-        let iter = v.iter().map(|(k, v)| (k, v));
-        s.collect_map(iter)
+        let mut visitor = Visitor {
+            inner: BTreeMap::new(),
+        };
+        source.visit(&mut visitor)?;
+        Ok(visitor.inner)
     }
 }
 

@@ -561,7 +561,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                         Some(arg) => {
                             if let Some(arg) = arg.first() {
                                 match arg {
-                                    Piece::Text(key) => key.to_owned(),
+                                    Piece::Text(value) => value.to_owned(),
                                     Piece::Error(ref e) => return Chunk::Error(e.clone()),
                                     _ => return Chunk::Error("invalid log::kv default".to_owned()),
                                 }
