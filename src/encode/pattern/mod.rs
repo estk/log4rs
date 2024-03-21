@@ -73,6 +73,14 @@
 //!     defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
+//! * `K`, `key_value` - A value from a [log::kv][log_kv] structured logging
+//!     record attributes. The first argument specifies the key, and the second
+//!     argument specifies the default value if the key is not present in the
+//!     log record's attributes. The second argument is optional, and defaults
+//!     to the empty string. This formatter requires the `log_kv` feature to be
+//!     enabled.
+//!     * `{K(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!     * `{K(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -120,6 +128,7 @@
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 //!
 //! [MDC]: https://crates.io/crates/log-mdc
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{Local, Utc};
 use derivative::Derivative;

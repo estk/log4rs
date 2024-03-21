@@ -24,6 +24,11 @@
 //!     }
 //! }
 //! ```
+//! If the `log_kv` feature is enabled, an additional `attributes` field will
+//! contain a map of the record's [log::kv][log_kv] structured logging
+//! attributes.
+//!
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{
     format::{DelayedFormat, Fixed, Item},
@@ -173,9 +178,7 @@ mod kv {
 
     pub(crate) type Map = BTreeMap<String, String>;
 
-    pub(crate) fn get_attributes(
-        source: &dyn log::kv::Source,
-    ) -> anyhow::Result<Map> {
+    pub(crate) fn get_attributes(source: &dyn log::kv::Source) -> anyhow::Result<Map> {
         struct Visitor {
             inner: Map,
         }
