@@ -803,6 +803,7 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
 
+    use super::*;
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
     use crate::encode::writer::simple::SimpleWriter;
@@ -1085,9 +1086,9 @@ mod tests {
 
     #[test]
     #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
-    fn kv() {
+    fn test_kv() {
         let pw = PatternEncoder::new("{K(user_id)}");
-        let mut kv = [("user_id", "kv value")];
+        let kv = [("user_id", "kv value")];
 
         let mut buf = vec![];
         pw.encode(
@@ -1101,7 +1102,7 @@ mod tests {
 
     #[test]
     #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
-    fn kv_missing_default() {
+    fn test_kv_missing_default() {
         let pw = PatternEncoder::new("{K(user_id)}");
 
         let mut buf = vec![];
@@ -1113,7 +1114,7 @@ mod tests {
 
     #[test]
     #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
-    fn kv_missing_custom() {
+    fn test_kv_missing_custom() {
         let pw = PatternEncoder::new("{K(user_id)(missing value)}");
 
         let mut buf = vec![];
@@ -1121,6 +1122,31 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(feature = "log_kv")]
+    fn test_kv_from_piece_to_chunk() {
+        let tests = vec![
+            (
+                "[{K(user_id)(foobar)(test):<5.5}]",
+                "expected at most two arguments",
+            ),
+            ("[{K({l user_id):<5.5}]", "expected '}'"),
+            ("[{K({l} user_id):<5.5}]", "invalid log::kv key"),
+            ("[{K:<5.5}]", "missing log::kv key"),
+            ("[{K(user_id)({l):<5.5}]", "expected '}'"),
+            ("[{K(user_id)({l}):<5.5}]", "invalid log::kv default"),
+            ("[{K(user_id)():<5.5} {M}]", "invalid log::kv default"),
+        ];
+
+        for (pattern, error_msg) in tests {
+            let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+            match chunks.get(1).unwrap() {
+                Chunk::Error(err) => assert!(err.contains(error_msg)),
+                _ => panic!(),
+            }
+        }
     }
 
     #[test]
