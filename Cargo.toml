@@ -49,6 +49,7 @@ all_components = [
 ]
 
 gzip = ["flate2"]
+zstandard = ["zstd"]
 
 [[bench]]
 name = "rotation"
@@ -58,6 +59,7 @@ harness = false
 arc-swap = "1.6"
 chrono = { version = "0.4.23", optional = true, features = ["clock"], default-features = false }
 flate2 = { version = "1.0", optional = true }
+zstd = { version = "0.13", optional = true }
 fnv = "1.0"
 humantime = { version = "2.1", optional = true }
 log = { version = "0.4.20", features = ["std"] }
