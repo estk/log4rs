@@ -31,6 +31,8 @@ enum Compression {
     None,
     #[cfg(feature = "gzip")]
     Gzip,
+    #[cfg(feature = "zstandard")]
+    Zstd,
 }
 
 impl Compression {
@@ -52,6 +54,19 @@ impl Compression {
                 drop(o.finish()?);
                 drop(i); // needs to happen before remove_file call on Windows
 
+                fs::remove_file(src)
+            },
+            #[cfg(feature = "zstandard")]
+            Compression::Zstd => {
+                use std::fs::File;
+                let mut i = File::open(src)?;
+                let mut o = {
+                    let target = File::create(dst)?;
+                    zstd::Encoder::new(target, zstd::DEFAULT_COMPRESSION_LEVEL)?
+                };
+                io::copy(&mut i, &mut o)?;
+                drop(o.finish()?);
+                drop(i);
                 fs::remove_file(src)
             }
         }
@@ -274,7 +289,13 @@ impl FixedWindowRollerBuilder {
             #[cfg(not(feature = "gzip"))]
             Some(e) if e == "gz" => {
                 bail!("gzip compression requires the `gzip` feature");
-            }
+            },
+            #[cfg(feature = "zstandard")]
+            Some(e) if e == "zst" => Compression::Zstd,
+            #[cfg(not(feature = "zstandard"))]
+            Some(e) if e == "zst" => {
+                bail!("zstd compression requires the `zstandard` feature");
+            },
             _ => Compression::None,
         };
 
@@ -549,6 +570,53 @@ mod test {
 
         assert!(Command::new("gunzip")
             .arg(dir.path().join("0.gz"))
+            .status()
+            .unwrap()
+            .success());
+
+        let mut file = File::open(dir.path().join("0")).unwrap();
+        let mut actual = vec![];
+        file.read_to_end(&mut actual).unwrap();
+
+        assert_eq!(contents, actual);
+    }
+
+    #[test]
+    #[cfg_attr(feature = "zstandard", ignore)]
+    fn unsupported_zstd() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let pattern = dir.path().join("{}.zst");
+        assert!(FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 2)
+            .is_err());
+    }
+
+    #[test]
+    #[cfg_attr(not(feature = "zstandard"), ignore)]
+    // or should we force windows user to install zstd
+    #[cfg(not(windows))]
+    fn supported_zstd() {
+        use std::process::Command;
+
+        let dir = tempfile::tempdir().unwrap();
+
+        let pattern = dir.path().join("{}.zst");
+        let roller = FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 2)
+            .unwrap();
+
+        let contents = (0..10000).map(|i| i as u8).collect::<Vec<_>>();
+
+        let file = dir.path().join("foo.log");
+        File::create(&file).unwrap().write_all(&contents).unwrap();
+
+        roller.roll(&file).unwrap();
+        wait_for_roller(&roller);
+
+        assert!(Command::new("zstd")
+            .arg("-d")
+            .arg(dir.path().join("0.zst"))
             .status()
             .unwrap()
             .success());
