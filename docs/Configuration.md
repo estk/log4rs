@@ -243,6 +243,9 @@ double curly brace `{}`. For example `archive/foo.{}.log`. Each instance of
 `{}` will be replaced with the index number of the configuration file. Note
 that if the file extension of the pattern is `.gz` and the `gzip` Cargo
 feature is enabled, the archive files will be gzip-compressed.
+If the file extension of the pattern is `.zst` and the `zstandard` Cargo
+feature is enabled, the archive files will be compressed the 
+[Zstandard](https://facebook.github.io/zstd/) compression algorithm.
 
 > Note: This pattern field is only used for archived files. The `path` field
 > of the higher level `rolling_file` will be used for the active log file.
