@@ -587,9 +587,13 @@ mod test {
         let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.zst");
-        assert!(FixedWindowRoller::builder()
-            .build(pattern.to_str().unwrap(), 2)
-            .is_err());
+        let roller = FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 2);
+        assert!(roller.is_err());
+        assert!(roller
+            .unwrap_err()
+            .to_string()
+            .contains("zstd compression requires the `zstandard` feature"));
     }
 
     #[test]
