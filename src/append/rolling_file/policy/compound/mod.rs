@@ -159,3 +159,101 @@ impl Deserialize for CompoundPolicyDeserializer {
         Ok(Box::new(CompoundPolicy::new(trigger, roller)))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use self::{roll::delete::DeleteRoller, trigger::size::SizeTrigger};
+
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[cfg(feature = "config_parsing")]
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+
+    fn create_policy() -> CompoundPolicy {
+        let trigger = SizeTrigger::new(1024);
+        let roller = DeleteRoller::new();
+        CompoundPolicy::new(Box::new(trigger), Box::new(roller))
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_trigger_deser() {
+        let mut cfg = vec![
+            Token::Struct {
+                name: "Trigger",
+                len: 2,
+            },
+            Token::Str("kind"),
+            Token::Str("size"),
+            Token::Str("limit"),
+            Token::U64(1024),
+            Token::StructEnd,
+        ];
+
+        assert_de_tokens(
+            &Trigger {
+                kind: "size".to_owned(),
+                config: Value::Map({
+                    let mut map = BTreeMap::new();
+                    map.insert(Value::String("limit".to_owned()), Value::U64(1024));
+                    map
+                }),
+            },
+            &cfg,
+        );
+
+        // Intentionally break the config
+        cfg[1] = Token::Str("knd");
+        assert_de_tokens_error::<Trigger>(&cfg, "missing field `kind`");
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_roller_deser() {
+        let mut cfg = vec![
+            Token::Struct {
+                name: "Roller",
+                len: 1,
+            },
+            Token::Str("kind"),
+            Token::Str("delete"),
+            Token::StructEnd,
+        ];
+
+        assert_de_tokens(
+            &Roller {
+                kind: "delete".to_owned(),
+                config: Value::Map(BTreeMap::new()),
+            },
+            &cfg,
+        );
+
+        // Intentionally break the config
+        cfg[1] = Token::Str("knd");
+        assert_de_tokens_error::<Roller>(&cfg, "missing field `kind`");
+    }
+
+    #[test]
+    fn test_pre_process() {
+        let policy = create_policy();
+        assert!(!policy.is_pre_process());
+    }
+
+    #[test]
+    fn test_process() {
+        let policy = create_policy();
+        // Don't roll then roll
+        let file_sizes = vec![0, 2048];
+        let tmp_file = NamedTempFile::new().unwrap();
+
+        for file_size in file_sizes {
+            let mut logfile = LogFile {
+                writer: &mut None,
+                path: tmp_file.as_ref(),
+                len: file_size,
+            };
+            assert!(policy.process(&mut logfile).is_ok());
+        }
+    }
+}

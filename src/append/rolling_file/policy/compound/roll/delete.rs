@@ -59,3 +59,24 @@ impl Deserialize for DeleteRollerDeserializer {
         Ok(Box::<DeleteRoller>::default())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_roll() {
+        let roller = DeleteRoller::new();
+
+        let tmp_file = NamedTempFile::new().unwrap();
+        let tmp_file = tmp_file.into_temp_path().keep().unwrap();
+        // File exists, should be ok
+        let res = roller.roll(&tmp_file);
+        assert!(res.is_ok());
+
+        // File doesn't exist, should err
+        let res = roller.roll(&tmp_file);
+        assert!(res.is_err());
+    }
+}

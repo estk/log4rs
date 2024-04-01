@@ -343,6 +343,9 @@ mod test {
     use mock_instant::MockClock;
     use std::time::Duration;
 
+    #[cfg(feature = "config_parsing")]
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+
     fn trigger_with_time_and_modulate(
         interval: TimeTriggerInterval,
         modulate: bool,
@@ -373,7 +376,7 @@ mod test {
     }
 
     #[test]
-    fn trigger() {
+    fn test_trigger() {
         let second_in_milli = 1000;
         let minute_in_milli = second_in_milli * 60;
         let hour_in_milli = minute_in_milli * 60;
@@ -430,50 +433,128 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "yaml_format")]
-    fn test_serde() {
-        let test_error = vec![
-            "abc",   // // str none none
-            "",      // none
-            "5 das", // bad unit
-            "-1",    // inegative integar
-            "2.0",   //flaot
+    #[cfg(feature = "config_parsing")]
+    fn test_defaults_deserialize() {
+        let trigger = TimeTriggerConfig {
+            interval: TimeTriggerInterval::Second(1),
+            modulate: false,
+            max_random_delay: 0,
+        };
+
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct {
+                    name: "TimeTriggerConfig",
+                    len: 3,
+                },
+                Token::Str("interval"),
+                Token::I64(1),
+                Token::Str("modulate"),
+                Token::Bool(false),
+                Token::Str("max_random_delay"),
+                Token::U64(0),
+                Token::StructEnd,
+            ],
+        );
+
+        assert_de_tokens(
+            &trigger,
+            &[
+                Token::Struct {
+                    name: "TimeTriggerConfig",
+                    len: 1,
+                },
+                Token::Str("interval"),
+                Token::Str("1"),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_interval_deser_errors() {
+        let mut cfg = vec![
+            Token::Struct {
+                name: "TimeTriggerConfig",
+                len: 1,
+            },
+            Token::Str("interval"),
+            Token::Str("abc"),
+            Token::StructEnd,
         ];
 
-        for interval in test_error.iter() {
-            let error = ::serde_yaml::from_str::<TimeTriggerInterval>(&interval);
-            assert!(error.is_err());
+        // Can't test with a STR "-1" because the negative sign parses as a
+        // non-ascii and the whole value goes into unit
+        let tests = vec![
+            (
+                Token::Str("abc"),
+                "invalid value: string \"\", expected a number",
+            ),
+            (
+                Token::Str(""),
+                "invalid value: string \"\", expected a number",
+            ),
+            (
+                Token::Str("5 das"),
+                "invalid value: string \"das\", expected a valid unit",
+            ),
+            (
+                Token::I64(-1),
+                "invalid value: integer `-1`, expected a non-negative number",
+            ),
+            (
+                Token::F32(2.0),
+                "invalid type: floating point `2.0`, expected a time",
+            ),
+        ];
+
+        for (cfg_val, err_msg) in tests {
+            cfg[2] = cfg_val;
+            assert_de_tokens_error::<TimeTriggerConfig>(&cfg, err_msg);
         }
+    }
 
-        let test_ok = vec![
-            // u64
-            ("1", TimeTriggerInterval::Second(1)),
-            // str second
-            ("1 second", TimeTriggerInterval::Second(1)),
-            ("1 seconds", TimeTriggerInterval::Second(1)),
-            // str minute
-            ("1 minute", TimeTriggerInterval::Minute(1)),
-            ("1 minutes", TimeTriggerInterval::Minute(1)),
-            // str hour
-            ("1 hour", TimeTriggerInterval::Hour(1)),
-            ("1 hours", TimeTriggerInterval::Hour(1)),
-            // str day
-            ("1 day", TimeTriggerInterval::Day(1)),
-            ("1 days", TimeTriggerInterval::Day(1)),
-            // str week
-            ("1 week", TimeTriggerInterval::Week(1)),
-            ("1 weeks", TimeTriggerInterval::Week(1)),
-            // str month
-            ("1 month", TimeTriggerInterval::Month(1)),
-            ("1 months", TimeTriggerInterval::Month(1)),
-            // str year
-            ("1 year", TimeTriggerInterval::Year(1)),
-            ("1 years", TimeTriggerInterval::Year(1)),
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_interval_deser() {
+        let mut trigger_cfg = TimeTriggerConfig {
+            interval: TimeTriggerInterval::Second(1),
+            modulate: false,
+            max_random_delay: 0,
+        };
+
+        let mut cfg = vec![
+            Token::Struct {
+                name: "TimeTriggerConfig",
+                len: 1,
+            },
+            Token::Str("interval"),
+            Token::U64(1),
+            Token::StructEnd,
         ];
-        for (interval, expected) in test_ok.iter() {
-            let interval = format!("{}", interval);
-            let interval = ::serde_yaml::from_str::<TimeTriggerInterval>(&interval).unwrap();
-            assert_eq!(interval, *expected);
+
+        let tests = vec![
+            (TimeTriggerInterval::Second(1), Token::U64(1)),
+            (TimeTriggerInterval::Second(1), Token::Str("1 second")),
+            (TimeTriggerInterval::Second(1), Token::Str("1 seconds")),
+            (TimeTriggerInterval::Minute(1), Token::Str("1 minute")),
+            (TimeTriggerInterval::Minute(1), Token::Str("1 minutes")),
+            (TimeTriggerInterval::Hour(1), Token::Str("1 hour")),
+            (TimeTriggerInterval::Hour(1), Token::Str("1 hours")),
+            (TimeTriggerInterval::Day(1), Token::Str("1 day")),
+            (TimeTriggerInterval::Day(1), Token::Str("1 days")),
+            (TimeTriggerInterval::Week(1), Token::Str("1 week")),
+            (TimeTriggerInterval::Week(1), Token::Str("1 weeks")),
+            (TimeTriggerInterval::Year(1), Token::Str("1 year")),
+            (TimeTriggerInterval::Year(1), Token::Str("1 years")),
+        ];
+
+        for (interval, cfg_val) in tests {
+            cfg[2] = cfg_val;
+            trigger_cfg.interval = interval;
+            assert_de_tokens(&trigger_cfg, &cfg);
         }
     }
 
@@ -484,7 +565,7 @@ mod test {
     }
 
     #[test]
-    fn pre_process() {
+    fn test_is_pre_process() {
         let config = TimeTriggerConfig {
             interval: TimeTriggerInterval::Minute(2),
             modulate: true,
@@ -492,5 +573,34 @@ mod test {
         };
         let trigger = TimeTrigger::new(config);
         assert!(trigger.is_pre_process());
+    }
+
+    #[test]
+    fn test_max_rand_delay() {
+        // Using a delay of 1 will test the block, but will always add a 0 allowing us
+        // to bypass the unknown of rand
+        let delays = vec![0, 1];
+
+        for delay in delays {
+            let trigger_cfg = TimeTriggerConfig {
+                interval: TimeTriggerInterval::Second(1),
+                modulate: false,
+                max_random_delay: delay,
+            };
+
+            let current = {
+                let now: std::time::Duration = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("system time before Unix epoch");
+                NaiveDateTime::from_timestamp_opt(now.as_secs() as i64 + 1, now.subsec_nanos())
+                    .unwrap()
+                    .and_local_timezone(Local)
+                    .unwrap()
+            };
+
+            let trigger = TimeTrigger::new(trigger_cfg);
+            let trigger_time = trigger.next_roll_time.read().unwrap();
+            assert_eq!(*trigger_time, current);
+        }
     }
 }
