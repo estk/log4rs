@@ -244,7 +244,7 @@ double curly brace `{}`. For example `archive/foo.{}.log`. Each instance of
 that if the file extension of the pattern is `.gz` and the `gzip` Cargo
 feature is enabled, the archive files will be gzip-compressed.
 If the file extension of the pattern is `.zst` and the `zstandard` Cargo
-feature is enabled, the archive files will be compressed the 
+feature is enabled, the archive files will be compressed using the 
 [Zstandard](https://facebook.github.io/zstd/) compression algorithm.
 
 > Note: This pattern field is only used for archived files. The `path` field

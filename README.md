@@ -69,16 +69,16 @@ fn main() {
 ## Compression
 
 If you are using the file rotation in your configuration there is a known
-substantial performance issue with the `gzip` feature. When rolling files 
-it will zip log archives automatically. This is a problem when the log archives
-are large as the zip happens in the main thread and will halt the process while
-the zip is completed.
-You might face the same issue also with the `zstandard` feature.
+substantial performance issue with either the `gzip` or `zstandard`
+features. When rolling files it will zip log archives automatically. This is
+a problem when the log archives are large as the zip process occurs in
+the main thread and will halt the process until the zip process
+completes.
 
 The methods to mitigate this are as follows.
 
 1. Use the `background_rotation` feature which spawns an os thread to do the compression.
-2. Do not enable neither the `gzip` nor the `zstandard` feature.
+2. Do not enable the `gzip` nor the `zstandard` features.
 3. Ensure the archives are small enough that the compression time is acceptable.
 
 For more information see the PR that added [`background_rotation`](https://github.com/estk/log4rs/pull/117).
