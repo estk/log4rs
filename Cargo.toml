@@ -49,7 +49,7 @@ all_components = [
 ]
 
 gzip = ["flate2"]
-zstandard = ["zstd"]
+zstd = ["dep:zstd"]
 
 [[bench]]
 name = "rotation"

@@ -31,7 +31,7 @@ enum Compression {
     None,
     #[cfg(feature = "gzip")]
     Gzip,
-    #[cfg(feature = "zstandard")]
+    #[cfg(feature = "zstd")]
     Zstd,
 }
 
@@ -56,7 +56,7 @@ impl Compression {
 
                 fs::remove_file(src)
             },
-            #[cfg(feature = "zstandard")]
+            #[cfg(feature = "zstd")]
             Compression::Zstd => {
                 use std::fs::File;
                 let mut i = File::open(src)?;
@@ -290,11 +290,11 @@ impl FixedWindowRollerBuilder {
             Some(e) if e == "gz" => {
                 bail!("gzip compression requires the `gzip` feature");
             },
-            #[cfg(feature = "zstandard")]
+            #[cfg(feature = "zstd")]
             Some(e) if e == "zst" => Compression::Zstd,
-            #[cfg(not(feature = "zstandard"))]
+            #[cfg(not(feature = "zstd"))]
             Some(e) if e == "zst" => {
-                bail!("zstd compression requires the `zstandard` feature");
+                bail!("zstd compression requires the `zstd` feature");
             },
             _ => Compression::None,
         };
@@ -582,7 +582,7 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(feature = "zstandard", ignore)]
+    #[cfg_attr(feature = "zstd", ignore)]
     fn unsupported_zstd() {
         let dir = tempfile::tempdir().unwrap();
 
@@ -593,11 +593,11 @@ mod test {
         assert!(roller
             .unwrap_err()
             .to_string()
-            .contains("zstd compression requires the `zstandard` feature"));
+            .contains("zstd compression requires the `zstd` feature"));
     }
 
     #[test]
-    #[cfg_attr(not(feature = "zstandard"), ignore)]
+    #[cfg_attr(not(feature = "zstd"), ignore)]
     // or should we force windows user to install zstd
     #[cfg(not(windows))]
     fn supported_zstd() {
