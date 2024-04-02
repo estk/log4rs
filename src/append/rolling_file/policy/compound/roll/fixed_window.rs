@@ -597,7 +597,7 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "zstd"), ignore)]
+    #[cfg(feature = "zstd")]
     fn supported_zstd() {
         let dir = tempfile::tempdir().unwrap();
 
