@@ -85,7 +85,15 @@ impl JsonEncoder {
 
 impl Encode for JsonEncoder {
     fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()> {
-        self.encode_inner(w, Local::now(), record)
+        #[cfg(test)]
+        let time = DateTime::parse_from_rfc3339("2016-03-20T14:22:20.644420340-08:00")
+            .unwrap()
+            .with_timezone(&Local);
+
+        #[cfg(not(test))]
+        let time = Local::now();
+
+        self.encode_inner(w, time, record)
     }
 }
 
@@ -168,13 +176,17 @@ impl Deserialize for JsonEncoderDeserializer {
 mod test {
     #[cfg(feature = "chrono")]
     use chrono::{DateTime, Local};
-    use log::Level;
+    use log::{Level, Record};
 
     use super::*;
+
+    #[cfg(feature = "config_parsing")]
+    use crate::config::Deserializers;
+
     use crate::encode::writer::simple::SimpleWriter;
 
     #[test]
-    fn default() {
+    fn test_json_encode() {
         let time = DateTime::parse_from_rfc3339("2016-03-20T14:22:20.644420340-08:00")
             .unwrap()
             .with_timezone(&Local);
@@ -184,16 +196,15 @@ mod test {
         let file = "file";
         let line = 100;
         let message = "message";
-        let thread = "encode::json::test::default";
+        let thread = "encode::json::test::test_json_encode";
         log_mdc::insert("foo", "bar");
 
         let encoder = JsonEncoder::new();
 
         let mut buf = vec![];
         encoder
-            .encode_inner(
+            .encode(
                 &mut SimpleWriter(&mut buf),
-                time,
                 &Record::builder()
                     .level(level)
                     .target(target)
@@ -220,5 +231,16 @@ mod test {
             thread_id::get(),
         );
         assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_cfg_deserializer() {
+        let json_cfg = JsonEncoderConfig { _p: () };
+
+        let deserializer = JsonEncoderDeserializer;
+
+        let res = deserializer.deserialize(json_cfg, &Deserializers::default());
+        assert!(res.is_ok());
     }
 }
