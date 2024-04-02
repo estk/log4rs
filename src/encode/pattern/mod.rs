@@ -744,18 +744,16 @@ impl Deserialize for PatternEncoderDeserializer {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "config_parsing")]
+    use crate::config::Deserializers;
+    #[cfg(feature = "simple_writer")]
+    use crate::encode::{writer::simple::SimpleWriter, Encode, Write as EncodeWrite};
     #[cfg(feature = "simple_writer")]
     use log::{Level, Record};
     #[cfg(feature = "simple_writer")]
-    use std::process;
-    #[cfg(feature = "simple_writer")]
-    use std::thread;
+    use std::{io::Write, process, thread};
 
-    use super::{Chunk, PatternEncoder};
-    #[cfg(feature = "simple_writer")]
-    use crate::encode::writer::simple::SimpleWriter;
-    #[cfg(feature = "simple_writer")]
-    use crate::encode::Encode;
+    use super::*;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
         encoder.chunks.iter().all(|c| match *c {
@@ -765,18 +763,18 @@ mod tests {
     }
 
     #[test]
-    fn invalid_formatter() {
+    fn test_invalid_formatter() {
         assert!(!error_free(&PatternEncoder::new("{x}")));
     }
 
     #[test]
-    fn unclosed_delimiter() {
+    fn test_unclosed_delimiter() {
         assert!(!error_free(&PatternEncoder::new("{d(%Y-%m-%d)")));
     }
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn log() {
+    fn test_log() {
         let pw = PatternEncoder::new("{l} {m} at {M} in {f}:{L}");
         let mut buf = vec![];
         pw.encode(
@@ -796,7 +794,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn unnamed_thread() {
+    fn test_unnamed_thread() {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{T}");
             let mut buf = vec![];
@@ -810,7 +808,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn named_thread() {
+    fn test_named_thread() {
         thread::Builder::new()
             .name("foobar".to_string())
             .spawn(|| {
@@ -827,7 +825,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn thread_id_field() {
+    fn test_thread_id_field() {
         thread::spawn(|| {
             let pw = PatternEncoder::new("{I}");
             let mut buf = vec![];
@@ -841,7 +839,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn process_id() {
+    fn test_process_id() {
         let pw = PatternEncoder::new("{P}");
         let mut buf = vec![];
 
@@ -853,7 +851,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn system_thread_id() {
+    fn test_system_thread_id() {
         let pw = PatternEncoder::new("{i}");
         let mut buf = vec![];
 
@@ -865,13 +863,13 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn default_okay() {
+    fn test_default_okay() {
         assert!(error_free(&PatternEncoder::default()));
     }
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn left_align() {
+    fn test_left_align() {
         let pw = PatternEncoder::new("{m:~<5.6}");
 
         let mut buf = vec![];
@@ -893,7 +891,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn right_align() {
+    fn test_right_align() {
         let pw = PatternEncoder::new("{m:~>5.6}");
 
         let mut buf = vec![];
@@ -915,7 +913,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn left_align_formatter() {
+    fn test_left_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):15}");
 
         let mut buf = vec![];
@@ -932,7 +930,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn right_align_formatter() {
+    fn test_right_align_formatter() {
         let pw = PatternEncoder::new("{({l} {m}):>15}");
 
         let mut buf = vec![];
@@ -948,27 +946,27 @@ mod tests {
     }
 
     #[test]
-    fn custom_date_format() {
+    fn test_custom_date_format() {
         assert!(error_free(&PatternEncoder::new(
             "{d(%Y-%m-%d %H:%M:%S)} {m}{n}"
         )));
     }
 
     #[test]
-    fn timezones() {
+    fn test_timezones() {
         assert!(error_free(&PatternEncoder::new("{d(%+)(utc)}")));
         assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
         assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
     }
 
     #[test]
-    fn unescaped_parens() {
+    fn test_unescaped_parens() {
         assert!(!error_free(&PatternEncoder::new("(hi)")));
     }
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn escaped_chars() {
+    fn test_escaped_chars() {
         let pw = PatternEncoder::new("{{{m}(())}}");
 
         let mut buf = vec![];
@@ -982,7 +980,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn quote_braces_with_backslash() {
+    fn test_quote_braces_with_backslash() {
         let pw = PatternEncoder::new(r"\{\({l}\)\}\\");
 
         let mut buf = vec![];
@@ -996,7 +994,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn mdc() {
+    fn test_mdc() {
         let pw = PatternEncoder::new("{X(user_id)}");
         log_mdc::insert("user_id", "mdc value");
 
@@ -1009,7 +1007,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn mdc_missing_default() {
+    fn test_mdc_missing_default() {
         let pw = PatternEncoder::new("{X(user_id)}");
 
         let mut buf = vec![];
@@ -1021,7 +1019,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn mdc_missing_custom() {
+    fn test_mdc_missing_custom() {
         let pw = PatternEncoder::new("{X(user_id)(missing value)}");
 
         let mut buf = vec![];
@@ -1033,7 +1031,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "simple_writer")]
-    fn debug_release() {
+    fn test_debug_release() {
         let debug_pat = "{D({l})}";
         let release_pat = "{R({l})}";
 
@@ -1061,6 +1059,285 @@ mod tests {
         } else {
             assert_eq!(release_buf, b"INFO");
             assert!(debug_buf.is_empty());
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_max_width_writer() {
+        let mut buf = vec![];
+        let mut w = SimpleWriter(&mut buf);
+
+        let mut w = MaxWidthWriter {
+            remaining: 2,
+            w: &mut w,
+        };
+
+        let res = w.write(b"test write");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), 2);
+        assert_eq!(w.remaining, 0);
+        assert!(w.flush().is_ok());
+        assert!(w.set_style(&Style::new()).is_ok());
+        assert_eq!(buf, b"te");
+
+        let mut buf = vec![];
+        let mut w = SimpleWriter(&mut buf);
+
+        let mut w = MaxWidthWriter {
+            remaining: 15,
+            w: &mut w,
+        };
+        let res = w.write(b"test write");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), 10);
+        assert_eq!(w.remaining, 5);
+        assert_eq!(buf, b"test write");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_left_align_writer() {
+        let mut buf = vec![];
+        let mut w = SimpleWriter(&mut buf);
+
+        let mut w = LeftAlignWriter {
+            to_fill: 4,
+            fill: ' ',
+            w: &mut w,
+        };
+
+        let res = w.write(b"test write");
+        assert!(res.is_ok());
+        assert!(w.flush().is_ok());
+        assert!(w.set_style(&Style::new()).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_right_align_writer() {
+        let mut write_buf = vec![];
+        let buf = vec![BufferedOutput::Style(Style::new())];
+        let mut w = SimpleWriter(&mut write_buf);
+
+        let mut w = RightAlignWriter {
+            to_fill: 4,
+            fill: ' ',
+            w: &mut w,
+            buf,
+        };
+
+        let res = w.write(b"test write");
+        assert!(res.is_ok());
+        assert!(w.flush().is_ok());
+        assert!(w.set_style(&Style::new()).is_ok());
+        assert!(w.finish().is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "config_parsing")]
+    fn test_cfg_deserializer() {
+        let pattern_cfg = PatternEncoderConfig {
+            pattern: Some("[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}".to_owned()),
+        };
+
+        let deserializer = PatternEncoderDeserializer;
+
+        let res = deserializer.deserialize(pattern_cfg, &Deserializers::default());
+        assert!(res.is_ok());
+
+        let pattern_cfg = PatternEncoderConfig { pattern: None };
+
+        let res = deserializer.deserialize(pattern_cfg, &Deserializers::default());
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_chunk_no_min_width() {
+        let mut buf = vec![];
+        let pattern = "[{h({l}):<.5} {M}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        for chunk in chunks {
+            assert!(chunk
+                .encode(
+                    &mut SimpleWriter(&mut buf),
+                    &Record::builder()
+                        .level(Level::Debug)
+                        .args(format_args!("the message"))
+                        .module_path(Some("path"))
+                        .file(Some("file"))
+                        .line(Some(132))
+                        .build()
+                )
+                .is_ok())
+        }
+        assert!(!String::from_utf8(buf).unwrap().contains("ERROR"));
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_chunk_encode_err() {
+        let mut buf = vec![];
+        let pattern = "[{h({l):<.5}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        for chunk in chunks {
+            assert!(chunk
+                .encode(
+                    &mut SimpleWriter(&mut buf),
+                    &Record::builder()
+                        .level(Level::Debug)
+                        .args(format_args!("the message"))
+                        .module_path(Some("path"))
+                        .file(Some("file"))
+                        .line(Some(132))
+                        .build()
+                )
+                .is_ok())
+        }
+        assert!(String::from_utf8(buf).unwrap().contains("ERROR"));
+    }
+
+    #[test]
+    fn test_from_piece_to_chunk() {
+        // Test 3 args passed to date
+        let pattern = "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)(local)}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Error(err) => assert_eq!(err, "expected at most two arguments"),
+            _ => assert!(false),
+        }
+
+        // Test unexepected formatter
+        let pattern = "[{d({l} %Y-%m-%d %H:%M:%S %Z)}]";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(1).unwrap() {
+            Chunk::Formatted { chunk, .. } => match chunk {
+                FormattedChunk::Time(value, _tz) => {
+                    assert_eq!(value, "{ERROR: unexpected formatter} %Y-%m-%d %H:%M:%S %Z")
+                }
+                _ => assert!(false),
+            },
+            _ => assert!(false),
+        }
+
+        let tests = vec![
+            ("[{d(%Y-%m-%d %H:%M:%S %Z)(zulu)}]", "invalid timezone"),
+            ("[{d(%Y-%m-%d %H:%M:%S %Z)({l})}]", "invalid timezone"),
+            ("[{d(%Y-%m-%d %H:%M:%S %Z)()}]", "invalid timezone"),
+            ("[{h({l})({M}):<5.5}]", "expected exactly one argument"),
+            (
+                "[{D({l})({M}):<5.5}{R({l})({M}):<5.5}]",
+                "expected exactly one argument",
+            ),
+            (
+                "[{X(user_id)(foobar)(test):<5.5}]",
+                "expected at most two arguments",
+            ),
+            ("[{X({l user_id):<5.5}]", "expected '}'"),
+            ("[{X({l} user_id):<5.5}]", "invalid MDC key"),
+            ("[{X:<5.5}]", "missing MDC key"),
+            ("[{X(user_id)({l):<5.5}]", "expected '}'"),
+            ("[{X(user_id)({l}):<5.5}]", "invalid MDC default"),
+            ("[{X(user_id)():<5.5} {M}]", "invalid MDC default"),
+        ];
+
+        for (pattern, error_msg) in tests {
+            let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+            match chunks.get(1).unwrap() {
+                Chunk::Error(err) => assert!(err.contains(error_msg)),
+                _ => assert!(false),
+            }
+        }
+
+        // Test expected 1 arg
+        let pattern = "{({l} {m})()}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(0).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("expected exactly one argument")),
+            _ => assert!(false),
+        }
+
+        // Test no_args
+        let pattern = "{l()}";
+        let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+        match chunks.get(0).unwrap() {
+            Chunk::Error(err) => assert!(err.contains("unexpected arguments")),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn test_encode_formatted_chunk() {
+        // Each test gets a new buf and writer to allow for checking the
+        // buffer and utilizing completely clean buffers.
+
+        let record = Record::builder()
+            .level(Level::Info)
+            .args(format_args!("the message"))
+            .module_path(Some("path"))
+            .file(Some("file"))
+            .line(None)
+            .target("target")
+            .build();
+
+        // Limit the time tests to the year. Just need to verify that time can
+        // be written. Don't need to be precise. This should limit potential
+        // race condition failures.
+
+        // Test UTC Time
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Time("%Y".to_owned(), Timezone::Utc);
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, Utc::now().format("%Y").to_string().as_bytes());
+
+        // Test Local Time
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Time("%Y".to_owned(), Timezone::Local);
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, Local::now().format("%Y").to_string().as_bytes());
+
+        // Test missing Line
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Line;
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, b"???");
+
+        // Test Target
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Target;
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, b"target");
+
+        // Test Newline
+        let mut write_buf = vec![];
+        let mut w = SimpleWriter(&mut write_buf);
+        let chunk = FormattedChunk::Newline;
+        chunk.encode(&mut w, &record).unwrap();
+        assert_eq!(write_buf, NEWLINE.as_bytes());
+
+        // Loop over to hit each possible styling
+        for level in Level::iter() {
+            let record = Record::builder()
+                .level(level)
+                .args(format_args!("the message"))
+                .module_path(Some("path"))
+                .file(Some("file"))
+                .line(None)
+                .target("target")
+                .build();
+
+            let mut write_buf = vec![];
+            let mut w = SimpleWriter(&mut write_buf);
+            let chunk = FormattedChunk::Highlight(vec![Chunk::Text("Text".to_owned())]);
+            chunk.encode(&mut w, &record).unwrap();
+            assert_eq!(write_buf, b"Text");
+            // No style updates in the buffer to check for
         }
     }
 }
