@@ -479,9 +479,8 @@ impl<'writer, 'params> StringBasedWriter<'writer, 'params> {
         Ok(())
     }
 
-    fn boundary_or(s: &String, count: usize, or: usize) -> usize {
+    fn boundary_or(s: &str, count: usize, or: usize) -> usize {
         let mut cursor = GraphemeCursor::new(0, s.len(), true);
-        let s = s.as_str();
         let mut start = 0;
         for _i in 0..count {
             let r = cursor.next_boundary(s, 0);
