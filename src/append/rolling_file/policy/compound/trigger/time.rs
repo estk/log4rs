@@ -2,8 +2,6 @@
 //!
 //! Requires the `time_trigger` feature.
 
-#[cfg(test)]
-use chrono::NaiveDateTime;
 use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Timelike};
 #[cfg(test)]
 use mock_instant::{SystemTime, UNIX_EPOCH};
@@ -13,10 +11,17 @@ use serde::de;
 #[cfg(feature = "config_parsing")]
 use std::fmt;
 use std::sync::RwLock;
+use thiserror::Error;
 
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
+
+macro_rules! try_from {
+    ($func: ident, $para: expr, $interval: expr) => {
+        Duration::$func($para).ok_or(TimeTrigerError::TooLargeInterval($interval))?
+    };
+}
 
 #[cfg(feature = "config_parsing")]
 /// Configuration for the time trigger.
@@ -71,6 +76,12 @@ impl Default for TimeTriggerInterval {
     fn default() -> Self {
         TimeTriggerInterval::Second(1)
     }
+}
+
+#[derive(Debug, Error)]
+enum TimeTrigerError {
+    #[error("The integer value {0:?} for the specified time trigger interval is too large, it must be less than 9,223,372,036,854,775,807 seconds.")]
+    TooLargeInterval(TimeTriggerInterval),
 }
 
 #[cfg(feature = "config_parsing")]
@@ -181,18 +192,22 @@ impl TimeTrigger {
             let now: std::time::Duration = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("system time before Unix epoch");
-            NaiveDateTime::from_timestamp_opt(now.as_secs() as i64, now.subsec_nanos())
+            DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
                 .unwrap()
+                .naive_local()
                 .and_local_timezone(Local)
                 .unwrap()
         };
 
         #[cfg(not(test))]
         let current = Local::now();
-        let next_time = TimeTrigger::get_next_time(current, config.interval, config.modulate);
+        let next_time =
+            TimeTrigger::get_next_time(current, config.interval, config.modulate).unwrap();
         let next_roll_time = if config.max_random_delay > 0 {
             let random_delay = rand::thread_rng().gen_range(0..config.max_random_delay);
-            next_time + Duration::seconds(random_delay as i64)
+            next_time
+                + Duration::try_seconds(random_delay as i64)
+                    .unwrap_or(Duration::try_milliseconds(i64::MAX).unwrap())
         } else {
             next_time
         };
@@ -207,13 +222,13 @@ impl TimeTrigger {
         current: DateTime<Local>,
         interval: TimeTriggerInterval,
         modulate: bool,
-    ) -> DateTime<Local> {
+    ) -> Result<DateTime<Local>, TimeTrigerError> {
         let year = current.year();
         if let TimeTriggerInterval::Year(n) = interval {
             let n = n as i32;
             let increment = if modulate { n - year % n } else { n };
             let year_new = year + increment;
-            return Local.with_ymd_and_hms(year_new, 1, 1, 0, 0, 0).unwrap();
+            return Ok(Local.with_ymd_and_hms(year_new, 1, 1, 0, 0, 0).unwrap());
         }
 
         if let TimeTriggerInterval::Month(n) = interval {
@@ -224,9 +239,9 @@ impl TimeTrigger {
             let num_months_new = num_months + increment;
             let year_new = (num_months_new / 12) as i32;
             let month_new = (num_months_new) % 12 + 1;
-            return Local
+            return Ok(Local
                 .with_ymd_and_hms(year_new, month_new, 1, 0, 0, 0)
-                .unwrap();
+                .unwrap());
         }
 
         let month = current.month();
@@ -236,14 +251,17 @@ impl TimeTrigger {
             let weekday = current.weekday().num_days_from_monday() as i64; // Monday is the first day of the week
             let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
             let increment = if modulate { n - week0 % n } else { n };
-            return time + Duration::weeks(increment) - Duration::days(weekday);
+            let dur =
+                try_from!(try_weeks, increment, interval) - try_from!(try_days, weekday, interval);
+            return Ok(time + dur);
         }
 
         if let TimeTriggerInterval::Day(n) = interval {
             let ordinal0 = current.ordinal0() as i64;
             let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
             let increment = if modulate { n - ordinal0 % n } else { n };
-            return time + Duration::days(increment);
+            let dur = try_from!(try_days, increment, interval);
+            return Ok(time + dur);
         }
 
         let hour = current.hour();
@@ -252,7 +270,8 @@ impl TimeTrigger {
                 .with_ymd_and_hms(year, month, day, hour, 0, 0)
                 .unwrap();
             let increment = if modulate { n - (hour as i64) % n } else { n };
-            return time + Duration::hours(increment);
+            let dur = try_from!(try_hours, increment, interval);
+            return Ok(time + dur);
         }
 
         let min = current.minute();
@@ -261,7 +280,8 @@ impl TimeTrigger {
                 .with_ymd_and_hms(year, month, day, hour, min, 0)
                 .unwrap();
             let increment = if modulate { n - (min as i64) % n } else { n };
-            return time + Duration::minutes(increment);
+            let dur = try_from!(try_minutes, increment, interval);
+            return Ok(time + dur);
         }
 
         let sec = current.second();
@@ -270,7 +290,8 @@ impl TimeTrigger {
                 .with_ymd_and_hms(year, month, day, hour, min, sec)
                 .unwrap();
             let increment = if modulate { n - (sec as i64) % n } else { n };
-            return time + Duration::seconds(increment);
+            let dur = try_from!(try_seconds, increment, interval);
+            return Ok(time + dur);
         }
         panic!("Should not reach here!");
     }
@@ -283,8 +304,9 @@ impl Trigger for TimeTrigger {
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("system time before Unix epoch");
-            NaiveDateTime::from_timestamp_opt(now.as_secs() as i64, now.subsec_nanos())
+            DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
                 .unwrap()
+                .naive_local()
                 .and_local_timezone(Local)
                 .unwrap()
         };
