@@ -10,6 +10,7 @@ use std::{
     io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
+use chrono::prelude::Local;
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -91,7 +92,17 @@ impl FileAppenderBuilder {
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let path_cow = path.as_ref().to_string_lossy();
         let path: PathBuf = expand_env_vars(path_cow).as_ref().into();
-        if let Some(parent) = path.parent() {
+
+        // Get the current date
+        let local_date = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+        
+        // Replace the placeholder if it exists
+        let path_with_date = if path.to_string_lossy().contains("{d}") {
+            PathBuf::from(path.to_string_lossy().replace("{d}", &local_date))
+        } else {
+            path.clone()
+        };
+        if let Some(parent) = path_with_date.parent() {
             fs::create_dir_all(parent)?;
         }
         let file = OpenOptions::new()
@@ -99,7 +110,7 @@ impl FileAppenderBuilder {
             .append(self.append)
             .truncate(!self.append)
             .create(true)
-            .open(&path)?;
+            .open(&path_with_date)?;
 
         Ok(FileAppender {
             path,
