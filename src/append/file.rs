@@ -18,7 +18,7 @@ use crate::config::{Deserialize, Deserializers};
 use crate::encode::EncoderConfig;
 
 use crate::{
-    append::Append,
+    append::{env_util::expand_env_vars, Append},
     encode::{pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
 };
 
@@ -113,9 +113,8 @@ impl FileAppenderBuilder {
 
     fn date_time_format<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path_cow = path.as_ref().to_string_lossy();
-
         // Locate the start and end of the placeholder
-        let new_path = if let Some(start) = path_cow.find('{') {
+        if let Some(start) = path_cow.find('{') {
             if let Some(end) = path_cow.find('}') {
                 // Extract the date format string
                 let date_format = &path_cow[start + 1..end];
@@ -131,14 +130,10 @@ impl FileAppenderBuilder {
                 new_path_str.replace_range(start..=end, &formatted_date);
 
                 // Convert the resulting string to PathBuf
-                PathBuf::from(new_path_str)
-            } else {
-                PathBuf::from(path_cow.to_string())
+                return expand_env_vars(new_path_str).as_ref().into();
             }
-        } else {
-            PathBuf::from(path_cow.to_string())
-        };
-        new_path
+        }
+        expand_env_vars(path_cow).as_ref().into()
     }
 }
 
