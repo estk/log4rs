@@ -113,11 +113,15 @@ impl FileAppenderBuilder {
 
     fn date_time_format<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path_cow = path.as_ref().to_string_lossy();
+        // Extract the environment path first
+        let env_path: PathBuf = expand_env_vars(path_cow).as_ref().into();
+
+        let date_time_path = env_path.to_str().unwrap();
         // Locate the start and end of the placeholder
-        if let Some(start) = path_cow.find('{') {
-            if let Some(end) = path_cow.find('}') {
+        if let Some(start) = date_time_path.find('{') {
+            if let Some(end) = date_time_path.find('}') {
                 // Extract the date format string
-                let date_format = &path_cow[start + 1..end];
+                let date_format = &date_time_path[start + 1..end];
 
                 // Get the current date and time
                 let now = Local::now();
@@ -126,14 +130,14 @@ impl FileAppenderBuilder {
                 let formatted_date = now.format(date_format).to_string();
 
                 // Create the new path string by replacing the placeholder with the formatted date
-                let mut new_path_str = path_cow.to_string();
+                let mut new_path_str = date_time_path.to_string();
                 new_path_str.replace_range(start..=end, &formatted_date);
 
                 // Convert the resulting string to PathBuf
                 return expand_env_vars(new_path_str).as_ref().into();
             }
         }
-        expand_env_vars(path_cow).as_ref().into()
+        expand_env_vars(date_time_path).as_ref().into()
     }
 }
 
