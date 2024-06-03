@@ -2,6 +2,7 @@
 //!
 //! Requires the `file_appender` feature.
 
+use chrono::prelude::Local;
 use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
@@ -89,9 +90,9 @@ impl FileAppenderBuilder {
     /// will be resolved. Note that if the variable fails to resolve,
     /// $ENV{name_here} will NOT be replaced in the path.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
-        let path_cow = path.as_ref().to_string_lossy();
-        let path: PathBuf = expand_env_vars(path_cow).as_ref().into();
-        if let Some(parent) = path.parent() {
+        let new_path = self.date_time_format(path);
+
+        if let Some(parent) = new_path.parent() {
             fs::create_dir_all(parent)?;
         }
         let file = OpenOptions::new()
@@ -99,15 +100,44 @@ impl FileAppenderBuilder {
             .append(self.append)
             .truncate(!self.append)
             .create(true)
-            .open(&path)?;
+            .open(&new_path)?;
 
         Ok(FileAppender {
-            path,
+            path: new_path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::<PatternEncoder>::default()),
         })
+    }
+
+    fn date_time_format<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let path_cow = path.as_ref().to_string_lossy();
+        // Extract the environment path first
+        let env_path: PathBuf = expand_env_vars(path_cow).as_ref().into();
+
+        let date_time_path = env_path.to_str().unwrap();
+        // Locate the start and end of the placeholder
+        if let Some(start) = date_time_path.find('{') {
+            if let Some(end) = date_time_path.find('}') {
+                // Extract the date format string
+                let date_format = &date_time_path[start + 1..end];
+
+                // Get the current date and time
+                let now = Local::now();
+
+                // Format the current date and time
+                let formatted_date = now.format(date_format).to_string();
+
+                // Create the new path string by replacing the placeholder with the formatted date
+                let mut new_path_str = date_time_path.to_string();
+                new_path_str.replace_range(start..=end, &formatted_date);
+
+                // Convert the resulting string to PathBuf
+                return PathBuf::from(new_path_str);
+            }
+        }
+        PathBuf::from(date_time_path)
     }
 }
 
