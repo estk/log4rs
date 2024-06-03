@@ -134,10 +134,10 @@ impl FileAppenderBuilder {
                 new_path_str.replace_range(start..=end, &formatted_date);
 
                 // Convert the resulting string to PathBuf
-                return expand_env_vars(new_path_str).as_ref().into();
+                return PathBuf::from(new_path_str);
             }
         }
-        expand_env_vars(date_time_path).as_ref().into()
+        PathBuf::from(date_time_path)
     }
 }
 
