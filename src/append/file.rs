@@ -118,10 +118,11 @@ impl FileAppenderBuilder {
 
         let date_time_path = env_path.to_str().unwrap();
         // Locate the start and end of the placeholder
-        if let Some(start) = date_time_path.find('{') {
-            if let Some(end) = date_time_path.find('}') {
+        if let Some(start) = date_time_path.find("$TIME{") {
+            if let Some(end) = date_time_path[start..].find('}') {
+                let end = start + end;
                 // Extract the date format string
-                let date_format = &date_time_path[start + 1..end];
+                let date_format = &date_time_path[start + 6..end];
 
                 // Get the current date and time
                 let now = Local::now();
