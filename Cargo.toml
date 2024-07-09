@@ -134,8 +134,12 @@ name = "compile_time_config"
 required-features = ["yaml_format", "config_parsing"]
 
 [[example]]
-name = "log_to_file_with_rolling"
+name = "log_to_file_with_rolling_and_size_trigger"
 required-features = ["file_appender", "rolling_file_appender", "size_trigger"]
+
+[[example]]
+name = "log_to_file_with_rolling_and_time_trigger"
+required-features = ["file_appender", "rolling_file_appender", "time_trigger"]
 
 [[example]]
 name = "multi_logger_config"
