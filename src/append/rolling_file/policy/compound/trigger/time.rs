@@ -20,20 +20,26 @@ use crate::config::{Deserialize, Deserializers};
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TimeTriggerConfig {
-    interval: TimeTriggerInterval,
+    /// The date/time interval between log file rolls.
+    pub interval: TimeTriggerInterval,
+    /// Whether to modulate the interval.
     #[serde(default)]
-    modulate: bool,
+    pub modulate: bool,
+    /// The maximum random delay in seconds.
     #[serde(default)]
-    max_random_delay: u64,
+    pub max_random_delay: u64,
 }
 
 #[cfg(not(feature = "config_parsing"))]
 /// Configuration for the time trigger.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct TimeTriggerConfig {
-    interval: TimeTriggerInterval,
-    modulate: bool,
-    max_random_delay: u64,
+    /// The date/time interval between log file rolls.Q
+    pub interval: TimeTriggerInterval,
+    /// Whether to modulate the interval.
+    pub modulate: bool,
+    /// The maximum random delay in seconds.
+    pub max_random_delay: u64,
 }
 
 /// A trigger which rolls the log once it has passed a certain time.
