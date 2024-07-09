@@ -144,6 +144,8 @@ use crate::encode::{
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
+use self::parser::Formatter;
+
 mod parser;
 
 thread_local!(
@@ -505,87 +507,25 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "P" | "pid" => no_args(&formatter.args, parameters, FormattedChunk::ProcessId),
                 "i" | "tid" => no_args(&formatter.args, parameters, FormattedChunk::SystemThreadId),
                 "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
-                "X" | "mdc" => {
-                    if formatter.args.len() > 2 {
-                        return Chunk::Error("expected at most two arguments".to_owned());
-                    }
-
-                    let key = match formatter.args.first() {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid MDC key".to_owned());
-                            }
-                        }
-                        None => return Chunk::Error("missing MDC key".to_owned()),
-                    };
-
-                    let default = match formatter.args.get(1) {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid MDC default".to_owned());
-                            }
-                        }
-                        None => "",
-                    };
-
-                    Chunk::Formatted {
-                        chunk: FormattedChunk::Mdc(key.into(), default.into()),
+                "X" | "mdc" => match kv_parsing(&formatter) {
+                    Err(e) => Chunk::Error(format!("MDC: {e}")),
+                    Ok((key, default)) => Chunk::Formatted {
+                        chunk: FormattedChunk::Mdc(key, default),
                         params: parameters,
-                    }
-                }
+                    },
+                },
                 #[cfg(feature = "log_kv")]
-                "K" | "key_value" => {
-                    if formatter.args.len() > 2 {
-                        return Chunk::Error("expected at most two arguments".to_owned());
-                    }
-
-                    let key = match formatter.args.first() {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid log::kv key".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid log::kv key".to_owned());
-                            }
-                        }
-                        None => return Chunk::Error("missing log::kv key".to_owned()),
-                    };
-
-                    let default = match formatter.args.get(1) {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(value) => value.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid log::kv default".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid log::kv default".to_owned());
-                            }
-                        }
-                        None => "",
-                    };
-
-                    Chunk::Formatted {
-                        chunk: FormattedChunk::Kv(key.into(), default.into()),
+                "K" | "key_value" => match kv_parsing(&formatter) {
+                    Err(e) => Chunk::Error(format!("key_value: {e}")),
+                    Ok((key, default)) => Chunk::Formatted {
+                        chunk: FormattedChunk::Kv(key, default),
                         params: parameters,
-                    }
-                }
+                    },
+                },
+                #[cfg(not(feature = "log_kv"))]
+                "K" | "key_value" => Chunk::Error(
+                    "The log_kv feature is required to parse the key_value argument".to_owned(),
+                ),
                 "" => {
                     if formatter.args.len() != 1 {
                         return Chunk::Error("expected exactly one argument".to_owned());
@@ -616,6 +556,43 @@ fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chu
     } else {
         Chunk::Error("unexpected arguments".to_owned())
     }
+}
+
+fn kv_parsing<'a>(formatter: &'a Formatter) -> Result<(String, String), &'a str> {
+    if formatter.args.len() > 2 {
+        return Err("expected at most two arguments");
+    }
+
+    let key = match formatter.args.first() {
+        Some(arg) => {
+            if let Some(arg) = arg.first() {
+                match arg {
+                    Piece::Text(key) => key.to_owned(),
+                    Piece::Error(ref e) => return Err(e),
+                    _ => return Err("invalid key"),
+                }
+            } else {
+                return Err("invalid key");
+            }
+        }
+        None => return Err("missing key"),
+    };
+
+    let default = match formatter.args.get(1) {
+        Some(arg) => {
+            if let Some(arg) = arg.first() {
+                match arg {
+                    Piece::Text(key) => key.to_owned(),
+                    Piece::Error(ref e) => return Err(e),
+                    _ => return Err("invalid default"),
+                }
+            } else {
+                return Err("invalid default");
+            }
+        }
+        None => "",
+    };
+    Ok((key.into(), default.into()))
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -812,7 +789,9 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
 
-    use super::*;
+    #[cfg(feature = "log_kv")]
+    use super::Parser;
+    use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
     use crate::encode::writer::simple::SimpleWriter;
     #[cfg(feature = "simple_writer")]
@@ -1141,11 +1120,11 @@ mod tests {
                 "expected at most two arguments",
             ),
             ("[{K({l user_id):<5.5}]", "expected '}'"),
-            ("[{K({l} user_id):<5.5}]", "invalid log::kv key"),
-            ("[{K:<5.5}]", "missing log::kv key"),
+            ("[{K({l} user_id):<5.5}]", "key_value: invalid key"),
+            ("[{K:<5.5}]", "key_value: missing key"),
             ("[{K(user_id)({l):<5.5}]", "expected '}'"),
-            ("[{K(user_id)({l}):<5.5}]", "invalid log::kv default"),
-            ("[{K(user_id)():<5.5} {M}]", "invalid log::kv default"),
+            ("[{K(user_id)({l}):<5.5}]", "key_value: invalid default"),
+            ("[{K(user_id)():<5.5} {M}]", "key_value: invalid default"),
         ];
 
         for (pattern, error_msg) in tests {

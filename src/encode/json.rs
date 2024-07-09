@@ -82,7 +82,7 @@ impl JsonEncoder {
             thread_id: thread_id::get(),
             mdc: Mdc,
             #[cfg(feature = "log_kv")]
-            attributes: kv::get_attributes(record.key_values())?,
+            attributes: kv::Attributes(record.key_values()),
         };
         message.serialize(&mut serde_json::Serializer::new(&mut *w))?;
         w.write_all(NEWLINE.as_bytes())?;
@@ -114,7 +114,7 @@ struct Message<'a> {
     thread_id: usize,
     mdc: Mdc,
     #[cfg(feature = "log_kv")]
-    attributes: kv::Map,
+    attributes: kv::Attributes<'a>,
 }
 
 fn ser_display<T, S>(v: &T, s: S) -> Result<S::Ok, S::Error>
@@ -174,29 +174,35 @@ impl Deserialize for JsonEncoderDeserializer {
 #[cfg(feature = "log_kv")]
 mod kv {
     use log::kv::VisitSource;
-    use std::collections::BTreeMap;
+    use serde::ser::{self, Error, SerializeMap};
 
-    pub(crate) type Map = BTreeMap<String, String>;
+    pub(crate) struct Attributes<'a>(pub &'a dyn log::kv::Source);
 
-    pub(crate) fn get_attributes(source: &dyn log::kv::Source) -> anyhow::Result<Map> {
-        struct Visitor {
-            inner: Map,
+    pub(crate) struct SerializerVisitor<T: ser::SerializeMap>(pub T);
+
+    impl<'kvs, T: ser::SerializeMap> VisitSource<'kvs> for SerializerVisitor<T> {
+        fn visit_pair(
+            &mut self,
+            key: log::kv::Key<'kvs>,
+            value: log::kv::Value<'kvs>,
+        ) -> Result<(), log::kv::Error> {
+            self.0
+                .serialize_entry(key.as_str(), &value.to_string())
+                .map_err(|e| log::kv::Error::boxed(e.to_string()))?;
+            Ok(())
         }
-        impl<'kvs> VisitSource<'kvs> for Visitor {
-            fn visit_pair(
-                &mut self,
-                key: log::kv::Key<'kvs>,
-                value: log::kv::Value<'kvs>,
-            ) -> Result<(), log::kv::Error> {
-                self.inner.insert(format!("{key}"), format!("{value}"));
-                Ok(())
-            }
+    }
+
+    impl<'a> ser::Serialize for Attributes<'a> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let map = serializer.serialize_map(Some(self.0.count()))?;
+            let mut visitor = SerializerVisitor(map);
+            self.0.visit(&mut visitor).map_err(S::Error::custom)?;
+            visitor.0.end()
         }
-        let mut visitor = Visitor {
-            inner: BTreeMap::new(),
-        };
-        source.visit(&mut visitor)?;
-        Ok(visitor.inner)
     }
 }
 
