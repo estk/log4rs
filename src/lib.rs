@@ -177,7 +177,7 @@
 //! For more examples see the [examples](https://github.com/estk/log4rs/tree/main/examples).
 //!
 
-#![allow(where_clauses_object_safety, clippy::manual_non_exhaustive)]
+#![allow(clippy::manual_non_exhaustive)]
 #![warn(missing_docs)]
 
 use std::{
