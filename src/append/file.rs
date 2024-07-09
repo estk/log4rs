@@ -12,6 +12,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+const TIME_PREFIX: &str = "$TIME{";
+const TIME_PREFIX_LEN: usize = TIME_PREFIX.len();
+const TIME_SUFFIX: char = '}';
+const TIME_SUFFIX_LEN: usize = 1;
+
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 #[cfg(feature = "config_parsing")]
@@ -85,10 +90,16 @@ impl FileAppenderBuilder {
     }
 
     /// Consumes the `FileAppenderBuilder`, producing a `FileAppender`.
-    /// The path argument can contain environment variables of the form $ENV{name_here},
-    /// where 'name_here' will be the name of the environment variable that
-    /// will be resolved. Note that if the variable fails to resolve,
-    /// $ENV{name_here} will NOT be replaced in the path.
+    /// The path argument can contain special patterns that will be resolved:
+    ///
+    /// - `$ENV{name_here}`: This pattern will be replaced by `name_here`.
+    ///   where 'name_here' will be the name of the environment variable that
+    ///   will be resolved. Note that if the variable fails to resolve,
+    ///   $ENV{name_here} will NOT be replaced in the path.
+    /// - `$TIME{chrono_format}`: This pattern will be replaced by `chrono_format`.
+    ///   where 'chrono_format' will be date/time format from chrono crate. Note
+    ///   that if the chrono_format fails to resolve, $TIME{chrono_format} will
+    ///   NOT be replaced in the path.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let new_path = self.date_time_format(path);
 
@@ -118,11 +129,11 @@ impl FileAppenderBuilder {
 
         let date_time_path = env_path.to_str().unwrap();
         // Locate the start and end of the placeholder
-        if let Some(start) = date_time_path.find("$TIME{") {
-            if let Some(end) = date_time_path[start..].find('}') {
+        if let Some(start) = date_time_path.find(TIME_PREFIX) {
+            if let Some(end) = date_time_path[start..].find(TIME_SUFFIX) {
                 let end = start + end;
                 // Extract the date format string
-                let date_format = &date_time_path[start + 6..end];
+                let date_format = &date_time_path[start + TIME_PREFIX_LEN..end];
 
                 // Get the current date and time
                 let now = Local::now();
@@ -132,7 +143,7 @@ impl FileAppenderBuilder {
 
                 // Create the new path string by replacing the placeholder with the formatted date
                 let mut new_path_str = date_time_path.to_string();
-                new_path_str.replace_range(start..=end, &formatted_date);
+                new_path_str.replace_range(start..end + TIME_SUFFIX_LEN, &formatted_date);
 
                 // Convert the resulting string to PathBuf
                 return PathBuf::from(new_path_str);
