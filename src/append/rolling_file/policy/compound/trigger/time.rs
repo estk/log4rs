@@ -74,15 +74,15 @@ impl Default for TimeTriggerInterval {
 
 #[derive(Debug, Error)]
 enum TimeTrigerIntervalError {
-    #[error("The 'Seconds' value specified as a time trigger is out of bounds, ensure it fits within an i64: : '{0:?}'")]
+    #[error("The 'Seconds' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
     Second(TimeTriggerInterval),
-    #[error("The 'Minutes' value specified as a time trigger is out of bounds, ensure it fits within an i64: : '{0:?}'")]
+    #[error("The 'Minutes' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
     Minute(TimeTriggerInterval),
-    #[error("The 'Hours' value specified as a time trigger is out of bounds, ensure it fits within an i64: : '{0:?}'")]
+    #[error("The 'Hours' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
     Hour(TimeTriggerInterval),
-    #[error("The 'Days' value specified as a time trigger is out of bounds, ensure it fits within an i64: : '{0:?}'")]
+    #[error("The 'Days' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
     Day(TimeTriggerInterval),
-    #[error("The 'Weeks' value specified as a time trigger is out of bounds, ensure it fits within an i64: : '{0:?}'")]
+    #[error("The 'Weeks' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
     Week(TimeTriggerInterval),
 }
 
