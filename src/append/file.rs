@@ -101,9 +101,13 @@ impl FileAppenderBuilder {
     ///   that if the chrono_format fails to resolve, $TIME{chrono_format} will
     ///   NOT be replaced in the path.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
-        let new_path = self.date_time_format(path);
+        let path_cow = path.as_ref().to_string_lossy();
+        // Expand environment variables in the path
+        let expanded_env_path: PathBuf = expand_env_vars(path_cow).as_ref().into();
+        // Apply the date/time format to the path
+        let final_path = self.date_time_format(expanded_env_path);
 
-        if let Some(parent) = new_path.parent() {
+        if let Some(parent) = final_path.parent() {
             fs::create_dir_all(parent)?;
         }
         let file = OpenOptions::new()
@@ -111,10 +115,10 @@ impl FileAppenderBuilder {
             .append(self.append)
             .truncate(!self.append)
             .create(true)
-            .open(&new_path)?;
+            .open(&final_path)?;
 
         Ok(FileAppender {
-            path: new_path,
+            path: final_path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self
                 .encoder
@@ -122,14 +126,10 @@ impl FileAppenderBuilder {
         })
     }
 
-    fn date_time_format<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path_cow = path.as_ref().to_string_lossy();
-        // Extract the environment path first
-        let env_path: PathBuf = expand_env_vars(path_cow).as_ref().into();
-
-        let date_time_path = env_path.to_str().unwrap();
+    fn date_time_format(&self, path: PathBuf) -> PathBuf {
+        let mut date_time_path = path.to_str().unwrap().to_string();
         // Locate the start and end of the placeholder
-        if let Some(start) = date_time_path.find(TIME_PREFIX) {
+        while let Some(start) = date_time_path.find(TIME_PREFIX) {
             if let Some(end) = date_time_path[start..].find(TIME_SUFFIX) {
                 let end = start + end;
                 // Extract the date format string
@@ -141,12 +141,8 @@ impl FileAppenderBuilder {
                 // Format the current date and time
                 let formatted_date = now.format(date_format).to_string();
 
-                // Create the new path string by replacing the placeholder with the formatted date
-                let mut new_path_str = date_time_path.to_string();
-                new_path_str.replace_range(start..end + TIME_SUFFIX_LEN, &formatted_date);
-
-                // Convert the resulting string to PathBuf
-                return PathBuf::from(new_path_str);
+                // replacing the placeholder with the formatted date
+                date_time_path.replace_range(start..end + TIME_SUFFIX_LEN, &formatted_date);
             }
         }
         PathBuf::from(date_time_path)
@@ -221,5 +217,47 @@ mod test {
             .append(false)
             .build(tempdir.path().join("foo.log"))
             .unwrap();
+    }
+
+    #[test]
+    fn test_date_time_format_with_valid_format() {
+        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let tempdir = tempfile::tempdir().unwrap();
+        let builder = FileAppender::builder()
+        .build(tempdir.path().join("foo").join("bar").join("logs/log-$TIME{%Y-%m-%d}.log"))
+        .unwrap();
+        let expected_path = tempdir.path().join(format!("foo/bar/logs/log-{}.log", current_time));
+        assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_date_time_format_with_invalid_format() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let builder = FileAppender::builder()
+        .build(tempdir.path().join("foo").join("bar").join("logs/log-$TIME{INVALID}.log"))
+        .unwrap();
+        let expected_path = tempdir.path().join("foo/bar/logs/log-INVALID.log");
+        assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_date_time_format_without_placeholder() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let builder = FileAppender::builder()
+        .build(tempdir.path().join("foo").join("bar").join("bar.log"))
+        .unwrap();
+        let expected_path = tempdir.path().join("foo/bar/bar.log");
+        assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_date_time_format_with_multiple_placeholders() {
+        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let tempdir = tempfile::tempdir().unwrap();
+        let builder = FileAppender::builder()
+        .build(tempdir.path().join("foo").join("bar").join("logs-$TIME{%Y-%m-%d}/log-$TIME{%Y-%m-%d}.log"))
+        .unwrap();
+        let expected_path = tempdir.path().join(format!("foo/bar/logs-{}/log-{}.log", current_time, current_time));
+        assert_eq!(builder.path, expected_path);
     }
 }
