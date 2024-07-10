@@ -204,7 +204,8 @@ impl TimeTrigger {
         #[cfg(not(test))]
         let current = Local::now();
         // In the case where bad user input results in an invalid next time, provide a valid time.
-        let next_time = TimeTrigger::get_next_time(current, config.interval, config.modulate).unwrap_or(i64::MAX);
+        let next_time = TimeTrigger::get_next_time(current, config.interval, config.modulate)
+            .unwrap_or(current + Duration::try_seconds(1_i64).unwrap());
         let next_roll_time = if config.max_random_delay > 0 {
             let random_delay = rand::thread_rng().gen_range(0..config.max_random_delay);
             // This is a valid unwrap because chrono::Duration::try_milliseconds accepts an i64
