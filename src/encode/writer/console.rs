@@ -9,7 +9,7 @@ use once_cell::sync::OnceCell;
 
 static COLOR_MODE: OnceCell<ColorMode> = OnceCell::new();
 
-fn set_color_mode(
+fn get_color_mode(
     no_color: Result<String, env::VarError>,
     clicolor_force: Result<String, env::VarError>,
     clicolor: Result<String, env::VarError>,
@@ -129,7 +129,7 @@ mod imp {
             self,
             writer::{
                 ansi::AnsiWriter,
-                console::{set_color_mode, ColorMode, COLOR_MODE},
+                console::{get_color_mode, ColorMode, COLOR_MODE},
             },
             Style,
         },
@@ -145,7 +145,7 @@ mod imp {
                 let no_color = env::var("NO_COLOR");
                 let clicolor_force = env::var("CLICOLOR_FORCE");
                 let clicolor = env::var("CLICOLOR");
-                set_color_mode(no_color, clicolor_force, clicolor)
+                get_color_mode(no_color, clicolor_force, clicolor)
             };
             match COLOR_MODE.get_or_init(|| color_mode_init) {
                 ColorMode::Auto => {
@@ -166,7 +166,7 @@ mod imp {
                 let no_color = env::var("NO_COLOR");
                 let clicolor_force = env::var("CLICOLOR_FORCE");
                 let clicolor = env::var("CLICOLOR");
-                set_color_mode(no_color, clicolor_force, clicolor)
+                get_color_mode(no_color, clicolor_force, clicolor)
             };
             match COLOR_MODE.get_or_init(|| color_mode_init) {
                 ColorMode::Auto => {
@@ -252,7 +252,7 @@ mod imp {
     use crate::{
         encode::{
             self,
-            writer::console::{set_color_mode, ColorMode, COLOR_MODE},
+            writer::console::{get_color_mode, ColorMode, COLOR_MODE},
             Color, Style,
         },
         priv_io::{StdWriter, StdWriterLock},
@@ -352,7 +352,7 @@ mod imp {
                     let no_color = env::var("NO_COLOR");
                     let clicolor_force = env::var("CLICOLOR_FORCE");
                     let clicolor = env::var("CLICOLOR");
-                    set_color_mode(no_color, clicolor_force, clicolor)
+                    get_color_mode(no_color, clicolor_force, clicolor)
                 };
                 match COLOR_MODE.get_or_init(|| color_mode_init) {
                     ColorMode::Auto | ColorMode::Always => Some(writer),
@@ -385,7 +385,7 @@ mod imp {
                     let no_color = env::var("NO_COLOR");
                     let clicolor_force = env::var("CLICOLOR_FORCE");
                     let clicolor = env::var("CLICOLOR");
-                    set_color_mode(no_color, clicolor_force, clicolor)
+                    get_color_mode(no_color, clicolor_force, clicolor)
                 };
                 match COLOR_MODE.get_or_init(|| color_mode_init) {
                     ColorMode::Auto | ColorMode::Always => Some(writer),
@@ -478,12 +478,12 @@ mod test {
 
         w.write(b"normal ").unwrap();
         w.set_style(
-                Style::new()
-                    .text(Color::Red)
-                    .background(Color::Blue)
-                    .intense(true),
-            )
-            .unwrap();
+            Style::new()
+                .text(Color::Red)
+                .background(Color::Blue)
+                .intense(true),
+        )
+        .unwrap();
         w.write_all(b"styled").unwrap();
         w.set_style(&Style::new().text(Color::Green).intense(false))
             .unwrap();
@@ -501,7 +501,7 @@ mod test {
 
         let color_mode: OnceCell<ColorMode> = OnceCell::new();
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Auto
         );
     }
@@ -515,7 +515,7 @@ mod test {
 
         let mut color_mode: OnceCell<ColorMode> = OnceCell::new();
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Never
         );
 
@@ -525,7 +525,7 @@ mod test {
 
         let _ = color_mode.take(); // Clear the owned value
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Never
         );
     }
@@ -539,7 +539,7 @@ mod test {
 
         let mut color_mode: OnceCell<ColorMode> = OnceCell::new();
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Always
         );
 
@@ -552,7 +552,7 @@ mod test {
 
         let _ = color_mode.take(); // Clear the owned value
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Always
         );
 
@@ -562,7 +562,7 @@ mod test {
 
         let _ = color_mode.take(); // Clear the owned value
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Always
         );
     }
@@ -576,7 +576,7 @@ mod test {
 
         let mut color_mode: OnceCell<ColorMode> = OnceCell::new();
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Auto
         );
 
@@ -586,7 +586,7 @@ mod test {
 
         let _ = color_mode.take(); // Clear the owned value
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Never
         );
 
@@ -597,7 +597,7 @@ mod test {
 
         let _ = color_mode.take(); // Clear the owned value
         assert_eq!(
-            color_mode.get_or_init(|| set_color_mode(no_color, clicolor_force, clicolor)),
+            color_mode.get_or_init(|| get_color_mode(no_color, clicolor_force, clicolor)),
             &ColorMode::Auto
         );
     }
