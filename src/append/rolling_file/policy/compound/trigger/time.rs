@@ -210,7 +210,9 @@ impl TimeTrigger {
             let random_delay = rand::thread_rng().gen_range(0..config.max_random_delay);
             // This is a valid unwrap because chrono::Duration::try_milliseconds accepts an i64
             // and we're providing a known valid value. We can trust the Option will always return
-            // us a valid number.
+            // us a valid number. It's acceptable to use i64::MAX here because it is replacement of
+            // a randomly generated value. If a user enters a value greater than i64::MAX, then
+            // i64::MAX is an acceptable value.
             next_time
                 + Duration::try_seconds(random_delay as i64)
                     .unwrap_or(Duration::try_milliseconds(i64::MAX).unwrap())
