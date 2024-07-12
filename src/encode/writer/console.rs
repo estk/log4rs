@@ -20,12 +20,16 @@ fn get_color_mode(
     let no_color = match no_color {
         Some(result) => result,
         None => env::var("NO_COLOR"),
-    }.map(|var| var != "0").unwrap_or(false);
+    }
+    .map(|var| var != "0")
+    .unwrap_or(false);
 
     let clicolor_force = match clicolor_force {
         Some(result) => result,
         None => env::var("CLICOLOR_FORCE"),
-    }.map(|var| var != "0").unwrap_or(false);
+    }
+    .map(|var| var != "0")
+    .unwrap_or(false);
 
     if no_color {
         ColorMode::Never
@@ -35,7 +39,9 @@ fn get_color_mode(
         let clicolor = match clicolor {
             Some(result) => result,
             None => env::var("CLICOLOR"),
-        }.map(|var| var != "0").unwrap_or(true);
+        }
+        .map(|var| var != "0")
+        .unwrap_or(true);
 
         if clicolor {
             ColorMode::Auto
