@@ -142,7 +142,7 @@ impl<'a> encode::Write for ConsoleWriterLock<'a> {
 
 #[cfg(unix)]
 mod imp {
-    use std::{env, fmt, io};
+    use std::{fmt, io};
 
     use crate::{
         encode::{
