@@ -224,9 +224,17 @@ mod test {
         let current_time = Local::now().format("%Y-%m-%d").to_string();
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
-        .build(tempdir.path().join("foo").join("bar").join("logs/log-$TIME{%Y-%m-%d}.log"))
-        .unwrap();
-        let expected_path = tempdir.path().join(format!("foo/bar/logs/log-{}.log", current_time));
+            .build(
+                tempdir
+                    .path()
+                    .join("foo")
+                    .join("bar")
+                    .join("logs/log-$TIME{%Y-%m-%d}.log"),
+            )
+            .unwrap();
+        let expected_path = tempdir
+            .path()
+            .join(format!("foo/bar/logs/log-{}.log", current_time));
         assert_eq!(builder.path, expected_path);
     }
 
@@ -234,8 +242,14 @@ mod test {
     fn test_date_time_format_with_invalid_format() {
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
-        .build(tempdir.path().join("foo").join("bar").join("logs/log-$TIME{INVALID}.log"))
-        .unwrap();
+            .build(
+                tempdir
+                    .path()
+                    .join("foo")
+                    .join("bar")
+                    .join("logs/log-$TIME{INVALID}.log"),
+            )
+            .unwrap();
         let expected_path = tempdir.path().join("foo/bar/logs/log-INVALID.log");
         assert_eq!(builder.path, expected_path);
     }
@@ -244,8 +258,8 @@ mod test {
     fn test_date_time_format_without_placeholder() {
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
-        .build(tempdir.path().join("foo").join("bar").join("bar.log"))
-        .unwrap();
+            .build(tempdir.path().join("foo").join("bar").join("bar.log"))
+            .unwrap();
         let expected_path = tempdir.path().join("foo/bar/bar.log");
         assert_eq!(builder.path, expected_path);
     }
@@ -255,9 +269,18 @@ mod test {
         let current_time = Local::now().format("%Y-%m-%d").to_string();
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
-        .build(tempdir.path().join("foo").join("bar").join("logs-$TIME{%Y-%m-%d}/log-$TIME{%Y-%m-%d}.log"))
-        .unwrap();
-        let expected_path = tempdir.path().join(format!("foo/bar/logs-{}/log-{}.log", current_time, current_time));
+            .build(
+                tempdir
+                    .path()
+                    .join("foo")
+                    .join("bar")
+                    .join("logs-$TIME{%Y-%m-%d}/log-$TIME{%Y-%m-%d}.log"),
+            )
+            .unwrap();
+        let expected_path = tempdir.path().join(format!(
+            "foo/bar/logs-{}/log-{}.log",
+            current_time, current_time
+        ));
         assert_eq!(builder.path, expected_path);
     }
 }
