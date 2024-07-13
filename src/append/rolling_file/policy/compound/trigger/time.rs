@@ -6,7 +6,7 @@
 use chrono::NaiveDateTime;
 use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Timelike};
 #[cfg(test)]
-use mock_instant::{SystemTime, UNIX_EPOCH};
+use mock_instant::global::{SystemTime, UNIX_EPOCH};
 use rand::Rng;
 #[cfg(feature = "config_parsing")]
 use serde::de;
@@ -340,7 +340,7 @@ impl Deserialize for TimeTriggerDeserializer {
 #[cfg(test)]
 mod test {
     use super::*;
-    use mock_instant::MockClock;
+    use mock_instant::global::MockClock;
     use std::time::Duration;
 
     fn trigger_with_time_and_modulate(
