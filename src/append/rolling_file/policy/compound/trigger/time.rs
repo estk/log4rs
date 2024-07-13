@@ -73,17 +73,9 @@ impl Default for TimeTriggerInterval {
 }
 
 #[derive(Debug, Error)]
-enum TimeTrigerIntervalError {
-    #[error("The 'Seconds' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
-    Second(TimeTriggerInterval),
-    #[error("The 'Minutes' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
-    Minute(TimeTriggerInterval),
-    #[error("The 'Hours' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
-    Hour(TimeTriggerInterval),
-    #[error("The 'Days' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
-    Day(TimeTriggerInterval),
-    #[error("The 'Weeks' time trigger interval value is out of bounds, ensure it fits within an i64: : '{0:?}'")]
-    Week(TimeTriggerInterval),
+enum TimeTriggerIntervalError {
+    #[error("The '{0}' value specified as a time trigger is out of bounds, ensure it fits within an i64: : '{1:?}'")]
+    OutOfBounds(String, TimeTriggerInterval),
 }
 
 #[cfg(feature = "config_parsing")]
@@ -188,7 +180,7 @@ impl<'de> serde::Deserialize<'de> for TimeTriggerInterval {
 impl TimeTrigger {
     /// Returns a new trigger which rolls the log once it has passed the
     /// specified time.
-    pub fn new(config: TimeTriggerConfig) -> TimeTrigger {
+    pub fn new(config: TimeTriggerConfig) -> anyhow::Result<TimeTrigger> {
         #[cfg(test)]
         let current = {
             let now: std::time::Duration = SystemTime::now()
@@ -203,9 +195,8 @@ impl TimeTrigger {
 
         #[cfg(not(test))]
         let current = Local::now();
-        // In the case where bad user input results in an invalid next time, provide a valid time.
-        let next_time = TimeTrigger::get_next_time(current, config.interval, config.modulate)
-            .unwrap_or(current + Duration::try_seconds(1_i64).unwrap());
+        // TODO: Design an implement error handling at a project level scope instead of panic
+        let next_time = TimeTrigger::get_next_time(current, config.interval, config.modulate)?;
         let next_roll_time = if config.max_random_delay > 0 {
             let random_delay = rand::thread_rng().gen_range(0..config.max_random_delay);
             // This is a valid unwrap because chrono::Duration::try_milliseconds accepts an i64
@@ -220,17 +211,17 @@ impl TimeTrigger {
             next_time
         };
 
-        TimeTrigger {
+        Ok(TimeTrigger {
             config,
             next_roll_time: RwLock::new(next_roll_time),
-        }
+        })
     }
 
     fn get_next_time(
         current: DateTime<Local>,
         interval: TimeTriggerInterval,
         modulate: bool,
-    ) -> Result<DateTime<Local>, TimeTrigerIntervalError> {
+    ) -> Result<DateTime<Local>, TimeTriggerIntervalError> {
         let year = current.year();
         if let TimeTriggerInterval::Year(n) = interval {
             let n = n as i32;
@@ -259,9 +250,11 @@ impl TimeTrigger {
             let weekday = current.weekday().num_days_from_monday() as i64; // Monday is the first day of the week
             let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
             let increment = if modulate { n - week0 % n } else { n };
-            let dur = Duration::try_weeks(increment)
-                .ok_or(TimeTrigerIntervalError::Week(interval))?
-                - Duration::try_days(weekday).ok_or(TimeTrigerIntervalError::Day(interval))?;
+            let dur = Duration::try_weeks(increment).ok_or(
+                TimeTriggerIntervalError::OutOfBounds("Weeks".to_owned(), interval),
+            )? - Duration::try_days(weekday).ok_or(
+                TimeTriggerIntervalError::OutOfBounds("Days".to_owned(), interval),
+            )?;
             return Ok(time + dur);
         }
 
@@ -269,8 +262,9 @@ impl TimeTrigger {
             let ordinal0 = current.ordinal0() as i64;
             let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
             let increment = if modulate { n - ordinal0 % n } else { n };
-            let dur =
-                Duration::try_days(increment).ok_or(TimeTrigerIntervalError::Day(interval))?;
+            let dur = Duration::try_days(increment).ok_or(
+                TimeTriggerIntervalError::OutOfBounds("Days".to_owned(), interval),
+            )?;
             return Ok(time + dur);
         }
 
@@ -280,8 +274,9 @@ impl TimeTrigger {
                 .with_ymd_and_hms(year, month, day, hour, 0, 0)
                 .unwrap();
             let increment = if modulate { n - (hour as i64) % n } else { n };
-            let dur =
-                Duration::try_hours(increment).ok_or(TimeTrigerIntervalError::Hour(interval))?;
+            let dur = Duration::try_hours(increment).ok_or(
+                TimeTriggerIntervalError::OutOfBounds("Hours".to_owned(), interval),
+            )?;
             return Ok(time + dur);
         }
 
@@ -291,8 +286,9 @@ impl TimeTrigger {
                 .with_ymd_and_hms(year, month, day, hour, min, 0)
                 .unwrap();
             let increment = if modulate { n - (min as i64) % n } else { n };
-            let dur = Duration::try_minutes(increment)
-                .ok_or(TimeTrigerIntervalError::Minute(interval))?;
+            let dur = Duration::try_minutes(increment).ok_or(
+                TimeTriggerIntervalError::OutOfBounds("Minutes".to_owned(), interval),
+            )?;
             return Ok(time + dur);
         }
 
@@ -302,8 +298,9 @@ impl TimeTrigger {
                 .with_ymd_and_hms(year, month, day, hour, min, sec)
                 .unwrap();
             let increment = if modulate { n - (sec as i64) % n } else { n };
-            let dur = Duration::try_seconds(increment)
-                .ok_or(TimeTrigerIntervalError::Second(interval))?;
+            let dur = Duration::try_seconds(increment).ok_or(
+                TimeTriggerIntervalError::OutOfBounds("Seconds".to_owned(), interval),
+            )?;
             return Ok(time + dur);
         }
         panic!("Should not reach here!");
@@ -329,7 +326,7 @@ impl Trigger for TimeTrigger {
         let mut next_roll_time = self.next_roll_time.write().unwrap();
         let is_trigger = current >= *next_roll_time;
         if is_trigger {
-            let tmp = TimeTrigger::new(self.config);
+            let tmp = TimeTrigger::new(self.config)?;
             let time_new = tmp.next_roll_time.read().unwrap();
             *next_roll_time = *time_new;
         }
@@ -368,7 +365,7 @@ impl Deserialize for TimeTriggerDeserializer {
         config: TimeTriggerConfig,
         _: &Deserializers,
     ) -> anyhow::Result<Box<dyn Trigger>> {
-        Ok(Box::new(TimeTrigger::new(config)))
+        Ok(Box::new(TimeTrigger::new(config)?))
     }
 }
 
@@ -396,7 +393,7 @@ mod test {
             max_random_delay: 0,
         };
 
-        let trigger = TimeTrigger::new(config);
+        let trigger = TimeTrigger::new(config).unwrap();
 
         MockClock::advance_system_time(Duration::from_millis(millis / 2));
         let result1 = trigger.trigger(&logfile).unwrap();
@@ -526,6 +523,18 @@ mod test {
             max_random_delay: 0,
         };
         let trigger = TimeTrigger::new(config);
-        assert!(trigger.is_pre_process());
+        assert!(trigger.unwrap().is_pre_process());
+    }
+
+    #[test]
+    fn test_err() {
+        let config = TimeTriggerConfig {
+            interval: TimeTriggerInterval::Day(i64::MAX),
+            modulate: false,
+            max_random_delay: 0,
+        };
+
+        let trigger = TimeTrigger::new(config);
+        assert!(trigger.is_err());
     }
 }
