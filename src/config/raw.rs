@@ -551,7 +551,6 @@ loggers:
         let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
-        // assert!(errors.is_empty());
 
         let config = ::serde_yaml::to_string::<RawConfig>(&config);
 
