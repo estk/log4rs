@@ -115,7 +115,7 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
 
 /// Configuration for an appender.
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Serialize)]
 pub struct AppenderConfig {
     /// The appender kind.
     pub kind: String,
