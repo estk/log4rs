@@ -318,7 +318,7 @@ pub enum DeserializingConfigError {
 }
 
 /// A raw deserializable log4rs configuration.
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
@@ -438,7 +438,7 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
@@ -461,7 +461,7 @@ fn root_level_default() -> LevelFilter {
     LevelFilter::Debug
 }
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct Logger {
     level: LevelFilter,
@@ -516,6 +516,46 @@ loggers:
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
+    }
+
+    #[test]
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
+    fn full_serialize() {
+        let cfg = r#"
+refresh_rate: 60 seconds
+
+appenders:
+    console:
+        kind: console
+        filters:
+        - kind: threshold
+          level: debug
+    baz:
+        kind: file
+        path: /tmp/baz.log
+        encoder:
+            pattern: "%m"
+
+root:
+    appenders:
+        - console
+    level: info
+
+loggers:
+    foo::bar::baz:
+        level: warn
+        appenders:
+            - baz
+        additive: false
+"#;
+        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        println!("{:?}", errors);
+        // assert!(errors.is_empty());
+
+        let config = ::serde_yaml::to_string::<RawConfig>(&config);
+
+        assert!(config.is_ok())
     }
 
     #[test]
