@@ -55,7 +55,7 @@ impl Compression {
                 drop(i); // needs to happen before remove_file call on Windows
 
                 fs::remove_file(src)
-            },
+            }
             #[cfg(feature = "zstd")]
             Compression::Zstd => {
                 use std::fs::File;
@@ -289,13 +289,13 @@ impl FixedWindowRollerBuilder {
             #[cfg(not(feature = "gzip"))]
             Some(e) if e == "gz" => {
                 bail!("gzip compression requires the `gzip` feature");
-            },
+            }
             #[cfg(feature = "zstd")]
             Some(e) if e == "zst" => Compression::Zstd,
             #[cfg(not(feature = "zstd"))]
             Some(e) if e == "zst" => {
                 bail!("zstd compression requires the `zstd` feature");
-            },
+            }
             _ => Compression::None,
         };
 
@@ -587,8 +587,7 @@ mod test {
         let dir = tempfile::tempdir().unwrap();
 
         let pattern = dir.path().join("{}.zst");
-        let roller = FixedWindowRoller::builder()
-            .build(pattern.to_str().unwrap(), 2);
+        let roller = FixedWindowRoller::builder().build(pattern.to_str().unwrap(), 2);
         assert!(roller.is_err());
         assert!(roller
             .unwrap_err()
