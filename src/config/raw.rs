@@ -477,14 +477,10 @@ fn logger_additive_default() -> bool {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
+    use super::*;
     use std::fs;
 
-    use super::*;
-
-    #[test]
-    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
-    fn full_deserialize() {
-        let cfg = r#"
+    const CFG: &'static str = r#"
 refresh_rate: 60 seconds
 
 appenders:
@@ -511,7 +507,11 @@ loggers:
             - baz
         additive: false
 "#;
-        let config = ::serde_saphyr::from_str::<RawConfig>(cfg).unwrap();
+
+    #[test]
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
+    fn full_deserialize() {
+        let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
@@ -520,38 +520,11 @@ loggers:
     #[test]
     #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
     fn full_serialize() {
-        let cfg = r#"
-refresh_rate: 60 seconds
-
-appenders:
-    console:
-        kind: console
-        filters:
-        - kind: threshold
-          level: debug
-    baz:
-        kind: file
-        path: /tmp/baz.log
-        encoder:
-            pattern: "%m"
-
-root:
-    appenders:
-        - console
-    level: info
-
-loggers:
-    foo::bar::baz:
-        level: warn
-        appenders:
-            - baz
-        additive: false
-"#;
-        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
 
-        let config = ::serde_yaml::to_string::<RawConfig>(&config);
+        let config = ::serde_saphyr::to_string::<RawConfig>(&config);
 
         assert!(config.is_ok())
     }
