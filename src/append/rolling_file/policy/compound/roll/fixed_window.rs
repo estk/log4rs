@@ -31,6 +31,8 @@ enum Compression {
     None,
     #[cfg(feature = "gzip")]
     Gzip,
+    #[cfg(feature = "zstd")]
+    Zstd,
 }
 
 impl Compression {
@@ -52,6 +54,19 @@ impl Compression {
                 drop(o.finish()?);
                 drop(i); // needs to happen before remove_file call on Windows
 
+                fs::remove_file(src)
+            }
+            #[cfg(feature = "zstd")]
+            Compression::Zstd => {
+                use std::fs::File;
+                let mut i = File::open(src)?;
+                let mut o = {
+                    let target = File::create(dst)?;
+                    zstd::Encoder::new(target, zstd::DEFAULT_COMPRESSION_LEVEL)?
+                };
+                io::copy(&mut i, &mut o)?;
+                drop(o.finish()?);
+                drop(i);
                 fs::remove_file(src)
             }
         }
@@ -274,6 +289,12 @@ impl FixedWindowRollerBuilder {
             #[cfg(not(feature = "gzip"))]
             Some(e) if e == "gz" => {
                 bail!("gzip compression requires the `gzip` feature");
+            }
+            #[cfg(feature = "zstd")]
+            Some(e) if e == "zst" => Compression::Zstd,
+            #[cfg(not(feature = "zstd"))]
+            Some(e) if e == "zst" => {
+                bail!("zstd compression requires the `zstd` feature");
             }
             _ => Compression::None,
         };
@@ -556,6 +577,44 @@ mod test {
         let mut file = File::open(dir.path().join("0")).unwrap();
         let mut actual = vec![];
         file.read_to_end(&mut actual).unwrap();
+
+        assert_eq!(contents, actual);
+    }
+
+    #[test]
+    #[cfg_attr(feature = "zstd", ignore)]
+    fn unsupported_zstd() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let pattern = dir.path().join("{}.zst");
+        let roller = FixedWindowRoller::builder().build(pattern.to_str().unwrap(), 2);
+        assert!(roller.is_err());
+        assert!(roller
+            .unwrap_err()
+            .to_string()
+            .contains("zstd compression requires the `zstd` feature"));
+    }
+
+    #[test]
+    #[cfg(feature = "zstd")]
+    fn supported_zstd() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let pattern = dir.path().join("{}.zst");
+        let roller = FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 2)
+            .unwrap();
+
+        let contents = (0..10000).map(|i| i as u8).collect::<Vec<_>>();
+
+        let file = dir.path().join("foo.log");
+        File::create(&file).unwrap().write_all(&contents).unwrap();
+
+        roller.roll(&file).unwrap();
+        wait_for_roller(&roller);
+
+        let compressed_data = fs::read(dir.path().join("0.zst")).unwrap();
+        let actual = zstd::decode_all(compressed_data.as_slice()).unwrap();
 
         assert_eq!(contents, actual);
     }

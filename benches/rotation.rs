@@ -60,10 +60,15 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
     let log_path = LOGDIR.path();
     let log_pattern = log_path.join("log.log");
 
-    #[cfg(feature = "gzip")]
-    let roll_pattern = format!("{}/{}", log_path.to_string_lossy(), "log.{}.gz");
-    #[cfg(not(feature = "gzip"))]
-    let roll_pattern = format!("{}/{}", log_path.to_string_lossy(), "log.{}");
+    let roll_pattern = {
+        if cfg!(feature = "gzip") {
+            format!("{}/{}", log_path.to_string_lossy(), "log.{}.gz")
+        } else if cfg!(feature = "zstd") {
+            format!("{}/{}", log_path.to_string_lossy(), "log.{}.zst")
+        } else {
+            format!("{}/{}", log_path.to_string_lossy(), "log.{}")
+        }
+    };
 
     use log::LevelFilter;
     use log4rs::{
