@@ -93,8 +93,12 @@ use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Durat
 
 use anyhow::anyhow;
 use log::LevelFilter;
-use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
+use serde::{
+    de::{self, Deserialize as SerdeDeserialize, DeserializeOwned},
+    ser,
+};
 use serde_value::Value;
+
 use thiserror::Error;
 use typemap_ors::{Key, ShareCloneMap};
 
@@ -321,6 +325,7 @@ pub enum DeserializingConfigError {
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
+    #[serde(serialize_with = "ser_duration")]
     refresh_rate: Option<Duration>,
 
     #[serde(default)]
@@ -402,6 +407,19 @@ impl RawConfig {
     }
 }
 
+fn ser_duration<S>(duration: &Option<Duration>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: ser::Serializer,
+{
+    match duration {
+        Some(duration) => {
+            let duration_str: String = humantime::format_duration(*duration).to_string();
+            s.serialize_some(&duration_str)
+        }
+        None => s.serialize_none(),
+    }
+}
+
 fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -480,9 +498,11 @@ mod test {
     use super::*;
     use std::fs;
 
-    const CFG: &'static str = r#"
-refresh_rate: 60 seconds
-
+    const CFG: &'static str = r#"refresh_rate: 1m
+root:
+    level: info
+    appenders:
+        - console
 appenders:
     console:
         kind: console
@@ -494,12 +514,6 @@ appenders:
         path: /tmp/baz.log
         encoder:
             pattern: "%m"
-
-root:
-    appenders:
-        - console
-    level: info
-
 loggers:
     foo::bar::baz:
         level: warn
@@ -523,10 +537,11 @@ loggers:
         let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
+        assert!(errors.is_empty());
 
         let config = ::serde_saphyr::to_string::<RawConfig>(&config);
 
-        assert!(config.is_ok())
+        assert_eq!(config.unwrap(), CFG)
     }
 
     #[test]
