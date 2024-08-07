@@ -2,7 +2,7 @@
 
 use log::Record;
 #[cfg(feature = "config_parsing")]
-use serde::de;
+use serde::{de, Serialize, Serializer};
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
@@ -52,7 +52,7 @@ pub enum Response {
 
 /// Configuration for a filter.
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Serialize)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct FilterConfig {
     /// The filter kind.
     pub kind: String,
@@ -77,6 +77,29 @@ impl<'de> de::Deserialize<'de> for FilterConfig {
             kind,
             config: Value::Map(map),
         })
+    }
+}
+
+#[cfg(feature = "config_parsing")]
+impl Serialize for FilterConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = BTreeMap::new();
+
+        map.insert(
+            Value::String("kind".to_owned()),
+            Value::String(self.kind.clone()),
+        );
+
+        if let Value::Map(ref config_map) = self.config {
+            for (key, value) in config_map {
+                map.insert(key.clone(), value.clone());
+            }
+        }
+
+        map.serialize(serializer)
     }
 }
 
