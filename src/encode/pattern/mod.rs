@@ -122,7 +122,7 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 
 use chrono::{Local, Utc};
-use derivative::Derivative;
+use educe::Educe;
 use log::{Level, Record};
 use std::{default::Default, io, process, thread};
 
@@ -671,11 +671,11 @@ impl FormattedChunk {
 }
 
 /// An `Encode`r configured via a format string.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Educe)]
+#[educe(Debug)]
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PatternEncoder {
-    #[derivative(Debug = "ignore")]
+    #[educe(Debug = "ignore")]
     chunks: Vec<Chunk>,
     pattern: String,
 }

@@ -2,7 +2,7 @@
 //!
 //! Requires the `console_appender` feature.
 
-use derivative::Derivative;
+use educe::Educe;
 use log::Record;
 use std::{
     fmt,
@@ -117,10 +117,10 @@ impl<'a> encode::Write for WriterLock<'a> {
 ///
 /// It supports output styling if standard out is a console buffer on Windows
 /// or is a TTY on Unix.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Educe)]
+#[educe(Debug)]
 pub struct ConsoleAppender {
-    #[derivative(Debug = "ignore")]
+    #[educe(Debug(ignore))]
     writer: Writer,
     encoder: Box<dyn Encode>,
     do_write: bool,

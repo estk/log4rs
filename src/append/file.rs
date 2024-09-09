@@ -2,7 +2,7 @@
 //!
 //! Requires the `file_appender` feature.
 
-use derivative::Derivative;
+use educe::Educe;
 use log::Record;
 use parking_lot::Mutex;
 use std::{
@@ -32,11 +32,11 @@ pub struct FileAppenderConfig {
 }
 
 /// An appender which logs to a file.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Educe)]
+#[educe(Debug)]
 pub struct FileAppender {
     path: PathBuf,
-    #[derivative(Debug = "ignore")]
+    #[educe(Debug = "ignore")]
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
 }
