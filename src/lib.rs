@@ -414,6 +414,12 @@ impl Logger {
     pub fn max_log_level(&self) -> LevelFilter {
         self.0.load().root.max_log_level()
     }
+    /// Get a `Handler` instance to reconfigure logger while running
+    pub fn handle(&self) -> Handle {
+        Handle {
+            shared: self.0.clone(),
+        }
+    }
 }
 
 impl log::Log for Logger {
@@ -462,6 +468,25 @@ impl Handle {
         log::set_max_level(shared.root.max_log_level());
         self.shared.store(Arc::new(shared));
     }
+
+    /// Sets the logging configuration with optionally adjusting the global logger settings through the `log`` crate.
+    /// (log::LOGGER and log::MAX_LOG_LEVEL_FILTER)
+    pub fn reconfigure(&self, config: Config, mode: EnvMode) {
+        let shared = SharedLogger::new(config);
+        match mode {
+            EnvMode::Single => log::set_max_level(shared.root.max_log_level()),
+            EnvMode::Multi => {}
+        };
+        self.shared.store(Arc::new(shared));
+    }
+}
+
+/// Logger environment mode used for reconfiguration
+pub enum EnvMode {
+    /// Log4rs is the only single logger set as the global logger, e.g. using `init_file`, `init_config` or `log::set_boxed_logger()
+    Single,
+    /// Log4rs is working besides other logger(s) and is NOT the global logger
+    Multi,
 }
 
 #[cfg(test)]
