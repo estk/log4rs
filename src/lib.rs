@@ -464,9 +464,7 @@ pub struct Handle {
 impl Handle {
     /// Sets the logging configuration.
     pub fn set_config(&self, config: Config) {
-        let shared = SharedLogger::new(config);
-        log::set_max_level(shared.root.max_log_level());
-        self.shared.store(Arc::new(shared));
+        self.reconfigure(config, EnvMode::Single)
     }
 
     /// Sets the logging configuration with optionally adjusting the global logger settings through the `log`` crate.
@@ -478,6 +476,11 @@ impl Handle {
             EnvMode::Multi => {}
         };
         self.shared.store(Arc::new(shared));
+    }
+
+    /// Get the maximum log level according to the current configuration
+    pub fn max_log_level(&self) -> LevelFilter {
+        self.shared.load().root.max_log_level()
     }
 }
 
