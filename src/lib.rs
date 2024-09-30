@@ -464,17 +464,8 @@ pub struct Handle {
 impl Handle {
     /// Sets the logging configuration.
     pub fn set_config(&self, config: Config) {
-        self.reconfigure(config, EnvMode::Single)
-    }
-
-    /// Sets the logging configuration with optionally adjusting the global logger settings through the `log`` crate.
-    /// (log::LOGGER and log::MAX_LOG_LEVEL_FILTER)
-    pub fn reconfigure(&self, config: Config, mode: EnvMode) {
         let shared = SharedLogger::new(config);
-        match mode {
-            EnvMode::Single => log::set_max_level(shared.root.max_log_level()),
-            EnvMode::Multi => {}
-        };
+        log::set_max_level(shared.root.max_log_level());
         self.shared.store(Arc::new(shared));
     }
 
@@ -482,14 +473,6 @@ impl Handle {
     pub fn max_log_level(&self) -> LevelFilter {
         self.shared.load().root.max_log_level()
     }
-}
-
-/// Logger environment mode used for reconfiguration
-pub enum EnvMode {
-    /// Log4rs is the only single logger set as the global logger, e.g. using `init_file`, `init_config` or `log::set_boxed_logger()
-    Single,
-    /// Log4rs is working besides other logger(s) and is NOT the global logger
-    Multi,
 }
 
 #[cfg(test)]
