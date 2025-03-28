@@ -228,6 +228,111 @@ mod imp {
     }
 }
 
+#[cfg(target_family = "wasm")]
+mod imp {
+    use std::{fmt, io};
+
+    use crate::{
+        encode::{
+            self,
+            writer::{
+                ansi::AnsiWriter,
+                console::{ColorMode, COLOR_MODE},
+            },
+            Style,
+        },
+        priv_io::{StdWriter, StdWriterLock},
+    };
+
+    pub struct Writer(AnsiWriter<StdWriter>);
+
+    impl Writer {
+        pub fn stdout() -> Option<Writer> {
+            let writer = || Writer(AnsiWriter(StdWriter::stdout()));
+            match *COLOR_MODE {
+                ColorMode::Auto => {
+                    if unsafe { libc::isatty(libc::STDOUT_FILENO) } != 1 {
+                        None
+                    } else {
+                        Some(writer())
+                    }
+                }
+                ColorMode::Always => Some(writer()),
+                ColorMode::Never => None,
+            }
+        }
+
+        pub fn stderr() -> Option<Writer> {
+            let writer = || Writer(AnsiWriter(StdWriter::stderr()));
+            match *COLOR_MODE {
+                ColorMode::Auto => {
+                    if unsafe { libc::isatty(libc::STDERR_FILENO) } != 1 {
+                        None
+                    } else {
+                        Some(writer())
+                    }
+                }
+                ColorMode::Always => Some(writer()),
+                ColorMode::Never => None,
+            }
+        }
+
+        pub fn lock(&self) -> WriterLock {
+            WriterLock(AnsiWriter((self.0).0.lock()))
+        }
+    }
+
+    impl io::Write for Writer {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.flush()
+        }
+
+        fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+            self.0.write_all(buf)
+        }
+
+        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+            self.0.write_fmt(fmt)
+        }
+    }
+
+    impl encode::Write for Writer {
+        fn set_style(&mut self, style: &Style) -> io::Result<()> {
+            self.0.set_style(style)
+        }
+    }
+
+    pub struct WriterLock<'a>(AnsiWriter<StdWriterLock<'a>>);
+
+    impl<'a> io::Write for WriterLock<'a> {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.flush()
+        }
+
+        fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+            self.0.write_all(buf)
+        }
+
+        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+            self.0.write_fmt(fmt)
+        }
+    }
+
+    impl<'a> encode::Write for WriterLock<'a> {
+        fn set_style(&mut self, style: &Style) -> io::Result<()> {
+            self.0.set_style(style)
+        }
+    }
+}
+
 #[cfg(windows)]
 mod imp {
     use std::{
