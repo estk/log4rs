@@ -12,7 +12,6 @@ rust-version = "1.69"
 
 [features]
 default = ["all_components", "config_parsing", "yaml_format"]
-
 config_parsing = ["humantime", "serde", "serde-value", "typemap-ors", "log/serde"]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
@@ -34,7 +33,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
-non_wasm = ["thread-id"]
+# non_wasm = ["thread-id"]
 
 all_components = [
     "console_appender",
@@ -84,7 +83,7 @@ winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2", optional = true }
 
-[target.'cfg(not(wasm))'.dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
 thread-id = { version = "4", optional = true }
 
 [dev-dependencies]
