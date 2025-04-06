@@ -110,7 +110,7 @@ winapi = { version = "0.3", optional = true, features = [
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2", optional = true }
 
-[target.'cfg(not(wasm))'.dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
 thread-id = { version = "4", optional = true }
 
 [dev-dependencies]
