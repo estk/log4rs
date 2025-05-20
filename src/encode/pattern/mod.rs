@@ -490,6 +490,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "M" | "module" => no_args(&formatter.args, parameters, FormattedChunk::Module),
                 "n" => no_args(&formatter.args, parameters, FormattedChunk::Newline),
                 "f" | "file" => no_args(&formatter.args, parameters, FormattedChunk::File),
+                "ff" | "fullfile" => no_args(&formatter.args, parameters, FormattedChunk::FullFile),
                 "L" | "line" => no_args(&formatter.args, parameters, FormattedChunk::Line),
                 "T" | "thread" => no_args(&formatter.args, parameters, FormattedChunk::Thread),
                 "I" | "thread_id" => no_args(&formatter.args, parameters, FormattedChunk::ThreadId),
@@ -581,6 +582,7 @@ enum FormattedChunk {
     Message,
     Module,
     File,
+    FullFile,
     Line,
     Thread,
     ThreadId,
@@ -605,7 +607,24 @@ impl FormattedChunk {
             FormattedChunk::Level => write!(w, "{}", record.level()),
             FormattedChunk::Message => w.write_fmt(*record.args()),
             FormattedChunk::Module => w.write_all(record.module_path().unwrap_or("???").as_bytes()),
-            FormattedChunk::File => w.write_all(record.file().unwrap_or("???").as_bytes()),
+            FormattedChunk::File => {
+                w.write_all(
+                    {
+                        let filepath = record.file().unwrap_or("???");
+                        if filepath.contains(".cargo") {
+                            filepath
+                                .split(".cargo/registry/src/")
+                                .nth(1)
+                                .and_then(|s| s.split_once('/').map(|s| s.1))
+                                .unwrap_or(filepath)
+                        } else {
+                            filepath
+                        }
+                    }
+                    .as_bytes(),
+                )
+            }
+            FormattedChunk::FullFile => w.write_all(record.file().unwrap_or("???").as_bytes()),
             FormattedChunk::Line => match record.line() {
                 Some(line) => write!(w, "{}", line),
                 None => w.write_all(b"???"),
