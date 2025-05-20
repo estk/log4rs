@@ -162,7 +162,6 @@ where
     }
 }
 
-// Type-erased map key for storing type information
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct TypeKey(TypeId);
 
@@ -298,7 +297,6 @@ impl Deserializers {
         let key = TypeKey::new::<T::Trait>();
         let mut deserializers = self.deserializers.lock().unwrap();
 
-        // Get or create the map for this type
         let type_map = deserializers
             .entry(key)
             .or_insert_with(|| {
@@ -318,7 +316,6 @@ impl Deserializers {
     where
         T: Deserializable + ?Sized,
     {
-        // Find the deserializer first, while holding the lock
         let deserializer = {
             let deserializers = self.deserializers.lock().unwrap();
             let key = TypeKey::new::<T>();
@@ -330,7 +327,6 @@ impl Deserializers {
                         .downcast_ref::<HashMap<String, Arc<dyn ErasedDeserialize<Trait = T>>>>()
                         .unwrap();
 
-                    // Clone the deserializer reference so we can drop the lock before using it
                     type_map.get(kind).map(|d| d.clone())
                 }
                 None => None,
@@ -433,7 +429,6 @@ impl RawConfig {
                 }
             }
 
-            // Process appender - again using clones to avoid borrow issues
             let appender_kind = appender.kind.clone();
             let appender_config = appender.config.clone();
             let name_for_appender = name.clone();
