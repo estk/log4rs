@@ -89,7 +89,7 @@
 //! ```
 #![allow(deprecated)]
 
-use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use derivative::Derivative;
@@ -97,8 +97,8 @@ use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
 use thiserror::Error;
-use typemap_ors::{Key, ShareCloneMap};
-
+use std::any::TypeId;
+use std::sync::Mutex;
 use crate::{append::AppenderConfig, config};
 
 #[allow(unused_imports)]
@@ -162,15 +162,21 @@ where
     }
 }
 
-struct KeyAdaptor<T: ?Sized>(PhantomData<T>);
+// Type-erased map key for storing type information
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct TypeKey(TypeId);
 
-impl<T: ?Sized + 'static> Key for KeyAdaptor<T> {
-    type Value = HashMap<String, Arc<dyn ErasedDeserialize<Trait = T>>>;
+impl TypeKey {
+    fn new<T: ?Sized + 'static>() -> Self {
+        TypeKey(TypeId::of::<T>())
+    }
 }
 
 /// A container of `Deserialize`rs.
 #[derive(Clone)]
-pub struct Deserializers(ShareCloneMap);
+pub struct Deserializers {
+    deserializers: Arc<Mutex<HashMap<TypeKey, Box<dyn std::any::Any + Send + Sync>>>>,
+}
 
 impl Default for Deserializers {
     fn default() -> Deserializers {
@@ -279,7 +285,9 @@ impl Deserializers {
 
     /// Creates a new `Deserializers` with no mappings.
     pub fn empty() -> Deserializers {
-        Deserializers(ShareCloneMap::custom())
+        Deserializers {
+            deserializers: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 
     /// Adds a mapping from the specified `kind` to a deserializer.
@@ -287,10 +295,22 @@ impl Deserializers {
     where
         T: Deserialize,
     {
-        self.0
-            .entry::<KeyAdaptor<T::Trait>>()
-            .or_insert_with(HashMap::new)
-            .insert(kind.to_owned(), Arc::new(DeserializeEraser(deserializer)));
+        let key = TypeKey::new::<T::Trait>();
+        let mut deserializers = self.deserializers.lock().unwrap();
+
+        // Get or create the map for this type
+        let type_map = deserializers
+            .entry(key)
+            .or_insert_with(|| {
+                Box::new(HashMap::<String, Arc<dyn ErasedDeserialize<Trait = T::Trait>>>::new())
+                    as Box<dyn std::any::Any + Send + Sync>
+            });
+
+        let type_map = type_map
+            .downcast_mut::<HashMap<String, Arc<dyn ErasedDeserialize<Trait = T::Trait>>>>()
+            .unwrap();
+
+        type_map.insert(kind.to_owned(), Arc::new(DeserializeEraser(deserializer)));
     }
 
     /// Deserializes a value of a specific type and kind.
@@ -298,8 +318,27 @@ impl Deserializers {
     where
         T: Deserializable + ?Sized,
     {
-        match self.0.get::<KeyAdaptor<T>>().and_then(|m| m.get(kind)) {
-            Some(b) => b.deserialize(config, self),
+        // Find the deserializer first, while holding the lock
+        let deserializer = {
+            let deserializers = self.deserializers.lock().unwrap();
+            let key = TypeKey::new::<T>();
+
+            match deserializers.get(&key) {
+                Some(type_map) => {
+                    // Downcast to get the actual map
+                    let type_map = type_map
+                        .downcast_ref::<HashMap<String, Arc<dyn ErasedDeserialize<Trait = T>>>>()
+                        .unwrap();
+
+                    // Clone the deserializer reference so we can drop the lock before using it
+                    type_map.get(kind).map(|d| d.clone())
+                }
+                None => None,
+            }
+        }; 
+
+        match deserializer {
+            Some(deserializer) => deserializer.deserialize(config, self),
             None => Err(anyhow!(
                 "no {} deserializer for kind `{}` registered",
                 T::name(),
@@ -382,14 +421,25 @@ impl RawConfig {
 
         for (name, appender) in &self.appenders {
             let mut builder = config::Appender::builder();
+
+            let name_clone = name.clone();
             for filter in &appender.filters {
-                match deserializers.deserialize(&filter.kind, filter.config.clone()) {
+                let filter_kind = filter.kind.clone();
+                let filter_config = filter.config.clone();
+
+                match deserializers.deserialize(&filter_kind, filter_config) {
                     Ok(filter) => builder = builder.filter(filter),
-                    Err(e) => errors.push(DeserializingConfigError::Filter(name.clone(), e)),
+                    Err(e) => errors.push(DeserializingConfigError::Filter(name_clone.clone(), e)),
                 }
             }
-            match deserializers.deserialize(&appender.kind, appender.config.clone()) {
-                Ok(appender) => appenders.push(builder.build(name.clone(), appender)),
+
+            // Process appender - again using clones to avoid borrow issues
+            let appender_kind = appender.kind.clone();
+            let appender_config = appender.config.clone();
+            let name_for_appender = name.clone();
+
+            match deserializers.deserialize(&appender_kind, appender_config) {
+                Ok(appender) => appenders.push(builder.build(name_for_appender, appender)),
                 Err(e) => errors.push(DeserializingConfigError::Appender(name.clone(), e)),
             }
         }
