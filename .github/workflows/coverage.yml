@@ -29,8 +29,8 @@ jobs:
       env:
         USER: "test-user"
 
-    # fix the rate limited upload
-    # - name: Upload to codecov.io
-    #   uses: codecov/codecov-action@v3
-    #   with:
-    #     fail_ci_if_error: true
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true # optional (default = false)
