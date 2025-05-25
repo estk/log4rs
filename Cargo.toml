@@ -1,23 +1,31 @@
 [package]
 name = "log4rs"
 version = "1.3.0"
-authors = ["Steven Fackler <sfackler@gmail.com>", "Evan Simmons <esims89@gmail.com>"]
+authors = [
+    "Steven Fackler <sfackler@gmail.com>",
+    "Evan Simmons <esims89@gmail.com>",
+]
 description = "A highly configurable multi-output logging implementation for the `log` facade"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/estk/log4rs"
 readme = "README.md"
 keywords = ["log", "logger", "logging", "log4"]
 edition = "2018"
-rust-version = "1.69"
+rust-version = "1.75"
 
 [features]
 default = ["all_components", "config_parsing", "yaml_format"]
-
-config_parsing = ["humantime", "serde", "serde-value", "typemap-ors", "log/serde"]
+onstartup_trigger = []
+config_parsing = [
+    "humantime",
+    "serde",
+    "serde-value",
+    "typemap-ors",
+    "log/serde",
+]
 yaml_format = ["serde_yaml"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
-
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
 file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
 rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
@@ -26,8 +34,14 @@ delete_roller = []
 fixed_window_roller = []
 size_trigger = []
 time_trigger = ["rand"]
-onstartup_trigger = []
-json_encoder = ["serde", "serde_json", "chrono", "log-mdc", "log/serde", "thread-id"]
+json_encoder = [
+    "serde",
+    "serde_json",
+    "chrono",
+    "log-mdc",
+    "log/serde",
+    "thread-id",
+]
 pattern_encoder = ["chrono", "log-mdc", "thread-id"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
@@ -47,7 +61,7 @@ all_components = [
     "onstartup_trigger",
     "json_encoder",
     "pattern_encoder",
-    "threshold_filter"
+    "threshold_filter",
 ]
 
 gzip = ["flate2"]
@@ -58,7 +72,9 @@ harness = false
 
 [dependencies]
 arc-swap = "1.6"
-chrono = { version = "0.4.23", optional = true, features = ["clock"], default-features = false }
+chrono = { version = "0.4.23", optional = true, features = [
+    "clock",
+], default-features = false }
 flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
 humantime = { version = "2.1", optional = true }
@@ -66,20 +82,27 @@ log = { version = "0.4.20", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0.196", optional = true, features = ["derive"] }
 serde-value = { version = "0.7", optional = true }
-thread-id = { version = "4", optional = true }
+thread-id = { version = "5", optional = true }
 typemap-ors = { version = "1.0.0", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.9", optional = true }
 toml = { version = "<0.8.10", optional = true }
 parking_lot = { version = "0.12.0", optional = true }
-rand = { version = "0.8", optional = true}
-thiserror = "1.0.15"
+rand = { version = "0.9", optional = true }
+thiserror = "2.0.12"
 anyhow = "1.0.28"
 derivative = "2.2"
 once_cell = "1.17.1"
+mock_instant = "0.5"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }
+winapi = { version = "0.3", optional = true, features = [
+    "handleapi",
+    "minwindef",
+    "processenv",
+    "winbase",
+    "wincon",
+] }
 
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2", optional = true }
@@ -89,7 +112,6 @@ lazy_static = "1.4"
 streaming-stats = "0.2.3"
 humantime = "2.1"
 tempfile = "3.8"
-mock_instant = "0.3"
 serde_test = "1.0.176"
 
 [[example]]
@@ -98,7 +120,11 @@ required-features = ["json_encoder", "console_appender"]
 
 [[example]]
 name = "log_to_file"
-required-features = ["console_appender", "file_appender", "rolling_file_appender"]
+required-features = [
+    "console_appender",
+    "file_appender",
+    "rolling_file_appender",
+]
 
 [[example]]
 name = "compile_time_config"
@@ -111,3 +137,6 @@ required-features = ["file_appender", "rolling_file_appender", "size_trigger"]
 [[example]]
 name = "multi_logger_config"
 required-features = ["yaml_format", "config_parsing"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mock_time)'] }

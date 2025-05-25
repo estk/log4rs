@@ -29,7 +29,8 @@ jobs:
       env:
         USER: "test-user"
 
-    - name: Upload to codecov.io
-      uses: codecov/codecov-action@v3
-      with:
-        fail_ci_if_error: true
+    # fix the rate limited upload
+    # - name: Upload to codecov.io
+    #   uses: codecov/codecov-action@v3
+    #   with:
+    #     fail_ci_if_error: true
