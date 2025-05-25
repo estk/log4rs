@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_versions: ["stable", "1.69"]
+        rust_versions: ["stable", "1.75"]
         os: [ubuntu-latest, windows-latest]
     steps:
     - name: Checkout the source code
@@ -36,7 +36,7 @@ jobs:
         # This test needs another run under the release mode
         cargo test --release --features simple_writer encode::pattern::tests::debug_release
       env:
-        RUSTFLAGS: -D warnings
+        RUSTFLAGS: -D warnings --cfg mock_time
 
   features:
     name: Test Individual Features
@@ -55,7 +55,7 @@ jobs:
       run: |
         for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
             echo building with feature "$feature"
-            RUSTFLAGS='-D warnings' cargo test --no-default-features --features "$feature"
+            RUSTFLAGS='-D warnings --cfg mock_time' cargo test --no-default-features --features "$feature"
         done
 
   bench:
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_versions: ["stable", "1.69"]
+        rust_versions: ["stable", "1.75"]
     steps:
     - name: Checkout the source code
       uses: actions/checkout@v4

@@ -4,12 +4,12 @@ name: Lint Jobs
 on:
   push:
     branches:
-    - main
-    - devel
+      - main
+      - devel
   pull_request:
     branches:
-    - main
-    - devel
+      - main
+      - devel
 
 jobs:
   rust-lint:
@@ -27,10 +27,10 @@ jobs:
         run: cargo check
 
       - name: Run rustfmt
-        run: cargo fmt -- --check
+        run: cargo +nightly fmt -- --check
 
       - name: Run Clippy
-        run: cargo clippy --all-features
+        run: rustup component add --toolchain 1.75-x86_64-unknown-linux-gnu clippy && cargo +1.75 clippy --all-features
         env:
           RUSTFLAGS: -D warnings
 
@@ -38,19 +38,19 @@ jobs:
     name: Changelog Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Markdown Linting Action
-      uses: avto-dev/markdown-lint@v1
-      with:
-        rules: /lint/rules/changelog.js
-        config: --config /lint/config/changelog.yml
-        args: 'CHANGELOG.md'
+      - name: Markdown Linting Action
+        uses: avto-dev/markdown-lint@v1
+        with:
+          rules: /lint/rules/changelog.js
+          config: --config /lint/config/changelog.yml
+          args: "CHANGELOG.md"
 
   docs-lint:
     name: Docs Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Markdown Linting Action
-      uses: avto-dev/markdown-lint@v1
-      with:
-        args: '**.md'
-        ignore: 'CHANGELOG.md'
+      - name: Markdown Linting Action
+        uses: avto-dev/markdown-lint@v1
+        with:
+          args: "**.md"
+          ignore: "CHANGELOG.md"
