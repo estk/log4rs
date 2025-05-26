@@ -16,6 +16,7 @@ const TIME_PREFIX: &str = "$TIME{";
 const TIME_PREFIX_LEN: usize = TIME_PREFIX.len();
 const TIME_SUFFIX: char = '}';
 const TIME_SUFFIX_LEN: usize = 1;
+const MAX_REPLACEMENTS: usize = 5;
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -127,9 +128,13 @@ impl FileAppenderBuilder {
     }
 
     fn date_time_format(&self, path: PathBuf) -> PathBuf {
+        let mut replacements = 0;
         let mut date_time_path = path.to_str().unwrap().to_string();
         // Locate the start and end of the placeholder
         while let Some(start) = date_time_path.find(TIME_PREFIX) {
+            if replacements >= MAX_REPLACEMENTS {
+                break;
+            }
             if let Some(end) = date_time_path[start..].find(TIME_SUFFIX) {
                 let end = start + end;
                 // Extract the date format string
@@ -143,6 +148,10 @@ impl FileAppenderBuilder {
 
                 // replacing the placeholder with the formatted date
                 date_time_path.replace_range(start..end + TIME_SUFFIX_LEN, &formatted_date);
+                replacements += 1;
+            } else {
+                // If there's no closing brace, we leave the placeholder as is
+                break;
             }
         }
         PathBuf::from(date_time_path)
@@ -251,6 +260,84 @@ mod test {
             )
             .unwrap();
         let expected_path = tempdir.path().join("foo/bar/logs/log-INVALID.log");
+        assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_date_time_format_with_no_closing_brace() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let builder = FileAppender::builder()
+            .build(
+                tempdir
+                    .path()
+                    .join("foo")
+                    .join("bar")
+                    .join("logs/log-$TIME{%Y-%m-%d}-$TIME{no_closing_brace.log"),
+            )
+            .unwrap();
+        let expected_path = tempdir.path().join(format!(
+            "foo/bar/logs/log-{}-$TIME{{no_closing_brace.log",
+            current_time
+        ));
+        assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_date_time_format_with_max_replacements() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let builder = FileAppender::builder()
+            .build(
+                tempdir
+                    .path()
+                    .join("foo")
+                    .join("bar")
+                    .join("logs/log-$TIME{%Y-%m-%d}-$TIME{%Y-%m-%d}-$TIME{%Y-%m-%d}-$TIME{%Y-%m-%d}-$TIME{%Y-%m-%d}.log"),
+            )
+            .unwrap();
+        let expected_path = tempdir.path().join(format!(
+            "foo/bar/logs/log-{}-{}-{}-{}-{}.log",
+            current_time, current_time, current_time, current_time, current_time
+        ));
+        assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_date_time_format_over_max_replacements() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let current_time = Local::now().format("%Y-%m-%d").to_string();
+
+        // Build a path with more than MAX_REPLACEMENTS ($TIME{...}) placeholders
+        let path_str = format!(
+            "foo/bar/logs/log-{}-{}-{}-{}-{}-{}-{}-{}-{}-{}.log",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}",
+            "$TIME{%Y-%m-%d}"
+        );
+        let builder = FileAppender::builder()
+            .build(tempdir.path().join(path_str.clone()))
+            .unwrap();
+
+        // Only MAX_REPLACEMENTS should be replaced, the rest should remain as $TIME{...}
+        let mut expected_path = format!("foo/bar/logs/log");
+        for i in 0..10 {
+            if i < MAX_REPLACEMENTS {
+                expected_path.push_str(&format!("-{}", current_time));
+            } else {
+                expected_path.push_str("-$TIME{%Y-%m-%d}");
+            }
+        }
+        expected_path.push_str(".log");
+
+        let expected_path = tempdir.path().join(expected_path);
         assert_eq!(builder.path, expected_path);
     }
 
