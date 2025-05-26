@@ -48,6 +48,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
+log_kv = ["log/kv"]
 
 all_components = [
     "console_appender",
@@ -78,7 +79,7 @@ chrono = { version = "0.4.23", optional = true, features = [
 flate2 = { version = "1.0", optional = true }
 fnv = "1.0"
 humantime = { version = "2.1", optional = true }
-log = { version = "0.4.20", features = ["std"] }
+log = { version = "0.4.21", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0.196", optional = true, features = ["derive"] }
 serde-value = { version = "0.7", optional = true }
