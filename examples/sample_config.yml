@@ -8,7 +8,7 @@ appenders:
               level: info
     file:
         kind: file
-        path: "log/file.log"
+        path: "log/file-$TIME{%Y-%m-%d_%H-%M-%S}.log"
         encoder:
             pattern: "[{d(%Y-%m-%dT%H:%M:%S%.6f)} {h({l}):<5.5} {M}] {m}{n}"
     rollingfile:

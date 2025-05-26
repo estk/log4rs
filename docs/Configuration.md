@@ -131,6 +131,11 @@ my_console_appender:
 The _path_ field is required and accepts environment variables of the form
 `$ENV{name_here}`. The path can be relative or absolute.
 
+The _path_ field also supports date/time formats such as `$TIME{chrono_format}`. Refer
+to [chrono format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) for date and time formatting syntax
+
+**Note:** There is a maximum of 5 `$TIME{...}` replacements per path. If more than 5 `$TIME{...}` placeholders are present, only the first 5 will be replaced; the rest will remain unchanged in the path.
+
 The _encoder_ field is optional and can consist of multiple fields. Refer to
 the [encoder](#encoder) documention.
 
@@ -140,7 +145,7 @@ append to the log file if it exists, false will truncate the existing file.
 ```yml
 my_file_appender:
   kind: file
-  path: $ENV{PWD}/log/test.log
+  path: $ENV{PWD}/log/test_$TIME{%Y-%m-%d_%H-%M-%S}.log
   append: true
 ```
 
