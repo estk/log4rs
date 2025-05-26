@@ -34,6 +34,7 @@ pub struct FileAppenderConfig {
 /// An appender which logs to a file.
 #[derive(Debug)]
 pub struct FileAppender {
+    #[allow(dead_code)] // reason = "debug purposes only"
     path: PathBuf,
     #[debug(skip)]
     file: Mutex<SimpleWriter<BufWriter<File>>>,
