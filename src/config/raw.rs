@@ -92,7 +92,7 @@
 use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
-use derivative::Derivative;
+use derive_more::Debug;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;
@@ -438,15 +438,23 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Clone, Debug, Derivative, serde::Deserialize)]
-#[derivative(Default)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
-    #[derivative(Default(value = "root_level_default()"))]
     level: LevelFilter,
     #[serde(default)]
     appenders: Vec<String>,
+}
+
+/// Implementing default on Root, which was previously done using "derivative" derive, which is not yet supported by derive_more.
+impl Default for Root {
+    fn default() -> Self {
+        Self {
+            level: root_level_default(),
+            appenders: Default::default(),
+        }
+    }
 }
 
 fn root_level_default() -> LevelFilter {

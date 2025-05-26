@@ -73,6 +73,14 @@
 //!     defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
+//! * `K`, `key_value` - A value from a [log::kv][log_kv] structured logging
+//!     record attributes. The first argument specifies the key, and the second
+//!     argument specifies the default value if the key is not present in the
+//!     log record's attributes. The second argument is optional, and defaults
+//!     to the empty string. This formatter requires the `log_kv` feature to be
+//!     enabled.
+//!     * `{K(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!     * `{K(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -120,9 +128,10 @@
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 //!
 //! [MDC]: https://crates.io/crates/log-mdc
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{Local, Utc};
-use derivative::Derivative;
+use derive_more::Debug;
 use log::{Level, Record};
 use std::{default::Default, io, process, thread};
 
@@ -134,6 +143,8 @@ use crate::encode::{
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
+
+use self::parser::Formatter;
 
 mod parser;
 
@@ -496,46 +507,25 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "P" | "pid" => no_args(&formatter.args, parameters, FormattedChunk::ProcessId),
                 "i" | "tid" => no_args(&formatter.args, parameters, FormattedChunk::SystemThreadId),
                 "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
-                "X" | "mdc" => {
-                    if formatter.args.len() > 2 {
-                        return Chunk::Error("expected at most two arguments".to_owned());
-                    }
-
-                    let key = match formatter.args.first() {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid MDC key".to_owned());
-                            }
-                        }
-                        None => return Chunk::Error("missing MDC key".to_owned()),
-                    };
-
-                    let default = match formatter.args.get(1) {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid MDC default".to_owned());
-                            }
-                        }
-                        None => "",
-                    };
-
-                    Chunk::Formatted {
-                        chunk: FormattedChunk::Mdc(key.into(), default.into()),
+                "X" | "mdc" => match kv_parsing(&formatter) {
+                    Err(e) => Chunk::Error(format!("MDC: {e}")),
+                    Ok((key, default)) => Chunk::Formatted {
+                        chunk: FormattedChunk::Mdc(key, default),
                         params: parameters,
-                    }
-                }
+                    },
+                },
+                #[cfg(feature = "log_kv")]
+                "K" | "key_value" => match kv_parsing(&formatter) {
+                    Err(e) => Chunk::Error(format!("key_value: {e}")),
+                    Ok((key, default)) => Chunk::Formatted {
+                        chunk: FormattedChunk::Kv(key, default),
+                        params: parameters,
+                    },
+                },
+                #[cfg(not(feature = "log_kv"))]
+                "K" | "key_value" => Chunk::Error(
+                    "The log_kv feature is required to parse the key_value argument".to_owned(),
+                ),
                 "" => {
                     if formatter.args.len() != 1 {
                         return Chunk::Error("expected exactly one argument".to_owned());
@@ -568,6 +558,43 @@ fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chu
     }
 }
 
+fn kv_parsing<'a>(formatter: &'a Formatter) -> Result<(String, String), &'a str> {
+    if formatter.args.len() > 2 {
+        return Err("expected at most two arguments");
+    }
+
+    let key = match formatter.args.first() {
+        Some(arg) => {
+            if let Some(arg) = arg.first() {
+                match arg {
+                    Piece::Text(key) => key.to_owned(),
+                    Piece::Error(ref e) => return Err(e),
+                    _ => return Err("invalid key"),
+                }
+            } else {
+                return Err("invalid key");
+            }
+        }
+        None => return Err("missing key"),
+    };
+
+    let default = match formatter.args.get(1) {
+        Some(arg) => {
+            if let Some(arg) = arg.first() {
+                match arg {
+                    Piece::Text(key) => key.to_owned(),
+                    Piece::Error(ref e) => return Err(e),
+                    _ => return Err("invalid default"),
+                }
+            } else {
+                return Err("invalid default");
+            }
+        }
+        None => "",
+    };
+    Ok((key.into(), default.into()))
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Timezone {
     Utc,
@@ -593,6 +620,8 @@ enum FormattedChunk {
     Debug(Vec<Chunk>),
     Release(Vec<Chunk>),
     Mdc(String, String),
+    #[cfg(feature = "log_kv")]
+    Kv(String, String),
 }
 
 impl FormattedChunk {
@@ -666,16 +695,23 @@ impl FormattedChunk {
             FormattedChunk::Mdc(ref key, ref default) => {
                 log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
             }
+            #[cfg(feature = "log_kv")]
+            FormattedChunk::Kv(ref key, ref default) => {
+                use log::kv::ToKey;
+                if let Some(v) = record.key_values().get(key.to_key()) {
+                    write!(w, "{v}")
+                } else {
+                    write!(w, "{default}")
+                }
+            }
         }
     }
 }
 
 /// An `Encode`r configured via a format string.
-#[derive(Derivative)]
-#[derivative(Debug)]
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, Debug, PartialEq, Hash)]
 pub struct PatternEncoder {
-    #[derivative(Debug = "ignore")]
+    #[debug(skip)]
     chunks: Vec<Chunk>,
     pattern: String,
 }
@@ -751,6 +787,8 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
 
+    #[cfg(feature = "log_kv")]
+    use super::Parser;
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
     use crate::encode::writer::simple::SimpleWriter;
@@ -1029,6 +1067,71 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+        let kv = [("user_id", "kv value")];
+
+        let mut buf = vec![];
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().key_values(&kv).build(),
+        )
+        .unwrap();
+
+        assert_eq!(buf, b"kv value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv_missing_default() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv_missing_custom() {
+        let pw = PatternEncoder::new("{K(user_id)(missing value)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(feature = "log_kv")]
+    fn test_kv_from_piece_to_chunk() {
+        let tests = vec![
+            (
+                "[{K(user_id)(foobar)(test):<5.5}]",
+                "expected at most two arguments",
+            ),
+            ("[{K({l user_id):<5.5}]", "expected '}'"),
+            ("[{K({l} user_id):<5.5}]", "key_value: invalid key"),
+            ("[{K:<5.5}]", "key_value: missing key"),
+            ("[{K(user_id)({l):<5.5}]", "expected '}'"),
+            ("[{K(user_id)({l}):<5.5}]", "key_value: invalid default"),
+            ("[{K(user_id)():<5.5} {M}]", "key_value: invalid default"),
+        ];
+
+        for (pattern, error_msg) in tests {
+            let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+            match chunks.get(1).unwrap() {
+                Chunk::Error(err) => assert!(err.contains(error_msg)),
+                _ => panic!(),
+            }
+        }
     }
 
     #[test]

@@ -27,9 +27,7 @@ pub use self::raw::{Deserializable, Deserialize, Deserializers, RawConfig};
 pub fn init_config(config: runtime::Config) -> Result<crate::Handle, SetLoggerError> {
     let logger = crate::Logger::new(config);
     log::set_max_level(logger.max_log_level());
-    let handle = Handle {
-        shared: logger.0.clone(),
-    };
+    let handle = logger.handle();
     log::set_boxed_logger(Box::new(logger)).map(|()| handle)
 }
 
