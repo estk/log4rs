@@ -1,5 +1,15 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+* MSRV to 1.75
+* Update thread-id
+* Update thiserror
+* Update mock_instant
+* Update rand
+
 ## [1.3.0]
 
 ### New

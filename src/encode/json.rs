@@ -24,6 +24,11 @@
 //!     }
 //! }
 //! ```
+//! If the `log_kv` feature is enabled, an additional `attributes` field will
+//! contain a map of the record's [log::kv][log_kv] structured logging
+//! attributes.
+//!
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{
     format::{DelayedFormat, Fixed, Item},
@@ -76,6 +81,8 @@ impl JsonEncoder {
             thread: thread.name(),
             thread_id: thread_id::get(),
             mdc: Mdc,
+            #[cfg(feature = "log_kv")]
+            attributes: kv::Attributes(record.key_values()),
         };
         message.serialize(&mut serde_json::Serializer::new(&mut *w))?;
         w.write_all(NEWLINE.as_bytes())?;
@@ -106,6 +113,8 @@ struct Message<'a> {
     thread: Option<&'a str>,
     thread_id: usize,
     mdc: Mdc,
+    #[cfg(feature = "log_kv")]
+    attributes: kv::Attributes<'a>,
 }
 
 fn ser_display<T, S>(v: &T, s: S) -> Result<S::Ok, S::Error>
@@ -162,6 +171,40 @@ impl Deserialize for JsonEncoderDeserializer {
         Ok(Box::<JsonEncoder>::default())
     }
 }
+#[cfg(feature = "log_kv")]
+mod kv {
+    use log::kv::VisitSource;
+    use serde::ser::{self, Error, SerializeMap};
+
+    pub(crate) struct Attributes<'a>(pub &'a dyn log::kv::Source);
+
+    pub(crate) struct SerializerVisitor<T: ser::SerializeMap>(pub T);
+
+    impl<'kvs, T: ser::SerializeMap> VisitSource<'kvs> for SerializerVisitor<T> {
+        fn visit_pair(
+            &mut self,
+            key: log::kv::Key<'kvs>,
+            value: log::kv::Value<'kvs>,
+        ) -> Result<(), log::kv::Error> {
+            self.0
+                .serialize_entry(key.as_str(), &value.to_string())
+                .map_err(|e| log::kv::Error::boxed(e.to_string()))?;
+            Ok(())
+        }
+    }
+
+    impl<'a> ser::Serialize for Attributes<'a> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let map = serializer.serialize_map(Some(self.0.count()))?;
+            let mut visitor = SerializerVisitor(map);
+            self.0.visit(&mut visitor).map_err(S::Error::custom)?;
+            visitor.0.end()
+        }
+    }
+}
 
 #[cfg(test)]
 #[cfg(feature = "simple_writer")]
@@ -189,26 +232,35 @@ mod test {
 
         let encoder = JsonEncoder::new();
 
+        let mut record_builder = Record::builder();
+        record_builder
+            .level(level)
+            .target(target)
+            .module_path(Some(module_path))
+            .file(Some(file))
+            .line(Some(line));
+
+        #[cfg(feature = "log_kv")]
+        record_builder.key_values(&[("log_foo", "log_bar")]);
+
         let mut buf = vec![];
         encoder
             .encode_inner(
                 &mut SimpleWriter(&mut buf),
                 time,
-                &Record::builder()
-                    .level(level)
-                    .target(target)
-                    .module_path(Some(module_path))
-                    .file(Some(file))
-                    .line(Some(line))
-                    .args(format_args!("{}", message))
-                    .build(),
+                &record_builder.args(format_args!("{}", message)).build(),
             )
             .unwrap();
+
+        #[cfg(feature = "log_kv")]
+        let expected_attributes = ",\"attributes\":{\"log_foo\":\"log_bar\"}";
+        #[cfg(not(feature = "log_kv"))]
+        let expected_attributes = "";
 
         let expected = format!(
             "{{\"time\":\"{}\",\"level\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
             \"file\":\"{}\",\"line\":{},\"target\":\"{}\",\
-            \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}}}",
+            \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}{}}}",
             time.to_rfc3339(),
             level,
             message,
@@ -218,6 +270,7 @@ mod test {
             target,
             thread,
             thread_id::get(),
+            expected_attributes
         );
         assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
     }

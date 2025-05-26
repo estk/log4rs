@@ -414,6 +414,12 @@ impl Logger {
     pub fn max_log_level(&self) -> LevelFilter {
         self.0.load().root.max_log_level()
     }
+    /// Get a `Handler` instance to reconfigure logger while running
+    pub fn handle(&self) -> Handle {
+        Handle {
+            shared: self.0.clone(),
+        }
+    }
 }
 
 impl log::Log for Logger {
@@ -461,6 +467,11 @@ impl Handle {
         let shared = SharedLogger::new(config);
         log::set_max_level(shared.root.max_log_level());
         self.shared.store(Arc::new(shared));
+    }
+
+    /// Get the maximum log level according to the current configuration
+    pub fn max_log_level(&self) -> LevelFilter {
+        self.shared.load().root.max_log_level()
     }
 }
 
