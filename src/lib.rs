@@ -174,6 +174,112 @@
 //! # fn main() {}
 //! ```
 //!
+//! ## Custom with log4rs
+//!
+//! You can impl some trait for your struct and use it with log4rs. For example:
+//! - Impl [log4rs::append::Append](append/trait.Append.html) for your custom appender.
+//! - Impl [log4rs::encode::Encode](encode/trait.Encode.html) for your custom encoder.
+//! - Impl [log4rs::filter::Filter](filter/trait.Filter.html) for your custom filter.
+//!
+//! Here is a very sample example to create a custom appender,
+//! for more examples about custom, see [examples/custom.rs](https://github.com/estk/log4rs/tree/main/examples/custom.rs):
+//! ```no_run
+//! # fn () {
+//! use log4rs::append::Append;
+//! use log4rs::config::{Appender, Root};
+//!
+//! #[derive(Debug)]
+//! struct MyAppender(usize);
+//!
+//! // impl your process record logic here
+//! impl Append for MyAppender {
+//!     fn append(&self, record: &log::Record) -> anyhow::Result<()> {
+//!         println!("{record:?}");
+//!         Ok(())
+//!     }
+//!     fn flush(&self) {}
+//! }
+//!
+//! fn main() {
+//!     let appender = MyAppender(100);
+//!     let log_config = log4rs::config::Config::builder()
+//!         .appender(Appender::builder().build("my_appender", Box::new(appender)))
+//!         .build(
+//!             Root::builder()
+//!                 .appender("my_appender")
+//!                 .build(log::LevelFilter::Info),
+//!         )
+//!         .unwrap();
+//!     log4rs::init_config(log_config).unwrap();
+//!     log::trace!("This is a trace message");
+//!     log::info!("This is an info message");
+//!     log::warn!("This is a warning message");
+//! }
+//! # }
+//! ```
+//!
+//! To config with file, you should implement [log4rs::config::Deserialize](config/trait.Deserialize.html) for your config and **register it in default Deserializers**.
+//!
+//! Here is a very simple example to use custom appender with custom config,
+//! for more examples about custom config file, see [examples/custom_config.rs](https://github.com/estk/log4rs/tree/main/examples/custom_config.rs):
+//! ```yaml
+//! # custom_config.yml
+//! appenders:
+//!   my_appender:
+//!     kind: custom_appender
+//!
+//! root:
+//!   level: INFO
+//!   appenders:
+//!     - my_appender
+//! ```
+//!
+//! ```no_run
+//! # fn () {
+//! use log4rs::config::{Deserialize, Deserializers};
+//!
+//! // Define config struct for custom appender
+//! #[derive(serde::Deserialize)]
+//! pub struct MyAppenderConfig {
+//!     pub appender_data: Option<usize>,
+//! }
+//!
+//! #[derive(Default)]
+//! pub struct MyAppenderDeserializer;
+//!
+//! // impl Deserialize for custom appender config
+//! impl Deserialize for MyAppenderDeserializer {
+//!     type Trait = dyn Append;
+//!
+//!     type Config = MyAppenderConfig;
+//!
+//!     fn deserialize(
+//!         &self,
+//!         config: MyAppenderConfig,
+//!         _: &Deserializers,
+//!     ) -> anyhow::Result<Box<Self::Trait>> {
+//!         let appender_data = config.appender_data.unwrap_or(10000);
+//!         let appender = MyAppender(appender_data);
+//!         Ok(Box::new(appender))
+//!     }
+//! }
+//!
+//! fn main() {
+//!     let log_file = "custom_config.yml";
+//!     // Access the default deserializers map
+//!     let mut deserializers = Deserializers::default();
+//!     // Register the "custom_appender" deserializer into the default deserializers map
+//!     deserializers.insert("custom_appender", MyAppenderDeserializer);
+//!     // Initialize log4rs with the custom deserializers from the file
+//!     log4rs::init_file(log_file, deserializers).unwrap();
+//!
+//!     log::trace!("This is a trace message");
+//!     log::info!("This is an info message");
+//!     log::warn!("This is a warning message");
+//! }
+//! # }
+//! ```
+//!
 //! For more examples see the [examples](https://github.com/estk/log4rs/tree/main/examples).
 //!
 
