@@ -248,7 +248,7 @@ mod imp {
 #[cfg(windows)]
 mod imp {
     use std::{
-        env, fmt,
+        fmt,
         io::{self, Write},
         mem,
     };
