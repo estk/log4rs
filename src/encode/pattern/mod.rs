@@ -12,11 +12,12 @@
 //! name := identifier
 //! argument := format_string
 //!
-//! format_spec := [ [ fill ] align ] [ min_width ] [ '.' max_width ]
+//! format_spec := [ [ fill ] align ] [left_truncate] [ min_width ] [ '.' max_width ]
 //! fill := character
 //! align := '<' | '>'
 //! min_width := number
 //! max_width := number
+//! left_truncate := '-'
 //! ```
 //!
 //! # Special characters
@@ -73,6 +74,14 @@
 //!     defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
+//! * `K`, `key_value` - A value from a [log::kv][log_kv] structured logging
+//!     record attributes. The first argument specifies the key, and the second
+//!     argument specifies the default value if the key is not present in the
+//!     log record's attributes. The second argument is optional, and defaults
+//!     to the empty string. This formatter requires the `log_kv` feature to be
+//!     enabled.
+//!     * `{K(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!     * `{K(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
 //!     specification.
 //!     * `{({l} {m})}` - `INFO hello`
@@ -101,6 +110,10 @@
 //! configured. Any output over the maximum length will be truncated, and
 //! output under the minimum length will be padded (see above).
 //!
+//! Truncation will cut the right end of the contents, unless left truncation
+//! is specified (with a minus sign). Left/right truncation and left/right
+//! alignment are specified independently.
+//!
 //! # Examples
 //!
 //! The default pattern is `{d} {l} {t} - {m}{n}` which produces output like
@@ -119,12 +132,18 @@
 //! <code>INFO hello     </code>, while the message `hello, world!` and log
 //! level `DEBUG` will be truncated to `DEBUG hello, wo`.
 //!
+//! The pattern `{({l} {m}):-15.15}` will behave as above, except the truncation
+//! will be from the left. For example, at `DEBUG` level, and a message of
+//! `hello, world!`, the output will be: `G hello, world!`
+//!
 //! [MDC]: https://crates.io/crates/log-mdc
+//! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{Local, Utc};
-use derivative::Derivative;
+use derive_more::Debug;
 use log::{Level, Record};
-use std::{default::Default, io, process, thread};
+use std::{default::Default, io, mem, process, thread};
+use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
 
 use crate::encode::{
     self,
@@ -134,6 +153,8 @@ use crate::encode::{
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
+
+use self::parser::Formatter;
 
 mod parser;
 
@@ -148,157 +169,6 @@ thread_local!(
 #[serde(deny_unknown_fields)]
 pub struct PatternEncoderConfig {
     pattern: Option<String>,
-}
-
-fn is_char_boundary(b: u8) -> bool {
-    b as i8 >= -0x40
-}
-
-fn char_starts(buf: &[u8]) -> usize {
-    buf.iter().filter(|&&b| is_char_boundary(b)).count()
-}
-
-struct MaxWidthWriter<'a> {
-    remaining: usize,
-    w: &'a mut dyn encode::Write,
-}
-
-impl<'a> io::Write for MaxWidthWriter<'a> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut remaining = self.remaining;
-        let mut end = buf.len();
-        for (idx, _) in buf
-            .iter()
-            .enumerate()
-            .filter(|&(_, &b)| is_char_boundary(b))
-        {
-            if remaining == 0 {
-                end = idx;
-                break;
-            }
-            remaining -= 1;
-        }
-
-        // we don't want to report EOF, so just act as a sink past this point
-        if end == 0 {
-            return Ok(buf.len());
-        }
-
-        let buf = &buf[..end];
-        match self.w.write(buf) {
-            Ok(len) => {
-                if len == end {
-                    self.remaining = remaining;
-                } else {
-                    self.remaining -= char_starts(&buf[..len]);
-                }
-                Ok(len)
-            }
-            Err(e) => Err(e),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.w.flush()
-    }
-}
-
-impl<'a> encode::Write for MaxWidthWriter<'a> {
-    fn set_style(&mut self, style: &Style) -> io::Result<()> {
-        self.w.set_style(style)
-    }
-}
-
-struct LeftAlignWriter<W> {
-    to_fill: usize,
-    fill: char,
-    w: W,
-}
-
-impl<W: encode::Write> LeftAlignWriter<W> {
-    fn finish(mut self) -> io::Result<()> {
-        for _ in 0..self.to_fill {
-            write!(self.w, "{}", self.fill)?;
-        }
-        Ok(())
-    }
-}
-
-impl<W: encode::Write> io::Write for LeftAlignWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match self.w.write(buf) {
-            Ok(len) => {
-                self.to_fill = self.to_fill.saturating_sub(char_starts(&buf[..len]));
-                Ok(len)
-            }
-            Err(e) => Err(e),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.w.flush()
-    }
-}
-
-impl<W: encode::Write> encode::Write for LeftAlignWriter<W> {
-    fn set_style(&mut self, style: &Style) -> io::Result<()> {
-        self.w.set_style(style)
-    }
-}
-
-enum BufferedOutput {
-    Data(Vec<u8>),
-    Style(Style),
-}
-
-struct RightAlignWriter<W> {
-    to_fill: usize,
-    fill: char,
-    w: W,
-    buf: Vec<BufferedOutput>,
-}
-
-impl<W: encode::Write> RightAlignWriter<W> {
-    fn finish(mut self) -> io::Result<()> {
-        for _ in 0..self.to_fill {
-            write!(self.w, "{}", self.fill)?;
-        }
-        for out in self.buf {
-            match out {
-                BufferedOutput::Data(ref buf) => self.w.write_all(buf)?,
-                BufferedOutput::Style(ref style) => self.w.set_style(style)?,
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<W: encode::Write> io::Write for RightAlignWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.to_fill = self.to_fill.saturating_sub(char_starts(buf));
-
-        let mut pushed = false;
-        if let Some(&mut BufferedOutput::Data(ref mut data)) = self.buf.last_mut() {
-            data.extend_from_slice(buf);
-            pushed = true;
-        };
-
-        if !pushed {
-            self.buf.push(BufferedOutput::Data(buf.to_owned()));
-        }
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-impl<W: encode::Write> encode::Write for RightAlignWriter<W> {
-    fn set_style(&mut self, style: &Style) -> io::Result<()> {
-        self.buf.push(BufferedOutput::Style(style.clone()));
-        Ok(())
-    }
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -318,58 +188,12 @@ impl Chunk {
             Chunk::Formatted {
                 ref chunk,
                 ref params,
-            } => match (params.min_width, params.max_width, params.align) {
-                (None, None, _) => chunk.encode(w, record),
-                (None, Some(max_width), _) => {
-                    let mut w = MaxWidthWriter {
-                        remaining: max_width,
-                        w,
-                    };
-                    chunk.encode(&mut w, record)
-                }
-                (Some(min_width), None, Alignment::Left) => {
-                    let mut w = LeftAlignWriter {
-                        to_fill: min_width,
-                        fill: params.fill,
-                        w,
-                    };
+            } => match (params.min_width, params.max_width) {
+                (None, None) => chunk.encode(w, record),
+                _ => {
+                    let mut w = StringBasedWriter::new(w, params);
                     chunk.encode(&mut w, record)?;
-                    w.finish()
-                }
-                (Some(min_width), None, Alignment::Right) => {
-                    let mut w = RightAlignWriter {
-                        to_fill: min_width,
-                        fill: params.fill,
-                        w,
-                        buf: vec![],
-                    };
-                    chunk.encode(&mut w, record)?;
-                    w.finish()
-                }
-                (Some(min_width), Some(max_width), Alignment::Left) => {
-                    let mut w = LeftAlignWriter {
-                        to_fill: min_width,
-                        fill: params.fill,
-                        w: MaxWidthWriter {
-                            remaining: max_width,
-                            w,
-                        },
-                    };
-                    chunk.encode(&mut w, record)?;
-                    w.finish()
-                }
-                (Some(min_width), Some(max_width), Alignment::Right) => {
-                    let mut w = RightAlignWriter {
-                        to_fill: min_width,
-                        fill: params.fill,
-                        w: MaxWidthWriter {
-                            remaining: max_width,
-                            w,
-                        },
-                        buf: vec![],
-                    };
-                    chunk.encode(&mut w, record)?;
-                    w.finish()
+                    w.chunk_end()
                 }
             },
             Chunk::Error(ref s) => write!(w, "{{ERROR: {}}}", s),
@@ -496,46 +320,25 @@ impl<'a> From<Piece<'a>> for Chunk {
                 "P" | "pid" => no_args(&formatter.args, parameters, FormattedChunk::ProcessId),
                 "i" | "tid" => no_args(&formatter.args, parameters, FormattedChunk::SystemThreadId),
                 "t" | "target" => no_args(&formatter.args, parameters, FormattedChunk::Target),
-                "X" | "mdc" => {
-                    if formatter.args.len() > 2 {
-                        return Chunk::Error("expected at most two arguments".to_owned());
-                    }
-
-                    let key = match formatter.args.first() {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC key".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid MDC key".to_owned());
-                            }
-                        }
-                        None => return Chunk::Error("missing MDC key".to_owned()),
-                    };
-
-                    let default = match formatter.args.get(1) {
-                        Some(arg) => {
-                            if let Some(arg) = arg.first() {
-                                match arg {
-                                    Piece::Text(key) => key.to_owned(),
-                                    Piece::Error(ref e) => return Chunk::Error(e.clone()),
-                                    _ => return Chunk::Error("invalid MDC default".to_owned()),
-                                }
-                            } else {
-                                return Chunk::Error("invalid MDC default".to_owned());
-                            }
-                        }
-                        None => "",
-                    };
-
-                    Chunk::Formatted {
-                        chunk: FormattedChunk::Mdc(key.into(), default.into()),
+                "X" | "mdc" => match kv_parsing(&formatter) {
+                    Err(e) => Chunk::Error(format!("MDC: {e}")),
+                    Ok((key, default)) => Chunk::Formatted {
+                        chunk: FormattedChunk::Mdc(key, default),
                         params: parameters,
-                    }
-                }
+                    },
+                },
+                #[cfg(feature = "log_kv")]
+                "K" | "key_value" => match kv_parsing(&formatter) {
+                    Err(e) => Chunk::Error(format!("key_value: {e}")),
+                    Ok((key, default)) => Chunk::Formatted {
+                        chunk: FormattedChunk::Kv(key, default),
+                        params: parameters,
+                    },
+                },
+                #[cfg(not(feature = "log_kv"))]
+                "K" | "key_value" => Chunk::Error(
+                    "The log_kv feature is required to parse the key_value argument".to_owned(),
+                ),
                 "" => {
                     if formatter.args.len() != 1 {
                         return Chunk::Error("expected exactly one argument".to_owned());
@@ -560,12 +363,223 @@ impl<'a> From<Piece<'a>> for Chunk {
     }
 }
 
+enum StringOrStyle {
+    String { glen: usize, s: String }, //glen means length in graphemes
+    Style(Style),
+}
+
+struct StringBasedWriter<'writer, 'params> {
+    buf: Vec<u8>,
+    strings_and_styles: Vec<StringOrStyle>,
+    w: &'writer mut dyn encode::Write,
+    params: &'params Parameters,
+}
+
+impl encode::Write for StringBasedWriter<'_, '_> {
+    fn set_style(&mut self, style: &Style) -> io::Result<()> {
+        self.push_string();
+        self.strings_and_styles
+            .push(StringOrStyle::Style(style.clone()));
+        Ok(())
+    }
+}
+
+impl io::Write for StringBasedWriter<'_, '_> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.buf.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl<'writer, 'params> StringBasedWriter<'writer, 'params> {
+    fn new(w: &'writer mut dyn encode::Write, params: &'params Parameters) -> Self {
+        StringBasedWriter {
+            buf: Vec::new(),
+            strings_and_styles: Vec::new(),
+            w,
+            params,
+        }
+    }
+
+    fn push_string(&mut self) {
+        if !self.buf.is_empty() {
+            let old_buf = mem::take(&mut self.buf);
+            let s = String::from_utf8_lossy(&old_buf[..]).into_owned();
+            let glen = s.graphemes(true).count();
+            self.strings_and_styles
+                .push(StringOrStyle::String { glen, s });
+        }
+    }
+
+    fn chunk_end(&mut self) -> io::Result<()> {
+        self.push_string();
+        let total_width = self.compute_width();
+        let mut done = false;
+        if let Some(max_width) = self.params.max_width {
+            if total_width > max_width {
+                if self.params.right_truncate {
+                    self.output_right_truncate(max_width)?;
+                } else {
+                    self.output_left_truncate(total_width, max_width)?;
+                }
+                done = true;
+            }
+        }
+        if let Some(min_width) = self.params.min_width {
+            if total_width < min_width {
+                if self.params.align == Alignment::Left {
+                    self.output_everything()?;
+                    self.output_padding(min_width - total_width)?;
+                } else {
+                    self.output_padding(min_width - total_width)?;
+                    self.output_everything()?;
+                }
+                done = true;
+            }
+        }
+        if !done {
+            // between min and max length
+            self.output_everything()?;
+        }
+        Ok(())
+    }
+
+    fn compute_width(&self) -> usize {
+        let mut size = 0;
+        for x in &self.strings_and_styles {
+            if let StringOrStyle::String { glen, s: _ } = x {
+                size += glen;
+            }
+        }
+        size
+    }
+
+    fn output_left_truncate(&mut self, total_width: usize, max_width: usize) -> io::Result<()> {
+        let mut to_cut = total_width - max_width;
+        for x in &self.strings_and_styles {
+            match x {
+                StringOrStyle::String { glen, s } => {
+                    if to_cut == 0 {
+                        self.w.write_all(s.as_bytes())?;
+                    } else if *glen <= to_cut {
+                        to_cut -= glen;
+                    } else {
+                        let start = Self::boundary_or(s, to_cut, 0);
+                        self.w.write_all(&s.as_bytes()[start..])?;
+                        to_cut = 0;
+                    }
+                }
+                StringOrStyle::Style(s) => self.w.set_style(s)?,
+            }
+        }
+        Ok(())
+    }
+
+    fn boundary_or(s: &str, count: usize, or: usize) -> usize {
+        let mut cursor = GraphemeCursor::new(0, s.len(), true);
+        let mut start = 0;
+        for _i in 0..count {
+            let r = cursor.next_boundary(s, 0);
+            if let Ok(Some(x)) = r {
+                start = x;
+            } else {
+                // this should never happen, as we sanitize with to_utf8_lossy
+                // but we don't assume so: we'll use the default, which will conservatively
+                // output everything instead of trying to cut
+                start = or;
+                break;
+            }
+        }
+        start
+    }
+
+    fn output_right_truncate(&mut self, mut max_width: usize) -> io::Result<()> {
+        for x in &self.strings_and_styles {
+            match x {
+                StringOrStyle::String { glen, s } => {
+                    if *glen <= max_width {
+                        self.w.write_all(s.as_bytes())?;
+                        max_width -= glen;
+                    } else {
+                        let end = Self::boundary_or(s, max_width, s.len());
+                        self.w.write_all(&s.as_bytes()[0..end])?;
+                        max_width = 0;
+                    }
+                    if max_width == 0 {
+                        break;
+                    }
+                }
+                StringOrStyle::Style(s) => self.w.set_style(s)?,
+            }
+        }
+        Ok(())
+    }
+
+    fn output_everything(&mut self) -> io::Result<()> {
+        for x in &self.strings_and_styles {
+            match x {
+                StringOrStyle::String { glen: _, s } => self.w.write_all(s.as_bytes())?,
+                StringOrStyle::Style(s) => self.w.set_style(s)?,
+            }
+        }
+        Ok(())
+    }
+
+    fn output_padding(&mut self, len: usize) -> io::Result<()> {
+        for _i in 0..len {
+            write!(self.w, "{}", self.params.fill)?;
+        }
+        Ok(())
+    }
+}
+
 fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chunk {
     if arg.is_empty() {
         Chunk::Formatted { chunk, params }
     } else {
         Chunk::Error("unexpected arguments".to_owned())
     }
+}
+
+fn kv_parsing<'a>(formatter: &'a Formatter) -> Result<(String, String), &'a str> {
+    if formatter.args.len() > 2 {
+        return Err("expected at most two arguments");
+    }
+
+    let key = match formatter.args.first() {
+        Some(arg) => {
+            if let Some(arg) = arg.first() {
+                match arg {
+                    Piece::Text(key) => key.to_owned(),
+                    Piece::Error(ref e) => return Err(e),
+                    _ => return Err("invalid key"),
+                }
+            } else {
+                return Err("invalid key");
+            }
+        }
+        None => return Err("missing key"),
+    };
+
+    let default = match formatter.args.get(1) {
+        Some(arg) => {
+            if let Some(arg) = arg.first() {
+                match arg {
+                    Piece::Text(key) => key.to_owned(),
+                    Piece::Error(ref e) => return Err(e),
+                    _ => return Err("invalid default"),
+                }
+            } else {
+                return Err("invalid default");
+            }
+        }
+        None => "",
+    };
+    Ok((key.into(), default.into()))
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -593,6 +607,8 @@ enum FormattedChunk {
     Debug(Vec<Chunk>),
     Release(Vec<Chunk>),
     Mdc(String, String),
+    #[cfg(feature = "log_kv")]
+    Kv(String, String),
 }
 
 impl FormattedChunk {
@@ -666,16 +682,23 @@ impl FormattedChunk {
             FormattedChunk::Mdc(ref key, ref default) => {
                 log_mdc::get(key, |v| write!(w, "{}", v.unwrap_or(default)))
             }
+            #[cfg(feature = "log_kv")]
+            FormattedChunk::Kv(ref key, ref default) => {
+                use log::kv::ToKey;
+                if let Some(v) = record.key_values().get(key.to_key()) {
+                    write!(w, "{v}")
+                } else {
+                    write!(w, "{default}")
+                }
+            }
         }
     }
 }
 
 /// An `Encode`r configured via a format string.
-#[derive(Derivative)]
-#[derivative(Debug)]
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, Debug, PartialEq, Hash)]
 pub struct PatternEncoder {
-    #[derivative(Debug = "ignore")]
+    #[debug(skip)]
     chunks: Vec<Chunk>,
     pattern: String,
 }
@@ -751,6 +774,8 @@ mod tests {
     #[cfg(feature = "simple_writer")]
     use std::thread;
 
+    #[cfg(feature = "log_kv")]
+    use super::Parser;
     use super::{Chunk, PatternEncoder};
     #[cfg(feature = "simple_writer")]
     use crate::encode::writer::simple::SimpleWriter;
@@ -913,38 +938,82 @@ mod tests {
         assert_eq!(buf, b"foobar");
     }
 
-    #[test]
     #[cfg(feature = "simple_writer")]
-    fn left_align_formatter() {
-        let pw = PatternEncoder::new("{({l} {m}):15}");
+    fn assert_info_message(pattern: &str, msg: &str, expected: &[u8]) {
+        let pw = PatternEncoder::new(pattern);
 
         let mut buf = vec![];
         pw.encode(
             &mut SimpleWriter(&mut buf),
             &Record::builder()
                 .level(Level::Info)
-                .args(format_args!("foobar!"))
+                .args(format_args!("{}", msg))
                 .build(),
         )
         .unwrap();
-        assert_eq!(buf, b"INFO foobar!   ");
+        assert_eq!(buf, expected);
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn left_align_formatter() {
+        assert_info_message("{({l} {m}):15}", "foobar!", b"INFO foobar!   ");
+        assert_info_message("{({l} {m}):7}", "foobar!", b"INFO foobar!");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn right_truncate_formatter() {
+        assert_info_message("{({l} {m}):7.7}", "foobar!", b"INFO fo");
+        assert_info_message("{({l} {m}):12.12}", "foobar!", b"INFO foobar!");
+        assert_info_message("{({l} {m}):7.14}", "foobar!", b"INFO foobar!");
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn left_truncate_formatter() {
+        assert_info_message("{({l} {m}):-9.9}", "foobar!", b"O foobar!");
+        assert_info_message("{({l} {m}):-12.12}", "foobar!", b"INFO foobar!");
+        assert_info_message("{({l} {m}):-7.14}", "foobar!", b"INFO foobar!");
     }
 
     #[test]
     #[cfg(feature = "simple_writer")]
     fn right_align_formatter() {
-        let pw = PatternEncoder::new("{({l} {m}):>15}");
+        assert_info_message("{({l} {m}):>15}", "foobar!", b"   INFO foobar!");
+        assert_info_message("{({l} {m}):>12}", "foobar!", b"INFO foobar!");
+        assert_info_message("{({l} {m}):>7}", "foobar!", b"INFO foobar!");
+    }
 
-        let mut buf = vec![];
-        pw.encode(
-            &mut SimpleWriter(&mut buf),
-            &Record::builder()
-                .level(Level::Info)
-                .args(format_args!("foobar!"))
-                .build(),
-        )
-        .unwrap();
-        assert_eq!(buf, b"   INFO foobar!");
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn right_align_formatter_hard_unicode() {
+        assert_info_message(
+            "{({l} {m}):>15}",
+            "\u{01f5}\u{0067}\u{0301}",
+            "        INFO \u{01f5}\u{0067}\u{0301}".as_bytes(),
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn zalgo_text() {
+        let zalgo = "m\u{0301}\u{0302}o\u{0303}\u{0304}\u{0305}\u{0306}re testing l\u{113}ss \u{1F1F7}\u{1F1F8}\u{1F1EE}\u{1F1F4} CVE-2021-30860";
+        assert_info_message(
+            "{({l} {m}):10.10}",
+            zalgo,
+            "INFO m\u{0301}\u{0302}o\u{0303}\u{0304}\u{0305}\u{0306}re ".as_bytes(),
+        );
+        assert_info_message(
+            "{({l} {m}):24.24}",
+            zalgo,
+            "INFO m\u{0301}\u{0302}o\u{0303}\u{0304}\u{0305}\u{0306}re testing l\u{113}ss \u{1F1F7}\u{1F1F8}".as_bytes(),
+        );
+        assert_info_message(
+            "{({l} {m}):-24.24}",
+            zalgo,
+            "g l\u{113}ss \u{1F1F7}\u{1F1F8}\u{1F1EE}\u{1F1F4} CVE-2021-30860".as_bytes(),
+        );
     }
 
     #[test]
@@ -1029,6 +1098,71 @@ mod tests {
             .unwrap();
 
         assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+        let kv = [("user_id", "kv value")];
+
+        let mut buf = vec![];
+        pw.encode(
+            &mut SimpleWriter(&mut buf),
+            &Record::builder().key_values(&kv).build(),
+        )
+        .unwrap();
+
+        assert_eq!(buf, b"kv value");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv_missing_default() {
+        let pw = PatternEncoder::new("{K(user_id)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"");
+    }
+
+    #[test]
+    #[cfg(all(feature = "simple_writer", feature = "log_kv"))]
+    fn test_kv_missing_custom() {
+        let pw = PatternEncoder::new("{K(user_id)(missing value)}");
+
+        let mut buf = vec![];
+        pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+            .unwrap();
+
+        assert_eq!(buf, b"missing value");
+    }
+
+    #[test]
+    #[cfg(feature = "log_kv")]
+    fn test_kv_from_piece_to_chunk() {
+        let tests = vec![
+            (
+                "[{K(user_id)(foobar)(test):<5.5}]",
+                "expected at most two arguments",
+            ),
+            ("[{K({l user_id):<5.5}]", "expected '}'"),
+            ("[{K({l} user_id):<5.5}]", "key_value: invalid key"),
+            ("[{K:<5.5}]", "key_value: missing key"),
+            ("[{K(user_id)({l):<5.5}]", "expected '}'"),
+            ("[{K(user_id)({l}):<5.5}]", "key_value: invalid default"),
+            ("[{K(user_id)():<5.5} {M}]", "key_value: invalid default"),
+        ];
+
+        for (pattern, error_msg) in tests {
+            let chunks: Vec<Chunk> = Parser::new(pattern).map(From::from).collect();
+            match chunks.get(1).unwrap() {
+                Chunk::Error(err) => assert!(err.contains(error_msg)),
+                _ => panic!(),
+            }
+        }
     }
 
     #[test]

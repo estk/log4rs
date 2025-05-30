@@ -16,7 +16,7 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
-use derivative::Derivative;
+use derive_more::Debug;
 use log::Record;
 use parking_lot::Mutex;
 use std::{
@@ -151,10 +151,9 @@ impl<'a> LogFile<'a> {
 }
 
 /// An appender which archives log files in a configurable strategy.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct RollingFileAppender {
-    #[derivative(Debug = "ignore")]
+    #[debug(skip)]
     writer: Mutex<Option<LogWriter>>,
     path: PathBuf,
     append: bool,
@@ -367,6 +366,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
 
 #[cfg(test)]
 mod test {
+    use derive_more::Debug;
     use std::{
         fs::File,
         io::{Read, Write},
