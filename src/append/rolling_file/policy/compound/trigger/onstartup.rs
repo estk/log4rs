@@ -48,7 +48,7 @@ impl Trigger for OnStartUpTrigger {
                 result = true;
             }
         });
-        Ok(result)
+        Ok(!file.path().exists() || result)
     }
 
     fn is_pre_process(&self) -> bool {
