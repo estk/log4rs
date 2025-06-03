@@ -289,7 +289,7 @@ impl TimeTrigger {
 }
 
 impl Trigger for TimeTrigger {
-    fn trigger(&self, _file: &LogFile) -> anyhow::Result<bool> {
+    fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
         self.initial.call_once(|| {
             self.refresh_time();
         });
@@ -315,7 +315,7 @@ impl Trigger for TimeTrigger {
         if is_trigger {
             self.refresh_time();
         }
-        Ok(is_trigger)
+        Ok(!file.path().exists() || is_trigger)
     }
 
     fn is_pre_process(&self) -> bool {
