@@ -184,7 +184,7 @@
 //! Here is a very sample example to create a custom appender,
 //! for more examples about custom, see [examples/custom.rs](https://github.com/estk/log4rs/tree/main/examples/custom.rs):
 //! ```no_run
-//! # fn () {
+//! # fn f() {
 //! use log4rs::append::Append;
 //! use log4rs::config::{Appender, Root};
 //!
@@ -216,6 +216,7 @@
 //!     log::warn!("This is a warning message");
 //! }
 //! # }
+//! # fn main() {}
 //! ```
 //!
 //! To config with file, you should implement [log4rs::config::Deserialize](config/trait.Deserialize.html) for your config and **register it in default Deserializers**.
@@ -235,9 +236,22 @@
 //! ```
 //!
 //! ```no_run
-//! # fn () {
-//! use log4rs::config::{Deserialize, Deserializers};
+//! # #[cfg(feature = "config_parsing")]
+//! # fn f() {
+//! use log4rs::append::Append;
+//! use log4rs::config::{Appender, Deserialize, Deserializers, Root};
 //!
+//! #[derive(Debug)]
+//! struct MyAppender(usize);
+//!
+//! // impl your process record logic here
+//! impl Append for MyAppender {
+//!     fn append(&self, record: &log::Record) -> anyhow::Result<()> {
+//!         println!("{record:?}");
+//!         Ok(())
+//!     }
+//!     fn flush(&self) {}
+//! }
 //! // Define config struct for custom appender
 //! #[derive(serde::Deserialize)]
 //! pub struct MyAppenderConfig {
@@ -278,6 +292,7 @@
 //!     log::warn!("This is a warning message");
 //! }
 //! # }
+//! # fn main() {}
 //! ```
 //!
 //! For more examples see the [examples](https://github.com/estk/log4rs/tree/main/examples).
