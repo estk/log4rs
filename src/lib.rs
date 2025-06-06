@@ -174,14 +174,14 @@
 //! # fn main() {}
 //! ```
 //!
-//! ## Custom with log4rs
+//! ## Custom implementations of logging components
 //!
 //! You can impl some trait for your struct and use it with log4rs. For example:
 //! - Impl [log4rs::append::Append](append/trait.Append.html) for your custom appender.
 //! - Impl [log4rs::encode::Encode](encode/trait.Encode.html) for your custom encoder.
 //! - Impl [log4rs::filter::Filter](filter/trait.Filter.html) for your custom filter.
 //!
-//! Here is a very sample example to create a custom appender,
+//! Here is a very simple example to create a custom appender,
 //! for more examples about custom, see [examples/custom.rs](https://github.com/estk/log4rs/tree/main/examples/custom.rs):
 //! ```no_run
 //! # fn f() {
@@ -194,7 +194,7 @@
 //! // impl your process record logic here
 //! impl Append for MyAppender {
 //!     fn append(&self, record: &log::Record) -> anyhow::Result<()> {
-//!         println!("{record:?}");
+//!         println!("appender({}): {record:?}", self.0);
 //!         Ok(())
 //!     }
 //!     fn flush(&self) {}
@@ -219,15 +219,16 @@
 //! # fn main() {}
 //! ```
 //!
-//! To config with file, you should implement [log4rs::config::Deserialize](config/trait.Deserialize.html) for your config and **register it in default Deserializers**.
+//! To configure log4rs with a file, you should implement [log4rs::config::Deserialize](config/trait.Deserialize.html) for your config and be sure to register it with [log4rs::config::Deserializers](config/struct.Deserializers.html) as shown in the example below.
 //!
-//! Here is a very simple example to use custom appender with custom config,
-//! for more examples about custom config file, see [examples/custom_config.rs](https://github.com/estk/log4rs/tree/main/examples/custom_config.rs):
+//! Here is a very simple example to use a custom appender with custom config.
+//! For more examples about custom config file, see [examples/custom_config.rs](https://github.com/estk/log4rs/tree/main/examples/custom_config.rs):
 //! ```yaml
 //! # custom_config.yml
 //! appenders:
 //!   my_appender:
 //!     kind: custom_appender
+//!     appender_data: 42
 //!
 //! root:
 //!   level: INFO
@@ -239,7 +240,7 @@
 //! # #[cfg(feature = "config_parsing")]
 //! # fn f() {
 //! use log4rs::append::Append;
-//! use log4rs::config::{Appender, Deserialize, Deserializers, Root};
+//! use log4rs::config::{Deserialize, Deserializers};
 //!
 //! #[derive(Debug)]
 //! struct MyAppender(usize);
@@ -247,7 +248,7 @@
 //! // impl your process record logic here
 //! impl Append for MyAppender {
 //!     fn append(&self, record: &log::Record) -> anyhow::Result<()> {
-//!         println!("{record:?}");
+//!         println!("appender({}): {record:?}", self.0);
 //!         Ok(())
 //!     }
 //!     fn flush(&self) {}
@@ -272,7 +273,7 @@
 //!         config: MyAppenderConfig,
 //!         _: &Deserializers,
 //!     ) -> anyhow::Result<Box<Self::Trait>> {
-//!         let appender_data = config.appender_data.unwrap_or(10000);
+//!         let appender_data = config.appender_data.unwrap_or(0);
 //!         let appender = MyAppender(appender_data);
 //!         Ok(Box::new(appender))
 //!     }
