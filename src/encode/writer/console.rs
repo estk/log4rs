@@ -250,14 +250,8 @@ mod imp {
         pub fn stdout() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stdout()));
             match *COLOR_MODE {
-                ColorMode::Auto => {
-                    if unsafe { libc::isatty(libc::STDOUT_FILENO) } != 1 {
-                        None
-                    } else {
-                        Some(writer())
-                    }
-                }
-                ColorMode::Always => Some(writer()),
+                ColorMode::Auto 
+                | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }
@@ -265,14 +259,8 @@ mod imp {
         pub fn stderr() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stderr()));
             match *COLOR_MODE {
-                ColorMode::Auto => {
-                    if unsafe { libc::isatty(libc::STDERR_FILENO) } != 1 {
-                        None
-                    } else {
-                        Some(writer())
-                    }
-                }
-                ColorMode::Always => Some(writer()),
+                ColorMode::Auto 
+                | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }
