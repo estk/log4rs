@@ -77,6 +77,25 @@ impl Default for TimeTriggerInterval {
     }
 }
 
+fn get_current_time() -> DateTime<Local> {
+    #[cfg(mock_time)]
+    {
+        use mock_instant::thread_local::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time before Unix epoch");
+        DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
+            .unwrap()
+            .naive_local()
+            .and_local_timezone(Local)
+            .unwrap()
+    }
+
+    #[cfg(not(mock_time))]
+    Local::now()
+}
+
 #[cfg(feature = "config_parsing")]
 impl<'de> serde::Deserialize<'de> for TimeTriggerInterval {
     fn deserialize<D>(d: D) -> Result<Self, D::Error>
@@ -261,22 +280,7 @@ impl TimeTrigger {
     }
 
     fn refresh_time(&self) {
-        #[cfg(mock_time)]
-        let current = {
-            use mock_instant::thread_local::{SystemTime, UNIX_EPOCH};
-
-            let now: std::time::Duration = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time before Unix epoch");
-            DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
-                .unwrap()
-                .naive_local()
-                .and_local_timezone(Local)
-                .unwrap()
-        };
-
-        #[cfg(not(mock_time))]
-        let current = Local::now();
+        let current = get_current_time();
         let next_time = self.get_next_time(current);
         let next_roll_time = if self.config.max_random_delay > 0 {
             let random_delay = rand::rng().random_range(0..self.config.max_random_delay);
@@ -293,22 +297,8 @@ impl Trigger for TimeTrigger {
         self.initial.call_once(|| {
             self.refresh_time();
         });
-        #[cfg(mock_time)]
-        let current = {
-            use mock_instant::thread_local::{SystemTime, UNIX_EPOCH};
-
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time before Unix epoch");
-            DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
-                .unwrap()
-                .naive_local()
-                .and_local_timezone(Local)
-                .unwrap()
-        };
-
-        #[cfg(not(mock_time))]
-        let current: DateTime<Local> = Local::now();
+        
+        let current = get_current_time();
         let next_roll_time = self.next_roll_time.read().unwrap();
         let is_trigger = current >= *next_roll_time;
         drop(next_roll_time);
