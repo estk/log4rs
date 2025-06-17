@@ -77,22 +77,22 @@ impl Default for TimeTriggerInterval {
     }
 }
 
+#[cfg(mock_time)]
 fn get_current_time() -> DateTime<Local> {
-    #[cfg(mock_time)]
-    {
-        use mock_instant::thread_local::{SystemTime, UNIX_EPOCH};
+    use mock_instant::thread_local::{SystemTime, UNIX_EPOCH};
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time before Unix epoch");
-        DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
-            .unwrap()
-            .naive_local()
-            .and_local_timezone(Local)
-            .unwrap()
-    }
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time before Unix epoch");
+    DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
+        .unwrap()
+        .naive_local()
+        .and_local_timezone(Local)
+        .unwrap()
+}
 
-    #[cfg(not(mock_time))]
+#[cfg(not(mock_time))]
+fn get_current_time() -> DateTime<Local> {
     Local::now()
 }
 
