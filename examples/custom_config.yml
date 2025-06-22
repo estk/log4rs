@@ -1,0 +1,15 @@
+appenders:
+  my_appender:
+    kind: my_appender
+    file_name: log.txt
+    filters:
+      - kind: my_filter
+        level: INFO
+    encoder:
+      kind: my_encoder
+      prefix: '[MyApp] '
+
+root:
+  level: TRACE
+  appenders:
+  - my_appender

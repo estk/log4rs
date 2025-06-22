@@ -146,5 +146,13 @@ required-features = ["file_appender", "rolling_file_appender", "time_trigger"]
 name = "multi_logger_config"
 required-features = ["yaml_format", "config_parsing"]
 
+[[example]]
+name = "custom"
+required-features = ["yaml_format", "config_parsing"]
+
+[[example]]
+name = "custom_config"
+required-features = ["yaml_format", "config_parsing"]
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mock_time)'] }
