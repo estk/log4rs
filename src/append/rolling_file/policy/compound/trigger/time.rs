@@ -297,7 +297,7 @@ impl Trigger for TimeTrigger {
         self.initial.call_once(|| {
             self.refresh_time();
         });
-        
+
         let current = get_current_time();
         let next_roll_time = self.next_roll_time.read().unwrap();
         let is_trigger = current >= *next_roll_time;
