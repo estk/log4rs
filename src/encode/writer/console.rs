@@ -132,7 +132,7 @@ mod imp {
             self,
             writer::{
                 ansi::AnsiWriter,
-                console::{ColorMode, color_mode},
+                console::{color_mode, ColorMode},
             },
             Style,
         },
@@ -243,7 +243,7 @@ mod imp {
     use crate::{
         encode::{
             self,
-            writer::console::{ColorMode, color_mode},
+            writer::console::{color_mode, ColorMode},
             Color, Style,
         },
         priv_io::{StdWriter, StdWriterLock},
