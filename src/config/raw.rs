@@ -478,13 +478,17 @@ fn logger_additive_default() -> bool {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
-    use std::fs;
+    use crate::filter::FilterConfig;
 
     use super::*;
+    use anyhow::Error;
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
+    use serde_value::{DeserializerError::UnknownField, Value};
+    use std::{collections::BTreeMap, fs, vec};
 
     #[test]
     #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
-    fn full_deserialize() {
+    fn test_yaml_deserialize() {
         let cfg = r#"
 refresh_rate: 60 seconds
 
@@ -514,14 +518,44 @@ loggers:
 "#;
         let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
         assert!(errors.is_empty());
+        assert_eq!(config.refresh_rate().unwrap(), Duration::new(60, 0));
     }
 
     #[test]
-    #[cfg(feature = "yaml_format")]
-    fn empty() {
-        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
+    fn test_bad_filter_and_appender_yaml() {
+        let cfg = r#"
+refresh_rate: 60 seconds
+
+appenders:
+    console:
+        kind: console
+        filters:
+        - kind: threshold
+          leve: debug
+    baz:
+        kind: file
+        pah: /tmp/baz.log
+        encoder:
+            pattern: "%m"
+
+root:
+    appenders:
+        - console
+    level: info
+
+loggers:
+    foo::bar::baz:
+        level: warn
+        appenders:
+            - baz
+        additive: false
+"#;
+        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let errors = config.appenders_lossy(&Deserializers::new()).1;
+        assert_eq!(errors.0.len(), 2);
+        // TODO look for a way to check the errors
     }
 
     #[cfg(windows)]
@@ -533,7 +567,7 @@ loggers:
 
     #[test]
     #[cfg(feature = "yaml_format")]
-    fn readme_sample_file_is_ok() {
+    fn test_readme_sample_file_is_ok() {
         let readme = fs::read_to_string("./README.md").expect("README file exists");
         let sample_file = &readme[readme
             .find("log4rs.yaml:")
@@ -548,5 +582,49 @@ loggers:
         let config = ::serde_yaml::from_str::<RawConfig>(config_str);
         assert!(config.is_ok());
         assert!(config::create_raw_config(config.unwrap()).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "yaml_format")]
+    fn test_empty_cfg_is_valid() {
+        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+    }
+
+    #[test]
+    fn test_appender_errors() {
+        let errs = AppenderErrors { 0: vec![] };
+
+        // Verify nothing is manipulating the appender errors
+        assert!(errs.is_empty());
+
+        let mut errs = AppenderErrors {
+            0: vec![DeserializingConfigError::Appender(
+                "example".to_owned(),
+                anyhow!("test_appender_errors"),
+            )],
+        };
+
+        // Reports to stderr
+        errs.handle();
+    }
+
+    #[test]
+    fn test_duration_deserialize() {
+        let duration = Duration::new(5, 0);
+
+        assert_de_tokens(
+            &duration,
+            &[
+                Token::Struct {
+                    name: "Duration",
+                    len: 2,
+                },
+                Token::Str("secs"),
+                Token::U64(5),
+                Token::Str("nanos"),
+                Token::U64(0),
+                Token::StructEnd,
+            ],
+        );
     }
 }
