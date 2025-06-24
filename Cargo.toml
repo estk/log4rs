@@ -1,6 +1,6 @@
 [package]
 name = "log4rs"
-version = "1.4.0-rc1"
+version = "1.4.0-rc2"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Evan Simmons <esims89@gmail.com>",

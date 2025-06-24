@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.4.0-rc2]
+
+### Changed
+
+* update mock_instant and small refactor (#424 @CosminPerRam)
+* remove oncecell dependency (#423 @CosminPerRam)
+
 ## [1.4.0-rc1]
 
 ### New
