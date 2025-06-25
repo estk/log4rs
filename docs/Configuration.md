@@ -8,7 +8,7 @@ The more common configuration method, however, is via a separate config file.
 The `init_file` function takes the path to a config file as well as a
 `Deserializers` object which is responsible for instantiating the various
 objects specified by the config file. The following section covers the exact
-configuration syntax. Examples of both the programatic and configuration files
+configuration syntax. Examples of both the programmatic and configuration files
 can be found in the
 [examples directory](https://github.com/estk/log4rs/tree/main/examples).
 
@@ -88,7 +88,7 @@ loggers:
 Root is the required logger. It is the parent to all children loggers. To
 configure the Root, refer to [the logger section](#logger-configuration).
 
-> Note: The root logger has no parent and therefore cannot the _additive_
+> Note: The root logger has no parent, and therefore the _additive_
 field does not apply.
 
 ```yml
