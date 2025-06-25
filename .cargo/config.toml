@@ -1,5 +1,5 @@
-# The following is required for Wasm support in the `getrandom` crate, a transitive dependency of the `rand` crate.
-# See: https://docs.rs/getrandom/0.3.3/getrandom/#webassembly-support
+# The following is required for Wasm support in the `getrandom` crate, a transitive dependency of the `time_trigger`
+# feature. See: https://docs.rs/getrandom/0.3.3/getrandom/#webassembly-support
 #
 # If you are using `wasm-pack`, this config may not be respected. Use an environment variable instead:
 #       RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target web

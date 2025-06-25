@@ -250,8 +250,7 @@ mod imp {
         pub fn stdout() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stdout()));
             match *COLOR_MODE {
-                ColorMode::Auto 
-                | ColorMode::Always => Some(writer()),
+                ColorMode::Auto | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }
@@ -259,8 +258,7 @@ mod imp {
         pub fn stderr() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stderr()));
             match *COLOR_MODE {
-                ColorMode::Auto 
-                | ColorMode::Always => Some(writer()),
+                ColorMode::Auto | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }
