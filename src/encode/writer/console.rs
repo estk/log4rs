@@ -237,7 +237,7 @@ mod imp {
             self,
             writer::{
                 ansi::AnsiWriter,
-                console::{ColorMode, COLOR_MODE},
+                console::{color_mode, ColorMode},
             },
             Style,
         },
@@ -249,18 +249,16 @@ mod imp {
     impl Writer {
         pub fn stdout() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stdout()));
-            match *COLOR_MODE {
-                ColorMode::Auto 
-                | ColorMode::Always => Some(writer()),
+            match color_mode() {
+                ColorMode::Auto | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }
 
         pub fn stderr() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stderr()));
-            match *COLOR_MODE {
-                ColorMode::Auto 
-                | ColorMode::Always => Some(writer()),
+            match color_mode() {
+                ColorMode::Auto | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }

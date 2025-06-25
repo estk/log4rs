@@ -640,9 +640,7 @@ impl FormattedChunk {
                 TID.with(|tid| w.write_all(tid.to_string().as_bytes()))
             }
             #[cfg(target_family = "wasm")]
-            FormattedChunk::SystemThreadId => {
-                w.write_all("0".as_bytes())
-            }
+            FormattedChunk::SystemThreadId => w.write_all("0".as_bytes()),
             FormattedChunk::Target => w.write_all(record.target().as_bytes()),
             FormattedChunk::Newline => w.write_all(NEWLINE.as_bytes()),
             FormattedChunk::Align(ref chunks) => {
