@@ -79,6 +79,7 @@ impl JsonEncoder {
             line: record.line(),
             target: record.target(),
             thread: thread.name(),
+            #[cfg(not(target_family = "wasm"))]
             thread_id: thread_id::get(),
             mdc: Mdc,
             #[cfg(feature = "log_kv")]
@@ -111,6 +112,7 @@ struct Message<'a> {
     line: Option<u32>,
     target: &'a str,
     thread: Option<&'a str>,
+    #[cfg(not(target_family = "wasm"))]
     thread_id: usize,
     mdc: Mdc,
     #[cfg(feature = "log_kv")]

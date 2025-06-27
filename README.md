@@ -83,6 +83,16 @@ The methods to mitigate this are as follows.
 
 For more information see the PR that added [`background_rotation`](https://github.com/estk/log4rs/pull/117).
 
+## Wasm Support
+
+If you are building this library for a Wasm target with the `time_trigger` feature enabled, you need to make
+sure the Rust flag `--cfg getrandom_backend="wasm_js"` is supplied to the compiler. This should be automatic when 
+compiling with Cargo, but some configurations and tooling might require you to set an environment variable:
+
+```bash
+export RUSTFLAGS='--cfg getrandom_backend="wasm_js"'
+```
+
 ## License
 
 Licensed under either of
