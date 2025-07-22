@@ -48,7 +48,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
-log_kv = ["log/kv"]
+log_kv = ["log/kv", "log/kv_serde"]
 
 all_components = [
     "console_appender",
