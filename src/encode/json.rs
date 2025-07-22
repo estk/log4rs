@@ -187,7 +187,7 @@ mod kv {
             value: log::kv::Value<'kvs>,
         ) -> Result<(), log::kv::Error> {
             self.0
-                .serialize_entry(key.as_str(), &value.to_string())
+                .serialize_entry(key.as_str(), &value)
                 .map_err(|e| log::kv::Error::boxed(e.to_string()))?;
             Ok(())
         }
@@ -211,7 +211,7 @@ mod kv {
 mod test {
     #[cfg(feature = "chrono")]
     use chrono::{DateTime, Local};
-    use log::Level;
+    use log::{Level, Record};
 
     use super::*;
     use crate::encode::writer::simple::SimpleWriter;
@@ -230,6 +230,15 @@ mod test {
         let thread = "encode::json::test::default";
         log_mdc::insert("foo", "bar");
 
+        #[cfg(feature = "log_kv")]
+        #[derive(serde::Serialize)]
+        struct SerdeValue {
+            id: u32,
+        }
+
+        #[cfg(feature = "log_kv")]
+        let serde_value = SerdeValue { id: 42 };
+
         let encoder = JsonEncoder::new();
 
         let mut record_builder = Record::builder();
@@ -241,19 +250,25 @@ mod test {
             .line(Some(line));
 
         #[cfg(feature = "log_kv")]
-        record_builder.key_values(&[("log_foo", "log_bar")]);
+        let kvs = [
+            ("log_foo", log::kv::Value::from("log_bar")),
+            ("serde_val", log::kv::Value::from_serde(&serde_value)),
+        ];
+        #[cfg(feature = "log_kv")]
+        record_builder.key_values(&kvs);
 
         let mut buf = vec![];
         encoder
             .encode_inner(
                 &mut SimpleWriter(&mut buf),
                 time,
-                &record_builder.args(format_args!("{}", message)).build(),
+                &record_builder.args(format_args!("{message}")).build(),
             )
             .unwrap();
 
         #[cfg(feature = "log_kv")]
-        let expected_attributes = ",\"attributes\":{\"log_foo\":\"log_bar\"}";
+        let expected_attributes =
+            ",\"attributes\":{\"log_foo\":\"log_bar\",\"serde_val\":{\"id\":42}}";
         #[cfg(not(feature = "log_kv"))]
         let expected_attributes = "";
 
