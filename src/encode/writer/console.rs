@@ -363,7 +363,7 @@ mod imp {
                         handle,
                         defaults: info.wAttributes,
                     },
-                    inner: StdWriter::stdout(),
+                    inner: StdWriter::stderr(),
                 };
 
                 match color_mode() {
