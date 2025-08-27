@@ -1,6 +1,6 @@
 [package]
 name = "log4rs"
-version = "1.4.0-rc1"
+version = "1.4.0-rc2"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Evan Simmons <esims89@gmail.com>",
@@ -95,8 +95,7 @@ rand = { version = "0.9", optional = true }
 thiserror = "2.0.12"
 anyhow = "1.0.28"
 derive_more = { version = "2.0.1", features = ["debug"] }
-once_cell = "1.17.1"
-mock_instant = "0.5"
+mock_instant = "0.6"
 unicode-segmentation = "1.10.0"
 
 [target.'cfg(windows)'.dependencies]

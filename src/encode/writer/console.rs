@@ -5,30 +5,34 @@
 use std::{fmt, io};
 
 use crate::encode::{self, Style};
-use once_cell::sync::Lazy;
+use std::sync::OnceLock;
 
-static COLOR_MODE: Lazy<ColorMode> = Lazy::new(|| {
-    let no_color = std::env::var("NO_COLOR")
-        .map(|var| var != "0")
-        .unwrap_or(false);
-    let clicolor_force = std::env::var("CLICOLOR_FORCE")
-        .map(|var| var != "0")
-        .unwrap_or(false);
-    if no_color {
-        ColorMode::Never
-    } else if clicolor_force {
-        ColorMode::Always
-    } else {
-        let clicolor = std::env::var("CLICOLOR")
+static COLOR_MODE: OnceLock<ColorMode> = OnceLock::new();
+
+fn color_mode() -> &'static ColorMode {
+    COLOR_MODE.get_or_init(|| {
+        let no_color = std::env::var("NO_COLOR")
             .map(|var| var != "0")
-            .unwrap_or(true);
-        if clicolor {
-            ColorMode::Auto
-        } else {
+            .unwrap_or(false);
+        let clicolor_force = std::env::var("CLICOLOR_FORCE")
+            .map(|var| var != "0")
+            .unwrap_or(false);
+        if no_color {
             ColorMode::Never
+        } else if clicolor_force {
+            ColorMode::Always
+        } else {
+            let clicolor = std::env::var("CLICOLOR")
+                .map(|var| var != "0")
+                .unwrap_or(true);
+            if clicolor {
+                ColorMode::Auto
+            } else {
+                ColorMode::Never
+            }
         }
-    }
-});
+    })
+}
 
 /// The color output mode for a `ConsoleAppender`
 #[derive(Clone, Copy, Default)]
@@ -128,7 +132,7 @@ mod imp {
             self,
             writer::{
                 ansi::AnsiWriter,
-                console::{ColorMode, COLOR_MODE},
+                console::{color_mode, ColorMode},
             },
             Style,
         },
@@ -140,7 +144,7 @@ mod imp {
     impl Writer {
         pub fn stdout() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stdout()));
-            match *COLOR_MODE {
+            match color_mode() {
                 ColorMode::Auto => {
                     if unsafe { libc::isatty(libc::STDOUT_FILENO) } != 1 {
                         None
@@ -155,7 +159,7 @@ mod imp {
 
         pub fn stderr() -> Option<Writer> {
             let writer = || Writer(AnsiWriter(StdWriter::stderr()));
-            match *COLOR_MODE {
+            match color_mode() {
                 ColorMode::Auto => {
                     if unsafe { libc::isatty(libc::STDERR_FILENO) } != 1 {
                         None
@@ -239,7 +243,7 @@ mod imp {
     use crate::{
         encode::{
             self,
-            writer::console::{ColorMode, COLOR_MODE},
+            writer::console::{color_mode, ColorMode},
             Color, Style,
         },
         priv_io::{StdWriter, StdWriterLock},
@@ -335,7 +339,7 @@ mod imp {
                     inner: StdWriter::stdout(),
                 };
 
-                match *COLOR_MODE {
+                match color_mode() {
                     ColorMode::Auto | ColorMode::Always => Some(writer),
                     ColorMode::Never => None,
                 }
@@ -362,7 +366,7 @@ mod imp {
                     inner: StdWriter::stdout(),
                 };
 
-                match *COLOR_MODE {
+                match color_mode() {
                     ColorMode::Auto | ColorMode::Always => Some(writer),
                     ColorMode::Never => None,
                 }
