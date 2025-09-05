@@ -52,7 +52,7 @@ enum Writer {
 }
 
 impl Writer {
-    fn lock(&self) -> WriterLock {
+    fn lock(&self) -> WriterLock<'_> {
         match *self {
             Writer::Tty(ref w) => WriterLock::Tty(w.lock()),
             Writer::Raw(ref w) => WriterLock::Raw(SimpleWriter(w.lock())),
