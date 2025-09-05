@@ -1,5 +1,33 @@
 # Change Log
 
+## [1.4.0]
+
+### Fixed
+
+* Two minor typo fixes in `Configuration.md`. (#425 @RobertJacobsonCDC)
+
+### New
+
+* Support for Key-Value pairs (#362 @ellttBen)
+* Add time serialization into log file (#374 @TuEmb)
+* Public `TimeTriggerConfig` fields (#370 @Dirreke)
+* Left truncation unicode support (#285 @moh-eulith)
+* Zstd compression for log files (#363 @cristian-prato)
+* Add onstartup trigger (#343 @Dirreke)
+* Add config parsing tests (#357 @bconn98)
+* Add handle retrieval after log initialization (#393 @izolyomi)
+
+### Changed
+
+* update mock_instant and small refactor (#424 @CosminPerRam)
+* remove oncecell dependency (#423 @CosminPerRam)
+* MSRV to 1.75
+* Update deps: (thread-id, thiserror, mock_instant, rand)
+* Remove derivative crate (#408 @royb3)
+* Remove where_clauses_object_safety lint allow (#377 @Dirreke)
+* Refactor of time trigger logic (#347 @Dirreke)
+* Readme updated (#361 @bconn98)
+
 ## [1.4.0-rc2]
 
 ### Changed
