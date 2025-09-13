@@ -67,7 +67,7 @@ impl ConsoleWriter {
     }
 
     /// Locks the console, preventing other threads from writing concurrently.
-    pub fn lock(&self) -> ConsoleWriterLock {
+    pub fn lock(&self) -> ConsoleWriterLock<'_> {
         ConsoleWriterLock(self.0.lock())
     }
 }
@@ -172,7 +172,7 @@ mod imp {
             }
         }
 
-        pub fn lock(&self) -> WriterLock {
+        pub fn lock(&self) -> WriterLock<'_> {
             WriterLock(AnsiWriter((self.0).0.lock()))
         }
     }
