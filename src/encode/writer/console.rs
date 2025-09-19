@@ -67,7 +67,7 @@ impl ConsoleWriter {
     }
 
     /// Locks the console, preventing other threads from writing concurrently.
-    pub fn lock(&self) -> ConsoleWriterLock {
+    pub fn lock(&self) -> ConsoleWriterLock<'_> {
         ConsoleWriterLock(self.0.lock())
     }
 }
@@ -172,7 +172,7 @@ mod imp {
             }
         }
 
-        pub fn lock(&self) -> WriterLock {
+        pub fn lock(&self) -> WriterLock<'_> {
             WriterLock(AnsiWriter((self.0).0.lock()))
         }
     }
@@ -410,9 +410,13 @@ mod imp {
     }
 
     impl Writer {
-        pub fn stdout() -> Option<Writer> {
+        fn create_writer(inner_writer: StdWriter) -> Option<Writer> {
             unsafe {
-                let handle = processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE);
+                let handle = match inner_writer {
+                    StdWriter::Stdout(_) => processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE),
+                    StdWriter::Stderr(_) => processenv::GetStdHandle(winbase::STD_ERROR_HANDLE),
+                };
+
                 if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
@@ -427,7 +431,7 @@ mod imp {
                         handle,
                         defaults: info.wAttributes,
                     },
-                    inner: StdWriter::stdout(),
+                    inner: inner_writer,
                 };
 
                 match color_mode() {
@@ -437,31 +441,12 @@ mod imp {
             }
         }
 
+        pub fn stdout() -> Option<Writer> {
+            Self::create_writer(StdWriter::stdout())
+        }
+
         pub fn stderr() -> Option<Writer> {
-            unsafe {
-                let handle = processenv::GetStdHandle(winbase::STD_ERROR_HANDLE);
-                if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
-                    return None;
-                }
-
-                let mut info = mem::zeroed();
-                if wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
-                    return None;
-                }
-
-                let writer = Writer {
-                    console: RawConsole {
-                        handle,
-                        defaults: info.wAttributes,
-                    },
-                    inner: StdWriter::stdout(),
-                };
-
-                match color_mode() {
-                    ColorMode::Auto | ColorMode::Always => Some(writer),
-                    ColorMode::Never => None,
-                }
-            }
+            Self::create_writer(StdWriter::stderr())
         }
 
         pub fn lock<'a>(&'a self) -> WriterLock<'a> {

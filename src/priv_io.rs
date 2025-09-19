@@ -17,7 +17,7 @@ impl StdWriter {
         StdWriter::Stderr(io::stderr())
     }
 
-    pub fn lock(&self) -> StdWriterLock {
+    pub fn lock(&self) -> StdWriterLock<'_> {
         match *self {
             StdWriter::Stdout(ref w) => StdWriterLock::Stdout(w.lock()),
             StdWriter::Stderr(ref w) => StdWriterLock::Stderr(w.lock()),
