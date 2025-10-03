@@ -1,6 +1,6 @@
 [package]
 name = "log4rs"
-version = "1.4.0-rc2"
+version = "1.4.0"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Evan Simmons <esims89@gmail.com>",
@@ -33,7 +33,7 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-time_trigger = ["rand"]
+time_trigger = ["rand", "getrandom"]
 json_encoder = [
     "serde",
     "serde_json",
@@ -48,7 +48,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
-log_kv = ["log/kv"]
+log_kv = ["log/kv", "log/kv_serde"]
 
 all_components = [
     "console_appender",
@@ -85,7 +85,6 @@ log = { version = "0.4.21", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0.196", optional = true, features = ["derive"] }
 serde-value = { version = "0.7", optional = true }
-thread-id = { version = "5", optional = true }
 typemap-ors = { version = "1.0.0", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.9", optional = true }
@@ -109,6 +108,13 @@ winapi = { version = "0.3", optional = true, features = [
 
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2", optional = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+thread-id = { version = "5", optional = true }
+
+[target.'cfg(all(target_family = "wasm", feature="time_trigger"))'.dependencies]
+getrandom = { version = "0.3.3", features = ["wasm_js"], optional = true }
+
 
 [dev-dependencies]
 lazy_static = "1.4"

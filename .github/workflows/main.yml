@@ -74,3 +74,17 @@ jobs:
 
     - name: Bench features
       run: cargo bench --all-features
+
+  wasm:
+    name: Build for WebAssembly (wasm32-unknown-unknown)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Build for wasm32-unknown-unknown
+      run: cargo build --target wasm32-unknown-unknown

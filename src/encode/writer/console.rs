@@ -67,7 +67,7 @@ impl ConsoleWriter {
     }
 
     /// Locks the console, preventing other threads from writing concurrently.
-    pub fn lock(&self) -> ConsoleWriterLock {
+    pub fn lock(&self) -> ConsoleWriterLock<'_> {
         ConsoleWriterLock(self.0.lock())
     }
 }
@@ -168,6 +168,97 @@ mod imp {
                     }
                 }
                 ColorMode::Always => Some(writer()),
+                ColorMode::Never => None,
+            }
+        }
+
+        pub fn lock(&self) -> WriterLock<'_> {
+            WriterLock(AnsiWriter((self.0).0.lock()))
+        }
+    }
+
+    impl io::Write for Writer {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.flush()
+        }
+
+        fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+            self.0.write_all(buf)
+        }
+
+        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+            self.0.write_fmt(fmt)
+        }
+    }
+
+    impl encode::Write for Writer {
+        fn set_style(&mut self, style: &Style) -> io::Result<()> {
+            self.0.set_style(style)
+        }
+    }
+
+    pub struct WriterLock<'a>(AnsiWriter<StdWriterLock<'a>>);
+
+    impl<'a> io::Write for WriterLock<'a> {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.flush()
+        }
+
+        fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+            self.0.write_all(buf)
+        }
+
+        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+            self.0.write_fmt(fmt)
+        }
+    }
+
+    impl<'a> encode::Write for WriterLock<'a> {
+        fn set_style(&mut self, style: &Style) -> io::Result<()> {
+            self.0.set_style(style)
+        }
+    }
+}
+
+#[cfg(target_family = "wasm")]
+mod imp {
+    use std::{fmt, io};
+
+    use crate::{
+        encode::{
+            self,
+            writer::{
+                ansi::AnsiWriter,
+                console::{color_mode, ColorMode},
+            },
+            Style,
+        },
+        priv_io::{StdWriter, StdWriterLock},
+    };
+
+    pub struct Writer(AnsiWriter<StdWriter>);
+
+    impl Writer {
+        pub fn stdout() -> Option<Writer> {
+            let writer = || Writer(AnsiWriter(StdWriter::stdout()));
+            match color_mode() {
+                ColorMode::Auto | ColorMode::Always => Some(writer()),
+                ColorMode::Never => None,
+            }
+        }
+
+        pub fn stderr() -> Option<Writer> {
+            let writer = || Writer(AnsiWriter(StdWriter::stderr()));
+            match color_mode() {
+                ColorMode::Auto | ColorMode::Always => Some(writer()),
                 ColorMode::Never => None,
             }
         }
@@ -319,9 +410,13 @@ mod imp {
     }
 
     impl Writer {
-        pub fn stdout() -> Option<Writer> {
+        fn create_writer(inner_writer: StdWriter) -> Option<Writer> {
             unsafe {
-                let handle = processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE);
+                let handle = match inner_writer {
+                    StdWriter::Stdout(_) => processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE),
+                    StdWriter::Stderr(_) => processenv::GetStdHandle(winbase::STD_ERROR_HANDLE),
+                };
+
                 if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
                     return None;
                 }
@@ -336,7 +431,7 @@ mod imp {
                         handle,
                         defaults: info.wAttributes,
                     },
-                    inner: StdWriter::stdout(),
+                    inner: inner_writer,
                 };
 
                 match color_mode() {
@@ -346,31 +441,12 @@ mod imp {
             }
         }
 
+        pub fn stdout() -> Option<Writer> {
+            Self::create_writer(StdWriter::stdout())
+        }
+
         pub fn stderr() -> Option<Writer> {
-            unsafe {
-                let handle = processenv::GetStdHandle(winbase::STD_ERROR_HANDLE);
-                if handle.is_null() || handle == handleapi::INVALID_HANDLE_VALUE {
-                    return None;
-                }
-
-                let mut info = mem::zeroed();
-                if wincon::GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
-                    return None;
-                }
-
-                let writer = Writer {
-                    console: RawConsole {
-                        handle,
-                        defaults: info.wAttributes,
-                    },
-                    inner: StdWriter::stdout(),
-                };
-
-                match color_mode() {
-                    ColorMode::Auto | ColorMode::Always => Some(writer),
-                    ColorMode::Never => None,
-                }
-            }
+            Self::create_writer(StdWriter::stderr())
         }
 
         pub fn lock<'a>(&'a self) -> WriterLock<'a> {
