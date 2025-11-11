@@ -871,6 +871,24 @@ mod tests {
         .unwrap();
     }
 
+      #[test]
+    #[cfg(feature = "simple_writer")]
+    fn thread_and_thread_id() {
+        thread::Builder::new()
+            .name("foobar".to_string())
+            .spawn(|| {
+                let pw = PatternEncoder::new("{thread}:{thread_id}");
+                let mut buf = vec![];
+                pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
+                    .unwrap();
+                let expected = format!("{}:{}", thread::current().name().unwrap_or("unnamed"), thread_id::get());
+                assert_eq!(buf, expected.as_bytes());
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
     #[test]
     #[cfg(feature = "simple_writer")]
     fn process_id() {

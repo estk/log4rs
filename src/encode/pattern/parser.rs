@@ -86,7 +86,7 @@ impl<'a> Parser<'a> {
 
         loop {
             match self.it.peek() {
-                Some(&(_, ch)) if ch.is_alphanumeric() => {
+                Some(&(_, ch)) if ch.is_alphanumeric() || ch == '_' => {
                     self.it.next();
                 }
                 Some(&(end, _)) => return &self.pattern[start..end],
