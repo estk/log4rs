@@ -871,7 +871,7 @@ mod tests {
         .unwrap();
     }
 
-      #[test]
+    #[test]
     #[cfg(feature = "simple_writer")]
     fn thread_and_thread_id() {
         thread::Builder::new()
@@ -881,7 +881,11 @@ mod tests {
                 let mut buf = vec![];
                 pw.encode(&mut SimpleWriter(&mut buf), &Record::builder().build())
                     .unwrap();
-                let expected = format!("{}:{}", thread::current().name().unwrap_or("unnamed"), thread_id::get());
+                let expected = format!(
+                    "{}:{}",
+                    thread::current().name().unwrap_or("unnamed"),
+                    thread_id::get()
+                );
                 assert_eq!(buf, expected.as_bytes());
             })
             .unwrap()
