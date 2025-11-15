@@ -29,7 +29,7 @@ impl ThresholdFilter {
 }
 
 impl Filter for ThresholdFilter {
-    fn filter(&self, record: &Record<'_> ) -> Response {
+    fn filter(&self, record: &Record<'_>) -> Response {
         if record.level() > self.level {
             Response::Reject
         } else {

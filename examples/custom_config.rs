@@ -31,7 +31,7 @@ impl MyFilter {
 }
 
 impl Filter for MyFilter {
-    fn filter(&self, record: &log::Record<'_> ) -> Response {
+    fn filter(&self, record: &log::Record<'_>) -> Response {
         // Exclude all log messages at the info level
         if record.level() == self.level {
             return Response::Reject;
@@ -100,7 +100,7 @@ impl MyAppender {
 }
 
 impl Append for MyAppender {
-    fn append(&self, record: &log::Record<'_> ) -> anyhow::Result<()> {
+    fn append(&self, record: &log::Record<'_>) -> anyhow::Result<()> {
         match record.level() {
             log::Level::Trace | log::Level::Debug => {
                 let mut writer = self.console_writer.lock();

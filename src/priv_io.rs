@@ -47,7 +47,7 @@ impl io::Write for StdWriter {
         }
     }
 
-    fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
         match *self {
             StdWriter::Stdout(ref mut w) => w.write_fmt(fmt),
             StdWriter::Stderr(ref mut w) => w.write_fmt(fmt),
@@ -82,7 +82,7 @@ impl<'a> io::Write for StdWriterLock<'a> {
         }
     }
 
-    fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
         match *self {
             StdWriterLock::Stdout(ref mut w) => w.write_fmt(fmt),
             StdWriterLock::Stderr(ref mut w) => w.write_fmt(fmt),
