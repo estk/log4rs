@@ -92,7 +92,7 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut dyn Write, record: &Record<'_> ) -> anyhow::Result<()> {
+    fn encode(&self, w: &mut dyn Write, record: &Record<'_>) -> anyhow::Result<()> {
         self.encode_inner(w, Local::now(), record)
     }
 }
