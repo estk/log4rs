@@ -100,6 +100,7 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
         .unwrap()
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct Stats {
     min: Duration,

@@ -193,7 +193,7 @@
 //!
 //! // impl your process record logic here
 //! impl Append for MyAppender {
-//!     fn append(&self, record: &log::Record) -> anyhow::Result<()> {
+//!     fn append(&self, record: &log::Record<'_> ) -> anyhow::Result<()> {
 //!         println!("appender({}): {record:?}", self.0);
 //!         Ok(())
 //!     }
@@ -247,7 +247,7 @@
 //!
 //! // impl your process record logic here
 //! impl Append for MyAppender {
-//!     fn append(&self, record: &log::Record) -> anyhow::Result<()> {
+//!     fn append(&self, record: &log::Record<'_> ) -> anyhow::Result<()> {
 //!         println!("appender({}): {record:?}", self.0);
 //!         Ok(())
 //!     }
@@ -393,7 +393,7 @@ impl ConfiguredLogger {
         self.level >= level
     }
 
-    fn log(&self, record: &log::Record, appenders: &[Appender]) -> Result<(), Vec<anyhow::Error>> {
+    fn log(&self, record: &log::Record<'_>, appenders: &[Appender]) -> Result<(), Vec<anyhow::Error>> {
         let mut errors = vec![];
         if self.enabled(record.level()) {
             for &idx in &self.appenders {
@@ -418,7 +418,7 @@ struct Appender {
 }
 
 impl Appender {
-    fn append(&self, record: &Record) -> anyhow::Result<()> {
+    fn append(&self, record: &Record<'_> ) -> anyhow::Result<()> {
         for filter in &self.filters {
             match filter.filter(record) {
                 filter::Response::Accept => break,
@@ -545,7 +545,7 @@ impl Logger {
 }
 
 impl log::Log for Logger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
+    fn enabled(&self, metadata: &Metadata<'_> ) -> bool {
         self.0
             .load()
             .root
@@ -553,7 +553,7 @@ impl log::Log for Logger {
             .enabled(metadata.level())
     }
 
-    fn log(&self, record: &log::Record) {
+    fn log(&self, record: &log::Record<'_> ) {
         let shared = self.0.load();
         if let Err(errs) = shared
             .root

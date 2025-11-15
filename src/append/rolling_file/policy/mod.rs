@@ -15,7 +15,7 @@ pub trait Policy: Sync + Send + 'static + fmt::Debug {
     ///
     /// This method is called after each log event. It is provided a reference
     /// to the current log file.
-    fn process(&self, log: &mut LogFile) -> anyhow::Result<()>;
+    fn process(&self, log: &mut LogFile<'_>) -> anyhow::Result<()>;
     /// Return the config `Trigger.is_pre_process` value
     fn is_pre_process(&self) -> bool;
 }

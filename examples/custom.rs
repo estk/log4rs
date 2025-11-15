@@ -36,7 +36,7 @@ impl MyFilter {
 }
 
 impl Filter for MyFilter {
-    fn filter(&self, record: &log::Record) -> Response {
+    fn filter(&self, record: &log::Record<'_> ) -> Response {
         // Exclude all log messages at the info level
         if record.level() == self.level {
             return Response::Reject;
@@ -63,7 +63,7 @@ impl Encode for MyEncoder {
     fn encode(
         &self,
         w: &mut dyn log4rs::encode::Write,
-        record: &log::Record,
+        record: &log::Record<'_>,
     ) -> anyhow::Result<()> {
         // Write the prefix followed by the log message
         writeln!(
@@ -105,7 +105,7 @@ impl MyAppender {
 }
 
 impl Append for MyAppender {
-    fn append(&self, record: &log::Record) -> anyhow::Result<()> {
+    fn append(&self, record: &log::Record<'_> ) -> anyhow::Result<()> {
         match record.level() {
             log::Level::Trace | log::Level::Debug => {
                 let mut writer = self.console_writer.lock();

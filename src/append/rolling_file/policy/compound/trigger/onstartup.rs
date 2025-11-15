@@ -41,7 +41,7 @@ impl OnStartUpTrigger {
 }
 
 impl Trigger for OnStartUpTrigger {
-    fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
+    fn trigger(&self, file: &LogFile<'_>) -> anyhow::Result<bool> {
         let mut result = false;
         self.initial.call_once(|| {
             if file.len_estimate() >= self.min_size {

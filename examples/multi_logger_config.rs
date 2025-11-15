@@ -1,7 +1,6 @@
 use std::{default::Default, thread, time::Duration};
 
 use log::{error, warn};
-use log4rs;
 
 fn main() {
     log4rs::init_file("examples/multi_logger.yml", Default::default()).unwrap();

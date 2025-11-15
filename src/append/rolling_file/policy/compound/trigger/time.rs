@@ -107,7 +107,7 @@ impl<'de> serde::Deserialize<'de> for TimeTriggerInterval {
         impl<'de2> de::Visitor<'de2> for V {
             type Value = TimeTriggerInterval;
 
-            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
                 fmt.write_str("a time")
             }
 
@@ -293,7 +293,7 @@ impl TimeTrigger {
 }
 
 impl Trigger for TimeTrigger {
-    fn trigger(&self, _file: &LogFile) -> anyhow::Result<bool> {
+    fn trigger(&self, _file: &LogFile<'_>) -> anyhow::Result<bool> {
         self.initial.call_once(|| {
             self.refresh_time();
         });
