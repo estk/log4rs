@@ -2,7 +2,7 @@ use std::process::Command;
 
 fn execute_test(env_key: &str, env_val: &str) {
     let mut child_proc = Command::new("cargo")
-        .args(&["run", "--example", "compile_time_config"])
+        .args(["run", "--example", "compile_time_config"])
         .env(env_key, env_val)
         .spawn()
         .expect("Cargo command failed to start");
