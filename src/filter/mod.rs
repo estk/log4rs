@@ -21,7 +21,7 @@ pub mod threshold;
 /// sent to that appender.
 pub trait Filter: fmt::Debug + Send + Sync + 'static {
     /// Filters a log event.
-    fn filter(&self, record: &Record) -> Response;
+    fn filter(&self, record: &Record<'_> ) -> Response;
 }
 
 #[cfg(feature = "config_parsing")]

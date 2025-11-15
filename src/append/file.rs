@@ -49,7 +49,7 @@ pub struct FileAppender {
 }
 
 impl Append for FileAppender {
-    fn append(&self, record: &Record) -> anyhow::Result<()> {
+    fn append(&self, record: &Record<'_>) -> anyhow::Result<()> {
         let mut file = self.file.lock();
         self.encoder.encode(&mut *file, record)?;
         file.flush()?;

@@ -35,7 +35,7 @@ const NEWLINE: &str = "\n";
 /// output.
 pub trait Encode: fmt::Debug + Send + Sync + 'static {
     /// Encodes the `Record` into bytes and writes them.
-    fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()>;
+    fn encode(&self, w: &mut dyn Write, record: &Record<'_> ) -> anyhow::Result<()>;
 }
 
 #[cfg(feature = "config_parsing")]

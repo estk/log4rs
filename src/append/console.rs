@@ -96,7 +96,7 @@ impl<'a> io::Write for WriterLock<'a> {
         }
     }
 
-    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
         match *self {
             WriterLock::Tty(ref mut w) => w.write_fmt(fmt),
             WriterLock::Raw(ref mut w) => w.write_fmt(fmt),
@@ -126,7 +126,7 @@ pub struct ConsoleAppender {
 }
 
 impl Append for ConsoleAppender {
-    fn append(&self, record: &Record) -> anyhow::Result<()> {
+    fn append(&self, record: &Record<'_>) -> anyhow::Result<()> {
         if self.do_write {
             let mut writer = self.writer.lock();
             self.encoder.encode(&mut writer, record)?;

@@ -100,7 +100,7 @@ impl CompoundPolicy {
 }
 
 impl Policy for CompoundPolicy {
-    fn process(&self, log: &mut LogFile) -> anyhow::Result<()> {
+    fn process(&self, log: &mut LogFile<'_>) -> anyhow::Result<()> {
         if self.trigger.trigger(log)? {
             log.roll();
             self.roller.roll(log.path())?;

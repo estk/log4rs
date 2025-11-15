@@ -112,7 +112,7 @@ libc = { version = "0.2", optional = true }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 thread-id = { version = "5", optional = true }
 
-[target.'cfg(all(target_family = "wasm", feature="time_trigger"))'.dependencies]
+[target.'cfg(all(target_family = "wasm"))'.dependencies]
 getrandom = { version = "0.3.3", features = ["wasm_js"], optional = true }
 
 

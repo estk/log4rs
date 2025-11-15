@@ -419,7 +419,7 @@ where
             impl<'de3> de::Visitor<'de3> for V {
                 type Value = S;
 
-                fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
                     fmt.write_str("a duration")
                 }
 
@@ -529,7 +529,7 @@ loggers:
     const LINE_ENDING: &'static str = "\r\n";
     #[cfg(not(windows))]
     #[allow(dead_code)]
-    const LINE_ENDING: &'static str = "\n";
+    const LINE_ENDING: &str = "\n";
 
     #[test]
     #[cfg(feature = "yaml_format")]

@@ -161,7 +161,7 @@ pub struct RollingFileAppender {
 }
 
 impl Append for RollingFileAppender {
-    fn append(&self, record: &Record) -> anyhow::Result<()> {
+    fn append(&self, record: &Record<'_>) -> anyhow::Result<()> {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
@@ -420,7 +420,7 @@ appenders:
     struct NopPolicy;
 
     impl Policy for NopPolicy {
-        fn process(&self, _: &mut LogFile) -> anyhow::Result<()> {
+        fn process(&self, _: &mut LogFile<'_>) -> anyhow::Result<()> {
             Ok(())
         }
         fn is_pre_process(&self) -> bool {

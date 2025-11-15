@@ -31,7 +31,7 @@ where
     impl<'de2> de::Visitor<'de2> for V {
         type Value = u64;
 
-        fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
             fmt.write_str("a size")
         }
 
@@ -114,7 +114,7 @@ impl SizeTrigger {
 }
 
 impl Trigger for SizeTrigger {
-    fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
+    fn trigger(&self, file: &LogFile<'_>) -> anyhow::Result<bool> {
         Ok(file.len_estimate() > self.limit)
     }
 

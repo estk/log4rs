@@ -18,7 +18,7 @@ pub mod onstartup;
 /// A trait which identifies if the active log file should be rolled over.
 pub trait Trigger: fmt::Debug + Send + Sync + 'static {
     /// Determines if the active log file should be rolled over.
-    fn trigger(&self, file: &LogFile) -> anyhow::Result<bool>;
+    fn trigger(&self, file: &LogFile<'_>) -> anyhow::Result<bool>;
 
     /// Sets the is_pre_process flag for log files.
     ///

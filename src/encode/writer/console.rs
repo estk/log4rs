@@ -85,7 +85,7 @@ impl io::Write for ConsoleWriter {
         self.0.write_all(buf)
     }
 
-    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
         self.0.write_fmt(fmt)
     }
 }
@@ -112,7 +112,7 @@ impl<'a> io::Write for ConsoleWriterLock<'a> {
         self.0.write_all(buf)
     }
 
-    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
         self.0.write_fmt(fmt)
     }
 }
@@ -190,7 +190,7 @@ mod imp {
             self.0.write_all(buf)
         }
 
-        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
             self.0.write_fmt(fmt)
         }
     }
@@ -216,7 +216,7 @@ mod imp {
             self.0.write_all(buf)
         }
 
-        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
             self.0.write_fmt(fmt)
         }
     }
@@ -281,7 +281,7 @@ mod imp {
             self.0.write_all(buf)
         }
 
-        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
             self.0.write_fmt(fmt)
         }
     }
@@ -307,7 +307,7 @@ mod imp {
             self.0.write_all(buf)
         }
 
-        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
             self.0.write_fmt(fmt)
         }
     }
@@ -470,7 +470,7 @@ mod imp {
             self.inner.write_all(buf)
         }
 
-        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
             self.inner.write_fmt(fmt)
         }
     }
@@ -500,7 +500,7 @@ mod imp {
             self.inner.write_all(buf)
         }
 
-        fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+        fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
             self.inner.write_fmt(fmt)
         }
     }

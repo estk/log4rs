@@ -45,7 +45,7 @@ mod env_util {
     where
         Str: Into<Cow<'str, str>>,
     {
-        let mut outpath: Cow<str> = path.into();
+        let mut outpath: Cow<'_, str> = path.into();
         let path = outpath.clone();
         for (match_start, _) in path.match_indices(ENV_PREFIX) {
             let env_name_start = match_start + ENV_PREFIX_LEN;
@@ -89,7 +89,7 @@ mod env_util {
 /// to a file or the console.
 pub trait Append: fmt::Debug + Send + Sync + 'static {
     /// Processes the provided `Record`.
-    fn append(&self, record: &Record) -> anyhow::Result<()>;
+    fn append(&self, record: &Record<'_>) -> anyhow::Result<()>;
 
     /// Flushes all in-flight records.
     fn flush(&self);
@@ -103,7 +103,7 @@ impl Deserializable for dyn Append {
 }
 
 impl<T: Log + fmt::Debug + 'static> Append for T {
-    fn append(&self, record: &Record) -> anyhow::Result<()> {
+    fn append(&self, record: &Record<'_>) -> anyhow::Result<()> {
         self.log(record);
         Ok(())
     }

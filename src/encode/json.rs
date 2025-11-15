@@ -67,7 +67,7 @@ impl JsonEncoder {
         &self,
         w: &mut dyn Write,
         time: DateTime<Local>,
-        record: &Record,
+        record: &Record<'_>,
     ) -> anyhow::Result<()> {
         let thread = thread::current();
         let message = Message {
@@ -92,7 +92,7 @@ impl JsonEncoder {
 }
 
 impl Encode for JsonEncoder {
-    fn encode(&self, w: &mut dyn Write, record: &Record) -> anyhow::Result<()> {
+    fn encode(&self, w: &mut dyn Write, record: &Record<'_> ) -> anyhow::Result<()> {
         self.encode_inner(w, Local::now(), record)
     }
 }

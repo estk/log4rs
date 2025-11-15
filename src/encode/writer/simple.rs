@@ -23,7 +23,7 @@ impl<W: io::Write> io::Write for SimpleWriter<W> {
         self.0.write_all(buf)
     }
 
-    fn write_fmt(&mut self, fmt: fmt::Arguments) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_> ) -> io::Result<()> {
         self.0.write_fmt(fmt)
     }
 }

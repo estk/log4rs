@@ -183,7 +183,7 @@ enum Chunk {
 }
 
 impl Chunk {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_> ) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted {
@@ -538,7 +538,7 @@ impl<'writer, 'params> StringBasedWriter<'writer, 'params> {
     }
 }
 
-fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chunk {
+fn no_args(arg: &[Vec<Piece<'_>>], params: Parameters, chunk: FormattedChunk) -> Chunk {
     if arg.is_empty() {
         Chunk::Formatted { chunk, params }
     } else {
@@ -546,7 +546,7 @@ fn no_args(arg: &[Vec<Piece>], params: Parameters, chunk: FormattedChunk) -> Chu
     }
 }
 
-fn kv_parsing<'a>(formatter: &'a Formatter) -> Result<(String, String), &'a str> {
+fn kv_parsing<'a>(formatter: &'a Formatter<'_> ) -> Result<(String, String), &'a str> {
     if formatter.args.len() > 2 {
         return Err("expected at most two arguments");
     }
@@ -613,7 +613,7 @@ enum FormattedChunk {
 }
 
 impl FormattedChunk {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> io::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_> ) -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
@@ -718,7 +718,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record) -> anyhow::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_> ) -> anyhow::Result<()> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
