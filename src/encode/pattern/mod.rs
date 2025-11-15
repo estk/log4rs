@@ -556,7 +556,7 @@ fn kv_parsing<'a>(formatter: &'a Formatter<'_>) -> Result<(String, String), &'a 
             if let Some(arg) = arg.first() {
                 match arg {
                     Piece::Text(key) => key.to_owned(),
-                    Piece::Error(ref e) => return Err(e),
+                    Piece::Error(e) => return Err(e),
                     _ => return Err("invalid key"),
                 }
             } else {
@@ -571,7 +571,7 @@ fn kv_parsing<'a>(formatter: &'a Formatter<'_>) -> Result<(String, String), &'a 
             if let Some(arg) = arg.first() {
                 match arg {
                     Piece::Text(key) => key.to_owned(),
-                    Piece::Error(ref e) => return Err(e),
+                    Piece::Error(e) => return Err(e),
                     _ => return Err("invalid default"),
                 }
             } else {

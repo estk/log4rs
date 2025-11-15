@@ -159,7 +159,7 @@ mod test {
     #[test]
     #[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
     fn expand_env_vars_tests() {
-        set_var("HELLO_WORLD", "GOOD BYE");
+        unsafe { set_var("HELLO_WORLD", "GOOD BYE") };
         #[cfg(not(target_os = "windows"))]
         let test_cases = vec![
             ("$ENV{HOME}", var("HOME").unwrap()),

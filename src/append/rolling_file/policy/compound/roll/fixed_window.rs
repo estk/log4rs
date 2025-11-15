@@ -620,7 +620,7 @@ mod test {
 
     #[test]
     fn roll_with_env_var() {
-        std::env::set_var("LOG_DIR", "test_log_dir");
+        unsafe { std::env::set_var("LOG_DIR", "test_log_dir") };
         let fcontent = b"file1";
         let dir = tempfile::tempdir().unwrap();
 
