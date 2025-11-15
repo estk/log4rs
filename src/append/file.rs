@@ -327,7 +327,7 @@ mod test {
             .unwrap();
 
         // Only MAX_REPLACEMENTS should be replaced, the rest should remain as $TIME{...}
-        let mut expected_path = format!("foo/bar/logs/log");
+        let mut expected_path = "foo/bar/logs/log".to_string();
         for i in 0..10 {
             if i < MAX_REPLACEMENTS {
                 expected_path.push_str(&format!("-{}", current_time));

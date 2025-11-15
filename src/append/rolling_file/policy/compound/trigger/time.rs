@@ -444,7 +444,7 @@ mod test {
     #[test]
     #[cfg(feature = "yaml_format")]
     fn test_serde() {
-        let test_error = vec![
+        let test_error = [
             "abc",   // // str none none
             "",      // none
             "5 das", // bad unit
@@ -453,7 +453,7 @@ mod test {
         ];
 
         for interval in test_error.iter() {
-            let error = ::serde_yaml::from_str::<TimeTriggerInterval>(&interval);
+            let error = ::serde_yaml::from_str::<TimeTriggerInterval>(interval);
             assert!(error.is_err());
         }
 
@@ -483,7 +483,7 @@ mod test {
             ("1 years", TimeTriggerInterval::Year(1)),
         ];
         for (interval, expected) in test_ok.iter() {
-            let interval = format!("{}", interval);
+            let interval = interval.to_string();
             let interval = ::serde_yaml::from_str::<TimeTriggerInterval>(&interval).unwrap();
             assert_eq!(interval, *expected);
         }

@@ -41,27 +41,27 @@
 //! a formatter does not accept any argument.
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
-//!     A custom format may be provided in the syntax accepted by `chrono`.
-//!     The timezone defaults to local, but can be specified explicitly by
-//!     passing a second argument of `utc` for UTC or `local` for local time.
-//!     * `{d}` - `2016-03-20T14:22:20.644420340-08:00`
-//!     * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 14:22:20`
-//!     * `{d(%Y-%m-%d %H:%M:%S %Z)(utc)}` - `2016-03-20 22:22:20 UTC`
+//!   A custom format may be provided in the syntax accepted by `chrono`.
+//!   The timezone defaults to local, but can be specified explicitly by
+//!   passing a second argument of `utc` for UTC or `local` for local time.
+//!   * `{d}` - `2016-03-20T14:22:20.644420340-08:00`
+//!   * `{d(%Y-%m-%d %H:%M:%S)}` - `2016-03-20 14:22:20`
+//!   * `{d(%Y-%m-%d %H:%M:%S %Z)(utc)}` - `2016-03-20 22:22:20 UTC`
 //! * `f`, `file` - The source file that the log message came from, or `???` if
-//!     not provided.
+//!   not provided.
 //! * `h`, `highlight` - Styles its argument according to the log level. The
-//!     style is intense red for errors, red for warnings, blue for info, and
-//!     the default style for all other levels.
-//!     * `{h(the level is {l})}` -
-//!         <code style="color: red; font-weight: bold">the level is ERROR</code>
+//!   style is intense red for errors, red for warnings, blue for info, and
+//!   the default style for all other levels.
+//!   * `{h(the level is {l})}` -
+//!     <code style="color: red; font-weight: bold">the level is ERROR</code>
 //! * `D`, `debug` - Outputs its arguments ONLY in debug build.
 //! * `R`, `release` - Outputs its arguments ONLY in release build.
 //! * `l`, `level` - The log level.
 //! * `L`, `line` - The line that the log message came from, or `???` if not
-//!     provided.
+//!   provided.
 //! * `m`, `message` - The log message.
 //! * `M`, `module` - The module that the log message came from, or `???` if not
-//!     provided.
+//!   provided.
 //! * `P`, `pid` - The current process id.
 //! * `i`, `tid` - The current system-wide unique thread ID.
 //! * `n` - A platform-specific newline.
@@ -69,22 +69,22 @@
 //! * `T`, `thread` - The name of the current thread.
 //! * `I`, `thread_id` - The pthread ID of the current thread.
 //! * `X`, `mdc` - A value from the [MDC][MDC]. The first argument specifies
-//!     the key, and the second argument specifies the default value if the
-//!     key is not present in the MDC. The second argument is optional, and
-//!     defaults to the empty string.
+//!   the key, and the second argument specifies the default value if the
+//!   key is not present in the MDC. The second argument is optional, and
+//!   defaults to the empty string.
 //!     * `{X(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
 //!     * `{X(nonexistent_key)(no mapping)}` - `no mapping`
 //! * `K`, `key_value` - A value from a [log::kv][log_kv] structured logging
-//!     record attributes. The first argument specifies the key, and the second
-//!     argument specifies the default value if the key is not present in the
-//!     log record's attributes. The second argument is optional, and defaults
-//!     to the empty string. This formatter requires the `log_kv` feature to be
-//!     enabled.
-//!     * `{K(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
-//!     * `{K(nonexistent_key)(no mapping)}` - `no mapping`
+//!   record attributes. The first argument specifies the key, and the second
+//!   argument specifies the default value if the key is not present in the
+//!   log record's attributes. The second argument is optional, and defaults
+//!   to the empty string. This formatter requires the `log_kv` feature to be
+//!   enabled.
+//!   * `{K(user_id)}` - `123e4567-e89b-12d3-a456-426655440000`
+//!   * `{K(nonexistent_key)(no mapping)}` - `no mapping`
 //! * An "unnamed" formatter simply formats its argument, applying the format
-//!     specification.
-//!     * `{({l} {m})}` - `INFO hello`
+//!   specification.
+//!   * `{({l} {m})}` - `INFO hello`
 //!
 //! # Format Specification
 //!
@@ -101,7 +101,7 @@
 //!
 //! * `<` - Left align by appending the fill character to the formatter output
 //! * `>` - Right align by prepending the fill character to the formatter
-//!     output.
+//!   output.
 //!
 //! ## Width
 //!
@@ -183,7 +183,7 @@ enum Chunk {
 }
 
 impl Chunk {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_> ) -> io::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_>) -> io::Result<()> {
         match *self {
             Chunk::Text(ref s) => w.write_all(s.as_bytes()),
             Chunk::Formatted {
@@ -546,7 +546,7 @@ fn no_args(arg: &[Vec<Piece<'_>>], params: Parameters, chunk: FormattedChunk) ->
     }
 }
 
-fn kv_parsing<'a>(formatter: &'a Formatter<'_> ) -> Result<(String, String), &'a str> {
+fn kv_parsing<'a>(formatter: &'a Formatter<'_>) -> Result<(String, String), &'a str> {
     if formatter.args.len() > 2 {
         return Err("expected at most two arguments");
     }
@@ -613,7 +613,7 @@ enum FormattedChunk {
 }
 
 impl FormattedChunk {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_> ) -> io::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_>) -> io::Result<()> {
         match *self {
             FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
@@ -718,7 +718,7 @@ impl Default for PatternEncoder {
 }
 
 impl Encode for PatternEncoder {
-    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_> ) -> anyhow::Result<()> {
+    fn encode(&self, w: &mut dyn encode::Write, record: &Record<'_>) -> anyhow::Result<()> {
         for chunk in &self.chunks {
             chunk.encode(w, record)?;
         }
@@ -790,10 +790,10 @@ mod tests {
     use crate::encode::Encode;
 
     fn error_free(encoder: &PatternEncoder) -> bool {
-        encoder.chunks.iter().all(|c| match *c {
-            Chunk::Error(_) => false,
-            _ => true,
-        })
+        encoder
+            .chunks
+            .iter()
+            .all(|c| !matches!(*c, Chunk::Error(_)))
     }
 
     #[test]

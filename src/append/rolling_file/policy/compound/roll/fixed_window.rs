@@ -471,7 +471,7 @@ mod test {
         wait_for_roller(&roller);
         assert!(!file.exists());
         contents.clear();
-        File::open(dir.path().join(&format!("{}.{}", fname, base + 1)))
+        File::open(dir.path().join(format!("{}.{}", fname, base + 1)))
             .unwrap()
             .read_to_end(&mut contents)
             .unwrap();
