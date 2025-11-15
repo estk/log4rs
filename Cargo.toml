@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/estk/log4rs"
 readme = "README.md"
 keywords = ["log", "logger", "logging", "log4"]
-edition = "2018"
+edition = "2021"
 rust-version = "1.82"
 
 [features]
