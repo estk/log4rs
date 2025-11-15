@@ -11,7 +11,7 @@ repository = "https://github.com/estk/log4rs"
 readme = "README.md"
 keywords = ["log", "logger", "logging", "log4"]
 edition = "2018"
-rust-version = "1.75"
+rust-version = "1.82"
 
 [features]
 default = ["all_components", "config_parsing", "yaml_format"]

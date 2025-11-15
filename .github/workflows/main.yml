@@ -4,12 +4,12 @@ name: Build CI
 on:
   push:
     branches:
-    - main
-    - devel
+      - main
+      - devel
   pull_request:
     branches:
-    - main
-    - devel
+      - main
+      - devel
 
 jobs:
   test:
@@ -17,74 +17,74 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_versions: ["stable", "1.75"]
+        rust_versions: ["stable", "1.82"]
         os: [ubuntu-latest, windows-latest]
     steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v4
+      - name: Checkout the source code
+        uses: actions/checkout@v4
 
-    - uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ matrix.rust_versions }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust_versions }}
 
-    - name: Build lib
-      run: cargo build
+      - name: Build lib
+        run: cargo build
 
-    - name: Test lib
-      run: |
-        cargo test --all-features
-        # This test needs another run under the release mode
-        cargo test --release --features simple_writer encode::pattern::tests::debug_release
-      env:
-        RUSTFLAGS: -D warnings --cfg mock_time
+      - name: Test lib
+        run: |
+          cargo test --all-features
+          # This test needs another run under the release mode
+          cargo test --release --features simple_writer encode::pattern::tests::debug_release
+        env:
+          RUSTFLAGS: -D warnings --cfg mock_time
 
   features:
     name: Test Individual Features
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v4
+      - name: Checkout the source code
+        uses: actions/checkout@v4
 
-    - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
 
-    - name: Install jq
-      run: |
-        sudo apt-get install -y --no-install-recommends jq
+      - name: Install jq
+        run: |
+          sudo apt-get install -y --no-install-recommends jq
 
-    - name: Test lib
-      run: |
-        for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
-            echo building with feature "$feature"
-            RUSTFLAGS='-D warnings --cfg mock_time' cargo test --no-default-features --features "$feature"
-        done
+      - name: Test lib
+        run: |
+          for feature in $(cargo read-manifest | jq -r '.features|keys|join("\n")'); do
+              echo building with feature "$feature"
+              RUSTFLAGS='-D warnings --cfg mock_time' cargo test --no-default-features --features "$feature"
+          done
 
   bench:
     name: Benchmark the background_rotation feature
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_versions: ["stable", "1.75"]
+        rust_versions: ["stable", "1.82"]
     steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v4
+      - name: Checkout the source code
+        uses: actions/checkout@v4
 
-    - uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ matrix.rust_versions }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust_versions }}
 
-    - name: Bench features
-      run: cargo bench --all-features
+      - name: Bench features
+        run: cargo bench --all-features
 
   wasm:
     name: Build for WebAssembly (wasm32-unknown-unknown)
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout the source code
-      uses: actions/checkout@v4
+      - name: Checkout the source code
+        uses: actions/checkout@v4
 
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: wasm32-unknown-unknown
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
 
-    - name: Build for wasm32-unknown-unknown
-      run: cargo build --target wasm32-unknown-unknown
+      - name: Build for wasm32-unknown-unknown
+        run: cargo build --target wasm32-unknown-unknown

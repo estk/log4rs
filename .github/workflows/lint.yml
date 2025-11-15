@@ -30,7 +30,7 @@ jobs:
         run: cargo +nightly fmt -- --check
 
       - name: Run Clippy
-        run: rustup component add --toolchain 1.75-x86_64-unknown-linux-gnu clippy && cargo +1.75 clippy --all-features
+        run: rustup component add --toolchain 1.82-x86_64-unknown-linux-gnu clippy && cargo +1.82 clippy --all-features
         env:
           RUSTFLAGS: -D warnings
 
