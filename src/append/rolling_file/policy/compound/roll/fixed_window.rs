@@ -243,9 +243,8 @@ fn rotate(
         move_file(src.as_ref(), dst.as_ref())?;
     }
 
-    compression.compress(&file, &dst_0).map_err(|e| {
-        println!("err compressing: {:?}, dst: {:?}", file, dst_0);
-        e
+    compression.compress(&file, &dst_0).inspect_err(|e| {
+        println!("err compressing: {:?}, dst: {:?}: {}", file, dst_0, e);
     })?;
     Ok(())
 }

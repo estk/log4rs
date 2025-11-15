@@ -88,9 +88,8 @@ struct LogWriter {
 
 impl io::Write for LogWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.file.write(buf).map(|n| {
+        self.file.write(buf).inspect(|&n| {
             self.len += n as u64;
-            n
         })
     }
 
