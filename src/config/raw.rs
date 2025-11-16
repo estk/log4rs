@@ -92,7 +92,6 @@
 use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
-use derive_more::Debug;
 use log::LevelFilter;
 use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
 use serde_value::Value;

@@ -6,7 +6,7 @@
 //! - Print messages at the trace and debug levels to the console.
 //! - Write messages at the warning and error levels to a file.
 
-use derive_more::Debug;
+use core::fmt;
 use std::{
     fs::{File, OpenOptions},
     io::{BufWriter, Write},
@@ -78,12 +78,19 @@ impl Encode for MyEncoder {
 }
 
 /// A custom appender that writes to both console and file based on log level.
-#[derive(Debug)]
 struct MyAppender {
-    #[debug(skip)]
     console_writer: ConsoleWriter,
     file_writer: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
+}
+
+impl fmt::Debug for MyAppender {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MyAppender")
+            .field("file_writer", &self.file_writer)
+            .field("encoder", &self.encoder)
+            .finish_non_exhaustive()
+    }
 }
 
 impl MyAppender {

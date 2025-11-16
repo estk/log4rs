@@ -1,6 +1,5 @@
 //! Encoders
 
-use derive_more::Debug;
 use log::Record;
 use std::{fmt, io};
 
@@ -102,7 +101,6 @@ pub struct Style {
     pub background: Option<Color>,
     /// True if the text should have increased intensity.
     pub intense: Option<bool>,
-    #[debug(skip)]
     _p: (),
 }
 
