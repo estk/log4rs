@@ -140,9 +140,8 @@
 //! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
 use chrono::{Local, Utc};
-use derive_more::Debug;
 use log::{Level, Record};
-use std::{default::Default, io, mem, process, thread};
+use std::{default::Default, fmt, io, mem, process, thread};
 use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
 
 use crate::encode::{
@@ -703,11 +702,17 @@ impl FormattedChunk {
 }
 
 /// An `Encode`r configured via a format string.
-#[derive(Clone, Eq, Debug, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PatternEncoder {
-    #[debug(skip)]
     chunks: Vec<Chunk>,
     pattern: String,
+}
+impl fmt::Debug for PatternEncoder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PatternEncoder")
+            .field("pattern", &self.pattern)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Returns a `PatternEncoder` using the default pattern of `{d} {l} {t} - {m}{n}`.

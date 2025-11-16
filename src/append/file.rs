@@ -3,7 +3,6 @@
 //! Requires the `file_appender` feature.
 
 use chrono::prelude::Local;
-use derive_more::Debug;
 use log::Record;
 use parking_lot::Mutex;
 use std::{
@@ -43,7 +42,6 @@ pub struct FileAppenderConfig {
 pub struct FileAppender {
     #[allow(dead_code)] // reason = "debug purposes only"
     path: PathBuf,
-    #[debug(skip)]
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
 }
