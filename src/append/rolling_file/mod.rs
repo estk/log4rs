@@ -410,7 +410,7 @@ appenders:
             dir.path().display()
         );
 
-        let config = ::serde_yaml::from_str::<RawConfig>(&config).unwrap();
+        let config = ::serde_saphyr::from_str::<RawConfig>(&config).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());

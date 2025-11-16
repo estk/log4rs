@@ -453,7 +453,7 @@ mod test {
         ];
 
         for interval in test_error.iter() {
-            let error = ::serde_yaml::from_str::<TimeTriggerInterval>(interval);
+            let error = ::serde_saphyr::from_str::<TimeTriggerInterval>(interval);
             assert!(error.is_err());
         }
 
@@ -484,7 +484,7 @@ mod test {
         ];
         for (interval, expected) in test_ok.iter() {
             let interval = interval.to_string();
-            let interval = ::serde_yaml::from_str::<TimeTriggerInterval>(&interval).unwrap();
+            let interval = ::serde_saphyr::from_str::<TimeTriggerInterval>(&interval).unwrap();
             assert_eq!(interval, *expected);
         }
     }

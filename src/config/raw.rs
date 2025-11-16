@@ -512,7 +512,7 @@ loggers:
             - baz
         additive: false
 "#;
-        let config = ::serde_yaml::from_str::<RawConfig>(cfg).unwrap();
+        let config = ::serde_saphyr::from_str::<RawConfig>(cfg).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         println!("{:?}", errors);
         assert!(errors.is_empty());
@@ -521,7 +521,7 @@ loggers:
     #[test]
     #[cfg(feature = "yaml_format")]
     fn empty() {
-        ::serde_yaml::from_str::<RawConfig>("{}").unwrap();
+        ::serde_saphyr::from_str::<RawConfig>("{}").unwrap();
     }
 
     #[cfg(windows)]
@@ -545,7 +545,7 @@ loggers:
         let config_end = sample_file.find(&config_end_string).unwrap();
         let config_str = sample_file[config_start..config_end].trim();
 
-        let config = ::serde_yaml::from_str::<RawConfig>(config_str);
+        let config = ::serde_saphyr::from_str::<RawConfig>(config_str);
         assert!(config.is_ok());
         assert!(config::create_raw_config(config.unwrap()).is_ok());
     }
