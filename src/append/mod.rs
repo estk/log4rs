@@ -3,6 +3,7 @@
 use log::{Log, Record};
 #[cfg(feature = "config_parsing")]
 use serde::{de, Deserialize, Deserializer};
+use serde::{Serialize, Serializer};
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
@@ -148,6 +149,46 @@ impl<'de> Deserialize<'de> for AppenderConfig {
             filters,
             config: Value::Map(map),
         })
+    }
+}
+
+#[cfg(feature = "config_parsing")]
+impl Serialize for AppenderConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map: BTreeMap<Value, Value> = BTreeMap::new();
+
+        map.insert(
+            Value::String("kind".to_string()),
+            Value::String(self.kind.clone()),
+        );
+
+        // Insert the `filters` field into the map if it's not empty
+        if !self.filters.is_empty() {
+            let filters: Vec<Value> = self
+                .filters
+                .iter()
+                .map(|f| serde_value::to_value(f).unwrap())
+                .collect();
+
+            map.insert(Value::String("filters".to_string()), Value::Seq(filters));
+        } else {
+            map.insert(
+                Value::String("filters".to_string()),
+                Value::String("[]".to_string()),
+            );
+        }
+
+        if let Value::Map(ref config_map) = self.config {
+            for (key, value) in config_map {
+                map.insert(key.clone(), value.clone());
+            }
+        }
+
+        // Serialize the map
+        map.serialize(serializer)
     }
 }
 
