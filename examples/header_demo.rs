@@ -35,8 +35,8 @@ fn main() {
     println!("\n✓ Logs written to /tmp/log4rs_header_demo.log");
     println!("\nFile contents:");
     println!("─────────────────────────────────────");
-    let contents = std::fs::read_to_string("/tmp/log4rs_header_demo.log")
-        .expect("Failed to read log file");
+    let contents =
+        std::fs::read_to_string("/tmp/log4rs_header_demo.log").expect("Failed to read log file");
     println!("{}", contents);
     println!("─────────────────────────────────────");
 }
