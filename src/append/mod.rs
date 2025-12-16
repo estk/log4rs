@@ -83,6 +83,55 @@ mod env_util {
     }
 }
 
+#[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
+mod header_util {
+    use chrono::Local;
+    use std::io::{self, Write};
+
+    const TIME_PREFIX: &str = "$TIME{";
+    const TIME_PREFIX_LEN: usize = TIME_PREFIX.len();
+    const TIME_SUFFIX: char = '}';
+    const TIME_SUFFIX_LEN: usize = 1;
+    const MAX_REPLACEMENTS: usize = 5;
+
+    /// Expands $TIME{format} placeholders in text using chrono formatting
+    pub fn expand_time_vars(text: &str) -> String {
+        let mut result = text.to_string();
+        let mut replacements = 0;
+
+        while let Some(start) = result.find(TIME_PREFIX) {
+            if replacements >= MAX_REPLACEMENTS {
+                break;
+            }
+            if let Some(end_offset) = result[start..].find(TIME_SUFFIX) {
+                let end = start + end_offset;
+                let format = &result[start + TIME_PREFIX_LEN..end];
+                let now = Local::now();
+                let formatted = now.format(format).to_string();
+                result.replace_range(start..end + TIME_SUFFIX_LEN, &formatted);
+                replacements += 1;
+            } else {
+                break;
+            }
+        }
+        result
+    }
+
+    /// Writes a header to the writer with templating support
+    pub fn write_header(writer: &mut impl Write, header_text: &str) -> io::Result<()> {
+        // Apply $ENV{} templating
+        let expanded = super::env_util::expand_env_vars(header_text);
+        // Apply $TIME{} templating
+        let templated = expand_time_vars(expanded.as_ref());
+
+        // Write header text + automatic newline
+        writer.write_all(templated.as_bytes())?;
+        writer.write_all(crate::encode::NEWLINE.as_bytes())?;
+        writer.flush()?;
+        Ok(())
+    }
+}
+
 /// A trait implemented by log4rs appenders.
 ///
 /// Appenders take a log record and processes them, for example, by writing it

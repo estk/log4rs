@@ -22,11 +22,11 @@ pub mod writer;
 
 #[allow(dead_code)]
 #[cfg(windows)]
-const NEWLINE: &'static str = "\r\n";
+pub(crate) const NEWLINE: &'static str = "\r\n";
 
 #[allow(dead_code)]
 #[cfg(not(windows))]
-const NEWLINE: &str = "\n";
+pub(crate) const NEWLINE: &str = "\n";
 
 /// A trait implemented by types that can serialize a `Record` into a
 /// `Write`r.

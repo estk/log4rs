@@ -51,6 +51,7 @@ pub struct RollingFileAppenderConfig {
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
+    header: Option<String>,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -158,6 +159,7 @@ pub struct RollingFileAppender {
     append: bool,
     encoder: Box<dyn Encode>,
     policy: Box<dyn policy::Policy>,
+    header: Option<String>,
 }
 
 impl Append for RollingFileAppender {
@@ -211,11 +213,19 @@ impl RollingFileAppender {
         RollingFileAppenderBuilder {
             append: true,
             encoder: None,
+            header: None,
         }
     }
 
     fn get_writer<'a>(&self, writer: &'a mut Option<LogWriter>) -> io::Result<&'a mut LogWriter> {
         if writer.is_none() {
+            // Check if file exists and is empty before opening
+            let file_was_empty = if self.path.exists() {
+                fs::metadata(&self.path)?.len() == 0
+            } else {
+                true
+            };
+
             let file = OpenOptions::new()
                 .write(true)
                 .append(self.append)
@@ -227,10 +237,19 @@ impl RollingFileAppender {
             } else {
                 0
             };
-            *writer = Some(LogWriter {
+            let mut log_writer = LogWriter {
                 file: BufWriter::with_capacity(1024, file),
                 len,
-            });
+            };
+
+            // Write header if file was empty or being truncated
+            if file_was_empty || !self.append {
+                if let Some(ref header) = self.header {
+                    super::header_util::write_header(&mut log_writer, header)?;
+                }
+            }
+
+            *writer = Some(log_writer);
         }
 
         // :( unwrap
@@ -242,6 +261,7 @@ impl RollingFileAppender {
 pub struct RollingFileAppenderBuilder {
     append: bool,
     encoder: Option<Box<dyn Encode>>,
+    header: Option<String>,
 }
 
 impl RollingFileAppenderBuilder {
@@ -258,6 +278,19 @@ impl RollingFileAppenderBuilder {
     /// Defaults to a `PatternEncoder` with the default pattern.
     pub fn encoder(mut self, encoder: Box<dyn Encode>) -> RollingFileAppenderBuilder {
         self.encoder = Some(encoder);
+        self
+    }
+
+    /// Sets the header text to write at the beginning of new log files.
+    ///
+    /// The header supports templating with `$ENV{var}` for environment variables
+    /// and `$TIME{format}` for timestamps using chrono formatting.
+    /// A newline is automatically appended after the header.
+    ///
+    /// The header is only written when a new empty file is created or when
+    /// truncating an existing file.
+    pub fn header(mut self, header: impl Into<String>) -> RollingFileAppenderBuilder {
+        self.header = Some(header.into());
         self
     }
 
@@ -283,6 +316,7 @@ impl RollingFileAppenderBuilder {
                 .encoder
                 .unwrap_or_else(|| Box::<PatternEncoder>::default()),
             policy,
+            header: self.header,
         };
 
         if let Some(parent) = appender.path.parent() {
@@ -317,6 +351,12 @@ impl RollingFileAppenderBuilder {
 /// # The encoder to use to format output. Defaults to `kind: pattern`.
 /// encoder:
 ///   kind: pattern
+///
+/// # Optional header text to write at the beginning of new log files.
+/// # The header supports $ENV{var} and $TIME{format} templating.
+/// # A newline is automatically appended. Only written when a new empty
+/// # file is created or when truncating.
+/// header: "=== Log started at $TIME{%Y-%m-%d %H:%M:%S} ==="
 ///
 /// # The policy which handles rotation of the log file. Required.
 /// policy:
@@ -355,6 +395,9 @@ impl Deserialize for RollingFileAppenderDeserializer {
         if let Some(encoder) = config.encoder {
             let encoder = deserializers.deserialize(&encoder.kind, encoder.config)?;
             builder = builder.encoder(encoder);
+        }
+        if let Some(header) = config.header {
+            builder = builder.header(header);
         }
 
         let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;

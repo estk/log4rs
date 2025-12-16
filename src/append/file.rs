@@ -36,6 +36,7 @@ pub struct FileAppenderConfig {
     path: String,
     encoder: Option<EncoderConfig>,
     append: Option<bool>,
+    header: Option<String>,
 }
 
 /// An appender which logs to a file.
@@ -46,6 +47,8 @@ pub struct FileAppender {
     #[debug(skip)]
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
+    #[allow(dead_code)] // reason = "debug purposes only"
+    header: Option<String>,
 }
 
 impl Append for FileAppender {
@@ -65,6 +68,7 @@ impl FileAppender {
         FileAppenderBuilder {
             encoder: None,
             append: true,
+            header: None,
         }
     }
 }
@@ -73,6 +77,7 @@ impl FileAppender {
 pub struct FileAppenderBuilder {
     encoder: Option<Box<dyn Encode>>,
     append: bool,
+    header: Option<String>,
 }
 
 impl FileAppenderBuilder {
@@ -87,6 +92,19 @@ impl FileAppenderBuilder {
     /// Defaults to `true`.
     pub fn append(mut self, append: bool) -> FileAppenderBuilder {
         self.append = append;
+        self
+    }
+
+    /// Sets the header text to write at the beginning of new log files.
+    ///
+    /// The header supports templating with `$ENV{var}` for environment variables
+    /// and `$TIME{format}` for timestamps using chrono formatting.
+    /// A newline is automatically appended after the header.
+    ///
+    /// The header is only written when a new empty file is created or when
+    /// truncating an existing file.
+    pub fn header(mut self, header: impl Into<String>) -> FileAppenderBuilder {
+        self.header = Some(header.into());
         self
     }
 
@@ -111,6 +129,14 @@ impl FileAppenderBuilder {
         if let Some(parent) = final_path.parent() {
             fs::create_dir_all(parent)?;
         }
+
+        // Check if file exists and is empty before opening
+        let file_was_empty = if final_path.exists() {
+            fs::metadata(&final_path)?.len() == 0
+        } else {
+            true
+        };
+
         let file = OpenOptions::new()
             .write(true)
             .append(self.append)
@@ -118,12 +144,22 @@ impl FileAppenderBuilder {
             .create(true)
             .open(&final_path)?;
 
+        let mut writer = SimpleWriter(BufWriter::with_capacity(1024, file));
+
+        // Write header if file was empty or being truncated
+        if file_was_empty || !self.append {
+            if let Some(ref header) = self.header {
+                super::header_util::write_header(&mut writer, header)?;
+            }
+        }
+
         Ok(FileAppender {
             path: final_path,
-            file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
+            file: Mutex::new(writer),
             encoder: self
                 .encoder
                 .unwrap_or_else(|| Box::<PatternEncoder>::default()),
+            header: self.header,
         })
     }
 
@@ -179,6 +215,12 @@ impl FileAppenderBuilder {
 /// # The encoder to use to format output. Defaults to `kind: pattern`.
 /// encoder:
 ///   kind: pattern
+///
+/// # Optional header text to write at the beginning of new log files.
+/// # The header supports $ENV{var} and $TIME{format} templating.
+/// # A newline is automatically appended. Only written when a new empty
+/// # file is created or when truncating.
+/// header: "=== Log started at $TIME{%Y-%m-%d %H:%M:%S} ==="
 /// ```
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
@@ -201,6 +243,9 @@ impl Deserialize for FileAppenderDeserializer {
         }
         if let Some(encoder) = config.encoder {
             appender = appender.encoder(deserializers.deserialize(&encoder.kind, encoder.config)?);
+        }
+        if let Some(header) = config.header {
+            appender = appender.header(header);
         }
         Ok(Box::new(appender.build(&config.path)?))
     }
@@ -369,5 +414,108 @@ mod test {
             current_time, current_time
         ));
         assert_eq!(builder.path, expected_path);
+    }
+
+    #[test]
+    fn test_header_on_new_file() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let path = tempdir.path().join("header_test.log");
+
+        FileAppender::builder()
+            .header("=== TEST HEADER ===")
+            .build(&path)
+            .unwrap();
+
+        let contents = fs::read_to_string(&path).unwrap();
+        assert!(contents.starts_with("=== TEST HEADER ===\n"));
+    }
+
+    #[test]
+    fn test_header_with_env_templating() {
+        use std::env;
+
+        let tempdir = tempfile::tempdir().unwrap();
+        let path = tempdir.path().join("template_test.log");
+
+        env::set_var("LOG4RS_TEST_VAR", "test_value");
+
+        FileAppender::builder()
+            .header("Header: $ENV{LOG4RS_TEST_VAR}")
+            .build(&path)
+            .unwrap();
+
+        let contents = fs::read_to_string(&path).unwrap();
+        assert!(contents.starts_with("Header: test_value\n"));
+    }
+
+    #[test]
+    fn test_header_with_time_templating() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let path = tempdir.path().join("time_test.log");
+        let current_year = Local::now().format("%Y").to_string();
+
+        FileAppender::builder()
+            .header("Log started in $TIME{%Y}")
+            .build(&path)
+            .unwrap();
+
+        let contents = fs::read_to_string(&path).unwrap();
+        assert!(contents.starts_with(&format!("Log started in {}\n", current_year)));
+    }
+
+    #[test]
+    fn test_no_header_on_existing_nonempty_file_append() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let path = tempdir.path().join("existing.log");
+
+        // Create file with content
+        fs::write(&path, "existing content\n").unwrap();
+
+        FileAppender::builder()
+            .header("=== HEADER ===")
+            .append(true)
+            .build(&path)
+            .unwrap();
+
+        let contents = fs::read_to_string(&path).unwrap();
+        assert!(!contents.contains("=== HEADER ==="));
+        assert_eq!(contents, "existing content\n");
+    }
+
+    #[test]
+    fn test_header_on_existing_empty_file_append() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let path = tempdir.path().join("empty.log");
+
+        // Create empty file
+        File::create(&path).unwrap();
+
+        FileAppender::builder()
+            .header("=== HEADER ===")
+            .append(true)
+            .build(&path)
+            .unwrap();
+
+        let contents = fs::read_to_string(&path).unwrap();
+        assert!(contents.starts_with("=== HEADER ===\n"));
+    }
+
+    #[test]
+    fn test_header_with_truncate() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let path = tempdir.path().join("truncate.log");
+
+        // Create file with content
+        fs::write(&path, "old content\n").unwrap();
+
+        FileAppender::builder()
+            .header("=== NEW HEADER ===")
+            .append(false)
+            .build(&path)
+            .unwrap();
+
+        let contents = fs::read_to_string(&path).unwrap();
+        assert!(contents.starts_with("=== NEW HEADER ===\n"));
+        assert!(!contents.contains("old content"));
     }
 }

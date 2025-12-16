@@ -23,6 +23,7 @@ appenders:
     path: "log/requests.log"
     encoder:
       pattern: "{d} - {m}{n}"
+    header: "=== Log started at $TIME{%Y-%m-%d %H:%M:%S} on $ENV{USER} ==="
 root:
   level: warn
   appenders:
