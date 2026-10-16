@@ -129,7 +129,7 @@ impl Format {
     fn parse(&self, source: &str) -> anyhow::Result<RawConfig> {
         match *self {
             #[cfg(feature = "yaml_format")]
-            Format::Yaml => ::serde_yaml::from_str(source).map_err(Into::into),
+            Format::Yaml => ::serde_saphyr::from_str(source).map_err(Into::into),
             #[cfg(feature = "json_format")]
             Format::Json => ::serde_json::from_str(source).map_err(Into::into),
             #[cfg(feature = "toml_format")]

@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+* Replace the unmaintained `serde_yaml` with the pure-Rust `serde-saphyr` for YAML parsing (RUSTSEC-2024-0449)
+
 ## [1.4.0]
 
 ### Fixed
