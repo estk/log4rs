@@ -1,5 +1,12 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+* Replace the unmaintained `serde_yaml` with the pure-Rust `serde-saphyr` for YAML parsing (RUSTSEC-2024-0449)
+* Raise the minimum supported Rust version to 1.89
+
 ## [1.4.0]
 
 ### Fixed
