@@ -519,7 +519,7 @@ appenders:
             pattern: "%m"
             color_map:
                 info: Blue
-                trace: Black
+                trace: Magenta
 loggers:
     foo::bar::baz:
         level: warn
