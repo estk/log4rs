@@ -2,7 +2,6 @@
 //!
 //! Requires the `console_appender` feature.
 
-use derive_more::Debug;
 use log::Record;
 use std::{
     fmt,
@@ -29,7 +28,7 @@ use crate::{
 
 /// The console appender's configuration.
 #[cfg(feature = "config_parsing")]
-#[derive(Debug, serde::Deserialize)]
+#[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConsoleAppenderConfig {
     target: Option<ConfigTarget>,
@@ -49,6 +48,14 @@ enum ConfigTarget {
 enum Writer {
     Tty(ConsoleWriter),
     Raw(StdWriter),
+}
+impl fmt::Debug for Writer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Writer::Tty(_) => write!(f, "Tty"),
+            Writer::Raw(_) => write!(f, "Raw"),
+        }
+    }
 }
 
 impl Writer {
@@ -119,7 +126,6 @@ impl<'a> encode::Write for WriterLock<'a> {
 /// or is a TTY on Unix.
 #[derive(Debug)]
 pub struct ConsoleAppender {
-    #[debug(skip)]
     writer: Writer,
     encoder: Box<dyn Encode>,
     do_write: bool,

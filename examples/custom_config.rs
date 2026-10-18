@@ -1,8 +1,8 @@
 //! In this example, we will define the Appender, Encoder and Filter using the same code as in custom.rs.
 //! However, unlike before, our logger will be initialized from a configuration file.
 
-use derive_more::Debug;
 use std::{
+    fmt,
     fs::{File, OpenOptions},
     io::{BufWriter, Write},
     sync::Mutex,
@@ -73,12 +73,19 @@ impl Encode for MyEncoder {
 }
 
 /// A custom appender that writes to both console and file based on log level.
-#[derive(Debug)]
 struct MyAppender {
-    #[debug(skip)]
     console_writer: ConsoleWriter,
     file_writer: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<dyn Encode>,
+}
+
+impl fmt::Debug for MyAppender {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MyAppender")
+            .field("file_writer", &self.file_writer)
+            .field("encoder", &self.encoder)
+            .finish_non_exhaustive()
+    }
 }
 
 impl MyAppender {
