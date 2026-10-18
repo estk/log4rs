@@ -52,11 +52,12 @@ pub enum Response {
 
 /// Configuration for a filter.
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Serialize)]
 pub struct FilterConfig {
     /// The filter kind.
     pub kind: String,
     /// The filter configuration.
+    #[serde(flatten)]
     pub config: Value,
 }
 

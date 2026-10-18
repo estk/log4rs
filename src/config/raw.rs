@@ -93,7 +93,10 @@ use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Durat
 
 use anyhow::anyhow;
 use log::LevelFilter;
-use serde::de::{self, Deserialize as SerdeDeserialize, DeserializeOwned};
+use serde::{
+    de::{self, Deserialize as SerdeDeserialize, DeserializeOwned},
+    ser,
+};
 use serde_value::Value;
 use thiserror::Error;
 use typemap_ors::{Key, ShareCloneMap};
@@ -316,11 +319,14 @@ pub enum DeserializingConfigError {
     Filter(String, anyhow::Error),
 }
 
-/// A raw deserializable log4rs configuration.
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+/// A raw log4rs configuration that can be serialized and deserialized.
+///
+/// Serialization may normalize formatting, duration strings, and omitted defaults.
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
     #[serde(deserialize_with = "de_duration", default)]
+    #[serde(serialize_with = "ser_duration")]
     refresh_rate: Option<Duration>,
 
     #[serde(default)]
@@ -402,6 +408,19 @@ impl RawConfig {
     }
 }
 
+fn ser_duration<S>(duration: &Option<Duration>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: ser::Serializer,
+{
+    match duration {
+        Some(duration) => {
+            let duration_str: String = humantime::format_duration(*duration).to_string();
+            s.serialize_some(&duration_str)
+        }
+        None => s.serialize_none(),
+    }
+}
+
 fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -437,7 +456,7 @@ where
     Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct Root {
     #[serde(default = "root_level_default")]
@@ -460,7 +479,7 @@ fn root_level_default() -> LevelFilter {
     LevelFilter::Debug
 }
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct Logger {
     level: LevelFilter,
@@ -481,12 +500,12 @@ mod test {
 
     use super::*;
 
-    #[test]
-    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
-    fn full_deserialize() {
-        let cfg = r#"
-refresh_rate: 60 seconds
-
+    #[cfg(feature = "yaml_format")]
+    const CFG: &str = r#"refresh_rate: 1m
+root:
+    level: info
+    appenders:
+        - console
 appenders:
     console:
         kind: console
@@ -498,12 +517,6 @@ appenders:
         path: /tmp/baz.log
         encoder:
             pattern: "%m"
-
-root:
-    appenders:
-        - console
-    level: info
-
 loggers:
     foo::bar::baz:
         level: warn
@@ -511,10 +524,76 @@ loggers:
             - baz
         additive: false
 "#;
-        let config = ::serde_saphyr::from_str::<RawConfig>(cfg).unwrap();
+
+    #[test]
+    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
+    fn full_deserialize() {
+        let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
         assert!(errors.is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "yaml_format")]
+    fn serialize_roundtrip() {
+        for input in [CFG, "{}", "refresh_rate: 1s 123ns"] {
+            let config = ::serde_saphyr::from_str::<RawConfig>(input).unwrap();
+            let serialized = ::serde_saphyr::to_string(&config).unwrap();
+            let roundtrip = ::serde_saphyr::from_str::<RawConfig>(&serialized).unwrap();
+            assert_eq!(
+                serde_value::to_value(&config).unwrap(),
+                serde_value::to_value(&roundtrip).unwrap()
+            );
+            assert_eq!(config.refresh_rate, roundtrip.refresh_rate);
+            assert_eq!(config.appenders, roundtrip.appenders);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "json_format")]
+    fn json_serialize_roundtrip() {
+        for input in [
+            r#"{"refresh_rate":"1s 123ns","appenders":{"console":{"kind":"console"}}}"#,
+            "{}",
+        ] {
+            let config = serde_json::from_str::<RawConfig>(input).unwrap();
+            let serialized = serde_json::to_string(&config).unwrap();
+            let roundtrip = serde_json::from_str::<RawConfig>(&serialized).unwrap();
+            assert_eq!(config.refresh_rate, roundtrip.refresh_rate);
+            assert_eq!(config.appenders, roundtrip.appenders);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "toml_format")]
+    fn toml_serialize_roundtrip() {
+        for input in ["refresh_rate = '1s 123ns'", ""] {
+            let config = toml::from_str::<RawConfig>(input).unwrap();
+            let serialized = toml::to_string(&config).unwrap();
+            let roundtrip = toml::from_str::<RawConfig>(&serialized).unwrap();
+            assert_eq!(config.refresh_rate, roundtrip.refresh_rate);
+        }
+    }
+
+    #[test]
+    fn serialize_invalid_component_config() {
+        let filter = crate::filter::FilterConfig {
+            kind: "threshold".to_owned(),
+            config: Value::Bool(true),
+        };
+        assert!(serde_value::to_value(&filter).is_err());
+        let appender = AppenderConfig {
+            kind: "console".to_owned(),
+            filters: vec![filter],
+            config: Value::Map(Default::default()),
+        };
+        assert!(serde_value::to_value(&appender).is_err());
+        let appender = AppenderConfig {
+            filters: vec![],
+            config: Value::Bool(true),
+            ..appender
+        };
+        assert!(serde_value::to_value(&appender).is_err());
     }
 
     #[test]

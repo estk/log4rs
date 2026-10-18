@@ -115,13 +115,15 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
 
 /// Configuration for an appender.
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Serialize)]
 pub struct AppenderConfig {
     /// The appender kind.
     pub kind: String,
     /// The filters attached to the appender.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub filters: Vec<FilterConfig>,
     /// The appender configuration.
+    #[serde(flatten)]
     pub config: Value,
 }
 
