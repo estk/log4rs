@@ -98,7 +98,6 @@ use serde::{
     ser,
 };
 use serde_value::Value;
-
 use thiserror::Error;
 use typemap_ors::{Key, ShareCloneMap};
 
@@ -320,7 +319,9 @@ pub enum DeserializingConfigError {
     Filter(String, anyhow::Error),
 }
 
-/// A raw deserializable log4rs configuration.
+/// A raw log4rs configuration that can be serialized and deserialized.
+///
+/// Serialization may normalize formatting, duration strings, and omitted defaults.
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
@@ -495,10 +496,12 @@ fn logger_additive_default() -> bool {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod test {
-    use super::*;
     use std::fs;
 
-    const CFG: &'static str = r#"refresh_rate: 1m
+    use super::*;
+
+    #[cfg(feature = "yaml_format")]
+    const CFG: &str = r#"refresh_rate: 1m
 root:
     level: info
     appenders:
@@ -527,21 +530,70 @@ loggers:
     fn full_deserialize() {
         let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
         assert!(errors.is_empty());
     }
 
     #[test]
-    #[cfg(all(feature = "yaml_format", feature = "threshold_filter"))]
-    fn full_serialize() {
-        let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
-        let errors = config.appenders_lossy(&Deserializers::new()).1;
-        println!("{:?}", errors);
-        assert!(errors.is_empty());
+    #[cfg(feature = "yaml_format")]
+    fn serialize_roundtrip() {
+        for input in [CFG, "{}", "refresh_rate: 1s 123ns"] {
+            let config = ::serde_saphyr::from_str::<RawConfig>(input).unwrap();
+            let serialized = ::serde_saphyr::to_string(&config).unwrap();
+            let roundtrip = ::serde_saphyr::from_str::<RawConfig>(&serialized).unwrap();
+            assert_eq!(
+                serde_value::to_value(&config).unwrap(),
+                serde_value::to_value(&roundtrip).unwrap()
+            );
+            assert_eq!(config.refresh_rate, roundtrip.refresh_rate);
+            assert_eq!(config.appenders, roundtrip.appenders);
+        }
+    }
 
-        let config = ::serde_saphyr::to_string::<RawConfig>(&config);
+    #[test]
+    #[cfg(feature = "json_format")]
+    fn json_serialize_roundtrip() {
+        for input in [
+            r#"{"refresh_rate":"1s 123ns","appenders":{"console":{"kind":"console"}}}"#,
+            "{}",
+        ] {
+            let config = serde_json::from_str::<RawConfig>(input).unwrap();
+            let serialized = serde_json::to_string(&config).unwrap();
+            let roundtrip = serde_json::from_str::<RawConfig>(&serialized).unwrap();
+            assert_eq!(config.refresh_rate, roundtrip.refresh_rate);
+            assert_eq!(config.appenders, roundtrip.appenders);
+        }
+    }
 
-        assert_eq!(config.unwrap(), CFG)
+    #[test]
+    #[cfg(feature = "toml_format")]
+    fn toml_serialize_roundtrip() {
+        for input in ["refresh_rate = '1s 123ns'", ""] {
+            let config = toml::from_str::<RawConfig>(input).unwrap();
+            let serialized = toml::to_string(&config).unwrap();
+            let roundtrip = toml::from_str::<RawConfig>(&serialized).unwrap();
+            assert_eq!(config.refresh_rate, roundtrip.refresh_rate);
+        }
+    }
+
+    #[test]
+    fn serialize_invalid_component_config() {
+        let filter = crate::filter::FilterConfig {
+            kind: "threshold".to_owned(),
+            config: Value::Bool(true),
+        };
+        assert!(serde_value::to_value(&filter).is_err());
+        let appender = AppenderConfig {
+            kind: "console".to_owned(),
+            filters: vec![filter],
+            config: Value::Map(Default::default()),
+        };
+        assert!(serde_value::to_value(&appender).is_err());
+        let appender = AppenderConfig {
+            filters: vec![],
+            config: Value::Bool(true),
+            ..appender
+        };
+        assert!(serde_value::to_value(&appender).is_err());
     }
 
     #[test]

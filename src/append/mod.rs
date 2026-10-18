@@ -3,7 +3,6 @@
 use log::{Log, Record};
 #[cfg(feature = "config_parsing")]
 use serde::{de, Deserialize, Deserializer};
-use serde::{Serialize, Serializer};
 #[cfg(feature = "config_parsing")]
 use serde_value::Value;
 #[cfg(feature = "config_parsing")]
@@ -116,13 +115,15 @@ impl<T: Log + fmt::Debug + 'static> Append for T {
 
 /// Configuration for an appender.
 #[cfg(feature = "config_parsing")]
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Serialize)]
 pub struct AppenderConfig {
     /// The appender kind.
     pub kind: String,
     /// The filters attached to the appender.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub filters: Vec<FilterConfig>,
     /// The appender configuration.
+    #[serde(flatten)]
     pub config: Value,
 }
 
@@ -149,46 +150,6 @@ impl<'de> Deserialize<'de> for AppenderConfig {
             filters,
             config: Value::Map(map),
         })
-    }
-}
-
-#[cfg(feature = "config_parsing")]
-impl Serialize for AppenderConfig {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut map: BTreeMap<Value, Value> = BTreeMap::new();
-
-        map.insert(
-            Value::String("kind".to_string()),
-            Value::String(self.kind.clone()),
-        );
-
-        // Insert the `filters` field into the map if it's not empty
-        if !self.filters.is_empty() {
-            let filters: Vec<Value> = self
-                .filters
-                .iter()
-                .map(|f| serde_value::to_value(f).unwrap())
-                .collect();
-
-            map.insert(Value::String("filters".to_string()), Value::Seq(filters));
-        } else {
-            map.insert(
-                Value::String("filters".to_string()),
-                Value::String("[]".to_string()),
-            );
-        }
-
-        if let Value::Map(ref config_map) = self.config {
-            for (key, value) in config_map {
-                map.insert(key.clone(), value.clone());
-            }
-        }
-
-        // Serialize the map
-        map.serialize(serializer)
     }
 }
 
