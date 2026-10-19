@@ -14,7 +14,7 @@ edition = "2021"
 rust-version = "1.89"
 
 [features]
-default = ["all_components", "config_parsing", "yaml_format"]
+default = ["all_components", "config_parsing", "yaml_format", "parking_lot"]
 onstartup_trigger = []
 config_parsing = [
     "humantime",
@@ -27,8 +27,8 @@ yaml_format = ["serde-saphyr"]
 json_format = ["serde_json"]
 toml_format = ["toml"]
 console_appender = ["console_writer", "simple_writer", "pattern_encoder"]
-file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
-rolling_file_appender = ["parking_lot", "simple_writer", "pattern_encoder"]
+file_appender = ["simple_writer", "pattern_encoder"]
+rolling_file_appender = ["simple_writer", "pattern_encoder"]
 compound_policy = []
 delete_roller = []
 fixed_window_roller = []

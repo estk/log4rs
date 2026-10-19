@@ -80,8 +80,11 @@
 //! `yaml_format` feature and the console appender requires the
 //! `console_appender` feature.
 //!
-//! By default, the `all_components`, `gzip`, `file`, and `yaml_format` features
-//! are enabled.
+//! By default, the `all_components`, `config_parsing`, `yaml_format`, and
+//! `parking_lot` features are enabled.
+//!
+//! To use standard-library locks, disable default features and enable the desired
+//! components without `parking_lot`.
 //!
 //! As a convenience, the `all_components` feature activates all logger components.
 //!
@@ -316,6 +319,8 @@ pub mod encode;
 pub mod filter;
 #[cfg(feature = "console_writer")]
 mod priv_io;
+#[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
+mod sync;
 
 pub use config::{init_config, Config};
 

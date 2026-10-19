@@ -57,6 +57,7 @@ jobs:
               echo building with feature "$feature"
               RUSTFLAGS='-D warnings --cfg mock_time' cargo test --no-default-features --features "$feature"
           done
+          RUSTFLAGS='-D warnings --cfg mock_time' cargo test --no-default-features --features all_components,config_parsing,yaml_format,background_rotation,gzip,zstd
 
   bench:
     name: Benchmark the background_rotation feature

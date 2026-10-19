@@ -2,11 +2,15 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
-use anyhow::bail;
 #[cfg(feature = "background_rotation")]
-use parking_lot::{Condvar, Mutex};
+use crate::sync::{lock, Mutex, MutexGuard};
+use anyhow::bail;
+#[cfg(all(feature = "background_rotation", feature = "parking_lot"))]
+use parking_lot::Condvar;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
+#[cfg(all(feature = "background_rotation", not(feature = "parking_lot")))]
+use std::sync::Condvar;
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -111,6 +115,23 @@ impl FixedWindowRoller {
     pub fn builder() -> FixedWindowRollerBuilder {
         FixedWindowRollerBuilder { base: 0 }
     }
+
+    #[cfg(feature = "background_rotation")]
+    fn wait_for_ready(&self) -> MutexGuard<'_, bool> {
+        let (mutex, cvar) = &*self.cond_pair;
+        let mut ready = lock(mutex);
+        while !*ready {
+            #[cfg(feature = "parking_lot")]
+            cvar.wait(&mut ready);
+            #[cfg(not(feature = "parking_lot"))]
+            {
+                ready = cvar
+                    .wait(ready)
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+            }
+        }
+        ready
+    }
 }
 
 impl Roll for FixedWindowRoller {
@@ -142,11 +163,7 @@ impl Roll for FixedWindowRoller {
         move_file(file, &temp)?;
 
         // Wait for the state to be ready to roll
-        let (lock, cvar) = &*self.cond_pair.clone();
-        let mut ready = lock.lock();
-        if !*ready {
-            cvar.wait(&mut ready);
-        }
+        let mut ready = self.wait_for_ready();
         *ready = false;
         drop(ready);
 
@@ -157,8 +174,8 @@ impl Roll for FixedWindowRoller {
         let cond_pair = self.cond_pair.clone();
         // rotate in the separate thread
         std::thread::spawn(move || {
-            let (lock, cvar) = &*cond_pair;
-            let mut ready = lock.lock();
+            let (mutex, cvar) = &*cond_pair;
+            let mut ready = lock(mutex);
 
             if let Err(e) = rotate(pattern, compression, base, count, temp) {
                 use std::io::Write;
@@ -366,12 +383,53 @@ mod test {
 
     #[cfg(feature = "background_rotation")]
     fn wait_for_roller(roller: &FixedWindowRoller) {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        let _lock = roller.cond_pair.0.lock();
+        let _ready = roller.wait_for_ready();
     }
 
     #[cfg(not(feature = "background_rotation"))]
     fn wait_for_roller(_roller: &FixedWindowRoller) {}
+
+    #[test]
+    #[cfg(feature = "background_rotation")]
+    fn rotation_waits_after_lock_panic() {
+        use std::{sync::mpsc, thread, time::Duration};
+
+        let dir = tempfile::tempdir().unwrap();
+        let pattern = dir.path().join("archive.{}");
+        let roller = FixedWindowRoller::builder()
+            .build(pattern.to_str().unwrap(), 1)
+            .unwrap();
+        let file = dir.path().join("active.log");
+        fs::write(&file, b"record").unwrap();
+        let pair = roller.cond_pair.clone();
+        let poisoned = pair.clone();
+        assert!(thread::spawn(move || {
+            let mut ready = lock(&poisoned.0);
+            *ready = false;
+            panic!("lock panic");
+        })
+        .join()
+        .is_err());
+
+        let (sender, receiver) = mpsc::channel();
+        let worker = thread::spawn(move || {
+            roller.roll(&file).unwrap();
+            sender.send(roller).unwrap();
+        });
+        for _ in 0..2 {
+            pair.1.notify_all();
+            assert!(matches!(
+                receiver.recv_timeout(Duration::from_millis(50)),
+                Err(mpsc::RecvTimeoutError::Timeout)
+            ));
+        }
+        *lock(&pair.0) = true;
+        pair.1.notify_one();
+        let roller = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+        worker.join().unwrap();
+        wait_for_roller(&roller);
+        assert_eq!(fs::read(dir.path().join("archive.0")).unwrap(), b"record");
+    }
 
     #[test]
     fn rotation() {

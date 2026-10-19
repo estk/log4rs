@@ -16,9 +16,9 @@
 //!
 //! Requires the `rolling_file_appender` feature.
 
+use crate::sync::{lock, Mutex};
 use core::fmt;
 use log::Record;
-use parking_lot::Mutex;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
@@ -175,7 +175,7 @@ impl Append for RollingFileAppender {
         let mut buffer = SimpleWriter(Vec::new());
         self.encoder.encode(&mut buffer, record)?;
         // TODO(eas): Perhaps this is better as a concurrent queue?
-        let mut writer = self.writer.lock();
+        let mut writer = lock(&self.writer);
 
         let log_writer = self.get_writer(&mut writer)?;
         let len = log_writer.len;
@@ -294,7 +294,7 @@ impl RollingFileAppenderBuilder {
         }
 
         // open the log file immediately
-        appender.get_writer(&mut appender.writer.lock())?;
+        appender.get_writer(&mut lock(&appender.writer))?;
 
         Ok(appender)
     }

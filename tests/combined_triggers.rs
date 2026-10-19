@@ -13,7 +13,7 @@ use std::{
     path::Path,
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc,
+        Arc, Mutex,
     },
 };
 
@@ -32,14 +32,13 @@ use log4rs::{
     config::{Deserialize, Deserializers},
     encode::pattern::PatternEncoder,
 };
-use parking_lot::Mutex;
 
 #[derive(Clone, Debug, Default)]
 struct Archives(Arc<Mutex<Vec<Vec<u8>>>>);
 
 impl Roll for Archives {
     fn roll(&self, path: &Path) -> anyhow::Result<()> {
-        self.0.lock().push(fs::read(path)?);
+        self.0.lock().unwrap().push(fs::read(path)?);
         fs::remove_file(path)?;
         Ok(())
     }
@@ -86,19 +85,19 @@ fn startup_and_size_preserve_record_placement() {
         let appender = appender(&path, triggers, &archives).unwrap();
 
         append(&*appender, "abc");
-        assert_eq!(*archives.0.lock(), vec![b"old".to_vec()]);
+        assert_eq!(*archives.0.lock().unwrap(), vec![b"old".to_vec()]);
         assert_eq!(fs::read(&path).unwrap(), b"abc");
 
         append(&*appender, "def");
         assert_eq!(
-            *archives.0.lock(),
+            *archives.0.lock().unwrap(),
             vec![b"old".to_vec(), b"abcdef".to_vec()]
         );
         assert!(!path.exists());
 
         append(&*appender, "ghi");
         assert_eq!(fs::read(&path).unwrap(), b"ghi");
-        assert_eq!(archives.0.lock().len(), 2);
+        assert_eq!(archives.0.lock().unwrap().len(), 2);
     }
 }
 
@@ -117,14 +116,14 @@ fn startup_size_and_time_roll_in_their_own_phases() {
 
     append(&*appender, "abcdef");
     assert_eq!(
-        *archives.0.lock(),
+        *archives.0.lock().unwrap(),
         vec![b"old".to_vec(), b"abcdef".to_vec()]
     );
 
     append(&*appender, "x");
     append(&*appender, "y");
     assert_eq!(
-        *archives.0.lock(),
+        *archives.0.lock().unwrap(),
         vec![b"old".to_vec(), b"abcdef".to_vec(), vec![], b"x".to_vec()]
     );
     assert_eq!(fs::read(&path).unwrap(), b"y");
@@ -159,9 +158,9 @@ fn size_rolls_after_writing_with_single_or_combined_triggers() {
         let archives = Archives::default();
         let appender = appender(&path, triggers, &archives).unwrap();
         append(&*appender, "abc");
-        assert!(archives.0.lock().is_empty());
+        assert!(archives.0.lock().unwrap().is_empty());
         append(&*appender, "def");
-        assert_eq!(*archives.0.lock(), vec![b"abcdef".to_vec()]);
+        assert_eq!(*archives.0.lock().unwrap(), vec![b"abcdef".to_vec()]);
     }
 }
 
@@ -173,7 +172,7 @@ struct ExistingPolicy {
 
 impl Policy for ExistingPolicy {
     fn process(&self, log: &mut LogFile<'_>) -> anyhow::Result<()> {
-        self.sizes.lock().push(log.len_estimate());
+        self.sizes.lock().unwrap().push(log.len_estimate());
         self.pre.fetch_xor(true, Ordering::SeqCst);
         Ok(())
     }
@@ -185,7 +184,7 @@ impl Policy for ExistingPolicy {
 
 impl Trigger for ExistingPolicy {
     fn trigger(&self, file: &LogFile<'_>) -> anyhow::Result<bool> {
-        self.sizes.lock().push(file.len_estimate());
+        self.sizes.lock().unwrap().push(file.len_estimate());
         self.pre.fetch_xor(true, Ordering::SeqCst);
         Ok(false)
     }
@@ -222,7 +221,7 @@ fn existing_policies_and_triggers_run_once_in_the_selected_phase() {
             appender
                 .append(&Record::builder().args(format_args!("abc")).build())
                 .unwrap();
-            assert_eq!(*sizes.lock(), vec![if pre { 3 } else { 6 }]);
+            assert_eq!(*sizes.lock().unwrap(), vec![if pre { 3 } else { 6 }]);
             assert_eq!(fs::read(&path).unwrap(), b"oldabc");
         }
     }
@@ -258,11 +257,14 @@ fn mixed_triggers_run_once_in_their_selected_phase() {
             .unwrap();
         append(&appender, "abc");
         for (pre, sizes) in phases.into_iter().zip(&sizes) {
-            assert_eq!(*sizes.lock(), vec![if pre { 3 } else { 6 }]);
+            assert_eq!(*sizes.lock().unwrap(), vec![if pre { 3 } else { 6 }]);
         }
         append(&appender, "def");
         for (pre, sizes) in phases.into_iter().zip(&sizes) {
-            assert_eq!(*sizes.lock(), if pre { vec![3, 6] } else { vec![6, 9] });
+            assert_eq!(
+                *sizes.lock().unwrap(),
+                if pre { vec![3, 6] } else { vec![6, 9] }
+            );
         }
     }
 }
@@ -305,11 +307,11 @@ fn evaluates_every_trigger_before_rolling_once_or_propagating_errors() {
         assert_eq!(calls.load(Ordering::SeqCst), 2);
         if fail {
             assert_eq!(result.unwrap_err().to_string(), "trigger failed");
-            assert!(archives.0.lock().is_empty());
+            assert!(archives.0.lock().unwrap().is_empty());
             assert_eq!(fs::read(&path).unwrap(), b"old");
         } else {
             result.unwrap();
-            assert_eq!(*archives.0.lock(), vec![b"old".to_vec()]);
+            assert_eq!(*archives.0.lock().unwrap(), vec![b"old".to_vec()]);
             assert_eq!(fs::read(&path).unwrap(), b"new");
         }
     }
