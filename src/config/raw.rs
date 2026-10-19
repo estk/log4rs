@@ -517,6 +517,9 @@ appenders:
         path: /tmp/baz.log
         encoder:
             pattern: "%m"
+            color_map:
+                info: Blue
+                trace: Magenta
 loggers:
     foo::bar::baz:
         level: warn
