@@ -4,6 +4,7 @@
 
 ### New
 
+* Allow file appenders and background rotation without `parking_lot` (#264)
 * Support combining startup, size, and time triggers in a compound rolling policy (#439)
 
 ### Changed

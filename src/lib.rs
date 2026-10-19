@@ -80,8 +80,11 @@
 //! `yaml_format` feature and the console appender requires the
 //! `console_appender` feature.
 //!
-//! By default, the `all_components`, `gzip`, `file`, and `yaml_format` features
-//! are enabled.
+//! By default, the `all_components`, `config_parsing`, `yaml_format`, and
+//! `parking_lot` features are enabled.
+//!
+//! To use standard-library locks, disable default features and enable the desired
+//! components without `parking_lot`.
 //!
 //! As a convenience, the `all_components` feature activates all logger components.
 //!
@@ -316,6 +319,8 @@ pub mod encode;
 pub mod filter;
 #[cfg(feature = "console_writer")]
 mod priv_io;
+#[cfg(any(feature = "file_appender", feature = "rolling_file_appender"))]
+mod sync;
 
 pub use config::{init_config, Config};
 
@@ -325,52 +330,6 @@ pub use config::{init_file, init_raw_config};
 use self::{append::Append, filter::Filter};
 
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
-
-#[cfg(feature = "parking_lot")]
-#[allow(dead_code)]
-pub(crate) mod sync {
-    #[derive(Debug)]
-    pub struct Mutex<T: ?Sized>(parking_lot::Mutex<T>);
-
-    impl<T> Mutex<T> {
-        #[inline]
-        pub fn new(val: T) -> Self {
-            Self(parking_lot::Mutex::new(val))
-        }
-    }
-
-    impl<T: ?Sized> Mutex<T> {
-        #[inline]
-        pub fn lock(&self) -> anyhow::Result<parking_lot::MutexGuard<'_, T>> {
-            Ok(self.0.lock())
-        }
-    }
-
-    pub type Condvar = parking_lot::Condvar;
-}
-
-#[cfg(not(feature = "parking_lot"))]
-#[allow(dead_code)]
-pub(crate) mod sync {
-    #[derive(Debug)]
-    pub struct Mutex<T: ?Sized>(std::sync::Mutex<T>);
-
-    impl<T> Mutex<T> {
-        #[inline]
-        pub fn new(val: T) -> Self {
-            Self(std::sync::Mutex::new(val))
-        }
-    }
-
-    impl<T: ?Sized> Mutex<T> {
-        #[inline]
-        pub fn lock(&self) -> anyhow::Result<std::sync::MutexGuard<'_, T>> {
-            self.0.lock().map_err(|_| anyhow::anyhow!("Mutex poisoned"))
-        }
-    }
-
-    pub type Condvar = std::sync::Condvar;
-}
 
 #[derive(Debug)]
 struct ConfiguredLogger {
