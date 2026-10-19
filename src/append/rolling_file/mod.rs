@@ -32,7 +32,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     append::Append,
-    encode::{self, pattern::PatternEncoder, Encode},
+    encode::{self, pattern::PatternEncoder, writer::simple::SimpleWriter, Encode},
 };
 
 #[cfg(feature = "config_parsing")]
@@ -171,6 +171,9 @@ impl fmt::Debug for RollingFileAppender {
 
 impl Append for RollingFileAppender {
     fn append(&self, record: &Record<'_>) -> anyhow::Result<()> {
+        // Formatting may log recursively, so encode before locking the file.
+        let mut buffer = SimpleWriter(Vec::new());
+        self.encoder.encode(&mut buffer, record)?;
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
@@ -192,10 +195,10 @@ impl Append for RollingFileAppender {
             self.policy.process(&mut file)?;
 
             let log_writer_new = self.get_writer(&mut writer)?;
-            self.encoder.encode(log_writer_new, record)?;
+            log_writer_new.write_all(&buffer.0)?;
             log_writer_new.flush()?;
         } else {
-            self.encoder.encode(log_writer, record)?;
+            log_writer.write_all(&buffer.0)?;
             log_writer.flush()?;
             let len = log_writer.len;
 

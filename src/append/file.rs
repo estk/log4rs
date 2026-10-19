@@ -48,8 +48,11 @@ pub struct FileAppender {
 
 impl Append for FileAppender {
     fn append(&self, record: &Record<'_>) -> anyhow::Result<()> {
+        // Formatting may log recursively, so encode before locking the file.
+        let mut buffer = SimpleWriter(Vec::new());
+        self.encoder.encode(&mut buffer, record)?;
         let mut file = self.file.lock();
-        self.encoder.encode(&mut *file, record)?;
+        file.write_all(&buffer.0)?;
         file.flush()?;
         Ok(())
     }
