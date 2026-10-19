@@ -179,6 +179,23 @@ other components, the default (and only supported) policy is `kind: compound`.
 The _trigger_ field is used to dictate when the log file should be rolled. It
 supports three types: `size`, `time` and `onstartup`.
 
+To combine triggers, set _trigger_ to a nonempty list. The file rolls when any
+trigger fires. Startup and time triggers run before writing each log event.
+Size triggers run afterward. The policy evaluates every trigger in a phase
+before rolling at most once in that phase.
+
+```yml
+trigger:
+  - kind: onstartup
+  - kind: size
+    limit: 10 mb
+  - kind: time
+    interval: 1 day
+```
+
+Rust callers can combine triggers with `CompoundPolicy::new_with_triggers`.
+Existing single-trigger configurations and `CompoundPolicy::new` remain supported.
+
 For `size`, it require a _limit_ field. The _limit_ field is a string which defines the maximum file size
 prior to a rolling of the file. The limit field requires one of the following
 units in bytes, case does not matter:

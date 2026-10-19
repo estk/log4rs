@@ -177,38 +177,30 @@ impl Append for RollingFileAppender {
         // TODO(eas): Perhaps this is better as a concurrent queue?
         let mut writer = self.writer.lock();
 
-        let is_pre_process = self.policy.is_pre_process();
         let log_writer = self.get_writer(&mut writer)?;
+        let len = log_writer.len;
 
-        if is_pre_process {
-            let len = log_writer.len;
+        let mut file = LogFile {
+            writer: &mut writer,
+            path: &self.path,
+            len,
+        };
 
-            let mut file = LogFile {
-                writer: &mut writer,
-                path: &self.path,
-                len,
-            };
+        let process_post = self.policy.process_pre(&mut file)?;
 
-            // TODO(eas): Idea: make this optionally return a future, and if so, we initialize a queue for
-            // data that comes in while we are processing the file rotation.
+        let log_writer = self.get_writer(&mut writer)?;
+        log_writer.write_all(&buffer.0)?;
+        log_writer.flush()?;
+        let len = log_writer.len;
 
-            self.policy.process(&mut file)?;
+        let mut file = LogFile {
+            writer: &mut writer,
+            path: &self.path,
+            len,
+        };
 
-            let log_writer_new = self.get_writer(&mut writer)?;
-            log_writer_new.write_all(&buffer.0)?;
-            log_writer_new.flush()?;
-        } else {
-            log_writer.write_all(&buffer.0)?;
-            log_writer.flush()?;
-            let len = log_writer.len;
-
-            let mut file = LogFile {
-                writer: &mut writer,
-                path: &self.path,
-                len,
-            };
-
-            self.policy.process(&mut file)?;
+        if process_post {
+            self.policy.process_post(&mut file)?;
         }
 
         Ok(())

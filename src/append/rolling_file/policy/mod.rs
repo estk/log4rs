@@ -13,11 +13,34 @@ pub mod compound;
 pub trait Policy: Sync + Send + 'static + fmt::Debug {
     /// Rolls the current log file, if necessary.
     ///
-    /// This method is called after each log event. It is provided a reference
-    /// to the current log file.
+    /// The default phase methods call this before or after each log event,
+    /// according to `is_pre_process`.
     fn process(&self, log: &mut LogFile<'_>) -> anyhow::Result<()>;
-    /// Return the config `Trigger.is_pre_process` value
+    /// Returns whether the policy processes log files before writing events.
+    ///
+    /// Policies supporting both phases should override `process_pre` and `process_post`.
     fn is_pre_process(&self) -> bool;
+
+    /// Processes the log before writing an event.
+    ///
+    /// By default, selects the phase once using `is_pre_process` and calls
+    /// `process` here if it returns true.
+    ///
+    /// Returns whether `process_post` should run after writing the event.
+    fn process_pre(&self, log: &mut LogFile<'_>) -> anyhow::Result<bool> {
+        let pre = self.is_pre_process();
+        if pre {
+            self.process(log)?;
+        }
+        Ok(!pre)
+    }
+
+    /// Processes the log after writing an event.
+    ///
+    /// Called only when `process_pre` returns true. Delegates to `process` by default.
+    fn process_post(&self, log: &mut LogFile<'_>) -> anyhow::Result<()> {
+        self.process(log)
+    }
 }
 
 #[cfg(feature = "config_parsing")]

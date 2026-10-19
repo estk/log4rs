@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### New
+
+* Support combining startup, size, and time triggers in a compound rolling policy (#439)
+
 ### Changed
 
 * Replace the unmaintained `serde_yaml` with the pure-Rust `serde-saphyr` for YAML parsing (RUSTSEC-2024-0449)

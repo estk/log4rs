@@ -23,8 +23,16 @@ pub mod trigger;
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CompoundPolicyConfig {
-    trigger: Trigger,
+    trigger: Triggers,
     roller: Roller,
+}
+
+#[cfg(feature = "config_parsing")]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum Triggers {
+    Single(Trigger),
+    Multiple(Vec<Trigger>),
 }
 
 #[cfg(feature = "config_parsing")]
@@ -88,28 +96,83 @@ impl<'de> serde::Deserialize<'de> for Roller {
 /// by compressing it and moving it to a different location.
 #[derive(Debug)]
 pub struct CompoundPolicy {
-    trigger: Box<dyn trigger::Trigger>,
+    triggers: Vec<(Box<dyn trigger::Trigger>, Option<bool>)>,
     roller: Box<dyn Roll>,
 }
 
 impl CompoundPolicy {
     /// Creates a new `CompoundPolicy`.
     pub fn new(trigger: Box<dyn trigger::Trigger>, roller: Box<dyn Roll>) -> CompoundPolicy {
-        CompoundPolicy { trigger, roller }
+        Self::new_with_triggers(vec![trigger], roller)
     }
-}
 
-impl Policy for CompoundPolicy {
-    fn process(&self, log: &mut LogFile<'_>) -> anyhow::Result<()> {
-        if self.trigger.trigger(log)? {
+    /// Creates a policy which rolls when any trigger fires.
+    ///
+    /// For multiple triggers, assigns each to its pre- or post-write phase at
+    /// construction. The policy evaluates every trigger in that phase before
+    /// rolling once. An empty list never rolls.
+    pub fn new_with_triggers(
+        triggers: Vec<Box<dyn trigger::Trigger>>,
+        roller: Box<dyn Roll>,
+    ) -> CompoundPolicy {
+        let multiple = triggers.len() > 1;
+        let triggers = triggers
+            .into_iter()
+            .map(|trigger| {
+                let phase = multiple.then(|| trigger.is_pre_process());
+                (trigger, phase)
+            })
+            .collect();
+        CompoundPolicy { triggers, roller }
+    }
+
+    fn process_triggers(&self, log: &mut LogFile<'_>, phase: Option<bool>) -> anyhow::Result<()> {
+        let mut roll = false;
+        for (trigger, assigned_phase) in &self.triggers {
+            if phase
+                .is_none_or(|pre| assigned_phase.unwrap_or_else(|| trigger.is_pre_process()) == pre)
+            {
+                roll |= trigger.trigger(log)?;
+            }
+        }
+        if roll {
             log.roll();
             self.roller.roll(log.path())?;
         }
         Ok(())
     }
+}
+
+impl Policy for CompoundPolicy {
+    fn process(&self, log: &mut LogFile<'_>) -> anyhow::Result<()> {
+        self.process_triggers(log, None)
+    }
 
     fn is_pre_process(&self) -> bool {
-        self.trigger.is_pre_process()
+        self.triggers
+            .iter()
+            .any(|(trigger, phase)| phase.unwrap_or_else(|| trigger.is_pre_process()))
+    }
+
+    fn process_pre(&self, log: &mut LogFile<'_>) -> anyhow::Result<bool> {
+        if self.triggers.len() == 1 {
+            let pre = self.is_pre_process();
+            if pre {
+                self.process(log)?;
+            }
+            Ok(!pre)
+        } else {
+            self.process_triggers(log, Some(true))?;
+            Ok(true)
+        }
+    }
+
+    fn process_post(&self, log: &mut LogFile<'_>) -> anyhow::Result<()> {
+        if self.triggers.len() == 1 {
+            self.process(log)
+        } else {
+            self.process_triggers(log, Some(false))
+        }
     }
 }
 
@@ -129,6 +192,12 @@ impl Policy for CompoundPolicy {
 ///   # The remainder of the configuration is passed to the trigger's
 ///   # deserializer, and will vary based on the kind of trigger.
 ///   limit: 10 mb
+///
+/// # To roll when any of several triggers fires, use a nonempty list instead:
+/// # trigger:
+/// #   - kind: onstartup
+/// #   - kind: size
+/// #     limit: 10 mb
 ///
 /// # The roller, which processes the old log file. Required.
 /// roller:
@@ -154,8 +223,18 @@ impl Deserialize for CompoundPolicyDeserializer {
         config: CompoundPolicyConfig,
         deserializers: &Deserializers,
     ) -> anyhow::Result<Box<dyn Policy>> {
-        let trigger = deserializers.deserialize(&config.trigger.kind, config.trigger.config)?;
+        let triggers = match config.trigger {
+            Triggers::Single(trigger) => vec![trigger],
+            Triggers::Multiple(triggers) => triggers,
+        };
+        anyhow::ensure!(!triggers.is_empty(), "trigger list must not be empty");
+        let triggers = triggers
+            .into_iter()
+            .map(|trigger| deserializers.deserialize(&trigger.kind, trigger.config))
+            .collect::<anyhow::Result<_>>()?;
         let roller = deserializers.deserialize(&config.roller.kind, config.roller.config)?;
-        Ok(Box::new(CompoundPolicy::new(trigger, roller)))
+        Ok(Box::new(CompoundPolicy::new_with_triggers(
+            triggers, roller,
+        )))
     }
 }
