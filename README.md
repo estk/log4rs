@@ -59,11 +59,11 @@ fn main() {
 ## Building for Dev
 
 * Run the tests: `cargo test --all-features`
-* Run the tests for windows with [cross](https://github.com/rust-embedded/cross):
+* Run the tests for windows with [cross](https://github.com/cross-rs/cross):
   `cross test --target x86_64-pc-windows-gnu`
 * Run the tests for all individual features: `./test.sh`
 * Run the tests for all individual features for windows with
-  [cross](https://github.com/rust-embedded/cross): `./test.sh win`
+  [cross](https://github.com/cross-rs/cross): `./test.sh win`
 
 
 ## Compression
@@ -97,8 +97,8 @@ export RUSTFLAGS='--cfg getrandom_backend="wasm_js"'
 
 Licensed under either of
 
-* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <https://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or <https://opensource.org/license/mit>)
 
 at your option.
 
