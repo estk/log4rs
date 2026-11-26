@@ -3,7 +3,7 @@
 //! Requires the `file_appender` feature.
 
 use crate::sync::{lock, Mutex};
-use chrono::prelude::Local;
+use jiff::ZonedDateTime;
 use log::Record;
 use std::{
     fs::{self, File, OpenOptions},
@@ -98,10 +98,9 @@ impl FileAppenderBuilder {
     ///   where 'name_here' will be the name of the environment variable that
     ///   will be resolved. Note that if the variable fails to resolve,
     ///   $ENV{name_here} will NOT be replaced in the path.
-    /// - `$TIME{chrono_format}`: This pattern will be replaced by `chrono_format`.
-    ///   where 'chrono_format' will be date/time format from chrono crate. Note
-    ///   that if the chrono_format fails to resolve, $TIME{chrono_format} will
-    ///   NOT be replaced in the path.
+    /// - `$TIME{format}`: This pattern will be replaced by the current local
+    ///   time using [Jiff's `strftime` syntax](https://docs.rs/jiff/latest/jiff/fmt/strtime/).
+    ///   Unsupported directives are copied as literal text.
     pub fn build<P: AsRef<Path>>(self, path: P) -> io::Result<FileAppender> {
         let path_cow = path.as_ref().to_string_lossy();
         // Expand environment variables in the path
@@ -129,31 +128,18 @@ impl FileAppenderBuilder {
     }
 
     fn date_time_format(&self, path: PathBuf) -> PathBuf {
-        let mut replacements = 0;
         let mut date_time_path = path.to_str().unwrap().to_string();
-        // Locate the start and end of the placeholder
-        while let Some(start) = date_time_path.find(TIME_PREFIX) {
-            if replacements >= MAX_REPLACEMENTS {
+        for _ in 0..MAX_REPLACEMENTS {
+            let Some(start) = date_time_path.find(TIME_PREFIX) else {
                 break;
-            }
-            if let Some(end) = date_time_path[start..].find(TIME_SUFFIX) {
-                let end = start + end;
-                // Extract the date format string
-                let date_format = &date_time_path[start + TIME_PREFIX_LEN..end];
-
-                // Get the current date and time
-                let now = Local::now();
-
-                // Format the current date and time
-                let formatted_date = now.format(date_format).to_string();
-
-                // replacing the placeholder with the formatted date
-                date_time_path.replace_range(start..end + TIME_SUFFIX_LEN, &formatted_date);
-                replacements += 1;
-            } else {
-                // If there's no closing brace, we leave the placeholder as is
+            };
+            let Some(end) = date_time_path[start..].find(TIME_SUFFIX) else {
                 break;
-            }
+            };
+            let end = start + end;
+            let date_format = &date_time_path[start + TIME_PREFIX_LEN..end];
+            let formatted_date = ZonedDateTime::now().strftime(date_format).to_string();
+            date_time_path.replace_range(start..end + TIME_SUFFIX_LEN, &formatted_date);
         }
         PathBuf::from(date_time_path)
     }
@@ -231,7 +217,7 @@ mod test {
 
     #[test]
     fn test_date_time_format_with_valid_format() {
-        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let current_time = ZonedDateTime::now().strftime("%Y-%m-%d").to_string();
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
             .build(
@@ -249,7 +235,7 @@ mod test {
     }
 
     #[test]
-    fn test_date_time_format_with_invalid_format() {
+    fn test_date_time_format_with_literal_format() {
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
             .build(
@@ -265,9 +251,15 @@ mod test {
     }
 
     #[test]
+    fn test_date_time_format_with_incomplete_directive() {
+        let path = FileAppender::builder().date_time_format("log-$TIME{%}.log".into());
+        assert_eq!(path, Path::new("log-%.log"));
+    }
+
+    #[test]
     fn test_date_time_format_with_no_closing_brace() {
         let tempdir = tempfile::tempdir().unwrap();
-        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let current_time = ZonedDateTime::now().strftime("%Y-%m-%d").to_string();
         let builder = FileAppender::builder()
             .build(
                 tempdir
@@ -287,7 +279,7 @@ mod test {
     #[test]
     fn test_date_time_format_with_max_replacements() {
         let tempdir = tempfile::tempdir().unwrap();
-        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let current_time = ZonedDateTime::now().strftime("%Y-%m-%d").to_string();
         let builder = FileAppender::builder()
             .build(
                 tempdir
@@ -307,7 +299,7 @@ mod test {
     #[test]
     fn test_date_time_format_over_max_replacements() {
         let tempdir = tempfile::tempdir().unwrap();
-        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let current_time = ZonedDateTime::now().strftime("%Y-%m-%d").to_string();
 
         // Build a path with more than MAX_REPLACEMENTS ($TIME{...}) placeholders
         let path_str = format!(
@@ -354,7 +346,7 @@ mod test {
 
     #[test]
     fn test_date_time_format_with_multiple_placeholders() {
-        let current_time = Local::now().format("%Y-%m-%d").to_string();
+        let current_time = ZonedDateTime::now().strftime("%Y-%m-%d").to_string();
         let tempdir = tempfile::tempdir().unwrap();
         let builder = FileAppender::builder()
             .build(

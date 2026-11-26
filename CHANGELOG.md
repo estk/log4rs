@@ -11,6 +11,10 @@
 
 * Replace the unmaintained `serde_yaml` with the pure-Rust `serde-saphyr` for YAML parsing (RUSTSEC-2024-0449)
 * Raise the minimum supported Rust version to 1.89
+* Replace `chrono` and `humantime` with `jiff`. Custom date formats now use
+  Jiff's `strftime` syntax: replace `%+` with `%Y-%m-%dT%H:%M:%S%.f%:z`.
+  The `refresh_rate` now accepts Jiff's fixed durations (e.g. `30 seconds` or
+  `PT30S`), not calendar units.
 
 ## [1.4.0]
 

@@ -4,7 +4,7 @@ appenders:
   console:
     kind: console
     encoder:
-      pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
+      pattern: "{d} [{t}] {h({l})} {M}:{m}{n}"
     filters:
       - kind: threshold
         level: error

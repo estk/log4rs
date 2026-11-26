@@ -41,7 +41,7 @@
 //! a formatter does not accept any argument.
 //!
 //! * `d`, `date` - The current time. By default, the ISO 8601 format is used.
-//!   A custom format may be provided in the syntax accepted by `chrono`.
+//!   Custom formats use [Jiff's `strftime` syntax](https://docs.rs/jiff/latest/jiff/fmt/strtime/).
 //!   The timezone defaults to local, but can be specified explicitly by
 //!   passing a second argument of `utc` for UTC or `local` for local time.
 //!   * `{d}` - `2016-03-20T14:22:20.644420340-08:00`
@@ -139,7 +139,7 @@
 //! [MDC]: https://crates.io/crates/log-mdc
 //! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
-use chrono::{Local, Utc};
+use jiff::{Timestamp, ZonedDateTime};
 use log::{Level, Record};
 use std::{default::Default, fmt, io, mem, process, thread};
 use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
@@ -330,7 +330,7 @@ impl<'a> From<Piece<'a>> for Chunk {
                             }
                             format
                         }
-                        None => "%+".to_owned(),
+                        None => "%Y-%m-%dT%H:%M:%S%.f%:z".to_owned(),
                     };
 
                     let timezone = match formatter.args.get(1) {
@@ -717,9 +717,11 @@ impl FormattedChunk {
         color_map: &ColorMap,
     ) -> io::Result<()> {
         match *self {
-            FormattedChunk::Time(ref fmt, Timezone::Utc) => write!(w, "{}", Utc::now().format(fmt)),
+            FormattedChunk::Time(ref fmt, Timezone::Utc) => {
+                write!(w, "{}", Timestamp::now().strftime(fmt))
+            }
             FormattedChunk::Time(ref fmt, Timezone::Local) => {
-                write!(w, "{}", Local::now().format(fmt))
+                write!(w, "{}", ZonedDateTime::now().strftime(fmt))
             }
             FormattedChunk::Level => write!(w, "{}", record.level()),
             FormattedChunk::Message => w.write_fmt(*record.args()),
@@ -1305,9 +1307,15 @@ mod tests {
 
     #[test]
     fn timezones() {
-        assert!(error_free(&PatternEncoder::new("{d(%+)(utc)}")));
-        assert!(error_free(&PatternEncoder::new("{d(%+)(local)}")));
-        assert!(!error_free(&PatternEncoder::new("{d(%+)(foo)}")));
+        assert!(error_free(&PatternEncoder::new("{d(%:z)(utc)}")));
+        assert!(error_free(&PatternEncoder::new("{d(%:z)(local)}")));
+        assert!(!error_free(&PatternEncoder::new("{d(%:z)(foo)}")));
+    }
+
+    #[test]
+    #[cfg(feature = "simple_writer")]
+    fn format_utc_offset() {
+        assert_info_message("{d(%:z)(utc)}", "", b"+00:00");
     }
 
     #[test]

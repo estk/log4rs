@@ -2,14 +2,16 @@
 //!
 //! Requires the `time_trigger` feature.
 
-use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Timelike};
-
+use jiff::{SignedDuration, ToSpan, ZonedDateTime};
 use rand::Rng;
 #[cfg(feature = "config_parsing")]
 use serde::de;
 #[cfg(feature = "config_parsing")]
 use std::fmt;
-use std::sync::{Once, RwLock};
+use std::{
+    sync::{Once, RwLock},
+    time::Duration,
+};
 
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 #[cfg(feature = "config_parsing")]
@@ -46,7 +48,7 @@ pub struct TimeTriggerConfig {
 #[derive(Debug)]
 pub struct TimeTrigger {
     config: TimeTriggerConfig,
-    next_roll_time: RwLock<DateTime<Local>>,
+    next_roll_time: RwLock<ZonedDateTime>,
     initial: Once,
 }
 
@@ -78,22 +80,21 @@ impl Default for TimeTriggerInterval {
 }
 
 #[cfg(mock_time)]
-fn get_current_time() -> DateTime<Local> {
+fn get_current_time() -> ZonedDateTime {
+    use jiff::{tz::TimeZone, Timestamp};
     use mock_instant::thread_local::{SystemTime, UNIX_EPOCH};
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system time before Unix epoch");
-    DateTime::from_timestamp(now.as_secs() as i64, now.subsec_nanos())
+    Timestamp::new(now.as_secs() as i64, now.subsec_nanos() as i32)
         .unwrap()
-        .naive_local()
-        .and_local_timezone(Local)
-        .unwrap()
+        .to_zoned_datetime(TimeZone::UTC)
 }
 
 #[cfg(not(mock_time))]
-fn get_current_time() -> DateTime<Local> {
-    Local::now()
+fn get_current_time() -> ZonedDateTime {
+    ZonedDateTime::now()
 }
 
 #[cfg(feature = "config_parsing")]
@@ -206,77 +207,55 @@ impl TimeTrigger {
         }
     }
 
-    fn get_next_time(&self, current: DateTime<Local>) -> DateTime<Local> {
-        let interval = self.config.interval;
-        let modulate = self.config.modulate;
-
-        let year = current.year();
-        if let TimeTriggerInterval::Year(n) = interval {
-            let n = n as i32;
-            let increment = if modulate { n - year % n } else { n };
-            let year_new = year + increment;
-            let result = Local.with_ymd_and_hms(year_new, 1, 1, 0, 0, 0).unwrap();
-            return result;
-        }
-
-        if let TimeTriggerInterval::Month(n) = interval {
-            let month0 = current.month0();
-            let n = n as u32;
-            let increment = if modulate { n - month0 % n } else { n };
-            let num_months = (year as u32) * 12 + month0;
-            let num_months_new = num_months + increment;
-            let year_new = (num_months_new / 12) as i32;
-            let month_new = (num_months_new) % 12 + 1;
-            let result = Local
-                .with_ymd_and_hms(year_new, month_new, 1, 0, 0, 0)
-                .unwrap();
-            return result;
-        }
-
-        let month = current.month();
-        let day = current.day();
-        if let TimeTriggerInterval::Week(n) = interval {
-            let week0 = current.iso_week().week0() as i64;
-            let weekday = current.weekday().num_days_from_monday() as i64; // Monday is the first day of the week
-            let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
-            let increment = if modulate { n - week0 % n } else { n };
-            return time + Duration::weeks(increment) - Duration::days(weekday);
-        }
-
-        if let TimeTriggerInterval::Day(n) = interval {
-            let ordinal0 = current.ordinal0() as i64;
-            let time = Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap();
-            let increment = if modulate { n - ordinal0 % n } else { n };
-            return time + Duration::days(increment);
-        }
-
-        let hour = current.hour();
-        if let TimeTriggerInterval::Hour(n) = interval {
-            let time = Local
-                .with_ymd_and_hms(year, month, day, hour, 0, 0)
-                .unwrap();
-            let increment = if modulate { n - (hour as i64) % n } else { n };
-            return time + Duration::hours(increment);
-        }
-
-        let min = current.minute();
-        if let TimeTriggerInterval::Minute(n) = interval {
-            let time = Local
-                .with_ymd_and_hms(year, month, day, hour, min, 0)
-                .unwrap();
-            let increment = if modulate { n - (min as i64) % n } else { n };
-            return time + Duration::minutes(increment);
-        }
-
-        let sec = current.second();
-        if let TimeTriggerInterval::Second(n) = interval {
-            let time = Local
-                .with_ymd_and_hms(year, month, day, hour, min, sec)
-                .unwrap();
-            let increment = if modulate { n - (sec as i64) % n } else { n };
-            return time + Duration::seconds(increment);
-        }
-        panic!("Should not reach here!");
+    fn get_next_time(&self, current: ZonedDateTime) -> ZonedDateTime {
+        let increment = |n, offset| {
+            if self.config.modulate {
+                n - offset % n
+            } else {
+                n
+            }
+        };
+        let time = current.with().subsec_nanosecond(0);
+        let (boundary, delay) = match self.config.interval {
+            TimeTriggerInterval::Year(n) => {
+                let years = increment(n, i64::from(current.year())).years();
+                return (current.date().first_of_year() + years)
+                    .to_zoned_datetime(current.time_zone().clone())
+                    .unwrap();
+            }
+            TimeTriggerInterval::Month(n) => {
+                let months = increment(n, i64::from(current.month()) - 1).months();
+                return (current.date().first_of_month() + months)
+                    .to_zoned_datetime(current.time_zone().clone())
+                    .unwrap();
+            }
+            // Day and week intervals use elapsed time, not calendar arithmetic.
+            TimeTriggerInterval::Week(n) => {
+                let weeks = increment(n, i64::from(current.iso_week_date().week()) - 1);
+                let weekday = i64::from(current.weekday().to_monday_zero_offset());
+                let delay = SignedDuration::from_hours(weeks) * 168
+                    - SignedDuration::from_hours(weekday * 24);
+                (current.start_of_day(), delay)
+            }
+            TimeTriggerInterval::Day(n) => {
+                let days = increment(n, i64::from(current.day_of_year()) - 1);
+                let delay = SignedDuration::from_hours(days) * 24;
+                (current.start_of_day(), delay)
+            }
+            TimeTriggerInterval::Hour(n) => (
+                time.minute(0).second(0).build(),
+                SignedDuration::from_hours(increment(n, i64::from(current.hour()))),
+            ),
+            TimeTriggerInterval::Minute(n) => (
+                time.second(0).build(),
+                SignedDuration::from_mins(increment(n, i64::from(current.minute()))),
+            ),
+            TimeTriggerInterval::Second(n) => (
+                time.build(),
+                SignedDuration::from_secs(increment(n, i64::from(current.second()))),
+            ),
+        };
+        boundary.unwrap() + delay
     }
 
     fn refresh_time(&self) {
@@ -284,7 +263,7 @@ impl TimeTrigger {
         let next_time = self.get_next_time(current);
         let next_roll_time = if self.config.max_random_delay > 0 {
             let random_delay = rand::rng().random_range(0..self.config.max_random_delay);
-            next_time + Duration::seconds(random_delay as i64)
+            next_time + Duration::from_secs(random_delay)
         } else {
             next_time
         };
@@ -442,7 +421,26 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "yaml_format")]
+    fn next_roll_during_repeated_hour() {
+        use jiff::{tz::TimeZone, Timestamp};
+
+        let zone = TimeZone::posix("EST5EDT,M3.2.0,M11.1.0").unwrap();
+        let current = "2024-11-03T01:30:00-05:00"
+            .parse::<Timestamp>()
+            .unwrap()
+            .to_zoned_datetime(zone);
+        let trigger = TimeTrigger::new(TimeTriggerConfig {
+            interval: TimeTriggerInterval::Hour(1),
+            ..Default::default()
+        });
+        assert_eq!(
+            trigger.get_next_time(current).timestamp(),
+            "2024-11-03T02:00:00-05:00".parse::<Timestamp>().unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg(all(feature = "config_parsing", feature = "yaml_format"))]
     fn test_serde() {
         let test_error = [
             "abc",   // // str none none

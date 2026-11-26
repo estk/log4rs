@@ -70,7 +70,7 @@ impl Encode for MyEncoder {
             w,
             "{}{} - {}",
             self.prefix,
-            chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f%:z"),
+            jiff::ZonedDateTime::now().strftime("%Y-%m-%dT%H:%M:%S%.3f%:z"),
             record.args()
         )?;
         Ok(())

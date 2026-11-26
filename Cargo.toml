@@ -17,7 +17,7 @@ rust-version = "1.89"
 default = ["all_components", "config_parsing", "yaml_format", "parking_lot"]
 onstartup_trigger = []
 config_parsing = [
-    "humantime",
+    "jiff/serde",
     "serde",
     "serde-value",
     "typemap-ors",
@@ -33,16 +33,16 @@ compound_policy = []
 delete_roller = []
 fixed_window_roller = []
 size_trigger = []
-time_trigger = ["rand", "getrandom"]
+time_trigger = ["dep:jiff", "rand", "getrandom"]
 json_encoder = [
     "serde",
     "serde_json",
-    "chrono",
+    "dep:jiff",
     "log-mdc",
     "log/serde",
     "thread-id",
 ]
-pattern_encoder = ["chrono", "log-mdc", "thread-id"]
+pattern_encoder = ["dep:jiff", "log-mdc", "thread-id"]
 ansi_writer = []
 console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
@@ -74,13 +74,10 @@ harness = false
 
 [dependencies]
 arc-swap = "1.6"
-chrono = { version = "0.4.37", optional = true, features = [
-    "clock",
-], default-features = false }
+jiff = { version = "1.0", optional = true, features = ["js"] }
 flate2 = { version = "1.0", optional = true }
 zstd = { version = "0.13", optional = true }
 fnv = "1.0"
-humantime = { version = "2.1", optional = true }
 log = { version = "0.4.21", features = ["std"] }
 log-mdc = { version = "0.1", optional = true }
 serde = { version = "1.0.196", optional = true, features = ["derive"] }
@@ -118,7 +115,6 @@ getrandom = { version = "0.3.3", features = ["wasm_js"], optional = true }
 [dev-dependencies]
 lazy_static = "1.4"
 streaming-stats = "0.2.3"
-humantime = "2.1"
 tempfile = "3.8"
 serde_test = "1.0.176"
 
