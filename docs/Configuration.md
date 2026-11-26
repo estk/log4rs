@@ -52,7 +52,7 @@ i.e.
 ```yml
 encoder:
   kind: pattern
-  pattern: "{h({d(%+)(utc)} [{f}:{L}] {l:<6} {M}:{m})}{n}"
+  pattern: "{h({d(%Y-%m-%dT%H:%M:%S%.f%:z)(utc)} [{f}:{L}] {l:<6} {M}:{m})}{n}"
 ```
 
 ## Loggers
@@ -131,8 +131,9 @@ my_console_appender:
 The _path_ field is required and accepts environment variables of the form
 `$ENV{name_here}`. The path can be relative or absolute.
 
-The _path_ field also supports date/time formats such as `$TIME{chrono_format}`. Refer
-to [chrono format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) for date and time formatting syntax
+The _path_ field also supports date/time formats such as `$TIME{%Y-%m-%d}`.
+See [Jiff's `strftime` syntax](https://docs.rs/jiff/latest/jiff/fmt/strtime/)
+for supported directives. Unsupported directives are copied as literal text.
 
 **Note:** There is a maximum of 5 `$TIME{...}` replacements per path. If more than 5 `$TIME{...}` placeholders are present, only the first 5 will be replaced; the rest will remain unchanged in the path.
 
@@ -229,9 +230,8 @@ unit is not specified), case does not matter:
 - year[s]
 
 > Note: `log4j` treats `Sunday` as the first day of the week, but `log4rs` treats
-> `Monday` as the first day of the week, which follows the `chrono` crate
-> and the `ISO 8601` standard. So when using `week`, the log file will be rolled
-> on `Monday` instead of `Sunday`.
+> `Monday` as the first day of the week, following the ISO 8601 standard.
+> So when using `week`, the log file will roll on `Monday` instead of `Sunday`.
 
 The _modulate_ field is an optional boolean. It indicates whether the interval should
 be adjusted to cause the next rollover to occur on the interval boundary. For example,
@@ -312,8 +312,10 @@ roller:
 
 ## Refresh Rate
 
-The _refresh_rate_ accepts a u64 value in seconds. The field is used to
-determine how often log4rs will scan the configuration file for changes. If a
+The _refresh_rate_ accepts a non-negative, fixed duration string in
+[Jiff's friendly format](https://docs.rs/jiff/latest/jiff/fmt/friendly/) or ISO 8601
+(for example, `30 seconds` or `PT30S`).
+The field is used to determine how often log4rs will scan the configuration file for changes. If a
 change is discovered, the logger will reconfigure automatically.
 
 i.e.

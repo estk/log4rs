@@ -12,7 +12,7 @@
 //! ```yaml
 //! # If set, log4rs will scan the file at the specified rate for changes and
 //! # automatically reconfigure the logger. The input string is parsed by the
-//! # humantime crate.
+//! # jiff crate.
 //! refresh_rate: 30 seconds
 //!
 //! # The "appenders" map contains the set of appenders, indexed by their names.
@@ -89,14 +89,12 @@
 //! ```
 #![allow(deprecated)]
 
-use std::{collections::HashMap, fmt, marker::PhantomData, sync::Arc, time::Duration};
+use std::{collections::HashMap, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
+use jiff::fmt::serde::unsigned_duration;
 use log::LevelFilter;
-use serde::{
-    de::{self, Deserialize as SerdeDeserialize, DeserializeOwned},
-    ser,
-};
+use serde::de::DeserializeOwned;
 use serde_value::Value;
 use thiserror::Error;
 use typemap_ors::{Key, ShareCloneMap};
@@ -325,8 +323,7 @@ pub enum DeserializingConfigError {
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawConfig {
-    #[serde(deserialize_with = "de_duration", default)]
-    #[serde(serialize_with = "ser_duration")]
+    #[serde(default, with = "unsigned_duration::friendly::compact::optional")]
     refresh_rate: Option<Duration>,
 
     #[serde(default)]
@@ -408,54 +405,6 @@ impl RawConfig {
     }
 }
 
-fn ser_duration<S>(duration: &Option<Duration>, s: S) -> Result<S::Ok, S::Error>
-where
-    S: ser::Serializer,
-{
-    match duration {
-        Some(duration) => {
-            let duration_str: String = humantime::format_duration(*duration).to_string();
-            s.serialize_some(&duration_str)
-        }
-        None => s.serialize_none(),
-    }
-}
-
-fn de_duration<'de, D>(d: D) -> Result<Option<Duration>, D::Error>
-where
-    D: de::Deserializer<'de>,
-{
-    struct S(Duration);
-
-    impl<'de2> de::Deserialize<'de2> for S {
-        fn deserialize<D>(d: D) -> Result<S, D::Error>
-        where
-            D: de::Deserializer<'de2>,
-        {
-            struct V;
-
-            impl<'de3> de::Visitor<'de3> for V {
-                type Value = S;
-
-                fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                    fmt.write_str("a duration")
-                }
-
-                fn visit_str<E>(self, v: &str) -> Result<S, E>
-                where
-                    E: de::Error,
-                {
-                    humantime::parse_duration(v).map(S).map_err(E::custom)
-                }
-            }
-
-            d.deserialize_any(V)
-        }
-    }
-
-    Option::<S>::deserialize(d).map(|r| r.map(|s| s.0))
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct Root {
@@ -534,6 +483,25 @@ loggers:
         let config = ::serde_saphyr::from_str::<RawConfig>(CFG).unwrap();
         let errors = config.appenders_lossy(&Deserializers::new()).1;
         assert!(errors.is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "yaml_format")]
+    fn refresh_rate() {
+        for input in ["{}", "refresh_rate: null"] {
+            let config = ::serde_saphyr::from_str::<RawConfig>(input).unwrap();
+            assert_eq!(config.refresh_rate(), None);
+        }
+        for input in ["30 seconds", "PT30S"] {
+            let config =
+                ::serde_saphyr::from_str::<RawConfig>(&format!("refresh_rate: {input}")).unwrap();
+            assert_eq!(config.refresh_rate(), Some(Duration::from_secs(30)));
+        }
+        for input in ["-30 seconds", "1 day", "1 month"] {
+            assert!(
+                ::serde_saphyr::from_str::<RawConfig>(&format!("refresh_rate: {input}")).is_err()
+            );
+        }
     }
 
     #[test]

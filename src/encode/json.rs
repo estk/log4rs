@@ -10,7 +10,7 @@
 //!
 //! ```json
 //! {
-//!     "time": "2016-03-20T14:22:20.644420340-08:00",
+//!     "time": "2016-03-20T14:22:20.64442034-08:00",
 //!     "message": "the log message",
 //!     "module_path": "foo::bar",
 //!     "file": "foo/bar/mod.rs",
@@ -30,13 +30,10 @@
 //!
 //! [log_kv]: https://docs.rs/log/latest/log/kv/index.html
 
-use chrono::{
-    format::{DelayedFormat, Fixed, Item},
-    DateTime, Local,
-};
+use jiff::{TimestampDisplayWithOffset, ZonedDateTime};
 use log::{Level, Record};
 use serde::ser::{self, Serialize, SerializeMap};
-use std::{fmt, option, thread};
+use std::{fmt, thread};
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -66,12 +63,12 @@ impl JsonEncoder {
     fn encode_inner(
         &self,
         w: &mut dyn Write,
-        time: DateTime<Local>,
+        time: ZonedDateTime,
         record: &Record<'_>,
     ) -> anyhow::Result<()> {
         let thread = thread::current();
         let message = Message {
-            time: time.format_with_items(Some(Item::Fixed(Fixed::RFC3339)).into_iter()),
+            time: time.timestamp().display_with_offset(time.offset()),
             level: record.level(),
             message: record.args(),
             module_path: record.module_path(),
@@ -93,14 +90,14 @@ impl JsonEncoder {
 
 impl Encode for JsonEncoder {
     fn encode(&self, w: &mut dyn Write, record: &Record<'_>) -> anyhow::Result<()> {
-        self.encode_inner(w, Local::now(), record)
+        self.encode_inner(w, ZonedDateTime::now(), record)
     }
 }
 
 #[derive(serde::Serialize)]
 struct Message<'a> {
     #[serde(serialize_with = "ser_display")]
-    time: DelayedFormat<option::IntoIter<Item<'a>>>,
+    time: TimestampDisplayWithOffset,
     level: Level,
     #[serde(serialize_with = "ser_display")]
     message: &'a fmt::Arguments<'a>,
@@ -211,8 +208,6 @@ mod kv {
 #[cfg(test)]
 #[cfg(feature = "simple_writer")]
 mod test {
-    #[cfg(feature = "chrono")]
-    use chrono::{DateTime, Local};
     use log::{Level, Record};
 
     use super::*;
@@ -220,9 +215,12 @@ mod test {
 
     #[test]
     fn default() {
-        let time = DateTime::parse_from_rfc3339("2016-03-20T14:22:20.644420340-08:00")
+        let time = "2016-03-20T14:22:20.644420340-08:00";
+        let zoned_time = time
+            .parse::<jiff::Timestamp>()
             .unwrap()
-            .with_timezone(&Local);
+            .to_zoned_datetime(jiff::tz::offset(-8).to_time_zone());
+        let expected_time = zoned_time.strftime("%Y-%m-%dT%H:%M:%S%.f%:z");
         let level = Level::Debug;
         let target = "target";
         let module_path = "module_path";
@@ -263,7 +261,7 @@ mod test {
         encoder
             .encode_inner(
                 &mut SimpleWriter(&mut buf),
-                time,
+                zoned_time,
                 &record_builder.args(format_args!("{message}")).build(),
             )
             .unwrap();
@@ -274,20 +272,12 @@ mod test {
         #[cfg(not(feature = "log_kv"))]
         let expected_attributes = "";
 
+        let thread_id = thread_id::get();
         let expected = format!(
-            "{{\"time\":\"{}\",\"level\":\"{}\",\"message\":\"{}\",\"module_path\":\"{}\",\
-            \"file\":\"{}\",\"line\":{},\"target\":\"{}\",\
-            \"thread\":\"{}\",\"thread_id\":{},\"mdc\":{{\"foo\":\"bar\"}}{}}}",
-            time.to_rfc3339(),
-            level,
-            message,
-            module_path,
-            file,
-            line,
-            target,
-            thread,
-            thread_id::get(),
-            expected_attributes
+            "{{\"time\":\"{expected_time}\",\
+            \"level\":\"{level}\",\"message\":\"{message}\",\"module_path\":\"{module_path}\",\
+            \"file\":\"{file}\",\"line\":{line},\"target\":\"{target}\",\
+            \"thread\":\"{thread}\",\"thread_id\":{thread_id},\"mdc\":{{\"foo\":\"bar\"}}{expected_attributes}}}"
         );
         assert_eq!(expected, String::from_utf8(buf).unwrap().trim());
     }
